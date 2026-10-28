@@ -45,6 +45,7 @@ export interface ConcertEvent {
   organizerId?: string;
   genre: string; // 'Rap / Hip-Hop' | 'Électro & Expérimental' | 'Afrobeats / Live' | etc.
   platformFeePercent?: number; // Configurable commission
+  infoline?: string; // Contact phone for ticketing
   categories: TicketCategory[];
 }
 
@@ -135,13 +136,17 @@ export interface ArchiveProduction {
   id: string;
   title: string;
   year: string;
+  date?: string; // e.g. "19 Décembre 2026"
   city: string;
   country: string;
   venue: string;
   artists: string[];
-  coverImage: string;
+  coverImage: string; // 16:9 thumbnail
   description: string;
-  photos: string[];
+  youtubeUrl?: string; // YouTube video link (e.g. watch?v=... or youtu.be/...)
+  youtubeEmbedUrl?: string; // Converted embed URL
+  duration?: string; // e.g. "18:42" or "Recap HD"
+  photos: string[]; // Photo gallery
   isPublished: boolean;
   orderIndex: number;
 }

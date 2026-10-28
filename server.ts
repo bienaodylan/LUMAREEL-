@@ -155,6 +155,24 @@ async function startServer() {
     }
   });
 
+  app.post('/api/archives', (req: Request, res: Response) => {
+    try {
+      const archive = db.saveArchive(req.body);
+      res.json({ success: true, archive });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.delete('/api/archives/:id', (req: Request, res: Response) => {
+    try {
+      const deleted = db.deleteArchive(req.params.id);
+      res.json({ success: true, deleted });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   app.get('/api/works', (_req: Request, res: Response) => {
     try {
       const works = db.getAllWorks();

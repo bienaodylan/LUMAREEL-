@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, ConcertEvent, Order, Ticket } from '../types';
-import { INITIAL_EVENTS, INITIAL_NEWS, INITIAL_ORDERS } from '../data/initialData';
+import { User, ConcertEvent, Order, Ticket, ArchiveProduction } from '../types';
+import { INITIAL_EVENTS, INITIAL_NEWS, INITIAL_ORDERS, INITIAL_ARCHIVES } from '../data/initialData';
+import { convertToYouTubeEmbed } from '../utils/mediaUtils';
 
 export type PageView = 'splash' | 'home' | 'discover' | 'concert_detail' | 'archive' | 'news' | 'client_space' | 'organizers' | 'gate_scanner' | 'admin' | 'contact' | 'about' | 'partners';
 
@@ -16,6 +17,10 @@ interface AppContextType {
   events: ConcertEvent[];
   featuredEvent: ConcertEvent | null;
   news: any[];
+  archives: ArchiveProduction[];
+  saveArchive: (archive: Partial<ArchiveProduction> & { title: string; coverImage: string }) => Promise<void>;
+  deleteArchive: (id: string) => Promise<void>;
+  refreshArchives: () => Promise<void>;
   refreshEvents: () => Promise<void>;
   customerOrders: Order[];
   refreshCustomerOrders: () => Promise<void>;
@@ -46,6 +51,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [events, setEvents] = useState<ConcertEvent[]>(INITIAL_EVENTS);
   const [featuredEvent, setFeaturedEvent] = useState<ConcertEvent | null>(INITIAL_EVENTS[0] || null);
   const [news, setNews] = useState<any[]>(INITIAL_NEWS);
+  const [archives, setArchives] = useState<ArchiveProduction[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lumareel_archives');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        console.warn('Could not read archives from localStorage', e);
+      }
+    }
+    return INITIAL_ARCHIVES;
+  });
   const [customerOrders, setCustomerOrders] = useState<Order[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -153,9 +169,87 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const refreshArchives = async () => {
+    try {
+      const res = await fetch('/api/archives');
+      if (!res.ok) return;
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) return;
+      const data = await res.json();
+      if (data.success && data.archives && data.archives.length > 0) {
+        setArchives(data.archives);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lumareel_archives', JSON.stringify(data.archives));
+        }
+      }
+    } catch (err) {
+      console.warn('API /api/archives unreachable, preserving local archives', err);
+    }
+  };
+
+  const saveArchive = async (archiveData: Partial<ArchiveProduction> & { title: string; coverImage: string }) => {
+    const id = archiveData.id || `arch_${Date.now()}`;
+    const embedUrl = archiveData.youtubeUrl ? convertToYouTubeEmbed(archiveData.youtubeUrl) : archiveData.youtubeEmbedUrl;
+    
+    const newArchive: ArchiveProduction = {
+      id,
+      title: archiveData.title,
+      year: archiveData.year || '2026',
+      date: archiveData.date || '2026',
+      city: archiveData.city || 'Abidjan',
+      country: archiveData.country || 'Côte d’Ivoire',
+      venue: archiveData.venue || 'Palais de la Culture',
+      artists: archiveData.artists || ['LUMARÉEL CO.'],
+      coverImage: archiveData.coverImage,
+      description: archiveData.description || '',
+      youtubeUrl: archiveData.youtubeUrl || '',
+      youtubeEmbedUrl: embedUrl || '',
+      duration: archiveData.duration || 'Live HD',
+      photos: archiveData.photos || [],
+      isPublished: archiveData.isPublished !== undefined ? archiveData.isPublished : true,
+      orderIndex: archiveData.orderIndex || 1,
+    };
+
+    setArchives((prev) => {
+      const filtered = prev.filter((a) => a.id !== id);
+      const updated = [newArchive, ...filtered];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lumareel_archives', JSON.stringify(updated));
+      }
+      return updated;
+    });
+
+    try {
+      await fetch('/api/archives', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newArchive),
+      });
+    } catch (err) {
+      console.warn('Failed to save archive on server', err);
+    }
+  };
+
+  const deleteArchive = async (id: string) => {
+    setArchives((prev) => {
+      const updated = prev.filter((a) => a.id !== id);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lumareel_archives', JSON.stringify(updated));
+      }
+      return updated;
+    });
+
+    try {
+      await fetch(`/api/archives/${id}`, { method: 'DELETE' });
+    } catch (err) {
+      console.warn('Failed to delete archive on server', err);
+    }
+  };
+
   useEffect(() => {
     refreshEvents();
     refreshNews();
+    refreshArchives();
   }, []);
 
   useEffect(() => {
@@ -178,6 +272,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         events,
         featuredEvent,
         news,
+        archives,
+        saveArchive,
+        deleteArchive,
+        refreshArchives,
         refreshEvents,
         customerOrders,
         refreshCustomerOrders,

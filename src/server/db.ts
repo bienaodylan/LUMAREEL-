@@ -136,158 +136,38 @@ class LumareelDatabase {
     this.organizers.set(orgNyokobop.id, orgNyokobop);
     this.organizers.set(orgCoastline.id, orgCoastline);
 
-    // 3. Featured Upcoming Concerts : Exact 4 Artists provided by user
-    // 1. Wantché
-    const wantcheCategories: TicketCategory[] = [
-      {
-        id: 'cat_wantche_vibration',
-        name: 'FOSSE VIBRATION',
-        price: 15000,
-        currency: 'XOF',
-        quota: 600,
-        sold: 320,
-        description: 'Accès fosse centrale au pied de la scène scénographiée.',
-        perks: ['Entrée fosse direct', 'Accès buvettes'],
-      },
-      {
-        id: 'cat_wantche_or',
-        name: 'CARRÉ OR',
-        price: 25000,
-        currency: 'XOF',
-        quota: 250,
-        sold: 180,
-        description: 'Gradin central surélevé, acoustique haute précision.',
-        perks: ['Accès prioritaire Carré Or', 'Vue panoramique'],
-      },
-      {
-        id: 'cat_wantche_vip',
-        name: 'EXPÉRIENCE VIP LUMARÉEL',
-        price: 50000,
-        currency: 'XOF',
-        quota: 70,
-        sold: 61,
-        description: 'Salon privé, balances sonores & cocktail signature.',
-        perks: ['Accès backstage', 'Cocktail signature', 'Place premier rang'],
-      },
-    ];
-
-    const eventWantche: ConcertEvent = {
-      id: 'evt_wantche',
-      slug: 'wantche-en-concert',
-      title: 'WANTCHÉ EN CONCERT',
-      subtitle: 'Scénographie immersive & nouvelle vague ivoire',
-      artist: 'WANTCHÉ',
-      date: '2026-11-20',
-      time: '20:00',
-      doorsOpen: '18:30',
-      venue: 'Palais des Congrès du Sofitel Hôtel Ivoire',
-      city: 'Abidjan',
-      country: 'Côte d’Ivoire',
-      address: 'Boulevard Hassan II, Cocody, Abidjan',
-      description: 'Une immersion scénique d’une intensité rare. Wantché s’empare de la scène principale avec une direction artistique sans compromis, mêlant rythmes novateurs et faisceaux d’ombres signés LUMARÉEL CO.',
-      artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__1__5dc7b4f5.jpeg',
-      officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__1__5dc7b4f5.jpeg',
-      bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__1__5dc7b4f5.jpeg',
-      status: 'published',
-      isFeatured: true,
-      organizerType: 'lumareel',
-      organizerName: 'LUMARÉEL CO.',
-      genre: 'Afro-Trap / Nouvelle Vague',
-      platformFeePercent: 0,
-      categories: wantcheCategories,
-    };
-
-    // 2. Tiakola
-    const tiakolaCategories: TicketCategory[] = [
-      {
-        id: 'cat_tiakola_fosse',
-        name: 'FOSSE GÉNÉRALE',
-        price: 20000,
-        currency: 'XOF',
-        quota: 1200,
-        sold: 890,
-        description: 'Accès plain-pied fosse Parc des Expositions.',
-        perks: ['Entrée fosse générale', 'Accès zone scénique'],
-      },
-      {
-        id: 'cat_tiakola_or',
-        name: 'CARRÉ OR PRESTIGE',
-        price: 40000,
-        currency: 'XOF',
-        quota: 400,
-        sold: 360,
-        description: 'Zone VIP en hauteur, acoustique spatiale renforcée.',
-        perks: ['Coupe-file', 'Tribune Or réservée', 'Badge collector'],
-      },
-      {
-        id: 'cat_tiakola_vip',
-        name: 'LOGE VIP BDLM',
-        price: 80000,
-        currency: 'XOF',
-        quota: 100,
-        sold: 92,
-        description: 'Salon privatif avec champagne & rencontre backstage.',
-        perks: ['Loge VIP', 'Champagne & buffet', 'Pass backstage officiel'],
-      },
-    ];
-
-    const eventTiakola: ConcertEvent = {
-      id: 'evt_tiakola',
-      slug: 'tiakola-bdlm-live-tour',
-      title: 'TIAKOLA — BDLM LIVE TOUR',
-      subtitle: 'La mélo monumentale en concert événement',
-      artist: 'TIAKOLA',
-      date: '2026-11-28',
-      time: '20:30',
-      doorsOpen: '18:30',
-      venue: 'Parc des Expositions d’Abidjan · Grand Hall',
-      city: 'Abidjan',
-      country: 'Côte d’Ivoire',
-      address: 'Route de l’Aéroport International Félix Houphouët-Boigny',
-      description: 'Le prodige de la mélo débarque à Abidjan pour une date historique. Le BDLM Live Tour s’installe au Parc des Expositions pour une communion explosive devant plus de 10 000 spectateurs.',
-      artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__2__2459f9b9.jpeg',
-      officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__2__2459f9b9.jpeg',
-      bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__2__2459f9b9.jpeg',
-      status: 'published',
-      isFeatured: true,
-      organizerType: 'lumareel',
-      organizerName: 'LUMARÉEL CO.',
-      genre: 'Mélodie / Rap Français',
-      platformFeePercent: 0,
-      categories: tiakolaCategories,
-    };
-
-    // 3. Jeune Lion
+    // 3. Featured Upcoming Concerts : Exact 4 Artists provided by user from official posters
+    // 1. Jeune Lion (19 Décembre 2026)
     const jeuneLionCategories: TicketCategory[] = [
       {
-        id: 'cat_fosse_jl',
-        name: 'FOSSE VIBRATION',
-        price: 15000,
+        id: 'cat_jl_gp',
+        name: 'PASS GP',
+        price: 10000,
         currency: 'XOF',
-        quota: 600,
-        sold: 340,
-        description: 'Accès fosse centrale au cœur de la scénographie lumineuse.',
-        perks: ['Entrée fosse', 'Accès direct bars'],
+        quota: 3500,
+        sold: 2140,
+        description: 'Accès Fosse Générale Esplanade plein-pied au pied de la scène.',
+        perks: ['Entrée Fosse GP', 'Accès buvettes & stands'],
       },
       {
-        id: 'cat_carre_or_jl',
-        name: 'CARRÉ OR',
-        price: 30000,
+        id: 'cat_jl_vip',
+        name: 'PASS VIP',
+        price: 20000,
         currency: 'XOF',
-        quota: 250,
-        sold: 195,
-        description: 'Zone privilégiée en élévation, acoustique haute fidélité.',
-        perks: ['Accès prioritaire Carré Or', 'Vue dégagée', 'Programme exclusif'],
+        quota: 1000,
+        sold: 790,
+        description: 'Emplacement privilégié surélevé, vue panoramique et acoustique renforcée.',
+        perks: ['Entrée prioritaire VIP', 'Vue centrale surélevée', 'Badge collector'],
       },
       {
-        id: 'cat_vip_jl',
-        name: 'EXPÉRIENCE VIP LUMARÉEL',
-        price: 60000,
+        id: 'cat_jl_vvip',
+        name: 'PASS VVIP',
+        price: 40000,
         currency: 'XOF',
-        quota: 80,
-        sold: 72,
-        description: 'Salon privatif, balances sonores, cocktail dînatoire & coupe-file.',
-        perks: ['Accès backstage', 'Cocktail noir', 'Place réservée premier rang', 'Hôte dédié'],
+        quota: 300,
+        sold: 285,
+        description: 'Salon prestige privatif, cocktail dînatoire & coupe-file officiel.',
+        perks: ['Accès salon VIP', 'Cocktail prestige', 'Place premier rang', 'Hôte dédié'],
       },
     ];
 
@@ -295,16 +175,16 @@ class LumareelDatabase {
       id: 'evt_jeune_lion',
       slug: 'jeune-lion-en-concert',
       title: 'JEUNE LION EN CONCERT',
-      subtitle: 'La grande messe scénique d’Abidjan',
+      subtitle: 'La grande messe scénique d’Abidjan · Esplanade Palais de la Culture',
       artist: 'JEUNE LION',
       date: '2026-12-19',
-      time: '20:30',
-      doorsOpen: '19:00',
-      venue: 'Palais des Congrès du Sofitel Hôtel Ivoire',
+      time: '15:00',
+      doorsOpen: '13:30',
+      venue: 'Esplanade du Palais de la Culture',
       city: 'Abidjan',
       country: 'Côte d’Ivoire',
-      address: 'Boulevard Hassan II, Cocody',
-      description: 'Une nuit de communion scénique pure. Après des mois de préparation en résidence secrète, Jeune Lion investit la scène monumentale avec une scénographie d’ombres et de faisceaux signée LUMARÉEL CO.',
+      address: 'Palais de la Culture Bernard Binlin-Dadié, Treichville, Abidjan',
+      description: 'Une communion scénique monumentale. Jeune Lion investit l’Esplanade du Palais de la Culture avec une direction artistique et une scénographie d’ombres et de faisceaux signée LUMARÉEL CO.',
       artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg',
       officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg',
       bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg',
@@ -314,57 +194,170 @@ class LumareelDatabase {
       organizerName: 'LUMARÉEL CO.',
       genre: 'Rap / Drill Ivoire',
       platformFeePercent: 0,
+      infoline: '+225 07 03 847 316 / +225 05 05 227 122',
       categories: jeuneLionCategories,
     };
 
-    // 4. Jamsco
+    // 2. Tiakola (20 Décembre 2026)
+    const tiakolaCategories: TicketCategory[] = [
+      {
+        id: 'cat_tiakola_cat1',
+        name: 'CATÉGORIE 1',
+        price: 10000,
+        currency: 'XOF',
+        quota: 5000,
+        sold: 3890,
+        description: 'Accès plain-pied fosse Parc des Expositions.',
+        perks: ['Entrée fosse', 'Accès zone scénique'],
+      },
+      {
+        id: 'cat_tiakola_or',
+        name: 'CARRÉ OR',
+        price: 20000,
+        currency: 'XOF',
+        quota: 1500,
+        sold: 1240,
+        description: 'Zone privilégiée en élévation, acoustique spatiale renforcée.',
+        perks: ['Coupe-file', 'Tribune Or réservée', 'Badge collector'],
+      },
+      {
+        id: 'cat_tiakola_vip',
+        name: 'VIP',
+        price: 50000,
+        currency: 'XOF',
+        quota: 400,
+        sold: 375,
+        description: 'Loge VIP avec champagne, service cocktail & rencontre backstage.',
+        perks: ['Loge VIP', 'Champagne & buffet', 'Pass backstage officiel'],
+      },
+    ];
+
+    const eventTiakola: ConcertEvent = {
+      id: 'evt_tiakola',
+      slug: 'tiakola-mpoint-m-abidjan',
+      title: 'TIAKOLA — M’POINT M ABIDJAN',
+      subtitle: 'Le concert événement au Parc des Expositions d’Abidjan',
+      artist: 'TIAKOLA',
+      date: '2026-12-20',
+      time: '14:00',
+      doorsOpen: '12:30',
+      venue: 'Parc des Expositions d’Abidjan',
+      city: 'Abidjan',
+      country: 'Côte d’Ivoire',
+      address: 'Route de l’Aéroport International Félix Houphouët-Boigny, Port-Bouët',
+      description: 'Le prodige de la mélo débarque à Abidjan pour une date historique. Le spectacle M’POINT M s’installe au Parc des Expositions pour une communion explosive devant plus de 10 000 spectateurs.',
+      artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__2__2459f9b9.jpeg',
+      officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__2__2459f9b9.jpeg',
+      bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__2__2459f9b9.jpeg',
+      status: 'published',
+      isFeatured: true,
+      organizerType: 'lumareel',
+      organizerName: 'LUMARÉEL CO.',
+      genre: 'Mélodie / Rap Français',
+      platformFeePercent: 0,
+      infoline: '+225 07 78 78 41 78',
+      categories: tiakolaCategories,
+    };
+
+    // 3. Wantché (23 Décembre 2026)
+    const wantcheCategories: TicketCategory[] = [
+      {
+        id: 'cat_wantche_gp',
+        name: 'PASS GP',
+        price: 10000,
+        currency: 'XOF',
+        quota: 3000,
+        sold: 1540,
+        description: 'Accès fosse centrale Esplanade du Palais de la Culture.',
+        perks: ['Entrée Fosse GP', 'Accès direct stands'],
+      },
+      {
+        id: 'cat_wantche_vip',
+        name: 'PASS VIP',
+        price: 20000,
+        currency: 'XOF',
+        quota: 800,
+        sold: 580,
+        description: 'Zone VIP surélevée, acoustique haute précision & visibilité totale.',
+        perks: ['Coupe-file', 'Tribune VIP réservée', 'Badge collector'],
+      },
+      {
+        id: 'cat_wantche_vvip',
+        name: 'PASS VVIP',
+        price: 40000,
+        currency: 'XOF',
+        quota: 250,
+        sold: 215,
+        description: 'Expérience prestige VVIP avec salon dînatoire & accès privilégié.',
+        perks: ['Accès salon VVIP', 'Cocktail signature', 'Place premier rang', 'Hôte dédié'],
+      },
+    ];
+
+    const eventWantche: ConcertEvent = {
+      id: 'evt_wantche',
+      slug: 'wantche-en-concert',
+      title: 'WANTCHÉ EN CONCERT',
+      subtitle: 'Esplanade du Palais de la Culture d’Abidjan · 23 Décembre 2026',
+      artist: 'WANTCHÉ',
+      date: '2026-12-23',
+      time: '16:00',
+      doorsOpen: '14:30',
+      venue: 'Esplanade du Palais de la Culture d’Abidjan',
+      city: 'Abidjan',
+      country: 'Côte d’Ivoire',
+      address: 'Boulevard Hassan II, Treichville, Abidjan',
+      description: 'Une intensité scénique rare. Wantché s’empare de l’Esplanade avec une énergie volcanique, fusionnant rythmes bruts et scénographie visuelle conçue par LUMARÉEL CO.',
+      artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__1__5dc7b4f5.jpeg',
+      officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__1__5dc7b4f5.jpeg',
+      bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__1__5dc7b4f5.jpeg',
+      status: 'published',
+      isFeatured: true,
+      organizerType: 'lumareel',
+      organizerName: 'LUMARÉEL CO.',
+      genre: 'Afro-Trap / Nouvelle Vague',
+      platformFeePercent: 0,
+      infoline: '+225 01 53 508 210',
+      categories: wantcheCategories,
+    };
+
+    // 4. Jamsco (30 Décembre 2026)
     const jamscoCategories: TicketCategory[] = [
       {
-        id: 'cat_jamsco_standard',
-        name: 'FOSSE EARLY ACCESS',
-        price: 15000,
+        id: 'cat_jamsco_gp',
+        name: 'PASS GP',
+        price: 10000,
         currency: 'XOF',
-        quota: 500,
-        sold: 280,
-        description: 'Accès fosse scène extérieure bord de piscine.',
-        perks: ['Entrée coupe-file', 'Accès zone scène'],
+        quota: 2500,
+        sold: 1420,
+        description: 'Accès Fosse Générale Palais de la Culture Salle Lougah François.',
+        perks: ['Entrée Fosse GP', 'Accès zone scénique'],
       },
       {
         id: 'cat_jamsco_vip',
-        name: 'CARRÉ VIP PRESTIGE',
-        price: 35000,
+        name: 'PASS VIP',
+        price: 30000,
         currency: 'XOF',
-        quota: 150,
-        sold: 110,
-        description: 'Emplacement premium avec service bar dédié.',
-        perks: ['Accès VIP', 'Cocktail de bienvenue', 'Vue imprenable'],
-      },
-      {
-        id: 'cat_jamsco_table',
-        name: 'TABLE ROYALE KINGDOM',
-        price: 100000,
-        currency: 'XOF',
-        quota: 30,
-        sold: 24,
-        description: 'Table privée 4 personnes avec champagne prestige.',
-        perks: ['Table réservée', 'Champagne Millésimé', 'Service majordome'],
+        quota: 600,
+        sold: 490,
+        description: 'Carré VIP prestige en tribune d’honneur Salle Lougah François.',
+        perks: ['Accès prioritaire VIP', 'Tribune réservée', 'Cocktail signature'],
       },
     ];
 
     const eventJamsco: ConcertEvent = {
       id: 'evt_jamsco',
       slug: 'jamsco-en-concert',
-      title: 'JAMSCO EN CONCERT — KINGDOM LIVE',
-      subtitle: 'Le couronnement scénique · Nuit du réveillon',
+      title: 'JAMSCO EN CONCERT',
+      subtitle: 'Palais de la Culture Salle Lougah François · 30 Décembre 2026',
       artist: 'JAMSCO',
-      date: '2026-12-31',
-      time: '21:00',
-      doorsOpen: '19:30',
-      venue: 'Scène Piscine du Sofitel Ivoire · Abidjan',
+      date: '2026-12-30',
+      time: '15:00',
+      doorsOpen: '13:30',
+      venue: 'Palais de la Culture Salle Lougah François',
       city: 'Abidjan',
       country: 'Côte d’Ivoire',
-      address: 'Boulevard Hassan II, Cocody, Abidjan',
-      description: 'Pour clore l’année 2026, Jamsco livre une performance scénique d’exception au bord de l’eau. Acoustique amplifiée, arrangements live inédits et scénographie royale signée LUMARÉEL CO.',
+      address: 'Boulevard Hassan II, Treichville, Abidjan',
+      description: 'Le couronnement scénique de Jamsco. Une scénographie royale signée LUMARÉEL CO. et un spectacle d’une envergure totale dans la mythique salle Lougah François.',
       artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36_70028046.jpeg',
       officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36_70028046.jpeg',
       bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36_70028046.jpeg',
@@ -372,17 +365,20 @@ class LumareelDatabase {
       isFeatured: true,
       organizerType: 'lumareel',
       organizerName: 'LUMARÉEL CO.',
-      genre: 'Afro-Rap / Live Band',
+      genre: 'Afro-Rap / Live Show',
       platformFeePercent: 0,
+      infoline: '+225 07 87 37 83 26',
       categories: jamscoCategories,
     };
 
-    this.events.set(eventWantche.id, eventWantche);
-    this.events.set(eventWantche.slug, eventWantche);
-    this.events.set(eventTiakola.id, eventTiakola);
-    this.events.set(eventTiakola.slug, eventTiakola);
     this.events.set(eventJeuneLion.id, eventJeuneLion);
     this.events.set(eventJeuneLion.slug, eventJeuneLion);
+    this.events.set(eventTiakola.id, eventTiakola);
+    this.events.set(eventTiakola.slug, eventTiakola);
+    this.events.set(eventWantche.id, eventWantche);
+    this.events.set(eventWantche.slug, eventWantche);
+    this.events.set(eventJamsco.id, eventJamsco);
+    this.events.set(eventJamsco.slug, eventJamsco);
     this.events.set(eventJamsco.id, eventJamsco);
     this.events.set(eventJamsco.slug, eventJamsco);
 
@@ -986,6 +982,15 @@ class LumareelDatabase {
     return Array.from(this.archives.values())
       .filter(a => a.isPublished)
       .sort((a, b) => a.orderIndex - b.orderIndex);
+  }
+
+  public saveArchive(archive: ArchiveProduction): ArchiveProduction {
+    this.archives.set(archive.id, archive);
+    return archive;
+  }
+
+  public deleteArchive(id: string): boolean {
+    return this.archives.delete(id);
   }
 
   public getAllWorks(): WorkProduction[] {
