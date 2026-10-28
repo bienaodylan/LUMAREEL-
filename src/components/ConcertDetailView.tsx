@@ -1,0 +1,303 @@
+import React, { useState } from 'react';
+import { useApp } from '../context/AppContext';
+import { ConcertEvent, TicketCategory } from '../types';
+import { ArrowLeft, Calendar, MapPin, Clock, ShieldCheck, Ticket, Users, Check, AlertCircle, Building2 } from 'lucide-react';
+
+export const ConcertDetailView: React.FC = () => {
+  const { events, selectedEventSlug, setCurrentPage, setCheckoutEvent, currentUser, setIsAuthModalOpen } = useApp();
+
+  const event = events.find((e) => e.slug === selectedEventSlug) || events[0];
+
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(
+    event?.categories[0]?.id || ''
+  );
+  const [quantity, setQuantity] = useState<number>(1);
+
+  if (!event) {
+    return (
+      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
+        <p className="text-sm font-agrandir-regular text-[#888]">Événement non trouvé.</p>
+        <button
+          onClick={() => setCurrentPage('discover')}
+          className="mt-4 px-4 py-2 text-xs font-agrandir-semibold border border-[#333] text-white"
+        >
+          Retour au catalogue
+        </button>
+      </div>
+    );
+  }
+
+  const selectedCategory = event.categories.find((c) => c.id === selectedCategoryId) || event.categories[0];
+  const remaining = selectedCategory ? selectedCategory.quota - selectedCategory.sold : 0;
+  const totalPrice = selectedCategory ? selectedCategory.price * quantity : 0;
+  const currency = selectedCategory?.currency || 'XOF';
+
+  const handleProceedToPurchase = () => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setCheckoutEvent(event);
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-24 sm:pt-28 pb-20 select-none">
+      
+      {/* Back button with rounded capsule */}
+      <button
+        onClick={() => setCurrentPage('discover')}
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-agrandir-regular tracking-widest text-[#aaa] hover:text-white hover:border-white/30 transition-all mb-8 uppercase cursor-pointer backdrop-blur-sm"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" />
+        <span>RETOUR AU CATALOGUE DES CONCERTS</span>
+      </button>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
+        
+        {/* Left Column (5 cols): Official Concert Poster with generous rounded corners */}
+        <div className="lg:col-span-5">
+          <div className="sticky top-28 space-y-4">
+            
+            {/* Poster Card with rounded-3xl and subtle border */}
+            <div className="aspect-[3/4] bg-[#121212] border border-white/15 rounded-3xl overflow-hidden relative shadow-2xl">
+              <img
+                src={event.officialPoster}
+                alt={`Affiche officielle — ${event.title}`}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover filter contrast-105"
+              />
+              <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-md px-3.5 py-1.5 text-[10px] font-agrandir-semibold tracking-[0.2em] text-white uppercase rounded-full border border-white/20 shadow-md">
+                AFFICHE OFFICIELLE
+              </div>
+            </div>
+
+            {/* Organizer Trust Badge with rounded-2xl */}
+            <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0c0c0c] border border-white/10 flex items-center gap-3.5 text-xs font-agrandir-regular shadow-lg">
+              <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                <Building2 className="w-5 h-5 text-[#d4af37]" />
+              </div>
+              <div>
+                <div className="text-[10px] text-[#777] uppercase tracking-wider font-agrandir-semibold">PRODUCTION &amp; ORGANISATION</div>
+                <div className="text-white font-agrandir-semibold uppercase">
+                  {event.organizerType === 'lumareel'
+                    ? 'PRODUIT PAR LUMARÉEL CO. (OFFICIEL)'
+                    : `ORGANISATEUR PARTENAIRE : ${event.organizerName}`}
+                </div>
+                <div className="text-[#888] text-[11px] mt-0.5">
+                  {event.organizerType === 'lumareel'
+                    ? 'Scénographie, acoustique spatiale & billetterie exclusive LUMARÉEL'
+                    : 'Organisateur vérifié · Billetterie & contrôle d’accès garantis par LUMARÉEL'}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column (7 cols): Information, Artist, Categories & Ticketing */}
+        <div className="lg:col-span-7 flex flex-col justify-between">
+          
+          <div>
+            {/* Header info pills */}
+            <div className="flex flex-wrap items-center gap-2.5 text-xs font-agrandir-regular tracking-wider uppercase mb-3">
+              <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-white font-agrandir-semibold text-[11px]">
+                {event.genre}
+              </span>
+              <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#aaa] text-[11px]">
+                {event.city}, {event.country}
+              </span>
+              <span className="px-3 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#d4af37] font-agrandir-semibold text-[11px]">
+                {event.status === 'published' ? 'BILLETTERIE OUVERTE' : 'VENTES BIENTÔT'}
+              </span>
+            </div>
+
+            <h1 className="font-agrandir-extrabold text-4xl sm:text-5xl md:text-6xl text-white tracking-tight uppercase leading-[1.02] mb-2 text-balance">
+              {event.artist}
+            </h1>
+
+            <div className="text-lg sm:text-2xl text-[#d4d4d4] font-agrandir-semibold uppercase tracking-tight mb-6">
+              {event.title}
+            </div>
+
+            <p className="text-sm font-agrandir-regular text-[#aaa] leading-relaxed mb-8">
+              {event.description}
+            </p>
+
+            {/* Practical information grid with rounded-3xl container */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 sm:p-6 bg-[#0c0c0c] border border-white/10 rounded-2xl sm:rounded-3xl mb-8 text-xs font-agrandir-regular shadow-lg">
+              <div className="flex items-start gap-3.5">
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                  <Calendar className="w-4 h-4 text-[#d4af37]" />
+                </div>
+                <div>
+                  <div className="text-[#777] uppercase text-[10px] tracking-wider font-agrandir-semibold">DATE ET HEURE</div>
+                  <div className="text-white font-agrandir-semibold text-sm mt-0.5">{event.date} à {event.time}</div>
+                  <div className="text-[#888] text-[11px] mt-0.5">Ouverture des portes : {event.doorsOpen}</div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3.5">
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                  <MapPin className="w-4 h-4 text-[#d4af37]" />
+                </div>
+                <div>
+                  <div className="text-[#777] uppercase text-[10px] tracking-wider font-agrandir-semibold">LIEU &amp; ACCÈS</div>
+                  <div className="text-white font-agrandir-semibold text-sm mt-0.5">{event.venue}</div>
+                  <div className="text-[#888] text-[11px] mt-0.5">{event.address || `${event.city}, ${event.country}`}</div>
+                </div>
+              </div>
+            </div>
+
+            {/* STEP 1: SELECT TICKET CATEGORY with generous rounded corners */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between text-xs font-agrandir-regular tracking-[0.2em] text-[#AAA] uppercase mb-4">
+                <span className="font-agrandir-semibold text-white">1. SÉLECTIONNER LA CATÉGORIE DE PLACE</span>
+                <span className="text-[11px] text-[#777]">QUOTAS CONTRÔLÉS EN TEMPS RÉEL</span>
+              </div>
+
+              {/* Category cards with rounded-2xl / rounded-3xl */}
+              <div className="space-y-3.5">
+                {event.categories.map((cat) => {
+                  const isSelected = selectedCategoryId === cat.id;
+                  const catRemaining = cat.quota - cat.sold;
+                  const isSoldOut = catRemaining <= 0;
+
+                  return (
+                    <div
+                      key={cat.id}
+                      onClick={() => !isSoldOut && setSelectedCategoryId(cat.id)}
+                      className={`p-5 rounded-2xl sm:rounded-3xl border transition-all duration-300 cursor-pointer shadow-lg ${
+                        isSelected
+                          ? 'border-white bg-[#141414] ring-1 ring-white/30 shadow-white/5'
+                          : isSoldOut
+                          ? 'border-white/5 bg-[#090909] opacity-40 cursor-not-allowed'
+                          : 'border-white/10 bg-[#0c0c0c] hover:border-white/30 hover:bg-[#111111]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                              isSelected ? 'border-white bg-white' : 'border-white/30'
+                            }`}
+                          >
+                            {isSelected && <div className="w-2 h-2 rounded-full bg-black" />}
+                          </div>
+                          <span className="font-agrandir-extrabold text-sm sm:text-base tracking-wide text-white uppercase">
+                            {cat.name}
+                          </span>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-base sm:text-lg font-agrandir-extrabold text-white">
+                            {cat.price.toLocaleString()} {cat.currency}
+                          </span>
+                          <span className="text-[11px] font-agrandir-regular text-[#888] ml-2">
+                            (~{cat.currency === 'XOF' ? Math.round(cat.price / 655.957) : cat.price} €)
+                          </span>
+                        </div>
+                      </div>
+
+                      <p className="text-xs font-agrandir-regular text-[#aaa] pl-7 mb-3">
+                        {cat.description}
+                      </p>
+
+                      <div className="pl-7 flex flex-wrap items-center gap-2 text-[11px] font-agrandir-regular">
+                        {cat.perks.map((perk, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/90"
+                          >
+                            <Check className="w-3 h-3 text-[#d4af37]" />
+                            <span>{perk}</span>
+                          </span>
+                        ))}
+                        <span className="ml-auto px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-agrandir-semibold text-[#888] uppercase">
+                          {isSoldOut ? 'COMPLET' : `${catRemaining} billets restants`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* STEP 2: SELECT QUANTITY with rounded-3xl container */}
+            <div className="mb-8 p-5 sm:p-6 bg-[#0c0c0c] border border-white/10 rounded-2xl sm:rounded-3xl shadow-lg">
+              <div className="flex items-center justify-between text-xs font-agrandir-regular tracking-wider text-[#aaa] uppercase mb-4">
+                <span className="font-agrandir-semibold text-white">2. QUANTITÉ DE BILLETS</span>
+                <span className="text-[11px] text-[#777]">MAXIMUM 8 BILLETS PAR COMMANDE</span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                {/* Stepper with rounded-full */}
+                <div className="flex items-center border border-white/20 bg-[#161616] rounded-full overflow-hidden shadow-inner w-fit">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={quantity <= 1}
+                    className="w-11 h-11 text-white font-agrandir-semibold text-lg hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
+                  >
+                    -
+                  </button>
+                  <span className="w-12 text-center font-agrandir-extrabold text-white text-base">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() => setQuantity(Math.min(Math.min(8, remaining), quantity + 1))}
+                    disabled={quantity >= Math.min(8, remaining)}
+                    className="w-11 h-11 text-white font-agrandir-semibold text-lg hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <div className="text-xs font-agrandir-regular text-[#999]">
+                  {quantity > 1 ? `${quantity} billets nominatifs avec QR codes uniques` : '1 billet nominatif avec QR code unique'}
+                </div>
+              </div>
+            </div>
+
+            {/* TOTAL CALCULATION & PURCHASE ACTION with rounded-3xl container */}
+            <div className="p-6 sm:p-8 bg-[#0e0e0e] border border-white/15 rounded-3xl space-y-5 shadow-2xl">
+              <div className="flex items-baseline justify-between font-agrandir-regular">
+                <span className="text-xs text-[#888] tracking-widest uppercase font-agrandir-semibold">PRIX TOTAL :</span>
+                <div className="text-right">
+                  <div className="text-3xl sm:text-4xl font-agrandir-extrabold text-white">
+                    {totalPrice.toLocaleString()} {currency}
+                  </div>
+                  <div className="text-xs text-[#888] mt-0.5">
+                    ~{currency === 'XOF' ? Math.round(totalPrice / 655.957) : totalPrice} € TTC · Frais de plateforme inclus
+                  </div>
+                </div>
+              </div>
+
+              {/* Purchase button with rounded-full */}
+              <button
+                onClick={handleProceedToPurchase}
+                disabled={remaining <= 0 || event.status !== 'published'}
+                className="w-full py-4 text-xs font-agrandir-extrabold tracking-[0.2em] uppercase text-black bg-white hover:bg-[#EAEAEA] rounded-full disabled:bg-[#222] disabled:text-[#666] disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xl"
+              >
+                <Ticket className="w-4 h-4" />
+                <span>
+                  {event.status !== 'published'
+                    ? 'VENTES BIENTÔT OUVERTES'
+                    : remaining <= 0
+                    ? 'CATÉGORIE COMPLÈTE'
+                    : 'ACHETER MES BILLETS'}
+                </span>
+              </button>
+
+              <div className="flex items-center justify-center gap-2 text-[11px] font-agrandir-regular text-[#777] pt-1">
+                <ShieldCheck className="w-4 h-4 text-[#888]" />
+                <span>PAIEMENT SÉCURISÉ · ÉMISSION IMMÉDIATE DU BILLET AVEC QR CODE UNIQUE</span>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
+};

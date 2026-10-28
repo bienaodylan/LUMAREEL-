@@ -1,0 +1,6 @@
+{
+  "name": "LUMARÉEL CO. — Concert Production & Ticketing",
+  "description": "Plateforme numérique immersive de production de concerts, billetterie électronique et univers culturel contemporain de LUMARÉEL CO.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
