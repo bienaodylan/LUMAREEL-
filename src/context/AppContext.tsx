@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, ConcertEvent, Order, Ticket } from '../types';
+import { INITIAL_EVENTS, INITIAL_NEWS, INITIAL_ORDERS } from '../data/initialData';
 
 export type PageView = 'splash' | 'home' | 'discover' | 'concert_detail' | 'archive' | 'news' | 'client_space' | 'organizers' | 'gate_scanner' | 'admin' | 'contact' | 'about' | 'partners';
 
@@ -18,6 +19,7 @@ interface AppContextType {
   refreshEvents: () => Promise<void>;
   customerOrders: Order[];
   refreshCustomerOrders: () => Promise<void>;
+  addLocalOrder: (order: Order) => void;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
   checkoutEvent: ConcertEvent | null;
@@ -41,10 +43,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return 'splash';
   });
   const [selectedEventSlug, setSelectedEventSlug] = useState<string | null>(null);
-  const [events, setEvents] = useState<ConcertEvent[]>([]);
-  const [featuredEvent, setFeaturedEvent] = useState<ConcertEvent | null>(null);
-  const [news, setNews] = useState<any[]>([]);
-  const [customerOrders, setCustomerOrders] = useState<Order[]>([]);
+  const [events, setEvents] = useState<ConcertEvent[]>(INITIAL_EVENTS);
+  const [featuredEvent, setFeaturedEvent] = useState<ConcertEvent | null>(INITIAL_EVENTS[0] || null);
+  const [news, setNews] = useState<any[]>(INITIAL_NEWS);
+  const [customerOrders, setCustomerOrders] = useState<Order[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lumareel_orders');
+        if (saved) return JSON.parse(saved);
+      } catch (e) {
+        console.warn('Could not read saved orders from localStorage', e);
+      }
+    }
+    return INITIAL_ORDERS;
+  });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [checkoutEvent, setCheckoutEvent] = useState<ConcertEvent | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -61,7 +73,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Default demo user (can switch in UI to admin, agent, or customer)
   const [currentUser, setCurrentUser] = useState<User | null>({
     id: 'usr_client_01',
-    email: 'collecteur@lumareel.co',
+    email: 'bienaodylan428@gmail.com',
     name: 'Alexandre V.',
     role: 'customer',
     emailVerified: true,
@@ -75,17 +87,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, 4500);
   };
 
+  const addLocalOrder = (newOrder: Order) => {
+    setCustomerOrders((prev) => {
+      const updated = [newOrder, ...prev.filter((o) => o.id !== newOrder.id)];
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('lumareel_orders', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('LocalStorage error', e);
+        }
+      }
+      return updated;
+    });
+  };
+
   const refreshEvents = async () => {
     try {
       const res = await fetch('/api/events');
+      if (!res.ok) return;
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) return;
       const data = await res.json();
-      if (data.success && data.events) {
+      if (data.success && data.events && data.events.length > 0) {
         setEvents(data.events);
         const feat = data.events.find((e: ConcertEvent) => e.isFeatured) || data.events[0];
         setFeaturedEvent(feat || null);
       }
     } catch (err) {
-      console.error('Failed to load events', err);
+      // Gracefully preserve initial events in static environments (e.g., Vercel)
+      console.warn('API /api/events unreachable, using initial events', err);
     }
   };
 
@@ -93,24 +123,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!currentUser?.email) return;
     try {
       const res = await fetch(`/api/customer/orders?email=${encodeURIComponent(currentUser.email)}`);
+      if (!res.ok) return;
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) return;
       const data = await res.json();
-      if (data.success && data.orders) {
+      if (data.success && data.orders && data.orders.length > 0) {
         setCustomerOrders(data.orders);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lumareel_orders', JSON.stringify(data.orders));
+        }
       }
     } catch (err) {
-      console.error('Failed to load orders', err);
+      console.warn('API /api/customer/orders unreachable, preserving local orders', err);
     }
   };
 
   const refreshNews = async () => {
     try {
       const res = await fetch('/api/news');
+      if (!res.ok) return;
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) return;
       const data = await res.json();
-      if (data.success && data.news) {
+      if (data.success && data.news && data.news.length > 0) {
         setNews(data.news);
       }
     } catch (err) {
-      console.error('Failed to load news', err);
+      console.warn('API /api/news unreachable, preserving initial news', err);
     }
   };
 
@@ -142,6 +181,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         refreshEvents,
         customerOrders,
         refreshCustomerOrders,
+        addLocalOrder,
         isAuthModalOpen,
         setIsAuthModalOpen,
         checkoutEvent,
