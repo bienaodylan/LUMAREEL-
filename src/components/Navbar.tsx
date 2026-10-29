@@ -69,6 +69,7 @@ export const Navbar: React.FC = () => {
     { label: 'Accueil', page: 'home' },
     { label: 'Découvrir', page: 'discover' },
     { label: 'Archives', page: 'archive' },
+    { label: 'Mes billets', page: 'client_space' },
     { label: 'Actualités', page: 'news' },
   ];
 
@@ -157,17 +158,6 @@ export const Navbar: React.FC = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <button
-                    onClick={() => {
-                      setCurrentPage('client_space');
-                      setRoleSwitcherOpen(false);
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-white/10 text-white flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <TicketIcon className="w-3.5 h-3.5 text-[#d4af37]" />
-                    <span>Mes Billets &amp; Réservations</span>
-                  </button>
-
                   <button
                     onClick={() => {
                       handleRoleChange('super_admin');

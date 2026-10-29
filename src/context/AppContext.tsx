@@ -38,14 +38,15 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [hasEnteredPlatform, setHasEnteredPlatform] = useState<boolean>(() => {
-    return typeof window !== 'undefined' && sessionStorage.getItem('lumareel_entered') === 'true';
-  });
+  const [hasEnteredPlatform, setHasEnteredPlatform] = useState<boolean>(true);
   const [currentPage, setCurrentPage] = useState<PageView>(() => {
-    if (typeof window !== 'undefined' && sessionStorage.getItem('lumareel_entered') === 'true') {
-      return 'home';
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('token') || params.get('page') === 'gate_scanner' || window.location.pathname.includes('scanner')) {
+        return 'gate_scanner';
+      }
     }
-    return 'splash';
+    return 'home';
   });
   const [selectedEventSlug, setSelectedEventSlug] = useState<string | null>(null);
   const [events, setEvents] = useState<ConcertEvent[]>(INITIAL_EVENTS);
@@ -220,11 +221,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     try {
-      await fetch('/api/archives', {
+      const res = await fetch('/api/archives', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newArchive),
       });
+      if (res.ok) {
+        await refreshArchives();
+      }
     } catch (err) {
       console.warn('Failed to save archive on server', err);
     }
@@ -240,7 +244,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     try {
-      await fetch(`/api/archives/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/archives/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        await refreshArchives();
+      }
     } catch (err) {
       console.warn('Failed to delete archive on server', err);
     }

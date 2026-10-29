@@ -9,7 +9,7 @@ import { ArchiveView } from './components/ArchiveView';
 import { NewsView } from './components/NewsView';
 import { OrganizersView } from './components/OrganizersView';
 import { CustomerSpace } from './components/CustomerSpace';
-import { GateScanner } from './components/GateScanner';
+import { ScannerView } from './components/ScannerView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { CheckoutModal } from './components/CheckoutModal';
 import { AuthModal } from './components/AuthModal';
@@ -17,15 +17,17 @@ import { AuthModal } from './components/AuthModal';
 const MainApp: React.FC = () => {
   const { currentPage, toast, setCurrentPage } = useApp();
 
+  const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
+
   return (
     <div className="min-h-screen bg-[#000000] text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular">
       
-      {/* Top Navbar (Hidden on splash entry page) */}
-      <Navbar />
+      {/* Top Navbar (Hidden in admin console and gate scanner) */}
+      {!isAdminOrScanner && <Navbar />}
 
       {/* Dynamic View Router */}
       <main className="flex-1">
-        {currentPage === 'splash' && <SplashHero />}
+        {currentPage === 'splash' && <HomeFeed />}
         {currentPage === 'home' && <HomeFeed />}
         {currentPage === 'discover' && <DiscoverView />}
         {currentPage === 'concert_detail' && <ConcertDetailView />}
@@ -33,12 +35,12 @@ const MainApp: React.FC = () => {
         {currentPage === 'news' && <NewsView />}
         {currentPage === 'organizers' && <OrganizersView />}
         {currentPage === 'client_space' && <CustomerSpace />}
-        {currentPage === 'gate_scanner' && <GateScanner />}
+        {currentPage === 'gate_scanner' && <ScannerView />}
         {currentPage === 'admin' && <AdminDashboard />}
       </main>
 
-      {/* Global Minimal Footer (Except on splash entrance page) */}
-      {currentPage !== 'splash' && (
+      {/* Global Minimal Footer (Hidden in admin console and gate scanner) */}
+      {!isAdminOrScanner && (
         <footer className="border-t border-[#181818] bg-[#050505] py-12 px-6 sm:px-10 text-xs font-agrandir-regular text-[#777] mt-20">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
             <div>

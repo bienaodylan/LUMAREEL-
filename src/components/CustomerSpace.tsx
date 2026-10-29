@@ -133,155 +133,143 @@ export const CustomerSpace: React.FC = () => {
                 return (
                   <div
                     key={ticket.id}
-                    className="flex flex-col lg:flex-row items-stretch gap-6 bg-[#0c0c0c] border border-white/15 rounded-3xl p-5 sm:p-7 shadow-2xl hover:border-white/30 transition-all group"
+                    className="bg-[#0d0d0d] border border-white/15 rounded-2xl sm:rounded-3xl shadow-2xl hover:border-white/30 transition-all group overflow-hidden flex flex-row items-stretch relative"
                   >
-                    
-                    {/* =========================================================
-                        PARTIE 1 : LE BILLET OFFICIEL PERSONNALISÉ DU CONCERT
-                        Affiche officielle en grand, catégorie choisie, lieu et détails
-                       ========================================================= */}
-                    <div className="flex-1 flex flex-col sm:flex-row gap-6 bg-gradient-to-r from-[#141414] via-[#111111] to-[#0e0e0e] border border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-6 overflow-hidden relative">
-                      
-                      {/* Affiche officielle du concert (Portrait 3:4) */}
-                      <div className="w-full sm:w-[200px] md:w-[240px] aspect-[3/4] rounded-2xl overflow-hidden relative shadow-2xl shrink-0 border border-white/15 bg-black">
+                    {/* CONTENEUR DU BILLET : FORMAT PASS HORIZONTAL ULTRA-COMPACT */}
+                    {/* GAUCHE : AFFICHE OFFICIELLE DU CONCERT */}
+                    <div className="w-20 sm:w-40 md:w-52 shrink-0 relative bg-black border-r border-white/10 overflow-hidden">
+                      {officialPoster ? (
                         <img
                           src={officialPoster}
                           alt={ticket.eventTitle}
                           className="w-full h-full object-cover filter contrast-[1.05] brightness-95 group-hover:scale-105 transition-transform duration-700"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-                        
-                        {/* Tag Hologramme Lumareel */}
-                        <div className="absolute top-3 left-3">
-                          <span className="rounded-full bg-black/70 backdrop-blur-md text-[9px] font-agrandir-semibold px-2.5 py-1 tracking-widest text-[#d4af37] border border-[#d4af37]/40 uppercase shadow-md flex items-center gap-1">
-                            <Sparkles className="w-3 h-3 text-[#d4af37]" />
-                            <span>OFFICIEL</span>
-                          </span>
-                        </div>
+                      ) : (
+                        <div className="w-full h-full bg-neutral-900" />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+                      
+                      {/* Tag Hologramme Lumareel */}
+                      <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
+                        <span className="rounded-full bg-black/80 backdrop-blur-md text-[8px] sm:text-[9px] font-agrandir-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 tracking-widest text-[#d4af37] border border-[#d4af37]/40 uppercase shadow-md flex items-center gap-1">
+                          <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#d4af37]" />
+                          <span className="hidden sm:inline">OFFICIEL</span>
+                        </span>
                       </div>
-
-                      {/* Données personnalisées sur le billet */}
-                      <div className="flex-1 flex flex-col justify-between py-1">
-                        <div>
-                          
-                          {/* Ligne d'en-tête du ticket */}
-                          <div className="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-white/10">
-                            <div className="text-[10px] font-agrandir-semibold text-[#888] tracking-widest uppercase">
-                              N° {ticket.serialNumber}
-                            </div>
-                            <span
-                              className={`text-[10px] font-agrandir-semibold tracking-wider uppercase px-3 py-1 rounded-full border ${
-                                ticket.status === 'valid'
-                                  ? 'border-emerald-500/50 text-emerald-400 bg-emerald-950/30'
-                                  : 'border-amber-500/50 text-amber-400 bg-amber-950/30'
-                              }`}
-                            >
-                              {ticket.status === 'valid' ? '✓ VALIDE POUR ENTRÉE' : 'BILLET UTILISÉ'}
-                            </span>
-                          </div>
-
-                          {/* Titre du Concert */}
-                          <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight uppercase leading-tight mb-2">
-                            {ticket.eventTitle}
-                          </h2>
-
-                          {/* Catégorie choisie personnalisée avec style prestige */}
-                          <div className="inline-block rounded-xl border border-[#d4af37]/60 bg-gradient-to-r from-[#d4af37]/20 via-[#d4af37]/10 to-transparent px-4 py-1.5 mb-4 shadow-sm">
-                            <div className="text-[9px] font-agrandir-semibold text-[#d4af37] tracking-widest uppercase">
-                              CATÉGORIE RÉSERVÉE
-                            </div>
-                            <div className="font-agrandir-extrabold text-base sm:text-lg text-white tracking-wide uppercase">
-                              {ticket.categoryName}
-                            </div>
-                          </div>
-
-                          {/* Informations Lieu & Date */}
-                          <div className="space-y-2 text-xs font-agrandir-regular text-[#ccc] mb-4">
-                            <div className="flex items-center gap-2.5">
-                              <Calendar className="w-4 h-4 text-[#d4af37] shrink-0" />
-                              <span className="font-agrandir-semibold text-white">{ticket.eventDate} à {ticket.eventTime} (GMT)</span>
-                            </div>
-                            <div className="flex items-center gap-2.5">
-                              <MapPin className="w-4 h-4 text-[#d4af37] shrink-0" />
-                              <span className="text-[#ddd]">{ticket.eventVenue}</span>
-                            </div>
-                            <div className="flex items-center gap-2.5">
-                              <User className="w-4 h-4 text-[#888] shrink-0" />
-                              <span>Titulaire officiel : <strong className="text-white font-agrandir-semibold">{ticket.holderName}</strong></span>
-                            </div>
-                          </div>
-
-                        </div>
-
-                        {/* Pied du ticket avec sceau de sécurité */}
-                        <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-[10px] text-[#777] font-agrandir-regular">
-                          <span>ÉMIS PAR LUMARÉEL CO. · SÉCURITÉ CRYPTOGRAPHIQUE</span>
-                          <span className="text-[#999] tracking-widest">COMMANDE : {ticket.orderRef}</span>
-                        </div>
-
-                      </div>
-
                     </div>
 
-                    {/* =========================================================
-                        PARTIE 2 : LE PETIT CARRÉ DÉTACHÉ DU TICKET POUR LE QR CODE
-                        Détaché du billet avec contour pointillé et actions directes
-                       ========================================================= */}
-                    <div className="w-full lg:w-[260px] shrink-0 bg-[#121212] border-2 border-dashed border-white/20 rounded-2xl sm:rounded-3xl p-5 flex flex-col items-center justify-between text-center shadow-xl">
-                      
-                      <div className="w-full">
-                        <div className="text-[10px] font-agrandir-semibold tracking-[0.2em] text-[#d4af37] uppercase mb-1 flex items-center justify-center gap-1.5">
-                          <QrCode className="w-3.5 h-3.5" />
-                          <span>PASS D’ACCÈS RAPIDE</span>
+                    {/* MILIEU : DONNÉES DU CONCERT PERSONNALISÉES */}
+                    <div className="flex-1 min-w-0 p-3 sm:p-5 flex flex-col justify-between">
+                      <div>
+                        {/* Ligne d'en-tête du ticket */}
+                        <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-white/10">
+                          <div className="text-[9px] sm:text-[10px] font-agrandir-semibold text-[#888] tracking-widest uppercase truncate">
+                            N° {ticket.serialNumber}
+                          </div>
+                          <span
+                            className={`text-[8px] sm:text-[9px] font-agrandir-semibold tracking-wider uppercase px-2 sm:px-2.5 py-0.5 rounded-full border shrink-0 ${
+                              ticket.status === 'valid'
+                                ? 'border-emerald-500/50 text-emerald-400 bg-emerald-950/30'
+                                : 'border-amber-500/50 text-amber-400 bg-amber-950/30'
+                            }`}
+                          >
+                            {ticket.status === 'valid' ? '✓ ENTRÉE VALIDE' : 'UTILISÉ'}
+                          </span>
                         </div>
-                        <div className="text-[11px] font-agrandir-regular text-[#888] mb-3">
-                          Présentez ce QR au scanner de contrôle
+
+                        {/* Titre du Concert */}
+                        <h2 className="font-agrandir-extrabold text-sm sm:text-xl md:text-2xl text-white tracking-tight uppercase leading-tight mb-2 truncate">
+                          {ticket.eventTitle}
+                        </h2>
+
+                        {/* Catégorie choisie personnalisée avec style prestige */}
+                        <div className="inline-block rounded-lg sm:rounded-xl border border-[#d4af37]/60 bg-[#d4af37]/10 px-2.5 sm:px-3.5 py-1 mb-2.5 shadow-sm">
+                          <div className="text-[7px] sm:text-[8px] font-agrandir-semibold text-[#d4af37] tracking-widest uppercase">
+                            CATÉGORIE RÉSERVÉE
+                          </div>
+                          <div className="font-agrandir-extrabold text-xs sm:text-base text-white tracking-wide uppercase">
+                            {ticket.categoryName}
+                          </div>
+                        </div>
+
+                        {/* Informations Lieu & Date */}
+                        <div className="space-y-1 sm:space-y-1.5 text-[10px] sm:text-xs font-agrandir-regular text-[#ccc]">
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <Calendar className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
+                            <span className="font-agrandir-semibold text-white truncate">{ticket.eventDate} à {ticket.eventTime}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 sm:gap-2">
+                            <MapPin className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
+                            <span className="text-[#ddd] truncate">{ticket.eventVenue}</span>
+                          </div>
+                          <div className="hidden sm:flex items-center gap-2">
+                            <User className="w-3.5 h-3.5 text-[#888] shrink-0" />
+                            <span className="truncate">Titulaire : <strong className="text-white font-agrandir-semibold">{ticket.holderName}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Pied du ticket avec commande */}
+                      <div className="pt-2 sm:pt-3 border-t border-white/10 flex items-center justify-between gap-2 text-[8px] sm:text-[9px] text-[#777] font-agrandir-regular">
+                        <span className="truncate hidden sm:inline">LUMARÉEL CO. · CRYPTO CHECK</span>
+                        <span className="text-[#999] tracking-widest truncate">RÉF : {ticket.orderRef}</span>
+                      </div>
+                    </div>
+
+                    {/* LIGNE DE DÉCOUPE / NOTCH POINTILLÉ VERTICAL */}
+                    <div className="w-[1px] bg-dashed border-r border-dashed border-white/20 relative shrink-0">
+                      <div className="w-3 h-3 rounded-full bg-[#0a0a0a] absolute -top-1.5 -left-1.5 border border-white/10" />
+                      <div className="w-3 h-3 rounded-full bg-[#0a0a0a] absolute -bottom-1.5 -left-1.5 border border-white/10" />
+                    </div>
+
+                    {/* DROITE : PETIT CARRÉ DÉTACHÉ DU TICKET POUR LE QR CODE */}
+                    <div className="w-24 sm:w-44 md:w-56 shrink-0 bg-[#121212] p-2.5 sm:p-4 flex flex-col items-center justify-between text-center shadow-inner">
+                      <div className="w-full flex flex-col items-center">
+                        <div className="text-[8px] sm:text-[9px] font-agrandir-semibold tracking-wider text-[#d4af37] uppercase mb-1 sm:mb-1.5 flex items-center justify-center gap-1">
+                          <QrCode className="w-3 h-3 shrink-0" />
+                          <span className="hidden sm:inline">PASS QR</span>
                         </div>
 
                         {/* Carré Blanc contenant le vrai QR Code généré */}
-                        <div className="w-36 h-36 sm:w-40 sm:h-40 mx-auto bg-white rounded-2xl p-2.5 flex items-center justify-center shadow-2xl relative group cursor-pointer"
+                        <div
+                          className="w-18 h-18 sm:w-28 sm:h-28 md:w-32 md:h-32 mx-auto bg-white rounded-xl sm:rounded-2xl p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative group cursor-pointer"
                           onClick={() => setSelectedTicketForQr(ticket)}
                         >
-                          {qrUrl ? (
+                          {qrUrl && qrUrl.trim() !== '' ? (
                             <img
                               src={qrUrl}
                               alt={`QR Code ${ticket.serialNumber}`}
                               className="w-full h-full object-contain"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-black text-xs">
+                            <div className="w-full h-full flex items-center justify-center text-black text-[9px] sm:text-xs">
                               Génération...
                             </div>
                           )}
-                          <div className="absolute inset-0 bg-black/60 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-agrandir-semibold">
-                            Cliquer pour agrandir
+                          <div className="absolute inset-0 bg-black/60 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-agrandir-semibold">
+                            Agrandir
                           </div>
-                        </div>
-
-                        <div className="text-[9px] font-agrandir-semibold text-[#666] tracking-widest uppercase mt-2.5 truncate max-w-[200px]">
-                          {ticket.token.substring(0, 24)}...
                         </div>
                       </div>
 
                       {/* Boutons d'action détachés */}
-                      <div className="w-full space-y-2 mt-4 pt-3 border-t border-white/10">
+                      <div className="w-full space-y-1.5 mt-2 pt-2 border-t border-white/10">
                         <button
                           onClick={() => setSelectedTicketForQr(ticket)}
-                          className="w-full py-2.5 text-xs font-agrandir-semibold tracking-wider uppercase bg-white text-black rounded-full hover:bg-neutral-200 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                          className="w-full py-1.5 sm:py-2 text-[8px] sm:text-[10px] font-agrandir-semibold tracking-wider uppercase bg-white text-black rounded-full hover:bg-neutral-200 transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm"
                         >
-                          <QrCode className="w-3.5 h-3.5" />
-                          <span>AGRANDIR LE QR</span>
+                          <QrCode className="w-3 h-3 shrink-0" />
+                          <span>VOIR QR</span>
                         </button>
 
                         <button
                           onClick={() => handlePrintTicket(ticket)}
-                          className="w-full py-2 text-xs font-agrandir-regular tracking-wider uppercase border border-white/20 hover:border-white text-[#bbb] hover:text-white rounded-full transition-colors flex items-center justify-center gap-2 cursor-pointer bg-white/5"
+                          className="hidden sm:flex w-full py-1.5 text-[8px] sm:text-[9px] font-agrandir-regular tracking-wider uppercase border border-white/20 hover:border-white text-[#bbb] hover:text-white rounded-full transition-colors items-center justify-center gap-1.5 cursor-pointer bg-white/5"
                         >
-                          <Printer className="w-3.5 h-3.5" />
-                          <span>IMPRIMER MON BILLET</span>
+                          <Printer className="w-3 h-3 shrink-0" />
+                          <span>IMPRIMER</span>
                         </button>
                       </div>
-
                     </div>
 
                   </div>
@@ -395,7 +383,7 @@ export const CustomerSpace: React.FC = () => {
               {selectedTicketForQr.categoryName} · {selectedTicketForQr.holderName}
             </div>
 
-            {modalQrCodeUrl ? (
+            {modalQrCodeUrl && modalQrCodeUrl.trim() !== '' ? (
               <div className="p-3 border-2 border-black rounded-2xl bg-white mb-4">
                 <img
                   src={modalQrCodeUrl}

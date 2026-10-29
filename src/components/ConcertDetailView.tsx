@@ -54,20 +54,21 @@ export const ConcertDetailView: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
         
-        {/* Left Column (5 cols): Official Concert Poster with generous rounded corners */}
+        {/* Left Column (5 cols): Artist Portrait with generous rounded corners */}
         <div className="lg:col-span-5">
           <div className="sticky top-28 space-y-4">
             
-            {/* Poster Card with rounded-3xl and subtle border */}
+            {/* Artist Card with rounded-3xl and subtle border */}
             <div className="aspect-[3/4] bg-[#121212] border border-white/15 rounded-3xl overflow-hidden relative shadow-2xl">
               <img
-                src={event.officialPoster}
-                alt={`Affiche officielle — ${event.title}`}
+                src={event.artistPortrait && event.artistPortrait.trim() !== '' ? event.artistPortrait : (event.bannerImage || event.officialPoster || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg')}
+                alt={`Photo de l'artiste — ${event.artist}`}
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover filter contrast-105"
               />
-              <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-md px-3.5 py-1.5 text-[10px] font-agrandir-semibold tracking-[0.2em] text-white uppercase rounded-full border border-white/20 shadow-md">
-                AFFICHE OFFICIELLE
+              <div className="absolute top-4 left-4 bg-black/80 backdrop-blur-md px-3.5 py-1.5 text-[10px] font-agrandir-semibold tracking-[0.2em] text-[#d4af37] uppercase rounded-full border border-[#d4af37]/30 shadow-md flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-pulse" />
+                <span>{event.artist}</span>
               </div>
             </div>
 

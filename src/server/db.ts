@@ -12,6 +12,7 @@ import {
   AdminStats,
   ExternalOrganizer,
   NewsArticle,
+  ScannerToken,
 } from '../types';
 
 // Curated atmospheric imagery fallbacks (high-definition SVG silhouettes and panoramic textures with zero broken links)
@@ -41,6 +42,7 @@ class LumareelDatabase {
   private archives: Map<string, ArchiveProduction> = new Map();
   private works: Map<string, WorkProduction> = new Map();
   private organizers: Map<string, ExternalOrganizer> = new Map();
+  private scannerTokens: Map<string, ScannerToken> = new Map();
   private newsArticles: NewsArticle[] = [];
   private emails: TransactionalEmail[] = [];
   private checkInLogs: Array<{
@@ -186,8 +188,8 @@ class LumareelDatabase {
       address: 'Palais de la Culture Bernard Binlin-Dadié, Treichville, Abidjan',
       description: 'Une communion scénique monumentale. Jeune Lion investit l’Esplanade du Palais de la Culture avec une direction artistique et une scénographie d’ombres et de faisceaux signée LUMARÉEL CO.',
       artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg',
-      officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg',
-      bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg',
+      officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg',
+      bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg',
       status: 'published',
       isFeatured: true,
       organizerType: 'lumareel',
@@ -247,8 +249,8 @@ class LumareelDatabase {
       address: 'Route de l’Aéroport International Félix Houphouët-Boigny, Port-Bouët',
       description: 'Le prodige de la mélo débarque à Abidjan pour une date historique. Le spectacle M’POINT M s’installe au Parc des Expositions pour une communion explosive devant plus de 10 000 spectateurs.',
       artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__2__2459f9b9.jpeg',
-      officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__2__2459f9b9.jpeg',
-      bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__2__2459f9b9.jpeg',
+      officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31_ef0db41e.jpeg',
+      bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31_ef0db41e.jpeg',
       status: 'published',
       isFeatured: true,
       organizerType: 'lumareel',
@@ -308,8 +310,8 @@ class LumareelDatabase {
       address: 'Boulevard Hassan II, Treichville, Abidjan',
       description: 'Une intensité scénique rare. Wantché s’empare de l’Esplanade avec une énergie volcanique, fusionnant rythmes bruts et scénographie visuelle conçue par LUMARÉEL CO.',
       artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__1__5dc7b4f5.jpeg',
-      officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__1__5dc7b4f5.jpeg',
-      bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__1__5dc7b4f5.jpeg',
+      officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.30_0f827a3a.jpeg',
+      bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.30_0f827a3a.jpeg',
       status: 'published',
       isFeatured: true,
       organizerType: 'lumareel',
@@ -359,8 +361,8 @@ class LumareelDatabase {
       address: 'Boulevard Hassan II, Treichville, Abidjan',
       description: 'Le couronnement scénique de Jamsco. Une scénographie royale signée LUMARÉEL CO. et un spectacle d’une envergure totale dans la mythique salle Lougah François.',
       artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36_70028046.jpeg',
-      officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36_70028046.jpeg',
-      bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36_70028046.jpeg',
+      officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__1__b3fd3b01.jpeg',
+      bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__1__b3fd3b01.jpeg',
       status: 'published',
       isFeatured: true,
       organizerType: 'lumareel',
@@ -568,6 +570,67 @@ class LumareelDatabase {
 
     this.works.set(work1.id, work1);
     this.works.set(work2.id, work2);
+
+    // 7. Seed Sample Tickets for Immediate Gate Scanner Testing
+    const testValidTicket: Ticket = {
+      id: 'tkt_lion_vip_991',
+      orderId: 'ord_demo_01',
+      orderRef: 'LMR-CMD-88310',
+      eventId: 'evt_jeune_lion',
+      eventTitle: 'JEUNE LION EN CONCERT',
+      eventDate: '2026-12-19',
+      eventTime: '15:00',
+      eventVenue: 'Esplanade du Palais de la Culture Bernard Binlin-Dadié, Abidjan',
+      categoryId: 'cat_jeune_lion_vip',
+      categoryName: 'PASS VIP PRESTIGE',
+      serialNumber: 'LMR-2026-JEU-8891',
+      token: 'TKT_SEC_LION_VIP_991',
+      holderName: 'Alexandre V. (Collecteur LUMARÉEL)',
+      holderEmail: 'collecteur@lumareel.co',
+      status: 'valid',
+      issuedAt: '2026-10-25T14:30:00Z',
+    };
+
+    const testUsedTicket: Ticket = {
+      id: 'tkt_tiakola_used_01',
+      orderId: 'ord_demo_02',
+      orderRef: 'LMR-CMD-44102',
+      eventId: 'evt_tiakola',
+      eventTitle: 'TIAKOLA — M’POINT M ABIDJAN',
+      eventDate: '2026-12-20',
+      eventTime: '14:00',
+      eventVenue: 'Parc des Expositions d’Abidjan',
+      categoryId: 'cat_tiakola_or',
+      categoryName: 'CARRÉ OR',
+      serialNumber: 'LMR-2026-TIA-4412',
+      token: 'TKT_SEC_TIAKOLA_USED_01',
+      holderName: 'Kouassi Dylan',
+      holderEmail: 'dylan.k@gmail.com',
+      status: 'used',
+      issuedAt: '2026-10-26T10:00:00Z',
+      checkedInAt: '2026-10-28T13:45:12Z',
+      checkedInBy: 'Vigile Entrée A',
+    };
+
+    this.tickets.set(testValidTicket.id, testValidTicket);
+    this.tickets.set(testValidTicket.token, testValidTicket);
+    this.tickets.set(testUsedTicket.id, testUsedTicket);
+    this.tickets.set(testUsedTicket.token, testUsedTicket);
+
+    // 8. Seed Demo Magic Link Scanner Token for testing
+    const demoScannerToken: ScannerToken = {
+      id: 'sct_demo_lion',
+      token: 'SEC_VGL_DEMO_JEUNELION2026',
+      eventId: 'evt_jeune_lion',
+      eventTitle: 'JEUNE LION EN CONCERT',
+      artistName: 'JEUNE LION',
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+      createdBy: 'Direction LUMARÉEL CO.',
+      revoked: false,
+    };
+    this.scannerTokens.set(demoScannerToken.token, demoScannerToken);
+    this.scannerTokens.set(demoScannerToken.id, demoScannerToken);
   }
 
   // User management
@@ -664,6 +727,31 @@ class LumareelDatabase {
     this.events.set(event.id, event);
     this.events.set(event.slug, event);
     return event;
+  }
+
+  public updateEvent(id: string, updateData: Partial<ConcertEvent>): ConcertEvent | undefined {
+    const existing = this.events.get(id);
+    if (!existing) return undefined;
+
+    const updated: ConcertEvent = {
+      ...existing,
+      ...updateData,
+      id: existing.id,
+      slug: updateData.slug || (updateData.title && updateData.title !== existing.title ? updateData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : existing.slug),
+      categories: updateData.categories && updateData.categories.length > 0 ? updateData.categories : existing.categories,
+    };
+
+    this.events.set(updated.id, updated);
+    this.events.set(updated.slug, updated);
+    return updated;
+  }
+
+  public deleteEvent(id: string): boolean {
+    const existing = this.events.get(id);
+    if (!existing) return false;
+    this.events.delete(existing.id);
+    this.events.delete(existing.slug);
+    return true;
   }
 
   // News & Communiqués
@@ -978,13 +1066,33 @@ class LumareelDatabase {
   }
 
   // Archives & Works
-  public getAllArchives(): ArchiveProduction[] {
+  public getAllArchives(includeDrafts: boolean = false): ArchiveProduction[] {
     return Array.from(this.archives.values())
-      .filter(a => a.isPublished)
+      .filter(a => includeDrafts || a.isPublished !== false)
       .sort((a, b) => a.orderIndex - b.orderIndex);
   }
 
-  public saveArchive(archive: ArchiveProduction): ArchiveProduction {
+  public saveArchive(data: Partial<ArchiveProduction> & { title: string }): ArchiveProduction {
+    const id = data.id || `arc_${Date.now()}`;
+    const existing = this.archives.get(id);
+    const archive: ArchiveProduction = {
+      id,
+      title: data.title,
+      year: data.year || existing?.year || '2026',
+      date: data.date || existing?.date || '2026',
+      city: data.city || existing?.city || 'Abidjan',
+      country: data.country || existing?.country || 'Côte d’Ivoire',
+      venue: data.venue || existing?.venue || 'Palais de la Culture',
+      artists: data.artists || existing?.artists || [data.title],
+      coverImage: data.coverImage || existing?.coverImage || DEFAULT_IMAGES.archiveCover,
+      description: data.description ?? existing?.description ?? '',
+      youtubeUrl: data.youtubeUrl ?? existing?.youtubeUrl ?? '',
+      youtubeEmbedUrl: data.youtubeEmbedUrl ?? existing?.youtubeEmbedUrl ?? '',
+      duration: data.duration || existing?.duration || 'Live HD',
+      photos: data.photos || existing?.photos || [],
+      isPublished: data.isPublished !== undefined ? data.isPublished : (existing?.isPublished !== undefined ? existing.isPublished : true),
+      orderIndex: data.orderIndex || existing?.orderIndex || (this.archives.size + 1),
+    };
     this.archives.set(archive.id, archive);
     return archive;
   }
@@ -1042,6 +1150,96 @@ class LumareelDatabase {
       paidOrdersCount,
       checkedInTickets,
     };
+  }
+
+  // Scanner Tokens (Magic Link for Gate Agents)
+  public createScannerToken(eventId: string, createdBy: string = 'Super Administrateur', durationHours: number = 24): ScannerToken | null {
+    const event = this.getEvent(eventId);
+    if (!event) return null;
+
+    const token = `SEC_VGL_${crypto.randomBytes(16).toString('hex').toUpperCase()}`;
+    const id = `sct_${crypto.randomBytes(6).toString('hex')}`;
+    const now = Date.now();
+    const expiresAt = new Date(now + durationHours * 3600 * 1000).toISOString();
+
+    const scannerToken: ScannerToken = {
+      id,
+      token,
+      eventId: event.id,
+      eventTitle: event.title,
+      artistName: event.artist,
+      createdAt: new Date(now).toISOString(),
+      expiresAt,
+      createdBy,
+      revoked: false,
+    };
+
+    this.scannerTokens.set(token, scannerToken);
+    this.scannerTokens.set(id, scannerToken);
+    return scannerToken;
+  }
+
+  public verifyScannerToken(token: string, eventId?: string): { valid: boolean; token?: ScannerToken; error?: string; event?: ConcertEvent } {
+    if (!token) {
+      return { valid: false, error: 'Token manquant ou format invalide.' };
+    }
+
+    // Special static super-admin bypass token
+    if (token === 'SEC_SESSION_AUTHORIZED') {
+      const defaultEvt = (eventId ? this.getEvent(eventId) : null) || this.getFeaturedEvent() || this.getAllEvents()[0];
+      return {
+        valid: true,
+        event: defaultEvt,
+        token: {
+          id: 'sct_admin_session',
+          token: 'SEC_SESSION_AUTHORIZED',
+          eventId: defaultEvt?.id || '',
+          eventTitle: defaultEvt?.title || 'Contrôle Global',
+          artistName: defaultEvt?.artist || 'LUMARÉEL CO.',
+          createdAt: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + 86400000).toISOString(),
+          revoked: false,
+        },
+      };
+    }
+
+    const scannerToken = this.scannerTokens.get(token);
+    if (!scannerToken) {
+      return { valid: false, error: 'Token de scan introuvable ou non reconnu.' };
+    }
+
+    if (scannerToken.revoked) {
+      return { valid: false, error: 'Ce lien d’accès a été révoqué par l’administrateur.' };
+    }
+
+    const now = Date.now();
+    const expiration = new Date(scannerToken.expiresAt).getTime();
+    if (now > expiration) {
+      return { valid: false, error: 'Ce lien d’accès a expiré. Veuillez demander un nouveau lien à l’administrateur.' };
+    }
+
+    const event = this.getEvent(scannerToken.eventId);
+    if (eventId && scannerToken.eventId !== eventId) {
+      return { valid: false, error: 'Le token fourni ne correspond pas à cet événement.' };
+    }
+
+    return {
+      valid: true,
+      token: scannerToken,
+      event: event || undefined,
+    };
+  }
+
+  public getScannerTokensForEvent(eventId: string): ScannerToken[] {
+    const list: ScannerToken[] = [];
+    const seen = new Set<string>();
+    for (const t of this.scannerTokens.values()) {
+      if (t.eventId === eventId && !seen.has(t.id)) {
+        seen.add(t.id);
+        list.push(t);
+      }
+    }
+    return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 }
 

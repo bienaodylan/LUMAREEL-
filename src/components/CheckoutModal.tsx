@@ -163,18 +163,27 @@ export const CheckoutModal: React.FC = () => {
 
         {!createdOrder || issuedTickets.length === 0 ? (
           <div>
-            {/* Header */}
-            <div className="mb-6 border-b border-white/10 pb-4">
-              <div className="flex items-center gap-2 text-[10px] font-agrandir-regular tracking-[0.2em] text-[#888] uppercase mb-1">
-                <span>BILLETTERIE OFFICIELLE LUMARÉEL</span>
-                <span>·</span>
-                <span className="text-[#d4af37]">SÉCURISÉE</span>
+            {/* Header with Artist Photo & Details */}
+            <div className="mb-6 border-b border-white/10 pb-5 flex items-start gap-4">
+              <div className="w-16 h-20 sm:w-20 sm:h-24 rounded-2xl overflow-hidden bg-[#161616] border border-white/15 shrink-0 shadow-lg">
+                <img
+                  src={checkoutEvent.artistPortrait || checkoutEvent.bannerImage || checkoutEvent.officialPoster}
+                  alt={checkoutEvent.artist}
+                  className="w-full h-full object-cover filter contrast-105"
+                />
               </div>
-              <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl uppercase tracking-tight text-white">
-                {checkoutEvent.title}
-              </h2>
-              <div className="text-xs font-agrandir-regular text-[#aaa] mt-1">
-                {checkoutEvent.artist} · {checkoutEvent.date} ({checkoutEvent.venue})
+              <div className="flex-1 min-w-0 pr-8">
+                <div className="flex items-center gap-2 text-[10px] font-agrandir-regular tracking-[0.2em] text-[#888] uppercase mb-1">
+                  <span>BILLETTERIE OFFICIELLE</span>
+                  <span>·</span>
+                  <span className="text-[#d4af37] font-agrandir-semibold">{checkoutEvent.artist}</span>
+                </div>
+                <h2 className="font-agrandir-extrabold text-xl sm:text-2xl uppercase tracking-tight text-white truncate">
+                  {checkoutEvent.title}
+                </h2>
+                <div className="text-xs font-agrandir-regular text-[#aaa] mt-1 line-clamp-1">
+                  {checkoutEvent.date} · {checkoutEvent.venue}
+                </div>
               </div>
             </div>
 

@@ -239,7 +239,7 @@ export const DiscoverView: React.FC = () => {
                         {/* 2. Artist Poster Thumbnail (Rounded rectangle) */}
                         <div className="w-full sm:w-40 md:w-48 aspect-[16/10] rounded-xl sm:rounded-2xl overflow-hidden border border-white/10 bg-[#161616] shrink-0 shadow-md">
                           <img
-                            src={event.officialPoster || event.bannerImage}
+                            src={event.officialPoster || event.bannerImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.30_0f827a3a.jpeg'}
                             alt={event.title}
                             referrerPolicy="no-referrer"
                             className="w-full h-full object-cover filter contrast-105 group-hover:scale-105 transition-transform duration-500 ease-out"

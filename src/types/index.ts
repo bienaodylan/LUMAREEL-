@@ -181,3 +181,15 @@ export interface AdminStats {
   paidOrdersCount: number;
   checkedInTickets: number;
 }
+
+export interface ScannerToken {
+  id: string;
+  token: string;
+  eventId: string;
+  eventTitle: string;
+  artistName: string;
+  createdAt: string;
+  expiresAt: string;
+  createdBy?: string;
+  revoked?: boolean;
+}

@@ -3,11 +3,16 @@ import { useApp } from '../context/AppContext';
 import { ArchiveProduction } from '../types';
 import { 
   Play, Image as ImageIcon, Calendar, MapPin, X, ChevronLeft, ChevronRight, 
-  Maximize2, Volume2, Sparkles, Film, ArrowLeft
+  Maximize2, Volume2, Sparkles, Film, ArrowLeft, Search, Filter
 } from 'lucide-react';
 
 export const ArchiveView: React.FC = () => {
   const { archives, setCurrentPage } = useApp();
+
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedYear, setSelectedYear] = useState('all');
+  const [selectedFormat, setSelectedFormat] = useState<'all' | 'video' | 'photos'>('all');
 
   // Active media mode per archive ('video' | 'photos')
   const [activeTab, setActiveTab] = useState<Record<string, 'video' | 'photos'>>({});
@@ -41,6 +46,31 @@ export const ArchiveView: React.FC = () => {
   const handleOpenModal = (archive: ArchiveProduction, mode: 'video' | 'photos', photoIndex = 0) => {
     setModalItem({ archive, mode, photoIndex });
   };
+
+  // Filtered archives based on user search query and filters
+  const filteredArchives = archives.filter((item) => {
+    const matchesSearch =
+      searchQuery === '' ||
+      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (item.artists && item.artists.some((a) => a.toLowerCase().includes(searchQuery.toLowerCase())));
+
+    const matchesYear =
+      selectedYear === 'all' ||
+      item.year === selectedYear ||
+      (item.date && item.date.includes(selectedYear));
+
+    const matchesFormat =
+      selectedFormat === 'all' ||
+      (selectedFormat === 'video' && Boolean(item.youtubeUrl || item.youtubeEmbedUrl)) ||
+      (selectedFormat === 'photos' && Boolean(item.photos && item.photos.length > 0));
+
+    return matchesSearch && matchesYear && matchesFormat;
+  });
+
+  const availableYears = ['all', ...Array.from(new Set(archives.map((a) => a.year || (a.date ? a.date.slice(-4) : '2026'))))];
 
   return (
     <div className="relative min-h-screen bg-[#060606] text-[#efefef] flex flex-col justify-between overflow-hidden select-none">
@@ -80,9 +110,80 @@ export const ArchiveView: React.FC = () => {
           </h2>
         </div>
 
-        <p className="text-sm sm:text-base text-[#999] font-agrandir-regular font-light max-w-xl mb-14">
+        <p className="text-sm sm:text-base text-[#999] font-agrandir-regular font-light max-w-xl mb-8">
           Des artistes, des publics, des instants uniques captés à jamais.
         </p>
+
+        {/* =========================================================================
+            BARRE DE RECHERCHE ET FILTRES DÉDIÉE AUX ARCHIVES
+            Comme la barre de recherche officielle de l'accueil, permet de filtrer
+            les concerts passés par artiste, concept, lieu, ville et format (vidéo / photos).
+           ========================================================================= */}
+        <div className="mb-12">
+          <div className="rounded-3xl sm:rounded-full bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/15 p-3 sm:p-4 shadow-2xl">
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+              
+              {/* Champ de recherche */}
+              <div className="md:col-span-6 relative">
+                <Search className="w-4 h-4 text-[#777] absolute left-4 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Rechercher une archive, un artiste (Jeune Lion, Wantché...), une salle..."
+                  className="w-full bg-[#181818] border border-white/10 rounded-full pl-11 pr-4 py-2.5 text-xs text-white placeholder-[#666] focus:outline-none focus:border-white font-agrandir-regular"
+                />
+              </div>
+
+              {/* Filtre Année */}
+              <div className="md:col-span-3">
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  className="w-full bg-[#181818] border border-white/10 rounded-full px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular uppercase tracking-wider"
+                >
+                  <option value="all">TOUTES LES DATES</option>
+                  {availableYears.filter((y) => y !== 'all').map((year) => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filtre Format Média (Vidéo / Photos) */}
+              <div className="md:col-span-3">
+                <select
+                  value={selectedFormat}
+                  onChange={(e) => setSelectedFormat(e.target.value as any)}
+                  className="w-full bg-[#181818] border border-white/10 rounded-full px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular uppercase tracking-wider"
+                >
+                  <option value="all">TOUS LES FORMATS</option>
+                  <option value="video">RÉCAPS VIDÉO HD</option>
+                  <option value="photos">GALERIES PHOTOS</option>
+                </select>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Quick results counter */}
+          <div className="flex items-center justify-between text-xs font-agrandir-regular text-[#777] mt-3 px-2">
+            <span>
+              {filteredArchives.length} {filteredArchives.length > 1 ? 'archives répertoriées' : 'archive répertoriée'}
+            </span>
+            {(searchQuery || selectedYear !== 'all' || selectedFormat !== 'all') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedYear('all');
+                  setSelectedFormat('all');
+                }}
+                className="text-[11px] text-[#aaa] hover:text-white uppercase font-agrandir-semibold transition-colors cursor-pointer"
+              >
+                Réinitialiser la recherche
+              </button>
+            )}
+          </div>
+        </div>
 
         {/* =========================================================================
             DISPOSITION DE LA LISTE : STYLE "HISTORIQUE YOUTUBE" VERTICAL
@@ -90,255 +191,399 @@ export const ArchiveView: React.FC = () => {
             - Bloc Média (Cadre 16:9 avec bouton Play ou Carrousel Photos) + Boutons Toggle
             - Bloc Informations (Titre, date, lieu, résumé court)
            ========================================================================= */}
-        <div className="space-y-10 sm:space-y-12">
-          {archives.map((item, idx) => {
-            const currentMode = getMediaMode(item.id);
-            const isPlaying = activePlayingId === item.id;
-            const currentPhotoIdx = activePhotoIndex[item.id] || 0;
-            const photoList = item.photos && item.photos.length > 0 ? item.photos : [item.coverImage];
+        {filteredArchives.length === 0 ? (
+          <div className="text-center py-20 rounded-3xl bg-[#0c0c0c] border border-white/10 p-8 my-6">
+            <Film className="w-10 h-10 text-[#555] mx-auto mb-3" />
+            <h3 className="font-agrandir-extrabold text-xl text-white uppercase mb-2">
+              AUCUNE ARCHIVE CORRESPONDANTE
+            </h3>
+            <p className="font-agrandir-regular text-xs text-[#888] max-w-sm mx-auto mb-6">
+              Aucun concert passé ne correspond à vos critères de recherche.
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedYear('all');
+                setSelectedFormat('all');
+              }}
+              className="px-6 py-2.5 rounded-full bg-white text-black font-agrandir-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-neutral-200 transition-colors"
+            >
+              Voir toutes les archives
+            </button>
+          </div>
+        ) : (
+          <div>
+            {/* =========================================================================
+                VUE MOBILE (STYLE "HISTORIQUE YOUTUBE" — CAPTURE FOURNIE)
+                - Ligne horizontale avec miniature 16:9 + barre de progression rouge + durée
+                - Titre et métadonnées à droite avec bouton d'options (⋮)
+                - Bouton "Voir les images" directement sous chaque élément
+               ========================================================================= */}
+            <div className="md:hidden space-y-4">
+              <div className="text-[11px] font-agrandir-extrabold text-[#d4af37] tracking-[0.2em] uppercase mb-3 px-1">
+                CONCERTS RÉCENTS · HISTORIQUE
+              </div>
 
-            return (
-              <div
-                key={item.id}
-                className="p-6 sm:p-8 rounded-3xl bg-[#0c0c0c]/90 border border-white/10 hover:border-white/20 transition-all shadow-2xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-start group"
-              >
-                
-                {/* ----------------- GAUCHE : BLOC MÉDIA (CADRE 16:9) ----------------- */}
-                <div className="lg:col-span-7 flex flex-col space-y-4">
-                  
-                  {/* Cadre 16:9 immersif avec bords arrondis */}
-                  <div className="aspect-[16/9] w-full rounded-2xl sm:rounded-3xl overflow-hidden relative bg-[#111111] border border-white/15 shadow-2xl">
-                    
-                    {/* MODE 1 : LECTEUR VIDÉO */}
-                    {currentMode === 'video' && (
-                      <>
-                        {isPlaying && item.youtubeEmbedUrl ? (
-                          // Lecteur Vidéo Intégré (Zéro redirection, reste sur LUMARÉEL)
-                          <div className="w-full h-full relative">
-                            <iframe
-                              src={item.youtubeEmbedUrl}
-                              title={item.title}
-                              className="w-full h-full border-0 rounded-2xl sm:rounded-3xl"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                            />
-                            {/* Bouton Fermer le lecteur pour revenir à la miniature */}
-                            <button
-                              onClick={() => setActivePlayingId(null)}
-                              className="absolute top-3 right-3 p-2 rounded-full bg-black/80 hover:bg-black text-white border border-white/20 cursor-pointer shadow-lg backdrop-blur-md transition-all z-20"
-                              title="Fermer la vidéo"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ) : (
-                          // Couverture de l'archive avec bouton Play superposé
-                          <div
-                            onClick={() => handlePlayVideo(item)}
-                            className="w-full h-full relative cursor-pointer group/thumb"
-                          >
-                            <img
-                              src={item.coverImage}
-                              alt={item.title}
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-cover object-center filter brightness-[0.85] group-hover/thumb:brightness-100 group-hover/thumb:scale-105 transition-all duration-500"
-                            />
+              {filteredArchives.map((item) => {
+                const isPlaying = activePlayingId === item.id;
+                const photoList = item.photos && item.photos.length > 0 ? item.photos : [item.coverImage];
+                const safeCover = item.coverImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg';
 
-                            {/* Dégradé cinématique */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
-
-                            {/* Bouton Play superposé au centre */}
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/20 group-hover/thumb:bg-white text-white group-hover/thumb:text-black backdrop-blur-md border border-white/30 flex items-center justify-center transition-all duration-300 shadow-[0_0_30px_rgba(0,0,0,0.8)] group-hover/thumb:scale-110">
-                                <Play className="w-7 h-7 sm:w-8 sm:h-8 ml-1 fill-current" />
-                              </div>
-                            </div>
-
-                            {/* Duration Badge */}
-                            <div className="absolute bottom-3.5 right-3.5">
-                              <span className="px-3 py-1 rounded-full bg-black/85 backdrop-blur-md text-xs font-mono text-white border border-white/20 uppercase font-semibold">
-                                {item.duration || 'LIVE HD'}
-                              </span>
-                            </div>
-
-                            {/* Pill Archive HD */}
-                            <div className="absolute top-3.5 left-3.5">
-                              <span className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-[10px] font-agrandir-semibold text-[#d4af37] border border-white/15 uppercase tracking-wider flex items-center gap-1.5">
-                                <Film className="w-3 h-3" />
-                                <span>RÉCAP VIDÉO 4K</span>
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* MODE 2 : GALERIE PHOTOS / CARROUSEL D'IMAGES */}
-                    {currentMode === 'photos' && (
-                      <div className="w-full h-full relative group/photos">
-                        <img
-                          src={photoList[currentPhotoIdx] || item.coverImage}
-                          alt={`${item.title} photo ${currentPhotoIdx + 1}`}
-                          className="w-full h-full object-cover object-center transition-all duration-500"
+                return (
+                  <div
+                    key={item.id}
+                    className="p-3 bg-[#0d0d0d] border border-white/10 rounded-2xl flex flex-col space-y-2.5 shadow-lg"
+                  >
+                    {/* Lecteur Vidéo Intégré sur mobile si en cours de lecture */}
+                    {isPlaying && item.youtubeEmbedUrl ? (
+                      <div className="aspect-[16/9] w-full rounded-xl overflow-hidden relative bg-black border border-white/15">
+                        <iframe
+                          src={item.youtubeEmbedUrl}
+                          title={item.title}
+                          className="w-full h-full border-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
                         />
-
-                        {/* Lateral photo navigation buttons */}
-                        {photoList.length > 1 && (
-                          <>
-                            <button
-                              onClick={() =>
-                                setActivePhotoIndex((prev) => ({
-                                  ...prev,
-                                  [item.id]: (currentPhotoIdx - 1 + photoList.length) % photoList.length,
-                                }))
-                              }
-                              className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/70 hover:bg-black text-white border border-white/20 cursor-pointer shadow-lg backdrop-blur-md"
-                              aria-label="Photo précédente"
-                            >
-                              <ChevronLeft className="w-4 h-4" />
-                            </button>
-
-                            <button
-                              onClick={() =>
-                                setActivePhotoIndex((prev) => ({
-                                  ...prev,
-                                  [item.id]: (currentPhotoIdx + 1) % photoList.length,
-                                }))
-                              }
-                              className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/70 hover:bg-black text-white border border-white/20 cursor-pointer shadow-lg backdrop-blur-md"
-                              aria-label="Photo suivante"
-                            >
-                              <ChevronRight className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-
-                        {/* Photo counter badge */}
-                        <div className="absolute bottom-3.5 right-3.5">
-                          <span className="px-3 py-1 rounded-full bg-black/85 backdrop-blur-md text-xs font-mono text-white border border-white/20">
-                            {currentPhotoIdx + 1} / {photoList.length} PHOTOS
-                          </span>
+                        <button
+                          onClick={() => setActivePlayingId(null)}
+                          className="absolute top-2 right-2 p-1.5 rounded-full bg-black/80 text-white border border-white/20"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      /* Ligne principale YouTube : Miniature à gauche, Titre à droite */
+                      <div className="flex items-start gap-3">
+                        {/* Miniature 16:9 avec durée et barre rouge */}
+                        <div
+                          onClick={() => handlePlayVideo(item)}
+                          className="w-36 aspect-[16/9] rounded-xl overflow-hidden relative bg-black shrink-0 cursor-pointer border border-white/10 group"
+                        >
+                          <img
+                            src={safeCover}
+                            alt={item.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white">
+                              <Play className="w-4 h-4 ml-0.5 fill-current" />
+                            </div>
+                          </div>
+                          {/* Badge durée en bas à droite */}
+                          <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/85 text-[9px] font-mono font-bold text-white">
+                            {item.duration || 'LIVE HD'}
+                          </div>
+                          {/* Barre de progression rouge style YouTube en bas */}
+                          <div className="absolute bottom-0 left-0 h-1 bg-red-600 rounded-full w-[70%]" />
                         </div>
 
-                        {/* Fullscreen view trigger */}
+                        {/* Informations à droite */}
+                        <div className="flex-1 min-w-0 pr-1">
+                          <h3
+                            onClick={() => handlePlayVideo(item)}
+                            className="font-agrandir-semibold text-xs text-white leading-snug line-clamp-2 uppercase cursor-pointer hover:text-[#d4af37] transition-colors"
+                          >
+                            {item.title}
+                          </h3>
+                          <p className="text-[10px] text-[#888] font-agrandir-regular mt-1 truncate">
+                            LUMARÉEL CO. · {item.venue}
+                          </p>
+                          <p className="text-[9px] text-[#666] font-agrandir-regular mt-0.5">
+                            {item.date || item.year} · {item.city}
+                          </p>
+                        </div>
+
+                        {/* Menu 3 points style YouTube */}
                         <button
-                          onClick={() => handleOpenModal(item, 'photos', currentPhotoIdx)}
-                          className="absolute top-3.5 right-3.5 p-2 rounded-full bg-black/70 hover:bg-black text-white border border-white/20 cursor-pointer shadow-lg backdrop-blur-md"
-                          title="Agrandir les photos"
+                          onClick={() => handleOpenModal(item, 'video')}
+                          className="text-[#888] hover:text-white p-1 shrink-0 cursor-pointer text-sm font-bold"
+                          title="Options"
                         >
-                          <Maximize2 className="w-3.5 h-3.5" />
+                          ⋮
                         </button>
                       </div>
                     )}
 
+                    {/* Ligne d'actions sous les éléments (Bouton Voir les images) */}
+                    <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                      <button
+                        onClick={() => handleOpenModal(item, 'photos', 0)}
+                        className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#d4af37] text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 border border-[#d4af37]/30 transition-colors cursor-pointer"
+                      >
+                        <ImageIcon className="w-3.5 h-3.5 text-[#d4af37]" />
+                        <span>Voir les images ({photoList.length})</span>
+                      </button>
+
+                      <button
+                        onClick={() => handlePlayVideo(item)}
+                        className="px-3 py-1.5 rounded-xl bg-white text-black text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center gap-1 hover:bg-neutral-200 transition-colors cursor-pointer"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        <span>Lire</span>
+                      </button>
+                    </div>
+
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* ----------------- BOUTONS DE BASCULE (TOGGLE) -----------------
-                      Sous le cadre média : "Voir la vidéo" et "Voir les photos"
-                  ------------------------------------------------------------------ */}
-                  <div className="flex items-center gap-2 pt-1">
-                    <button
-                      onClick={() => setMediaMode(item.id, 'video')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-agrandir-semibold uppercase tracking-wider transition-all cursor-pointer ${
-                        currentMode === 'video'
-                          ? 'bg-white text-black font-agrandir-extrabold shadow-lg'
-                          : 'bg-white/5 hover:bg-white/10 text-[#aaa] hover:text-white border border-white/15'
-                      }`}
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>Voir la vidéo</span>
-                    </button>
+            {/* =========================================================================
+                VUE DESKTOP (GRAND ÉCRAN AVEC LECTEUR ET INFORMATIONS IMMERSIVES)
+               ========================================================================= */}
+            <div className="hidden md:block space-y-10 sm:space-y-12">
+              {filteredArchives.map((item, idx) => {
+                const currentMode = getMediaMode(item.id);
+                const isPlaying = activePlayingId === item.id;
+                const currentPhotoIdx = activePhotoIndex[item.id] || 0;
+                const photoList = item.photos && item.photos.length > 0 ? item.photos : [item.coverImage];
+                const safeCover = item.coverImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg';
+                const currentPhoto = photoList[currentPhotoIdx] || safeCover;
 
-                    <button
-                      onClick={() => setMediaMode(item.id, 'photos')}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-agrandir-semibold uppercase tracking-wider transition-all cursor-pointer ${
-                        currentMode === 'photos'
-                          ? 'bg-white text-black font-agrandir-extrabold shadow-lg'
-                          : 'bg-white/5 hover:bg-white/10 text-[#aaa] hover:text-white border border-white/15'
-                      }`}
-                    >
-                      <ImageIcon className="w-3.5 h-3.5" />
-                      <span>Voir les photos ({photoList.length})</span>
-                    </button>
-                  </div>
-
-                </div>
-
-                {/* ----------------- DROITE : BLOC INFORMATIONS ----------------- */}
-                <div className="lg:col-span-5 flex flex-col justify-between space-y-4 font-agrandir-regular">
+                return (
+                  <div
+                    key={item.id}
+                    className="p-6 sm:p-8 rounded-3xl bg-[#0c0c0c]/90 border border-white/10 hover:border-white/20 transition-all shadow-2xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-start group"
+                  >
                   
-                  <div>
-                    {/* Top Tag & Date */}
-                    <div className="flex items-center gap-2.5 mb-2 flex-wrap">
-                      <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[10px] font-agrandir-semibold tracking-widest text-[#d4af37] uppercase">
-                        ARCHIVE OFFICIELLE 0{idx + 1}
-                      </span>
-                      <span className="text-xs text-[#888] font-agrandir-regular">
-                        {item.date || item.year}
-                      </span>
-                    </div>
-
-                    {/* Grand Titre Monumental */}
-                    <h3 className="font-agrandir-extrabold text-2xl sm:text-3xl lg:text-4xl text-white tracking-tight uppercase leading-tight mb-3">
-                      {item.title}
-                    </h3>
-
-                    {/* Lieu & Ville */}
-                    <div className="flex items-center gap-2 text-xs text-[#aaa] mb-4">
-                      <MapPin className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-                      <span>{item.venue} · {item.city} ({item.country})</span>
-                    </div>
-
-                    {/* Résumé Court */}
-                    <p className="text-xs sm:text-sm text-[#bbb] font-light leading-relaxed mb-5">
-                      {item.description}
-                    </p>
-
-                    {/* Artistes Associés */}
-                    {item.artists && item.artists.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="text-[10px] text-[#777] uppercase tracking-wider font-agrandir-semibold">
-                          Artistes &amp; Scénographie
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {item.artists.map((art, aIdx) => (
-                            <span
-                              key={aIdx}
-                              className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-[#ccc]"
+                  {/* ----------------- GAUCHE : BLOC MÉDIA (CADRE 16:9) ----------------- */}
+                  <div className="lg:col-span-7 flex flex-col space-y-4">
+                    
+                    {/* Cadre 16:9 immersif avec bords arrondis */}
+                    <div className="aspect-[16/9] w-full rounded-2xl sm:rounded-3xl overflow-hidden relative bg-[#111111] border border-white/15 shadow-2xl">
+                      
+                      {/* MODE 1 : LECTEUR VIDÉO */}
+                      {currentMode === 'video' && (
+                        <>
+                          {isPlaying && item.youtubeEmbedUrl ? (
+                            // Lecteur Vidéo Intégré (Zéro redirection, reste sur LUMARÉEL)
+                            <div className="w-full h-full relative">
+                              <iframe
+                                src={item.youtubeEmbedUrl}
+                                title={item.title}
+                                className="w-full h-full border-0 rounded-2xl sm:rounded-3xl"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                              {/* Bouton Fermer le lecteur pour revenir à la miniature */}
+                              <button
+                                onClick={() => setActivePlayingId(null)}
+                                className="absolute top-3 right-3 p-2 rounded-full bg-black/80 hover:bg-black text-white border border-white/20 cursor-pointer shadow-lg backdrop-blur-md transition-all z-20"
+                                title="Fermer la vidéo"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            // Couverture de l'archive avec bouton Play superposé
+                            <div
+                              onClick={() => handlePlayVideo(item)}
+                              className="w-full h-full relative cursor-pointer group/thumb"
                             >
-                              {art}
+                              <img
+                                src={item.coverImage}
+                                alt={item.title}
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover object-center filter brightness-[0.85] group-hover/thumb:brightness-100 group-hover/thumb:scale-105 transition-all duration-500"
+                              />
+
+                              {/* Dégradé cinématique */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+
+                              {/* Bouton Play superposé au centre */}
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/20 group-hover/thumb:bg-white text-white group-hover/thumb:text-black backdrop-blur-md border border-white/30 flex items-center justify-center transition-all duration-300 shadow-[0_0_30px_rgba(0,0,0,0.8)] group-hover/thumb:scale-110">
+                                  <Play className="w-7 h-7 sm:w-8 sm:h-8 ml-1 fill-current" />
+                                </div>
+                              </div>
+
+                              {/* Duration Badge */}
+                              <div className="absolute bottom-3.5 right-3.5">
+                                <span className="px-3 py-1 rounded-full bg-black/85 backdrop-blur-md text-xs font-mono text-white border border-white/20 uppercase font-semibold">
+                                  {item.duration || 'LIVE HD'}
+                                </span>
+                              </div>
+
+                              {/* Pill Archive HD */}
+                              <div className="absolute top-3.5 left-3.5">
+                                <span className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-[10px] font-agrandir-semibold text-[#d4af37] border border-white/15 uppercase tracking-wider flex items-center gap-1.5">
+                                  <Film className="w-3 h-3" />
+                                  <span>RÉCAP VIDÉO 4K</span>
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* MODE 2 : GALERIE PHOTOS / CARROUSEL D'IMAGES */}
+                      {currentMode === 'photos' && (
+                        <div className="w-full h-full relative group/photos">
+                          <img
+                            src={photoList[currentPhotoIdx] || item.coverImage}
+                            alt={`${item.title} photo ${currentPhotoIdx + 1}`}
+                            className="w-full h-full object-cover object-center transition-all duration-500"
+                          />
+
+                          {/* Lateral photo navigation buttons */}
+                          {photoList.length > 1 && (
+                            <>
+                              <button
+                                onClick={() =>
+                                  setActivePhotoIndex((prev) => ({
+                                    ...prev,
+                                    [item.id]: (currentPhotoIdx - 1 + photoList.length) % photoList.length,
+                                  }))
+                                }
+                                className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/70 hover:bg-black text-white border border-white/20 cursor-pointer shadow-lg backdrop-blur-md"
+                                aria-label="Photo précédente"
+                              >
+                                <ChevronLeft className="w-4 h-4" />
+                              </button>
+
+                              <button
+                                onClick={() =>
+                                  setActivePhotoIndex((prev) => ({
+                                    ...prev,
+                                    [item.id]: (currentPhotoIdx + 1) % photoList.length,
+                                  }))
+                                }
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/70 hover:bg-black text-white border border-white/20 cursor-pointer shadow-lg backdrop-blur-md"
+                                aria-label="Photo suivante"
+                              >
+                                <ChevronRight className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+
+                          {/* Photo counter badge */}
+                          <div className="absolute bottom-3.5 right-3.5">
+                            <span className="px-3 py-1 rounded-full bg-black/85 backdrop-blur-md text-xs font-mono text-white border border-white/20">
+                              {currentPhotoIdx + 1} / {photoList.length} PHOTOS
                             </span>
-                          ))}
+                          </div>
+
+                          {/* Fullscreen view trigger */}
+                          <button
+                            onClick={() => handleOpenModal(item, 'photos', currentPhotoIdx)}
+                            className="absolute top-3.5 right-3.5 p-2 rounded-full bg-black/70 hover:bg-black text-white border border-white/20 cursor-pointer shadow-lg backdrop-blur-md"
+                            title="Agrandir les photos"
+                          >
+                            <Maximize2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
-                      </div>
-                    )}
+                      )}
+
+                    </div>
+
+                    {/* ----------------- BOUTONS DE BASCULE (TOGGLE) -----------------
+                        Sous le cadre média : "Voir la vidéo" et "Voir les photos"
+                    ------------------------------------------------------------------ */}
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        onClick={() => setMediaMode(item.id, 'video')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-agrandir-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                          currentMode === 'video'
+                            ? 'bg-white text-black font-agrandir-extrabold shadow-lg'
+                            : 'bg-white/5 hover:bg-white/10 text-[#aaa] hover:text-white border border-white/15'
+                        }`}
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>Voir la vidéo</span>
+                      </button>
+
+                      <button
+                        onClick={() => setMediaMode(item.id, 'photos')}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-agrandir-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                          currentMode === 'photos'
+                            ? 'bg-white text-black font-agrandir-extrabold shadow-lg'
+                            : 'bg-white/5 hover:bg-white/10 text-[#aaa] hover:text-white border border-white/15'
+                        }`}
+                      >
+                        <ImageIcon className="w-3.5 h-3.5" />
+                        <span>Voir les photos ({photoList.length})</span>
+                      </button>
+                    </div>
+
                   </div>
 
-                  {/* Bouton de lancement instantané */}
-                  <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                    <button
-                      onClick={() => handlePlayVideo(item)}
-                      className="px-6 py-2.5 rounded-full bg-white text-black hover:bg-[#eaeaea] font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-xl"
-                    >
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>{isPlaying ? 'En cours de lecture' : 'Lancer le récap'}</span>
-                    </button>
+                  {/* ----------------- DROITE : BLOC INFORMATIONS ----------------- */}
+                  <div className="lg:col-span-5 flex flex-col justify-between space-y-4 font-agrandir-regular">
+                    
+                    <div>
+                      {/* Top Tag & Date */}
+                      <div className="flex items-center gap-2.5 mb-2 flex-wrap">
+                        <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[10px] font-agrandir-semibold tracking-widest text-[#d4af37] uppercase">
+                          ARCHIVE OFFICIELLE 0{idx + 1}
+                        </span>
+                        <span className="text-xs text-[#888] font-agrandir-regular">
+                          {item.date || item.year}
+                        </span>
+                      </div>
 
-                    <button
-                      onClick={() => handleOpenModal(item, 'video')}
-                      className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-colors cursor-pointer"
-                      title="Plein écran sans redirection"
-                    >
-                      <Maximize2 className="w-4 h-4" />
-                    </button>
+                      {/* Grand Titre Monumental */}
+                      <h3 className="font-agrandir-extrabold text-2xl sm:text-3xl lg:text-4xl text-white tracking-tight uppercase leading-tight mb-3">
+                        {item.title}
+                      </h3>
+
+                      {/* Lieu & Ville */}
+                      <div className="flex items-center gap-2 text-xs text-[#aaa] mb-4">
+                        <MapPin className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
+                        <span>{item.venue} · {item.city} ({item.country})</span>
+                      </div>
+
+                      {/* Résumé Court */}
+                      <p className="text-xs sm:text-sm text-[#bbb] font-light leading-relaxed mb-5">
+                        {item.description}
+                      </p>
+
+                      {/* Artistes Associés */}
+                      {item.artists && item.artists.length > 0 && (
+                        <div className="space-y-1.5">
+                          <div className="text-[10px] text-[#777] uppercase tracking-wider font-agrandir-semibold">
+                            Artistes &amp; Scénographie
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {item.artists.map((art, aIdx) => (
+                              <span
+                                key={aIdx}
+                                className="px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-[#ccc]"
+                              >
+                                {art}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Bouton de lancement instantané */}
+                    <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+                      <button
+                        onClick={() => handlePlayVideo(item)}
+                        className="px-6 py-2.5 rounded-full bg-white text-black hover:bg-[#eaeaea] font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-xl"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>{isPlaying ? 'En cours de lecture' : 'Lancer le récap'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleOpenModal(item, 'video')}
+                        className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-colors cursor-pointer"
+                        title="Plein écran sans redirection"
+                      >
+                        <Maximize2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
                   </div>
 
                 </div>
-
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
+      )}
 
       </div>
 
@@ -385,7 +630,7 @@ export const ArchiveView: React.FC = () => {
               ) : (
                 <div className="max-h-[70vh] flex flex-col items-center">
                   <img
-                    src={(modalItem.archive.photos && modalItem.archive.photos[modalItem.photoIndex || 0]) || modalItem.archive.coverImage}
+                    src={(modalItem.archive.photos && modalItem.archive.photos[modalItem.photoIndex || 0]) || modalItem.archive.coverImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg'}
                     alt={modalItem.archive.title}
                     className="max-h-[60vh] w-auto object-contain rounded-2xl border border-white/10"
                   />
