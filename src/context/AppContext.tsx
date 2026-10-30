@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, ConcertEvent, Order, Ticket, ArchiveProduction } from '../types';
+import { User, ConcertEvent, Order, Ticket, ArchiveProduction, PlatformSettings } from '../types';
 import { INITIAL_EVENTS, INITIAL_NEWS, INITIAL_ORDERS, INITIAL_ARCHIVES } from '../data/initialData';
 import { convertToYouTubeEmbed } from '../utils/mediaUtils';
 
@@ -35,6 +35,8 @@ interface AppContextType {
   setSearchQuery: (query: string) => void;
   toast: { message: string; type: 'info' | 'success' | 'error' } | null;
   showToast: (message: string, type?: 'info' | 'success' | 'error') => void;
+  platformSettings: PlatformSettings;
+  updatePlatformSettings: (settings: Partial<PlatformSettings>) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -106,6 +108,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [checkoutEvent, setCheckoutEvent] = useState<ConcertEvent | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' | 'error' } | null>(null);
+
+  const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
+    platformName: 'LUMARÉEL',
+    tagline: 'CO.',
+    logoMonogram: 'LR',
+    logoUrl: '',
+    currency: 'XOF (FCFA)',
+    infoline: '+225 01 53 508 210',
+    gateToken: 'VIGILE_AUTH_LMR_2026',
+    githubRepoUrl: '',
+  };
+
+  const [platformSettings, setPlatformSettings] = useState<PlatformSettings>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lumareel_platform_settings');
+        if (saved) return { ...DEFAULT_PLATFORM_SETTINGS, ...JSON.parse(saved) };
+      } catch (e) {
+        console.warn('Could not read settings from localStorage', e);
+      }
+    }
+    return DEFAULT_PLATFORM_SETTINGS;
+  });
 
   const enterPlatform = () => {
     if (typeof window !== 'undefined') {
@@ -351,10 +376,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const refreshPlatformSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/settings');
+      if (!res.ok) return;
+      const contentType = res.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) return;
+      const data = await res.json();
+      if (data.success && data.settings) {
+        setPlatformSettings((prev) => ({ ...prev, ...data.settings }));
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lumareel_platform_settings', JSON.stringify(data.settings));
+        }
+      }
+    } catch (err) {
+      console.warn('API /api/admin/settings unreachable, preserving local settings', err);
+    }
+  };
+
+  const updatePlatformSettings = async (newSettings: Partial<PlatformSettings>) => {
+    // 1. Instant local update
+    setPlatformSettings((prev) => {
+      const updated = { ...prev, ...newSettings };
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('lumareel_platform_settings', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('LocalStorage save error', e);
+        }
+      }
+      return updated;
+    });
+
+    // 2. Persist to Express backend / disk
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSettings),
+      });
+      await refreshPlatformSettings();
+    } catch (err) {
+      console.warn('Server settings save warning', err);
+    }
+  };
+
   useEffect(() => {
     refreshEvents();
     refreshNews();
     refreshArchives();
+    refreshPlatformSettings();
   }, []);
 
   useEffect(() => {
@@ -395,6 +466,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSearchQuery,
         toast,
         showToast,
+        platformSettings,
+        updatePlatformSettings,
       }}
     >
       {children}

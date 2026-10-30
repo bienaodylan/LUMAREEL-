@@ -193,3 +193,15 @@ export interface ScannerToken {
   createdBy?: string;
   revoked?: boolean;
 }
+
+export interface PlatformSettings {
+  platformName: string;
+  tagline: string;
+  logoUrl?: string;
+  logoMonogram: string;
+  currency: string;
+  infoline: string;
+  gateToken: string;
+  githubRepoUrl?: string;
+}
+

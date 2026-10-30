@@ -15,6 +15,7 @@ import {
   ExternalOrganizer,
   NewsArticle,
   ScannerToken,
+  PlatformSettings,
 } from '../types';
 
 // Disk persistence data directory
@@ -57,6 +58,16 @@ class LumareelDatabase {
   private scannerTokens: Map<string, ScannerToken> = new Map();
   private newsArticles: NewsArticle[] = [];
   private emails: TransactionalEmail[] = [];
+  private settings: PlatformSettings = {
+    platformName: 'LUMARÉEL',
+    tagline: 'CO.',
+    logoMonogram: 'LR',
+    logoUrl: '',
+    currency: 'XOF (FCFA)',
+    infoline: '+225 01 53 508 210',
+    gateToken: 'VIGILE_AUTH_LMR_2026',
+    githubRepoUrl: '',
+  };
   private checkInLogs: Array<{
     id: string;
     ticketId: string;
@@ -72,6 +83,7 @@ class LumareelDatabase {
     this.loadArchivesFromDisk();
     this.loadOrdersFromDisk();
     this.loadScannerTokensFromDisk();
+    this.loadSettingsFromDisk();
   }
 
   // --- DISK PERSISTENCE ENGINE ---
@@ -191,6 +203,40 @@ class LumareelDatabase {
     } catch (e) {
       console.warn('Failed to load scanner tokens from disk', e);
     }
+  }
+
+  private saveSettingsToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(path.join(DATA_DIR, 'settings.json'), JSON.stringify(this.settings, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('Failed to save settings to disk', e);
+    }
+  }
+
+  private loadSettingsFromDisk() {
+    try {
+      const file = path.join(DATA_DIR, 'settings.json');
+      if (fs.existsSync(file)) {
+        const raw = fs.readFileSync(file, 'utf-8');
+        const saved = JSON.parse(raw);
+        if (saved && typeof saved === 'object') {
+          this.settings = { ...this.settings, ...saved };
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load settings from disk', e);
+    }
+  }
+
+  public getSettings(): PlatformSettings {
+    return { ...this.settings };
+  }
+
+  public updateSettings(data: Partial<PlatformSettings>): PlatformSettings {
+    this.settings = { ...this.settings, ...data };
+    this.saveSettingsToDisk();
+    return { ...this.settings };
   }
 
   private seedInitialData() {

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useApp } from '../../context/AppContext';
 import { 
   LayoutDashboard, 
   Ticket, 
@@ -45,6 +46,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   onCloseMobile,
   onOpenBatchPrint,
 }) => {
+  const { platformSettings } = useApp();
   const navItems = [
     {
       id: 'overview' as AdminSection,
@@ -104,12 +106,20 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         <div>
           <div className="p-5 border-b border-white/10 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/5 border border-[#d4af37]/40 flex items-center justify-center font-agrandir-extrabold text-sm text-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-                LR
-              </div>
+              {platformSettings.logoUrl ? (
+                <img
+                  src={platformSettings.logoUrl}
+                  alt={platformSettings.platformName}
+                  className="w-9 h-9 rounded-xl object-cover border border-[#d4af37]/40 shadow-[0_0_15px_rgba(212,175,55,0.2)] bg-black"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-xl bg-white/5 border border-[#d4af37]/40 flex items-center justify-center font-agrandir-extrabold text-sm text-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.2)]">
+                  {platformSettings.logoMonogram || 'LR'}
+                </div>
+              )}
               <div className="flex flex-col">
-                <span className="font-agrandir-extrabold text-sm tracking-wider uppercase text-white">
-                  LUMARÉEL CO.
+                <span className="font-agrandir-extrabold text-sm tracking-wider uppercase text-white truncate max-w-[130px]">
+                  {platformSettings.platformName || 'LUMARÉEL'} {platformSettings.tagline || 'CO.'}
                 </span>
                 <span className="text-[9px] font-agrandir-semibold tracking-[0.2em] text-[#d4af37] uppercase">
                   CONSOLE DE GESTION

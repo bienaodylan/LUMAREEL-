@@ -770,6 +770,78 @@ async function startServer() {
     }
   });
 
+  // Settings Endpoints
+  app.get('/api/admin/settings', (_req: Request, res: Response) => {
+    try {
+      const settings = db.getSettings();
+      res.json({ success: true, settings });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.put('/api/admin/settings', (req: Request, res: Response) => {
+    try {
+      const updated = db.updateSettings(req.body);
+      res.json({ success: true, settings: updated });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Git / Vercel Sync Helper
+  app.post('/api/admin/git-sync', (req: Request, res: Response) => {
+    const { remoteUrl, token, commitMessage } = req.body;
+    import('child_process').then(({ exec }) => {
+      try {
+        const msg = commitMessage || `Mise à jour LUMARÉEL CO. — ${new Date().toISOString()}`;
+        let targetRemote = remoteUrl || '';
+
+        // If a token is provided and remoteUrl is https://github.com/...
+        if (token && targetRemote.includes('github.com')) {
+          targetRemote = targetRemote.replace('https://', `https://${token}@`);
+        }
+
+        const commands = [
+          'git config user.name "LUMAREEL Admin"',
+          'git config user.email "bienaodylan428@gmail.com"',
+          'git add -A',
+          `git commit -m "${msg.replace(/"/g, '\\"')}" || true`,
+        ];
+
+        if (targetRemote) {
+          commands.push(`git remote remove origin || true`);
+          commands.push(`git remote add origin "${targetRemote}"`);
+          commands.push(`git branch -M main`);
+          commands.push(`git push -u origin main --force`);
+        }
+
+        const fullCmd = commands.join(' && ');
+
+        exec(fullCmd, { cwd: process.cwd() }, (err, stdout, stderr) => {
+          if (err && targetRemote) {
+            return res.status(500).json({
+              success: false,
+              error: err.message,
+              stderr,
+              stdout,
+            });
+          }
+          res.json({
+            success: true,
+            message: targetRemote 
+              ? 'Modifications enregistrées et poussées vers votre dépôt GitHub ! Vercel redéploie automatiquement le site.'
+              : 'Instantané Git enregistré localement.',
+            stdout,
+            stderr,
+          });
+        });
+      } catch (err: any) {
+        res.status(500).json({ success: false, error: err.message });
+      }
+    });
+  });
+
   // Mount Vite or static build
   if (!isProduction) {
     const { createServer: createViteServer } = await import('vite');

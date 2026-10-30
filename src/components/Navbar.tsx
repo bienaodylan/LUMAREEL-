@@ -8,7 +8,7 @@ import { User as UserIcon } from 'lucide-react';
  * la navigation étant désormais intégralement assurée par la barre mobile flottante en bas de l'écran.
  */
 export const Navbar: React.FC = () => {
-  const { currentPage, setCurrentPage, currentUser, setIsAuthModalOpen } = useApp();
+  const { currentPage, setCurrentPage, currentUser, setIsAuthModalOpen, platformSettings } = useApp();
   const [abidjanTime, setAbidjanTime] = useState('');
   const [scrolled, setScrolled] = useState(false);
 
@@ -59,23 +59,31 @@ export const Navbar: React.FC = () => {
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         
-        {/* Zone 1: Logo Officiel LUMARÉEL CO. */}
+        {/* Zone 1: Logo Officiel LUMARÉEL CO. (Dynamique) */}
         <div className="flex items-center gap-3 shrink-0">
           <button
             type="button"
             onClick={() => setCurrentPage('home')}
-            className="flex items-center gap-2 group cursor-pointer focus:outline-none"
-            aria-label="LUMARÉEL CO. Accueil"
+            className="flex items-center gap-2.5 group cursor-pointer focus:outline-none"
+            aria-label={`${platformSettings.platformName} ${platformSettings.tagline} Accueil`}
           >
-            <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center font-agrandir-extrabold text-sm tracking-tighter text-white bg-white/5 backdrop-blur-sm group-hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-              LR
-            </div>
+            {platformSettings.logoUrl ? (
+              <img
+                src={platformSettings.logoUrl}
+                alt={platformSettings.platformName}
+                className="w-8 h-8 rounded-full object-cover border border-white/30 group-hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.3)] bg-black"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center font-agrandir-extrabold text-sm tracking-tighter text-white bg-white/5 backdrop-blur-sm group-hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.3)]">
+                {platformSettings.logoMonogram || 'LR'}
+              </div>
+            )}
             <div className="flex flex-col text-left">
               <span className="font-agrandir-extrabold text-base sm:text-lg text-white tracking-tight uppercase leading-none group-hover:text-[#f0f0f0] transition-colors">
-                LUMARÉEL
+                {platformSettings.platformName || 'LUMARÉEL'}
               </span>
               <span className="text-[9px] font-agrandir-semibold tracking-[0.25em] text-[#999] uppercase leading-none mt-0.5">
-                CO.
+                {platformSettings.tagline || 'CO.'}
               </span>
             </div>
           </button>

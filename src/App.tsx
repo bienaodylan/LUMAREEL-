@@ -16,7 +16,7 @@ import { AuthModal } from './components/AuthModal';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const MainApp: React.FC = () => {
-  const { currentPage, toast, setCurrentPage } = useApp();
+  const { currentPage, toast, setCurrentPage, platformSettings } = useApp();
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
 
@@ -61,11 +61,11 @@ const MainApp: React.FC = () => {
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
             <div>
               <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-                <span className="font-agrandir-extrabold text-white text-base tracking-widest uppercase">LUMARÉEL CO.</span>
+                <span className="font-agrandir-extrabold text-white text-base tracking-widest uppercase">{platformSettings?.platformName || 'LUMARÉEL CO.'}</span>
                 <span aria-hidden="true" className="text-[#444]">·</span>
-                <span>PARIS / ABIDJAN</span>
+                <span>{platformSettings?.tagline || 'PARIS / ABIDJAN'}</span>
                 <span aria-hidden="true" className="text-[#444]">·</span>
-                <span>© 2026 ARÉEL GROUPE</span>
+                <span>© {new Date().getFullYear()}</span>
               </div>
               <p className="text-[11px] text-[#555] max-w-md font-light">
                 Plateforme de production et billetterie certifiée pour concerts et créations scéniques d'exception.
