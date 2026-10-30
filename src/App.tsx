@@ -1,14 +1,14 @@
 import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
-import { SplashHero } from './components/SplashHero';
+import { FloatingAppNavbar } from './components/FloatingAppNavbar';
 import { HomeFeed } from './components/HomeFeed';
-import { DiscoverView } from './components/DiscoverView';
 import { ConcertDetailView } from './components/ConcertDetailView';
 import { ArchiveView } from './components/ArchiveView';
 import { NewsView } from './components/NewsView';
 import { OrganizersView } from './components/OrganizersView';
 import { CustomerSpace } from './components/CustomerSpace';
+import { ProfileView } from './components/ProfileView';
 import { ScannerView } from './components/ScannerView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { CheckoutModal } from './components/CheckoutModal';
@@ -20,28 +20,32 @@ const MainApp: React.FC = () => {
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular">
+    <div className="min-h-screen bg-[#000000] text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative">
       
-      {/* Top Navbar (Hidden in admin console and gate scanner) */}
+      {/* Top Navbar (Masquée sur le scanner et la console admin) */}
       {!isAdminOrScanner && <Navbar />}
 
-      {/* Dynamic View Router */}
-      <main className="flex-1">
+      {/* Dynamic View Router avec marge inférieure pour la barre flottante */}
+      <main className={`flex-1 ${!isAdminOrScanner ? 'pb-28 sm:pb-36' : ''}`}>
         {currentPage === 'splash' && <HomeFeed />}
         {currentPage === 'home' && <HomeFeed />}
-        {currentPage === 'discover' && <DiscoverView />}
+        {currentPage === 'discover' && <HomeFeed />}
         {currentPage === 'concert_detail' && <ConcertDetailView />}
         {currentPage === 'archive' && <ArchiveView />}
         {currentPage === 'news' && <NewsView />}
         {currentPage === 'organizers' && <OrganizersView />}
         {currentPage === 'client_space' && <CustomerSpace />}
+        {currentPage === 'profile' && <ProfileView />}
         {currentPage === 'gate_scanner' && <ScannerView />}
         {currentPage === 'admin' && <AdminDashboard />}
       </main>
 
-      {/* Global Minimal Footer (Hidden in admin console and gate scanner) */}
+      {/* Barre de Navigation Flottante Style Instagram (Translucide en pilule) */}
+      {!isAdminOrScanner && <FloatingAppNavbar />}
+
+      {/* Pied de page public épuré (AUCUN LIEN D'ADMINISTRATION OU DE SCANNER VISIBLE AU PUBLIC) */}
       {!isAdminOrScanner && (
-        <footer className="border-t border-[#181818] bg-[#050505] py-12 px-6 sm:px-10 text-xs font-agrandir-regular text-[#777] mt-20">
+        <footer className="border-t border-[#181818] bg-[#050505] py-10 px-6 sm:px-10 text-xs font-agrandir-regular text-[#777] mb-20">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -56,48 +60,42 @@ const MainApp: React.FC = () => {
               </p>
             </div>
 
+            {/* Liens publics légitimes uniquement */}
             <div className="flex flex-wrap items-center gap-6">
               <button
+                type="button"
                 onClick={() => setCurrentPage('home')}
                 className="hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-agrandir-semibold"
               >
                 Accueil
               </button>
               <button
-                onClick={() => setCurrentPage('discover')}
+                type="button"
+                onClick={() => setCurrentPage('client_space')}
                 className="hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-agrandir-semibold"
               >
-                Découvrir
+                Mes billets
               </button>
               <button
+                type="button"
                 onClick={() => setCurrentPage('archive')}
                 className="hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-agrandir-semibold"
               >
                 Archives
               </button>
               <button
+                type="button"
                 onClick={() => setCurrentPage('news')}
                 className="hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-agrandir-semibold"
               >
                 Actualités
               </button>
               <button
+                type="button"
                 onClick={() => setCurrentPage('organizers')}
                 className="text-[#d4af37] hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-agrandir-semibold"
               >
                 Espace Organisateurs
-              </button>
-              <button
-                onClick={() => setCurrentPage('gate_scanner')}
-                className="hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-agrandir-regular"
-              >
-                Contrôle Entrée
-              </button>
-              <button
-                onClick={() => setCurrentPage('admin')}
-                className="hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-agrandir-regular"
-              >
-                Administration
               </button>
             </div>
           </div>
@@ -110,7 +108,7 @@ const MainApp: React.FC = () => {
 
       {/* Minimal Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#141414] border border-white/20 px-5 py-3 shadow-2xl font-agrandir-regular text-xs flex items-center gap-3 text-white animate-slideUp">
+        <div className="fixed bottom-24 sm:bottom-28 right-6 z-50 bg-[#141414]/95 backdrop-blur-md border border-white/20 px-5 py-3 shadow-2xl font-agrandir-regular text-xs flex items-center gap-3 text-white animate-slideUp rounded-2xl">
           <span
             className={`w-2 h-2 rounded-full ${
               toast.type === 'success'

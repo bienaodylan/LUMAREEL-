@@ -28,6 +28,9 @@ export const HomeFeed: React.FC = () => {
     setCheckoutEvent,
     news,
     archives,
+    currentUser,
+    setIsAuthModalOpen,
+    showToast,
   } = useApp();
 
   // Carousel state
@@ -107,6 +110,12 @@ export const HomeFeed: React.FC = () => {
 
   const handleBookNow = (event: ConcertEvent, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!currentUser) {
+      showToast('Création de compte obligatoire pour réserver vos billets.', 'info');
+      setCheckoutEvent(event);
+      setIsAuthModalOpen(true);
+      return;
+    }
     setCheckoutEvent(event);
   };
 

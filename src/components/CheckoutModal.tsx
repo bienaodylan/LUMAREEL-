@@ -4,7 +4,7 @@ import { Order, Ticket } from '../types';
 import { X, ShieldCheck, Ticket as TicketIcon, CheckCircle2, Loader2, ArrowRight, Printer } from 'lucide-react';
 
 export const CheckoutModal: React.FC = () => {
-  const { checkoutEvent, setCheckoutEvent, currentUser, showToast, refreshCustomerOrders, refreshEvents, setCurrentPage, addLocalOrder } = useApp();
+  const { checkoutEvent, setCheckoutEvent, currentUser, showToast, refreshCustomerOrders, refreshEvents, setCurrentPage, addLocalOrder, setIsAuthModalOpen } = useApp();
 
   const [selectedCatId, setSelectedCatId] = useState<string>(checkoutEvent?.categories[0]?.id || '');
   const [quantity, setQuantity] = useState<number>(1);
@@ -161,7 +161,48 @@ export const CheckoutModal: React.FC = () => {
           <X className="w-4 h-4" />
         </button>
 
-        {!createdOrder || issuedTickets.length === 0 ? (
+        {!currentUser ? (
+          <div className="py-8 text-center space-y-5">
+            <div className="w-16 h-16 rounded-2xl bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#d4af37] flex items-center justify-center mx-auto shadow-lg">
+              <ShieldCheck className="w-8 h-8" />
+            </div>
+            <div className="space-y-1.5">
+              <div className="text-[10px] tracking-[0.2em] text-[#d4af37] uppercase font-agrandir-bold">
+                SÉCURITÉ &amp; BILLETTERIE NOMINATIVE
+              </div>
+              <h2 className="font-agrandir-extrabold text-2xl uppercase tracking-tight text-white">
+                Compte requis pour acheter
+              </h2>
+              <p className="text-xs text-[#888] max-w-sm mx-auto leading-relaxed">
+                Afin de garantir l’inviolabilité de vos billets et d’empêcher la fraude, la création d’un compte est obligatoire avant toute réservation.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-left max-w-sm mx-auto flex items-center gap-3">
+              <img
+                src={checkoutEvent.artistPortrait || checkoutEvent.bannerImage || checkoutEvent.officialPoster}
+                alt={checkoutEvent.artist}
+                className="w-12 h-14 object-cover rounded-xl shrink-0"
+              />
+              <div className="min-w-0">
+                <div className="text-[9px] text-[#d4af37] uppercase font-agrandir-bold">{checkoutEvent.artist}</div>
+                <div className="text-xs font-agrandir-bold text-white truncate">{checkoutEvent.title}</div>
+                <div className="text-[10px] text-[#777]">{checkoutEvent.venue}</div>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setIsAuthModalOpen(true)}
+                className="w-full max-w-sm mx-auto py-3.5 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+              >
+                <span>Se connecter / Créer mon compte</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ) : !createdOrder || issuedTickets.length === 0 ? (
           <div>
             {/* Header with Artist Photo & Details */}
             <div className="mb-6 border-b border-white/10 pb-5 flex items-start gap-4">

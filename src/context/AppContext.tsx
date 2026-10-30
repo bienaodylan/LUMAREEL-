@@ -3,7 +3,7 @@ import { User, ConcertEvent, Order, Ticket, ArchiveProduction } from '../types';
 import { INITIAL_EVENTS, INITIAL_NEWS, INITIAL_ORDERS, INITIAL_ARCHIVES } from '../data/initialData';
 import { convertToYouTubeEmbed } from '../utils/mediaUtils';
 
-export type PageView = 'splash' | 'home' | 'discover' | 'concert_detail' | 'archive' | 'news' | 'client_space' | 'organizers' | 'gate_scanner' | 'admin' | 'contact' | 'about' | 'partners';
+export type PageView = 'splash' | 'home' | 'discover' | 'concert_detail' | 'archive' | 'news' | 'client_space' | 'profile' | 'organizers' | 'gate_scanner' | 'admin' | 'contact' | 'about' | 'partners';
 
 interface AppContextType {
   currentPage: PageView;
@@ -87,14 +87,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentPage('home');
   };
 
-  // Default demo user (can switch in UI to admin, agent, or customer)
+  // Utilisateur connecté par défaut : Dylan B. (bienaodylan428@gmail.com) en tant que Super Administrateur
   const [currentUser, setCurrentUser] = useState<User | null>({
-    id: 'usr_client_01',
+    id: 'usr_admin_dylan',
     email: 'bienaodylan428@gmail.com',
-    name: 'Alexandre V.',
-    role: 'customer',
+    name: 'Dylan B.',
+    role: 'super_admin',
     emailVerified: true,
-    createdAt: '2026-03-01T00:00:00Z',
+    createdAt: '2026-01-10T00:00:00Z',
   });
 
   const showToast = (message: string, type: 'info' | 'success' | 'error' = 'info') => {
