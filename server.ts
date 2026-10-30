@@ -789,6 +789,52 @@ async function startServer() {
     }
   });
 
+  // Supabase Config Direct Endpoint
+  app.post('/api/admin/supabase-config', (req: Request, res: Response) => {
+    try {
+      const { supabaseUrl, supabaseAnonKey } = req.body;
+      if (!supabaseUrl || !supabaseAnonKey) {
+        return res.status(400).json({ success: false, error: 'URL et clé anon Supabase requises.' });
+      }
+
+      // 1. Sauvegarde dans les réglages de la base
+      const updated = db.updateSettings({
+        supabaseUrl: supabaseUrl.trim(),
+        supabaseAnonKey: supabaseAnonKey.trim(),
+      });
+
+      // 2. Mise à jour de process.env pour le runtime
+      process.env.VITE_SUPABASE_URL = supabaseUrl.trim();
+      process.env.VITE_SUPABASE_ANON_KEY = supabaseAnonKey.trim();
+
+      // 3. Écriture dans le fichier .env local
+      try {
+        const envPath = path.resolve(process.cwd(), '.env');
+        let currentEnv = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf-8') : '';
+        
+        if (currentEnv.includes('VITE_SUPABASE_URL=')) {
+          currentEnv = currentEnv.replace(/VITE_SUPABASE_URL=.*/g, `VITE_SUPABASE_URL="${supabaseUrl.trim()}"`);
+        } else {
+          currentEnv += `\nVITE_SUPABASE_URL="${supabaseUrl.trim()}"\n`;
+        }
+
+        if (currentEnv.includes('VITE_SUPABASE_ANON_KEY=')) {
+          currentEnv = currentEnv.replace(/VITE_SUPABASE_ANON_KEY=.*/g, `VITE_SUPABASE_ANON_KEY="${supabaseAnonKey.trim()}"`);
+        } else {
+          currentEnv += `\nVITE_SUPABASE_ANON_KEY="${supabaseAnonKey.trim()}"\n`;
+        }
+
+        fs.writeFileSync(envPath, currentEnv, 'utf-8');
+      } catch (errEnv) {
+        console.warn('Could not write to .env:', errEnv);
+      }
+
+      res.json({ success: true, settings: updated, message: 'Configuration Supabase enregistrée avec succès.' });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Git / Vercel Sync Helper
   app.post('/api/admin/git-sync', (req: Request, res: Response) => {
     const { remoteUrl, token, commitMessage } = req.body;

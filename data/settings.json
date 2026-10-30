@@ -1,0 +1,12 @@
+{
+  "platformName": "LUMARÉEL",
+  "tagline": "CO.",
+  "logoMonogram": "LR",
+  "logoUrl": "",
+  "currency": "XOF (FCFA)",
+  "infoline": "+225 01 53 508 210",
+  "gateToken": "VIGILE_AUTH_LMR_2026",
+  "githubRepoUrl": "",
+  "supabaseUrl": "https://kupznytxykaesfqnngtb.supabase.co",
+  "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1cHpueXR4eWthZXNmcW5uZ3RiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNjE1MTEsImV4cCI6MjEwODkzNzUxMX0.xDUs9eDtrGe6-coE9t8y2NXZYpaBB3X7wOL1YyzeLTI"
+}

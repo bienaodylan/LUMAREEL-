@@ -203,5 +203,8 @@ export interface PlatformSettings {
   infoline: string;
   gateToken: string;
   githubRepoUrl?: string;
+  supabaseUrl?: string;
+  supabaseAnonKey?: string;
 }
+
 

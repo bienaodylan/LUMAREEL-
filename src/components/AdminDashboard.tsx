@@ -79,12 +79,12 @@ export const AdminDashboard: React.FC = () => {
   // Find currently active event if in Level 3 workspace
   const activeEvent = events.find((e) => e.id === selectedEventId);
 
-  // Save Event Handler (persists via AppContext dual persistence: localStorage + Express / disk)
+  // Save Event Handler (persists via AppContext Supabase Cloud DB + mirror)
   const handleSaveEvent = async (updatedEvent: ConcertEvent) => {
     await saveEvent(updatedEvent);
   };
 
-  // Delete Event Handler (persists via AppContext dual persistence)
+  // Delete Event Handler (persists via AppContext Supabase Cloud DB)
   const handleDeleteEvent = async (eventId: string) => {
     try {
       await deleteEvent(eventId);
