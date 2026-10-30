@@ -1,4 +1,6 @@
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import {
   User,
   ConcertEvent,
@@ -14,6 +16,16 @@ import {
   NewsArticle,
   ScannerToken,
 } from '../types';
+
+// Disk persistence data directory
+const DATA_DIR = path.resolve(process.cwd(), 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch (e) {
+    console.warn('Could not create data directory:', e);
+  }
+}
 
 // Curated atmospheric imagery fallbacks (high-definition SVG silhouettes and panoramic textures with zero broken links)
 export const DEFAULT_IMAGES = {
@@ -33,7 +45,7 @@ export const DEFAULT_IMAGES = {
   newsMarketplace: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450"><rect width="800" height="450" fill="%230a0a0a"/><rect x="100" y="100" width="600" height="250" fill="none" stroke="%23222"/><text x="400" y="235" font-family="sans-serif" font-size="18" letter-spacing="4" fill="%23ffffff" text-anchor="middle">BILLETTERIE MARKETPLACE PARTENAIRES</text></svg>',
 };
 
-// Initial in-memory database store
+// Initial in-memory database store with disk persistence
 class LumareelDatabase {
   private users: Map<string, User> = new Map();
   private events: Map<string, ConcertEvent> = new Map();
@@ -56,6 +68,129 @@ class LumareelDatabase {
 
   constructor() {
     this.seedInitialData();
+    this.loadEventsFromDisk();
+    this.loadArchivesFromDisk();
+    this.loadOrdersFromDisk();
+    this.loadScannerTokensFromDisk();
+  }
+
+  // --- DISK PERSISTENCE ENGINE ---
+  private saveEventsToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      const list = this.getAllEvents();
+      fs.writeFileSync(path.join(DATA_DIR, 'events.json'), JSON.stringify(list, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('Failed to save events to disk', e);
+    }
+  }
+
+  private loadEventsFromDisk() {
+    try {
+      const file = path.join(DATA_DIR, 'events.json');
+      if (fs.existsSync(file)) {
+        const raw = fs.readFileSync(file, 'utf-8');
+        const list: ConcertEvent[] = JSON.parse(raw);
+        if (Array.isArray(list) && list.length > 0) {
+          this.events.clear();
+          for (const ev of list) {
+            this.events.set(ev.id, ev);
+            if (ev.slug) this.events.set(ev.slug, ev);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load events from disk', e);
+    }
+  }
+
+  private saveArchivesToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      const list = this.getAllArchives(true);
+      fs.writeFileSync(path.join(DATA_DIR, 'archives.json'), JSON.stringify(list, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('Failed to save archives to disk', e);
+    }
+  }
+
+  private loadArchivesFromDisk() {
+    try {
+      const file = path.join(DATA_DIR, 'archives.json');
+      if (fs.existsSync(file)) {
+        const raw = fs.readFileSync(file, 'utf-8');
+        const list: ArchiveProduction[] = JSON.parse(raw);
+        if (Array.isArray(list) && list.length > 0) {
+          this.archives.clear();
+          for (const arc of list) {
+            this.archives.set(arc.id, arc);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load archives from disk', e);
+    }
+  }
+
+  private saveOrdersToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      const list = this.getAllOrders();
+      fs.writeFileSync(path.join(DATA_DIR, 'orders.json'), JSON.stringify(list, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('Failed to save orders to disk', e);
+    }
+  }
+
+  private loadOrdersFromDisk() {
+    try {
+      const file = path.join(DATA_DIR, 'orders.json');
+      if (fs.existsSync(file)) {
+        const raw = fs.readFileSync(file, 'utf-8');
+        const list: Order[] = JSON.parse(raw);
+        if (Array.isArray(list) && list.length > 0) {
+          for (const ord of list) {
+            this.orders.set(ord.id, ord);
+            this.orders.set(ord.reference, ord);
+            if (ord.tickets) {
+              for (const t of ord.tickets) {
+                this.tickets.set(t.id, t);
+                this.tickets.set(t.token, t);
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load orders from disk', e);
+    }
+  }
+
+  private saveScannerTokensToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      const list = Array.from(this.scannerTokens.values());
+      fs.writeFileSync(path.join(DATA_DIR, 'scanner_tokens.json'), JSON.stringify(list, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('Failed to save scanner tokens to disk', e);
+    }
+  }
+
+  private loadScannerTokensFromDisk() {
+    try {
+      const file = path.join(DATA_DIR, 'scanner_tokens.json');
+      if (fs.existsSync(file)) {
+        const raw = fs.readFileSync(file, 'utf-8');
+        const list: ScannerToken[] = JSON.parse(raw);
+        if (Array.isArray(list) && list.length > 0) {
+          for (const t of list) {
+            this.scannerTokens.set(t.token, t);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load scanner tokens from disk', e);
+    }
   }
 
   private seedInitialData() {
@@ -736,6 +871,7 @@ class LumareelDatabase {
 
     this.events.set(event.id, event);
     this.events.set(event.slug, event);
+    this.saveEventsToDisk();
     return event;
   }
 
@@ -753,6 +889,7 @@ class LumareelDatabase {
 
     this.events.set(updated.id, updated);
     this.events.set(updated.slug, updated);
+    this.saveEventsToDisk();
     return updated;
   }
 
@@ -761,6 +898,7 @@ class LumareelDatabase {
     if (!existing) return false;
     this.events.delete(existing.id);
     this.events.delete(existing.slug);
+    this.saveEventsToDisk();
     return true;
   }
 
@@ -1104,11 +1242,14 @@ class LumareelDatabase {
       orderIndex: data.orderIndex || existing?.orderIndex || (this.archives.size + 1),
     };
     this.archives.set(archive.id, archive);
+    this.saveArchivesToDisk();
     return archive;
   }
 
   public deleteArchive(id: string): boolean {
-    return this.archives.delete(id);
+    const res = this.archives.delete(id);
+    this.saveArchivesToDisk();
+    return res;
   }
 
   public getAllWorks(): WorkProduction[] {
@@ -1186,6 +1327,7 @@ class LumareelDatabase {
 
     this.scannerTokens.set(token, scannerToken);
     this.scannerTokens.set(id, scannerToken);
+    this.saveScannerTokensToDisk();
     return scannerToken;
   }
 

@@ -20,7 +20,8 @@ import {
   Phone, 
   Sparkles, 
   Eye, 
-  ShieldAlert 
+  ShieldAlert,
+  Printer
 } from 'lucide-react';
 import { readFileAsDataURL } from '../../../utils/mediaUtils';
 import { ScannerLinkGenerator } from '../ScannerLinkGenerator';
@@ -35,6 +36,7 @@ interface AdminEventWorkspaceProps {
   onDeleteEvent?: (eventId: string) => Promise<void>;
   onPreviewPublic: (slug: string) => void;
   showToast: (msg: string, type?: 'info' | 'success' | 'error') => void;
+  onOpenBatchPrint?: (eventId?: string) => void;
 }
 
 export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
@@ -45,6 +47,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
   onDeleteEvent,
   onPreviewPublic,
   showToast,
+  onOpenBatchPrint,
 }) => {
   const [currentTab, setCurrentTab] = useState<EventSubTab>('overview');
   const [formData, setFormData] = useState<ConcertEvent>({ ...event });
@@ -638,25 +641,58 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
 
       {/* TAB 4: BILLETTERIE & TARIFS (TICKETS) */}
       {currentTab === 'tickets' && (
-        <div className="bg-[#0c0c0c] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-            <div>
-              <h2 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight">
-                TARIFS, QUOTAS &amp; CATÉGORIES DE PLACES
-              </h2>
-              <p className="text-xs text-[#888] mt-0.5">
-                Contrôle des jauges par catégorie. Le quota ne peut être abaissé sous le nombre de billets déjà vendus.
-              </p>
+        <div className="space-y-6">
+          {/* CARTE PROFESSIONNELLE LUMARÉEL : IMPRESSION BILLETS PHYSIQUES */}
+          <div className="p-6 rounded-3xl bg-[#0e0e0e] border border-[#d4af37]/30 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#d4af37]/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="flex items-start gap-4 z-10">
+              <div className="w-12 h-12 rounded-2xl bg-[#d4af37]/15 border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37] shrink-0 shadow-lg">
+                <Printer className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
+                  Service Régie &amp; Guichet Officiel LUMARÉEL
+                </div>
+                <h3 className="font-agrandir-extrabold text-base text-white tracking-wide mt-0.5">
+                  Demande d'impression des billets physiques
+                </h3>
+                <p className="text-xs text-neutral-400 mt-1 max-w-xl leading-relaxed">
+                  Générez les planches d'impression thermique officielles (format sécurisé Recto / Verso avec filigrane anti-fraude, talon détachable et QR code unitaire cryptographique) pour guichets et vigiles.
+                </p>
+              </div>
             </div>
 
-            <button
-              onClick={handleAddCategory}
-              className="self-start sm:self-auto px-4 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-lg"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Ajouter une catégorie</span>
-            </button>
+            {onOpenBatchPrint && (
+              <button
+                type="button"
+                onClick={() => onOpenBatchPrint(formData.id)}
+                className="z-10 px-6 py-3 rounded-2xl bg-[#d4af37] hover:bg-[#e6c158] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-xl shrink-0 transition-all hover:scale-102 active:scale-95"
+              >
+                <Printer className="w-4 h-4" />
+                <span>Imprimer les billets</span>
+              </button>
+            )}
           </div>
+
+          <div className="bg-[#0c0c0c] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div>
+                <h2 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight">
+                  TARIFS, QUOTAS &amp; CATÉGORIES DE PLACES
+                </h2>
+                <p className="text-xs text-[#888] mt-0.5">
+                  Contrôle des jauges par catégorie. Le quota ne peut être abaissé sous le nombre de billets déjà vendus.
+                </p>
+              </div>
+
+              <button
+                onClick={handleAddCategory}
+                className="self-start sm:self-auto px-4 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-lg"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Ajouter une catégorie</span>
+              </button>
+            </div>
 
           <div className="space-y-4">
             {formData.categories.map((cat, idx) => {
@@ -749,6 +785,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
               );
             })}
           </div>
+        </div>
         </div>
       )}
 

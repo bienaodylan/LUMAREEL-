@@ -16,6 +16,8 @@ interface AppContextType {
   setSelectedEventSlug: (slug: string | null) => void;
   events: ConcertEvent[];
   featuredEvent: ConcertEvent | null;
+  saveEvent: (event: ConcertEvent) => Promise<void>;
+  deleteEvent: (eventId: string) => Promise<void>;
   news: any[];
   archives: ArchiveProduction[];
   saveArchive: (archive: Partial<ArchiveProduction> & { title: string; coverImage: string }) => Promise<void>;
@@ -49,8 +51,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return 'home';
   });
   const [selectedEventSlug, setSelectedEventSlug] = useState<string | null>(null);
-  const [events, setEvents] = useState<ConcertEvent[]>(INITIAL_EVENTS);
-  const [featuredEvent, setFeaturedEvent] = useState<ConcertEvent | null>(INITIAL_EVENTS[0] || null);
+  const [events, setEvents] = useState<ConcertEvent[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lumareel_events');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {
+        console.warn('Could not read events from localStorage', e);
+      }
+    }
+    return INITIAL_EVENTS;
+  });
+  const [featuredEvent, setFeaturedEvent] = useState<ConcertEvent | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lumareel_events');
+        if (saved) {
+          const parsed: ConcertEvent[] = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed.find((e) => e.isFeatured) || parsed[0];
+          }
+        }
+      } catch {}
+    }
+    return INITIAL_EVENTS[0] || null;
+  });
   const [news, setNews] = useState<any[]>(INITIAL_NEWS);
   const [archives, setArchives] = useState<ArchiveProduction[]>(() => {
     if (typeof window !== 'undefined') {
@@ -127,12 +155,82 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const data = await res.json();
       if (data.success && data.events && data.events.length > 0) {
         setEvents(data.events);
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem('lumareel_events', JSON.stringify(data.events));
+          } catch (e) {
+            console.warn('LocalStorage save error', e);
+          }
+        }
         const feat = data.events.find((e: ConcertEvent) => e.isFeatured) || data.events[0];
         setFeaturedEvent(feat || null);
       }
     } catch (err) {
-      // Gracefully preserve initial events in static environments (e.g., Vercel)
-      console.warn('API /api/events unreachable, using initial events', err);
+      console.warn('API /api/events unreachable, using local storage/initial events', err);
+    }
+  };
+
+  const saveEvent = async (updatedEvent: ConcertEvent) => {
+    // 1. Immediate local state & localStorage update for instant public reflection
+    setEvents((prev) => {
+      const exists = prev.some((e) => e.id === updatedEvent.id);
+      const updated = exists
+        ? prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
+        : [updatedEvent, ...prev];
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('lumareel_events', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('LocalStorage save error', e);
+        }
+      }
+      return updated;
+    });
+
+    if (updatedEvent.isFeatured) {
+      setFeaturedEvent(updatedEvent);
+    }
+
+    // 2. Persist to Express backend / disk storage
+    try {
+      const res = await fetch(`/api/events/${updatedEvent.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedEvent),
+      });
+      if (!res.ok) {
+        await fetch('/api/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedEvent),
+        });
+      }
+      await refreshEvents();
+    } catch (err) {
+      console.warn('Network save error, local changes kept safe', err);
+    }
+  };
+
+  const deleteEvent = async (eventId: string) => {
+    // 1. Immediate local state & localStorage update
+    setEvents((prev) => {
+      const updated = prev.filter((e) => e.id !== eventId);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('lumareel_events', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('LocalStorage delete error', e);
+        }
+      }
+      return updated;
+    });
+
+    // 2. Persist to Express backend / disk storage
+    try {
+      await fetch(`/api/events/${eventId}`, { method: 'DELETE' });
+      await refreshEvents();
+    } catch (err) {
+      console.warn('Network delete error, local state updated', err);
     }
   };
 
@@ -278,6 +376,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedEventSlug,
         events,
         featuredEvent,
+        saveEvent,
+        deleteEvent,
         news,
         archives,
         saveArchive,

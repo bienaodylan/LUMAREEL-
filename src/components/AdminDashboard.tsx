@@ -10,12 +10,15 @@ import { AdminOrdersView } from './admin/views/AdminOrdersView';
 import { AdminArchivesView } from './admin/views/AdminArchivesView';
 import { AdminEmailsView } from './admin/views/AdminEmailsView';
 import { AdminSettingsView } from './admin/views/AdminSettingsView';
+import { TicketBatchPrintModal } from './TicketBatchPrintModal';
 import { Plus, X } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const { 
     events, 
     refreshEvents, 
+    saveEvent,
+    deleteEvent,
     archives, 
     saveArchive, 
     deleteArchive, 
@@ -28,6 +31,10 @@ export const AdminDashboard: React.FC = () => {
   const [currentSection, setCurrentSection] = useState<AdminSection>('overview');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Batch Physical Ticket Printing Modal State
+  const [isBatchPrintModalOpen, setIsBatchPrintModalOpen] = useState(false);
+  const [batchPrintEventId, setBatchPrintEventId] = useState<string | undefined>(undefined);
 
   // Backend Data
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -72,39 +79,27 @@ export const AdminDashboard: React.FC = () => {
   // Find currently active event if in Level 3 workspace
   const activeEvent = events.find((e) => e.id === selectedEventId);
 
-  // Save Event Handler (persists via PUT /api/events/:id and refreshes app context)
+  // Save Event Handler (persists via AppContext dual persistence: localStorage + Express / disk)
   const handleSaveEvent = async (updatedEvent: ConcertEvent) => {
-    const res = await fetch(`/api/events/${updatedEvent.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedEvent),
-    });
-
-    const data = await res.json();
-    if (!data.success) {
-      throw new Error(data.error || 'Erreur lors de la sauvegarde');
-    }
-
-    await refreshEvents();
+    await saveEvent(updatedEvent);
   };
 
-  // Delete Event Handler (deletes via DELETE /api/events/:id)
+  // Delete Event Handler (persists via AppContext dual persistence)
   const handleDeleteEvent = async (eventId: string) => {
     try {
-      const res = await fetch(`/api/events/${eventId}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (!data.success) {
-        throw new Error(data.error || 'Erreur lors de la suppression');
-      }
-      await refreshEvents();
+      await deleteEvent(eventId);
       setSelectedEventId(null);
       setCurrentSection('events');
       showToast('Concert supprimé avec succès.', 'success');
     } catch (err: any) {
       showToast(err.message || 'Erreur lors de la suppression.', 'error');
     }
+  };
+
+  // Batch print modal opener
+  const handleOpenBatchPrint = (eventId?: string) => {
+    setBatchPrintEventId(eventId || selectedEventId || undefined);
+    setIsBatchPrintModalOpen(true);
   };
 
   // Create New Event Handler
@@ -139,41 +134,38 @@ export const AdminDashboard: React.FC = () => {
         },
       ];
 
-      const res = await fetch('/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          artist: newEventArtist.trim(),
-          title: newEventTitle.trim(),
-          subtitle: `En concert exceptionnel · ${newEventVenue}`,
-          date: newEventDate,
-          time: '18:00',
-          doorsOpen: '16:30',
-          venue: newEventVenue,
-          city: newEventCity,
-          country: 'Côte d’Ivoire',
-          address: newEventVenue,
-          description: `Production et scénographie officielle signée LUMARÉEL CO.`,
-          artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg',
-          officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg',
-          bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg',
-          status: 'published',
-          isFeatured: true,
-          genre: 'Concert Live',
-          infoline: '+225 01 53 508 210',
-          categories: defaultCategories,
-        }),
-      });
+      const newEvt: ConcertEvent = {
+        id: `evt_${Date.now()}`,
+        slug: newEventTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        artist: newEventArtist.trim(),
+        title: newEventTitle.trim(),
+        subtitle: `En concert exceptionnel · ${newEventVenue}`,
+        date: newEventDate,
+        time: '18:00',
+        doorsOpen: '16:30',
+        venue: newEventVenue,
+        city: newEventCity,
+        country: 'Côte d’Ivoire',
+        address: newEventVenue,
+        description: `Production et scénographie officielle signée LUMARÉEL CO.`,
+        artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg',
+        officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg',
+        bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg',
+        status: 'published',
+        isFeatured: true,
+        organizerType: 'lumareel',
+        organizerName: 'LUMARÉEL CO.',
+        genre: 'Concert Live',
+        platformFeePercent: 0,
+        infoline: '+225 01 53 508 210',
+        categories: defaultCategories,
+      };
 
-      const data = await res.json();
-      if (data.success && data.event) {
-        await refreshEvents();
-        showToast(`Concert "${data.event.artist}" créé avec succès !`, 'success');
-        setIsCreateModalOpen(false);
-        // Navigate directly to Level 3 individual workspace for this new event
-        setSelectedEventId(data.event.id);
-        setCurrentSection('events');
-      }
+      await saveEvent(newEvt);
+      showToast(`Concert "${newEvt.artist}" créé avec succès !`, 'success');
+      setIsCreateModalOpen(false);
+      setSelectedEventId(newEvt.id);
+      setCurrentSection('events');
     } catch (err: any) {
       showToast(err.message || 'Erreur lors de la création du concert', 'error');
     }
@@ -203,6 +195,7 @@ export const AdminDashboard: React.FC = () => {
         onExitAdmin={() => setCurrentPage('home')}
         isMobileOpen={mobileSidebarOpen}
         onCloseMobile={() => setMobileSidebarOpen(false)}
+        onOpenBatchPrint={() => handleOpenBatchPrint()}
       />
 
       {/* 2. Main Content Area */}
@@ -224,6 +217,7 @@ export const AdminDashboard: React.FC = () => {
           }
           onNavigateScanner={() => setCurrentPage('gate_scanner')}
           onNavigatePublic={() => setCurrentPage('home')}
+          onOpenBatchPrint={() => handleOpenBatchPrint()}
         />
 
         {/* View Router */}
@@ -243,6 +237,7 @@ export const AdminDashboard: React.FC = () => {
               onDeleteEvent={handleDeleteEvent}
               onPreviewPublic={handlePreviewPublic}
               showToast={showToast}
+              onOpenBatchPrint={handleOpenBatchPrint}
             />
           ) : (
             /* LEVEL 1 & 2 : Vues transversales */
@@ -411,6 +406,13 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Ticket Batch Print Modal (Régie & Guichet LUMARÉEL) */}
+      <TicketBatchPrintModal
+        isOpen={isBatchPrintModalOpen}
+        onClose={() => setIsBatchPrintModalOpen(false)}
+        initialEventId={batchPrintEventId || selectedEventId || undefined}
+      />
 
     </div>
   );

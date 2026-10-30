@@ -347,12 +347,12 @@ export const HomeFeed: React.FC = () => {
         
         {/* Section Header */}
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
-          <div>
-            <div className="text-[10px] font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-1">
+          <div className="min-w-0 pr-4">
+            <div className="text-[9px] sm:text-[10px] font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-1">
               PROGRAMMATION OFFICIELLE
             </div>
-            <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight uppercase">
-              PROCHAINS CONCERTS
+            <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white tracking-tight uppercase whitespace-nowrap overflow-hidden text-ellipsis">
+              PROCHAIN CONCERT
             </h2>
           </div>
 
@@ -646,20 +646,20 @@ export const HomeFeed: React.FC = () => {
         
         <div className="mb-8 pb-4 border-b border-white/10 flex items-center justify-between">
           <div>
-            <div className="text-[11px] font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-1">
-              MÉMOIRE DES SCÈNES LUMARÉEL
+            <div className="text-[10px] font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-1">
+              MÉMOIRE D'ESSAI
             </div>
-            <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight uppercase">
-              ARCHIVES RÉCENTES &amp; RÉCAPS VIDÉO
+            <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight uppercase">
+              ARCHIVES
             </h2>
           </div>
 
           <button
             onClick={() => setCurrentPage('archive')}
-            className="text-xs font-agrandir-semibold tracking-widest text-[#aaa] hover:text-white uppercase flex items-center gap-1.5 transition-colors cursor-pointer px-4 py-2 rounded-full border border-white/10 bg-white/5"
+            aria-label="Accéder à l'ensemble des archives"
+            className="w-9 h-9 rounded-full border border-white/15 hover:border-white text-neutral-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer bg-white/5 shadow-sm"
           >
-            <span>VOIR TOUTES LES ARCHIVES</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
         </div>
 
@@ -757,20 +757,20 @@ export const HomeFeed: React.FC = () => {
           
           <div className="mb-8 pb-4 border-b border-white/10 flex items-center justify-between">
             <div>
-              <div className="text-[11px] font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-1">
-                COMMUNIQUÉS &amp; NOTES DE PRODUCTION
+              <div className="text-[10px] font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-1">
+                ÉDITIONS &amp; COMMUNIQUÉS
               </div>
-              <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight uppercase">
+              <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight uppercase">
                 ACTUALITÉS
               </h2>
             </div>
 
             <button
               onClick={() => setCurrentPage('news')}
-              className="text-xs font-agrandir-semibold tracking-widest text-[#aaa] hover:text-white uppercase flex items-center gap-1.5 transition-colors cursor-pointer px-4 py-2 rounded-full border border-white/10 bg-white/5"
+              aria-label="Consulter toutes les actualités"
+              className="w-9 h-9 rounded-full border border-white/15 hover:border-white text-neutral-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer bg-white/5 shadow-sm"
             >
-              <span>TOUTES LES ACTUALITÉS</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-4 h-4" />
             </button>
           </div>
 

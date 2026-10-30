@@ -13,6 +13,7 @@ import { ScannerView } from './components/ScannerView';
 import { AdminDashboard } from './components/AdminDashboard';
 import { CheckoutModal } from './components/CheckoutModal';
 import { AuthModal } from './components/AuthModal';
+import { AnimatePresence, motion } from 'framer-motion';
 
 const MainApp: React.FC = () => {
   const { currentPage, toast, setCurrentPage } = useApp();
@@ -25,19 +26,30 @@ const MainApp: React.FC = () => {
       {/* Top Navbar (Masquée sur le scanner et la console admin) */}
       {!isAdminOrScanner && <Navbar />}
 
-      {/* Dynamic View Router avec marge inférieure pour la barre flottante */}
+      {/* Dynamic View Router avec transition de page fluide framer-motion et marge inférieure pour la barre flottante */}
       <main className={`flex-1 ${!isAdminOrScanner ? 'pb-28 sm:pb-36' : ''}`}>
-        {currentPage === 'splash' && <HomeFeed />}
-        {currentPage === 'home' && <HomeFeed />}
-        {currentPage === 'discover' && <HomeFeed />}
-        {currentPage === 'concert_detail' && <ConcertDetailView />}
-        {currentPage === 'archive' && <ArchiveView />}
-        {currentPage === 'news' && <NewsView />}
-        {currentPage === 'organizers' && <OrganizersView />}
-        {currentPage === 'client_space' && <CustomerSpace />}
-        {currentPage === 'profile' && <ProfileView />}
-        {currentPage === 'gate_scanner' && <ScannerView />}
-        {currentPage === 'admin' && <AdminDashboard />}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentPage}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full"
+          >
+            {currentPage === 'splash' && <HomeFeed />}
+            {currentPage === 'home' && <HomeFeed />}
+            {currentPage === 'discover' && <HomeFeed />}
+            {currentPage === 'concert_detail' && <ConcertDetailView />}
+            {currentPage === 'archive' && <ArchiveView />}
+            {currentPage === 'news' && <NewsView />}
+            {currentPage === 'organizers' && <OrganizersView />}
+            {currentPage === 'client_space' && <CustomerSpace />}
+            {currentPage === 'profile' && <ProfileView />}
+            {currentPage === 'gate_scanner' && <ScannerView />}
+            {currentPage === 'admin' && <AdminDashboard />}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* Barre de Navigation Flottante Style Instagram (Translucide en pilule) */}
@@ -46,9 +58,9 @@ const MainApp: React.FC = () => {
       {/* Pied de page public épuré (AUCUN LIEN D'ADMINISTRATION OU DE SCANNER VISIBLE AU PUBLIC) */}
       {!isAdminOrScanner && (
         <footer className="border-t border-[#181818] bg-[#050505] py-10 px-6 sm:px-10 text-xs font-agrandir-regular text-[#777] mb-20">
-          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
                 <span className="font-agrandir-extrabold text-white text-base tracking-widest uppercase">LUMARÉEL CO.</span>
                 <span aria-hidden="true" className="text-[#444]">·</span>
                 <span>PARIS / ABIDJAN</span>
@@ -60,43 +72,8 @@ const MainApp: React.FC = () => {
               </p>
             </div>
 
-            {/* Liens publics légitimes uniquement */}
-            <div className="flex flex-wrap items-center gap-6">
-              <button
-                type="button"
-                onClick={() => setCurrentPage('home')}
-                className="hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-agrandir-semibold"
-              >
-                Accueil
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentPage('client_space')}
-                className="hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-agrandir-semibold"
-              >
-                Mes billets
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentPage('archive')}
-                className="hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-agrandir-semibold"
-              >
-                Archives
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentPage('news')}
-                className="hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-agrandir-semibold"
-              >
-                Actualités
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentPage('organizers')}
-                className="text-[#d4af37] hover:text-white transition-colors uppercase tracking-wider cursor-pointer font-agrandir-semibold"
-              >
-                Espace Organisateurs
-              </button>
+            <div className="text-[10px] text-[#555] font-mono tracking-widest uppercase">
+              BILLETTERIE SÉCURISÉE · PROTOCOLE CRYPTOGRAPHIQUE
             </div>
           </div>
         </footer>

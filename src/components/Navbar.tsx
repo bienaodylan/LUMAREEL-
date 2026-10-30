@@ -102,38 +102,9 @@ export const Navbar: React.FC = () => {
           })}
         </nav>
 
-        {/* Zone 3: Profil & Horloge Direct */}
+        {/* Zone 3: Horloge en direct Abidjan (Alignement propre) */}
         <div className="flex items-center gap-2.5 shrink-0">
-          
-          {/* User Account Capsule Pill vers la page Profil */}
-          <button
-            type="button"
-            onClick={() => {
-              if (currentUser) {
-                setCurrentPage('profile');
-              } else {
-                setIsAuthModalOpen(true);
-              }
-            }}
-            className={`flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-1.5 rounded-full backdrop-blur-md border text-xs font-agrandir-semibold tracking-wide transition-all shadow-xl cursor-pointer ${
-              currentPage === 'profile'
-                ? 'bg-white text-black border-white font-agrandir-extrabold'
-                : 'bg-white/[0.08] hover:bg-white/[0.14] border-white/20 text-white'
-            }`}
-          >
-            <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px]">
-              <UserIcon className="w-3 h-3 text-current" />
-            </div>
-            <span className="truncate max-w-[110px] hidden xs:inline sm:inline">
-              {currentUser ? currentUser.name.split(' ')[0] : 'Mon Compte'}
-            </span>
-            {isSuperAdmin && (
-              <span className="w-2 h-2 rounded-full bg-[#d4af37] shadow-[0_0_6px_#d4af37]" title="Super Admin" />
-            )}
-          </button>
-
-          {/* Horloge en direct Abidjan */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 border border-white/10 text-[11px] text-[#999] font-agrandir-regular tracking-wider">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 border border-white/10 text-[11px] text-[#999] font-agrandir-regular tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-pulse" />
             <span>ABIDJAN {abidjanTime}</span>
           </div>

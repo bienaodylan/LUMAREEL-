@@ -11,13 +11,25 @@ export const NewsView: React.FC = () => {
       
       {/* Header */}
       <div className="mb-12 pb-6 border-b border-[#1c1c1c]">
-        <div className="text-xs font-agrandir-regular tracking-[0.25em] text-[#d4af37] uppercase mb-2">
-          JOURNAL &amp; NOTES DE PRODUCTION
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="text-xs font-agrandir-regular tracking-[0.25em] text-[#d4af37] uppercase mb-1">
+              JOURNAL &amp; NOTES DE PRODUCTION
+            </div>
+            <h1 className="font-agrandir-extrabold text-2xl sm:text-4xl md:text-5xl text-white tracking-tight uppercase whitespace-nowrap">
+              ACTUALITÉS OFFICIELLES
+            </h1>
+          </div>
+
+          <button
+            onClick={() => setCurrentPage('home')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-agrandir-semibold text-neutral-300 hover:text-white uppercase tracking-wider transition-colors cursor-pointer shrink-0 self-start sm:self-center"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>RETOUR SUR TOUTES LES ACTUALITÉS</span>
+          </button>
         </div>
-        <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl text-white tracking-tight uppercase">
-          ACTUALITÉS OFFICIELLES
-        </h1>
-        <p className="mt-2 text-xs sm:text-sm font-agrandir-regular text-[#888] max-w-xl font-light">
+        <p className="mt-3 text-xs sm:text-sm font-agrandir-regular text-[#888] max-w-xl font-light">
           Annonces des billetteries, coulisses des scénographies d’ombre et intégrations des nouveaux organisateurs partenaires.
         </p>
       </div>

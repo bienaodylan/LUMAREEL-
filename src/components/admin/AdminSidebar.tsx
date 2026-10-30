@@ -10,7 +10,8 @@ import {
   Shield, 
   ArrowLeft,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Printer
 } from 'lucide-react';
 
 export type AdminSection = 'overview' | 'events' | 'orders' | 'archives' | 'emails' | 'settings';
@@ -27,6 +28,7 @@ interface AdminSidebarProps {
   onExitAdmin: () => void;
   isMobileOpen: boolean;
   onCloseMobile: () => void;
+  onOpenBatchPrint?: () => void;
 }
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({
@@ -41,6 +43,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   onExitAdmin,
   isMobileOpen,
   onCloseMobile,
+  onOpenBatchPrint,
 }) => {
   const navItems = [
     {
@@ -189,6 +192,25 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-white/10 space-y-2">
+          {/* Quick Action: Batch print physical tickets */}
+          {onOpenBatchPrint && (
+            <button
+              type="button"
+              onClick={() => {
+                onOpenBatchPrint();
+                onCloseMobile();
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/30 text-xs font-agrandir-bold text-[#d4af37] flex items-center justify-between transition-colors cursor-pointer group"
+              title="Générer et imprimer des planches de billets physiques"
+            >
+              <div className="flex items-center gap-2">
+                <Printer className="w-3.5 h-3.5 text-[#d4af37]" />
+                <span>Impression Billets</span>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-[#d4af37]/60 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          )}
+
           {/* Link back to public site */}
           <button
             onClick={onExitAdmin}

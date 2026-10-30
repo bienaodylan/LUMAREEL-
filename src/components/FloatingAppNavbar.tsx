@@ -1,11 +1,13 @@
 import React from 'react';
 import { useApp, PageView } from '../context/AppContext';
 import { Home, Ticket, Film, Newspaper, User } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 /**
- * FloatingAppNavbar.tsx — Barre de navigation mobile flottante en forme de pilule (style Instagram).
- * Affiche UNIQUEMENT les icônes (sans texte) pour une interface épurée, moderne et ergonomique.
- * Effet translucide (glassmorphism) en verre dépoli laissant défiler le contenu en arrière-plan.
+ * FloatingAppNavbar.tsx — Barre de navigation inférieure moderne inspirée du design Meta / iOS.
+ * Conteneur en forme de pilule, détaché des bords de l'écran (fixed bottom-6),
+ * coins très arrondis (rounded-full), translucidité subtile (bg-black/40 backdrop-blur-xl),
+ * animations fluides (framer-motion) avec ressort spring layoutId pour l'indicateur actif.
  */
 export const FloatingAppNavbar: React.FC = () => {
   const { currentPage, setCurrentPage, customerOrders } = useApp();
@@ -15,7 +17,7 @@ export const FloatingAppNavbar: React.FC = () => {
     return null;
   }
 
-  // Calcul du nombre de billets actifs pour badge discret sur l'icône de billetterie
+  // Calcul du nombre de billets actifs pour badge discret
   const activeTicketsCount = customerOrders.reduce((total, order) => {
     if (order.paymentStatus === 'completed' && order.tickets) {
       return total + order.tickets.length;
@@ -52,65 +54,81 @@ export const FloatingAppNavbar: React.FC = () => {
     },
     {
       page: 'profile',
-      label: 'Mon Profil',
+      label: 'Compte & Préférences',
       icon: User,
     },
   ];
 
   return (
-    <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-sm pointer-events-none select-none">
+    <motion.div
+      initial={{ y: 35, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      className="fixed bottom-6 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 z-40 max-w-sm mx-auto pointer-events-none select-none"
+    >
       <nav
-        aria-label="Navigation principale de l'application"
-        className="pointer-events-auto mx-auto px-3 py-2 sm:px-4 sm:py-2.5 rounded-full bg-[#0a0a0a]/75 backdrop-blur-2xl border border-white/20 shadow-[0_16px_40px_rgba(0,0,0,0.85)] flex items-center justify-around transition-all duration-300"
+        aria-label="Navigation principale Meta Style"
+        className="pointer-events-auto mx-auto px-4 py-2 sm:py-2.5 rounded-full bg-black/45 backdrop-blur-2xl border border-white/15 shadow-[0_16px_40px_rgba(0,0,0,0.75)] flex items-center justify-around transition-all duration-300"
       >
         {navItems.map((item) => {
           const isActive = currentPage === item.page;
           const Icon = item.icon;
 
           return (
-            <button
+            <motion.button
               key={item.page}
               type="button"
               onClick={() => setCurrentPage(item.page)}
+              whileTap={{ scale: 0.88 }}
+              whileHover={{ scale: 1.05 }}
               aria-label={item.label}
               title={item.label}
-              className={`relative p-2.5 sm:p-3 rounded-full flex items-center justify-center transition-all duration-300 cursor-pointer group ${
-                isActive
-                  ? 'text-white'
-                  : 'text-neutral-400 hover:text-neutral-200'
-              }`}
+              className="relative p-2.5 sm:p-3 rounded-full flex items-center justify-center cursor-pointer group"
             >
-              {/* Fond translucide actif & lueur pour l'icône sélectionnée */}
+              {/* Fond translucide actif avec ressort fluide spring layoutId */}
               {isActive && (
-                <span className="absolute inset-0 rounded-full bg-white/15 border border-white/25 shadow-[0_0_15px_rgba(255,255,255,0.15)] animate-fadeIn" />
+                <motion.span
+                  layoutId="activeFloatingNavbarPill"
+                  className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-[0_0_14px_rgba(255,255,255,0.2)]"
+                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                />
               )}
 
               {/* Conteneur Icône & Badge */}
               <div className="relative z-10 flex items-center justify-center">
                 <Icon
-                  className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-200 ${
+                  className={`w-5 h-5 sm:w-5.5 sm:h-5.5 transition-colors duration-200 ${
                     isActive
-                      ? 'scale-110 text-white stroke-[2.5] drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]'
-                      : 'group-hover:scale-110 stroke-[1.8] group-hover:text-white'
+                      ? 'text-white stroke-[2.3] drop-shadow-[0_0_6px_rgba(255,255,255,0.5)]'
+                      : 'text-neutral-400 group-hover:text-white stroke-[1.7]'
                   }`}
                 />
 
                 {/* Badge de notification pour les billets */}
                 {item.badge !== undefined && item.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-2 px-1.5 py-0.2 rounded-full bg-[#d4af37] text-black text-[9px] font-agrandir-extrabold leading-tight shadow-md">
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    className="absolute -top-1.5 -right-2 px-1.5 py-0.2 rounded-full bg-[#d4af37] text-black text-[9px] font-agrandir-extrabold leading-tight shadow-md"
+                  >
                     {item.badge}
-                  </span>
+                  </motion.span>
                 )}
               </div>
 
-              {/* Point indicateur discret sous l'icône active (style Instagram / iOS) */}
+              {/* Point indicateur glissant sous l'icône active */}
               {isActive && (
-                <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-[#d4af37] shadow-[0_0_4px_#d4af37]" />
+                <motion.span
+                  layoutId="activeFloatingNavbarDot"
+                  className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#d4af37] shadow-[0_0_6px_#d4af37]"
+                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                />
               )}
-            </button>
+            </motion.button>
           );
         })}
       </nav>
-    </div>
+    </motion.div>
   );
 };

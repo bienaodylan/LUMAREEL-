@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Plus, ChevronRight, ExternalLink, QrCode } from 'lucide-react';
+import { Menu, Plus, ChevronRight, ExternalLink, QrCode, Printer } from 'lucide-react';
 import { AdminSection } from './AdminSidebar';
 
 interface AdminHeaderProps {
@@ -10,6 +10,7 @@ interface AdminHeaderProps {
   onCreateEventClick?: () => void;
   onNavigateScanner?: () => void;
   onNavigatePublic?: () => void;
+  onOpenBatchPrint?: () => void;
 }
 
 export const AdminHeader: React.FC<AdminHeaderProps> = ({
@@ -20,6 +21,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   onCreateEventClick,
   onNavigateScanner,
   onNavigatePublic,
+  onOpenBatchPrint,
 }) => {
   const getSectionTitle = () => {
     switch (currentSection) {
@@ -97,6 +99,17 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
 
       {/* Right: Quick actions */}
       <div className="flex items-center gap-2.5">
+        {onOpenBatchPrint && (
+          <button
+            onClick={onOpenBatchPrint}
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/30 text-xs font-agrandir-semibold text-[#d4af37] transition-colors cursor-pointer"
+            title="Demande d'impression de billets physiques sécurisés"
+          >
+            <Printer className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span>Impression Billets</span>
+          </button>
+        )}
+
         {onNavigateScanner && (
           <button
             onClick={onNavigateScanner}
