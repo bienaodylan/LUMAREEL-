@@ -178,7 +178,6 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     generateChunk();
   };
 
-  // Téléchargement des PDF générés par le PDF Engine
   const handleDownloadPDFs = async () => {
     const paper = SYSTEM_PAPER_FORMATS[selectedPaperKey];
     if (!paper) return;
@@ -206,7 +205,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
             </div>
             <div>
               <div className="text-[10px] text-[#d4af37] tracking-[0.25em] uppercase font-agrandir-bold">
-                MOTEUR PDF PROFESSIONNEL (PDF ENGINE)
+                MOTEUR PDF PROFESSIONNEL (OPTIMISÉ SANS ESPACE)
               </div>
               <h2 className="font-agrandir-extrabold text-xl sm:text-2xl uppercase tracking-tight text-white">
                 Générateur de Billets Physiques
@@ -342,7 +341,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                     />
                   </div>
                   <div className="text-[11px] text-neutral-400 leading-relaxed">
-                    Le moteur PDF normalise chaque billet aux dimensions exactes en millimètres et gère l'imposition automatique en grille.
+                    Les billets sont agencés bord à bord sur la feuille pour une utilisation optimale de l'espace d'impression.
                   </div>
                 </div>
               </div>
@@ -351,8 +350,9 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">
-                  3. Format du Papier (ISO & Pro)
+                  3. Format du Papier
                 </label>
+                {/* Sélecteur épuré affichant uniquement le nom et les dimensions officielles */}
                 <select
                   value={selectedPaperKey}
                   onChange={(e) => setSelectedPaperKey(e.target.value)}
@@ -360,7 +360,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 >
                   {Object.entries(SYSTEM_PAPER_FORMATS).map(([key, paper]) => (
                     <option key={key} value={key}>
-                      {paper.name} (~{paper.cols * paper.rows} billets/feuille)
+                      {paper.name}
                     </option>
                   ))}
                 </select>
@@ -402,7 +402,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
               ) : (
                 <>
                   <Printer className="w-4 h-4" />
-                  <span>Préparer {quantity.toLocaleString()} billets pour le PDF Engine</span>
+                  <span>Préparer {quantity.toLocaleString()} billets</span>
                 </>
               )}
             </button>
@@ -414,10 +414,10 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
             </div>
             <div>
               <h3 className="text-2xl font-agrandir-extrabold uppercase text-white mb-2">
-                Lot Prêt pour la Génération PDF
+                Lot Prêt pour la Production
               </h3>
               <p className="text-[#888] text-xs max-w-md mx-auto leading-relaxed">
-                <strong className="text-white font-agrandir-bold">{ticketsRef.current.length} billets</strong> configurés sur le format <strong className="text-white">{SYSTEM_PAPER_FORMATS[selectedPaperKey]?.name}</strong>. Cliquez ci-dessous pour télécharger directement les fichiers PDF de production (Recto et Verso).
+                <strong className="text-white font-agrandir-bold">{ticketsRef.current.length} billets</strong> configurés sur format <strong className="text-white">{SYSTEM_PAPER_FORMATS[selectedPaperKey]?.name}</strong>.
               </p>
             </div>
 
@@ -435,7 +435,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 className="px-8 py-3.5 rounded-2xl bg-[#d4af37] hover:bg-[#e6c158] text-black font-agrandir-extrabold text-sm uppercase tracking-wider flex items-center gap-2 shadow-[0_0_25px_rgba(212,175,55,0.35)] transition-transform hover:scale-105 cursor-pointer"
               >
                 <Download className="w-5 h-5" />
-                <span>Télécharger les PDF Recto & Verso</span>
+                <span>Télécharger les PDF (Recto/Verso)</span>
               </button>
             </div>
           </div>
