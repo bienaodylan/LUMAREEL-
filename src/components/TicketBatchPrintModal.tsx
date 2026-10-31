@@ -6,13 +6,9 @@ import {
   Printer,
   X,
   CheckCircle2,
-  AlertTriangle,
   Loader2,
   Upload,
-  Check,
-  Layers,
-  Sparkles,
-  Scissors
+  Check
 } from 'lucide-react';
 import { formatDateLongFrench } from '../utils/dateUtils';
 
@@ -36,12 +32,20 @@ interface TicketBatchPrintModalProps {
 }
 
 const PAPER_FORMATS = [
-  { name: 'A3 (297 × 420 mm)', width: 297, height: 420 },
-  { name: 'A4 (210 × 297 mm)', width: 210, height: 297 },
-  { name: 'A5 (148 × 210 mm)', width: 148, height: 210 },
-  { name: 'A6 (105 × 148 mm)', width: 105, height: 148 },
-  { name: 'SRA3 (320 × 450 mm)', width: 320, height: 450 },
-  { name: 'A3+ (329 × 483 mm)', width: 329, height: 483 },
+  { name: 'A1 (594 × 841 mm)', width: 594, height: 841, cols: 6, rows: 8 }, // ~48 billets
+  { name: 'A2 (420 × 594 mm)', width: 420, height: 594, cols: 2, rows: 2 }, // ~4 billets
+  { name: 'A3 (297 × 420 mm)', width: 297, height: 420, cols: 2, rows: 4 }, // ~8 billets
+  { name: 'A4 (210 × 297 mm)', width: 210, height: 297, cols: 2, rows: 2 }, // ~4 billets
+  { name: 'A5 (148 × 210 mm)', width: 148, height: 210, cols: 1, rows: 2 }, // ~2 billets
+  { name: 'A6 (105 × 148 mm)', width: 105, height: 148, cols: 1, rows: 1 }, // 1 billet
+  { name: 'B1 (707 × 1000 mm)', width: 707, height: 1000, cols: 8, rows: 8 }, // ~64 billets
+  { name: 'B2 (500 × 707 mm)', width: 500, height: 707, cols: 6, rows: 6 }, // ~36 billets
+  { name: 'B3 (353 × 500 mm)', width: 353, height: 500, cols: 3, rows: 4 }, // ~12 billets
+  { name: 'B4 (250 × 353 mm)', width: 250, height: 353, cols: 2, rows: 8 }, // ~16 billets
+  { name: 'B5 (176 × 250 mm)', width: 176, height: 250, cols: 1, rows: 2 }, // ~2 billets
+  { name: 'SRA2 (450 × 640 mm)', width: 450, height: 640, cols: 2, rows: 2 }, // ~4 billets
+  { name: 'SRA3 (320 × 450 mm)', width: 320, height: 450, cols: 2, rows: 4 }, // ~8 billets
+  { name: 'A3+ (329 × 483 mm)', width: 329, height: 483, cols: 2, rows: 5 }, // ~10 billets
 ];
 
 export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
@@ -79,8 +83,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
 
   const [quantity, setQuantity] = useState<number>(10);
   const [printOrderMode, setPrintOrderMode] = useState<'batched' | 'paired'>('batched');
-  const [selectedPaper, setSelectedPaper] = useState(PAPER_FORMATS[1]); // A4 par défaut
-  const [paperOrientation, setPaperOrientation] = useState<'portrait' | 'landscape'>('landscape');
+  const [selectedPaper, setSelectedPaper] = useState(PAPER_FORMATS[2]); // A3 par défaut
   
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isUploadingDesign, setIsUploadingDesign] = useState<boolean>(false);
@@ -206,7 +209,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       } else {
         setIsGenerating(false);
         setIsReadyToPrint(true);
-        showToast(`Préparation de ${quantity} billets de haute sécurité terminée.`, 'success');
+        showToast(`Préparation de ${quantity} billets en grille terminée.`, 'success');
       }
     };
 
@@ -217,10 +220,22 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     window.print();
   };
 
+  // Regroupement des billets par pages en fonction de la capacité de la grille (cols * rows)
+  const ticketsPerPage = selectedPaper.cols * selectedPaper.rows;
+  const chunkArray = (arr: GeneratedPrintTicket[], size: number) => {
+    const res = [];
+    for (let i = 0; i < arr.length; i += size) {
+      res.push(arr.slice(i, i + size));
+    }
+    return res;
+  };
+
+  const ticketPages = chunkArray(ticketsRef.current, ticketsPerPage);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-xl overflow-y-auto font-agrandir-regular print:static print:bg-white print:p-0 print:block">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-xl overflow-y-auto font-agrandir-regular print:fixed print:inset-0 print:bg-white print:z-[99999] print:p-0 print:m-0">
       
-      {/* UI Modal Box - Masqué pendant l'impression native */}
+      {/* UI Modal Box - Strictement masqué pendant l'impression */}
       <div className="relative w-full max-w-3xl bg-[#0c0c0c] border border-white/15 rounded-3xl p-6 sm:p-8 text-white shadow-2xl my-6 print:hidden">
         
         <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
@@ -230,7 +245,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
             </div>
             <div>
               <div className="text-[10px] text-[#d4af37] tracking-[0.25em] uppercase font-agrandir-bold">
-                MODULE PROFESSIONNEL D'IMPRESSION EN SÉRIE
+                MODULE PROFESSIONNEL D'IMPOSITION EN GRILLE
               </div>
               <h2 className="font-agrandir-extrabold text-xl sm:text-2xl uppercase tracking-tight text-white">
                 Générateur de Billets Physiques
@@ -248,7 +263,6 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
         {!isReadyToPrint ? (
           <form onSubmit={handleGenerateBatch} className="space-y-6">
             
-            {/* 1. Événement */}
             {initialEventId && selectedEvent ? (
               <div className="p-4 bg-[#141414] border border-[#d4af37]/30 rounded-2xl flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
@@ -294,11 +308,10 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
               </div>
             )}
 
-            {/* 2. Catégories */}
             {selectedEvent && (
               <div className="space-y-2">
                 <label className="block text-[11px] uppercase font-agrandir-bold text-[#888]">
-                  2. Catégorie de Place &amp; Design Associé (1536 × 548 px)
+                  2. Catégorie de Place &amp; Design (1536 × 548 px)
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {selectedEvent.categories.map((cat) => {
@@ -337,7 +350,6 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
               </div>
             )}
 
-            {/* Aperçu & Import du visuel officiel */}
             {currentCategory && (
               <div className="p-4 bg-[#141414] border border-white/10 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
@@ -369,13 +381,12 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                     />
                   </div>
                   <div className="text-[11px] text-neutral-400 leading-relaxed">
-                    Ratio graphique strict <strong className="text-white font-mono">2,803 : 1 (1536 × 548 px)</strong>. Le visuel s'ajustera pour occuper toute la page d'impression sans déformation.
+                    Le format de chaque billet est normalisé à <strong className="text-white font-mono">1536 × 548 px</strong> et disposé automatiquement en grille sur la feuille sélectionnée.
                   </div>
                 </div>
               </div>
             )}
 
-            {/* 3. Paramètres du Papier et de Quantité */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">
@@ -390,7 +401,9 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                   className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-2.5 text-xs text-white outline-none focus:border-[#d4af37]"
                 >
                   {PAPER_FORMATS.map((paper) => (
-                    <option key={paper.name} value={paper.name}>{paper.name}</option>
+                    <option key={paper.name} value={paper.name}>
+                      {paper.name} (~{paper.cols * paper.rows} billets/feuille)
+                    </option>
                   ))}
                 </select>
               </div>
@@ -413,7 +426,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
 
               <div>
                 <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">
-                  5. Mode de Production
+                  5. Mode d'impression
                 </label>
                 <select
                   value={printOrderMode}
@@ -439,7 +452,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                   />
                   <Loader2 className="w-4 h-4 animate-spin relative z-10" />
                   <span className="relative z-10">
-                    Génération des planches sécurisées... {generationProgress}%
+                    Génération des planches en grille... {generationProgress}%
                   </span>
                 </>
               ) : (
@@ -460,7 +473,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 Planches Prêtes à l'Impression
               </h3>
               <p className="text-[#888] text-xs max-w-md mx-auto leading-relaxed">
-                <strong className="text-white font-agrandir-bold">{ticketsRef.current.length} billets</strong> de la catégorie <strong className="text-[#d4af37] font-agrandir-bold">{currentCategory?.name}</strong> générés avec succès sur format <strong className="text-white">{selectedPaper.name}</strong>.
+                <strong className="text-white font-agrandir-bold">{ticketsRef.current.length} billets</strong> répartis sur <strong className="text-[#d4af37] font-agrandir-bold">{ticketPages.length} feuille(s)</strong> au format <strong className="text-white">{selectedPaper.name}</strong> ({selectedPaper.cols} colonnes × {selectedPaper.rows} lignes par page).
               </p>
             </div>
 
@@ -486,14 +499,27 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       </div>
 
       {/* =========================================================================
-          MOTEUR D'IMPRESSION PDF NATIVE (ZÉRO MARGE, PLEINE PAGE, SYNCHRO RECTO-VERSO)
+          MOTEUR D'IMPRESSION NATIVE EN GRILLE (MASQUE TOUT LE RESTE DU SITE)
          ========================================================================= */}
       {isReadyToPrint && (
-        <div className="hidden print:block print:w-full print:bg-white print:text-black">
+        <div className="hidden print:block print:w-full print:bg-white print:text-black print:m-0 print:p-0">
           <style
             dangerouslySetInnerHTML={{
               __html: `
                 @media print {
+                  body * {
+                    visibility: hidden !important;
+                  }
+                  #printable-sheet-area, #printable-sheet-area * {
+                    visibility: visible !important;
+                  }
+                  #printable-sheet-area {
+                    position: absolute !important;
+                    left: 0 !important;
+                    top: 0 !important;
+                    width: 100% !important;
+                    background: #ffffff !important;
+                  }
                   @page {
                     size: ${selectedPaper.width}mm ${selectedPaper.height}mm;
                     margin: 0 !important;
@@ -506,7 +532,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                   }
-                  .print-page-ticket {
+                  .print-page-grid {
                     width: ${selectedPaper.width}mm !important;
                     height: ${selectedPaper.height}mm !important;
                     max-width: ${selectedPaper.width}mm !important;
@@ -514,135 +540,105 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                     overflow: hidden !important;
                     page-break-after: always !important;
                     break-after: page !important;
+                    display: grid !important;
+                    grid-template-columns: repeat(${selectedPaper.cols}, 1fr) !important;
+                    grid-template-rows: repeat(${selectedPaper.rows}, 1fr) !important;
+                    gap: 2mm !important;
+                    padding: 5mm !important;
+                    box-sizing: border-box !important;
+                    background: #ffffff !important;
+                  }
+                  .print-ticket-cell {
+                    border: 1px dashed #666666 !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
+                    overflow: hidden !important;
+                    background: #ffffff !important;
                     box-sizing: border-box !important;
-                    position: relative !important;
-                    padding: 0 !important;
-                    margin: 0 !important;
                   }
                 }
               `,
             }}
           />
 
-          {printOrderMode === 'batched' ? (
-            <>
-              {/* TOUS LES RECTOS */}
-              {ticketsRef.current.map((t) => (
-                <div key={`recto-full-${t.id}`} className="print-page-ticket bg-white">
-                  <div className="w-full h-full relative flex items-center justify-center p-0 m-0">
-                    <img
-                      src={t.ticketDesignUrl}
-                      alt={t.categoryName}
-                      className="w-full h-full object-fill block"
-                    />
+          <div id="printable-sheet-area">
+            {printOrderMode === 'batched' ? (
+              <>
+                {/* 1. TOUTES LES PAGES RECTO EN GRILLE */}
+                {ticketPages.map((pageTickets, pageIdx) => (
+                  <div key={`recto-grid-page-${pageIdx}`} className="print-page-grid">
+                    {pageTickets.map((t) => (
+                      <div key={`recto-cell-${t.id}`} className="print-ticket-cell">
+                        <img
+                          src={t.ticketDesignUrl}
+                          alt={t.categoryName}
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
+                ))}
 
-              {/* TOUS LES VERSOS */}
-              {ticketsRef.current.map((t) => (
-                <div key={`verso-full-${t.id}`} className="print-page-ticket bg-white">
-                  <div className="w-full h-full relative flex flex-col items-center justify-between bg-white text-black p-12 box-border">
-                    <div className="w-full flex items-center justify-between border-b border-black pb-4">
-                      <div>
-                        <div className="text-xl font-black uppercase tracking-wider">
-                          {t.event.artist} EN CONCERT
+                {/* 2. TOUTES LES PAGES VERSO EN GRILLE */}
+                {ticketPages.map((pageTickets, pageIdx) => (
+                  <div key={`verso-grid-page-${pageIdx}`} className="print-page-grid">
+                    {pageTickets.map((t) => (
+                      <div key={`verso-cell-${t.id}`} className="print-ticket-cell p-2 flex flex-col justify-between text-black bg-white">
+                        <div className="flex justify-between text-[7px] font-bold border-b border-black pb-0.5">
+                          <span>{t.event.artist}</span>
+                          <span>{t.categoryName} · {t.price}F</span>
                         </div>
-                        <div className="text-sm font-bold uppercase text-neutral-800 mt-1">
-                          CATÉGORIE : {t.categoryName} · {t.price.toLocaleString()} FCFA
+                        <div className="my-auto flex flex-col items-center">
+                          <img src={t.qrDataUrl} alt="QR" style={{ width: '55px', height: '55px' }} />
+                          <span className="text-[6px] font-mono mt-0.5">{t.serialNumber}</span>
                         </div>
-                        <div className="text-xs text-black mt-1">
-                          <strong className="font-black">{t.event.venue}</strong> · <strong className="font-black">{formatDateLongFrench(t.event.date)}</strong>
+                        <div className="text-[5px] text-center border-t border-black pt-0.5">
+                          LUMARÉEL CO. · SÉCURITÉ VIGILE
                         </div>
                       </div>
-                      <div className="text-right font-mono text-xs">
-                        <div>N° SÉRIE : {t.serialNumber}</div>
-                        <div>LOT : {t.batchNumber}</div>
-                      </div>
-                    </div>
-
-                    <div className="my-auto flex flex-col items-center justify-center space-y-6">
-                      <div className="p-4 border-2 border-black bg-white shadow-xl">
-                        <img src={t.qrDataUrl} alt="QR Code" className="w-56 h-56 object-contain" />
-                      </div>
-                      <div className="text-xs font-mono font-bold tracking-widest uppercase">
-                        JETON UNIQUE : {t.token}
-                      </div>
-                    </div>
-
-                    <div className="w-full border-t border-black pt-4 flex items-center justify-between text-xs font-sans text-neutral-800">
-                      <div>
-                        • Billet nominatif individuel strict. L'entrée aux portes invalide le jeton.<br />
-                        • Toute reproduction ou double usage entraîne le blocage immédiat.
-                      </div>
-                      <div className="font-bold uppercase tracking-widest text-right">
-                        LUMARÉEL CO. · CONTRÔLE VIGILE
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                </div>
-              ))}
-            </>
-          ) : (
-            ticketsRef.current.map((t) => (
-              <React.Fragment key={`pair-full-${t.id}`}>
-                {/* Recto */}
-                <div className="print-page-ticket bg-white">
-                  <div className="w-full h-full relative flex items-center justify-center p-0 m-0">
-                    <img
-                      src={t.ticketDesignUrl}
-                      alt={t.categoryName}
-                      className="w-full h-full object-fill block"
-                    />
+                ))}
+              </>
+            ) : (
+              /* Mode Alterné : Page Recto, puis Page Verso pour chaque lot */
+              ticketPages.map((pageTickets, pageIdx) => (
+                <React.Fragment key={`paired-grid-group-${pageIdx}`}>
+                  {/* Recto Page */}
+                  <div className="print-page-grid">
+                    {pageTickets.map((t) => (
+                      <div key={`paired-recto-cell-${t.id}`} className="print-ticket-cell">
+                        <img
+                          src={t.ticketDesignUrl}
+                          alt={t.categoryName}
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        />
+                      </div>
+                    ))}
                   </div>
-                </div>
-                {/* Verso */}
-                <div className="print-page-ticket bg-white">
-                  <div className="w-full h-full relative flex flex-col items-center justify-between bg-white text-black p-12 box-border">
-                    <div className="w-full flex items-center justify-between border-b border-black pb-4">
-                      <div>
-                        <div className="text-xl font-black uppercase tracking-wider">
-                          {t.event.artist} EN CONCERT
+                  {/* Verso Page */}
+                  <div className="print-page-grid">
+                    {pageTickets.map((t) => (
+                      <div key={`paired-verso-cell-${t.id}`} className="print-ticket-cell p-2 flex flex-col justify-between text-black bg-white">
+                        <div className="flex justify-between text-[7px] font-bold border-b border-black pb-0.5">
+                          <span>{t.event.artist}</span>
+                          <span>{t.categoryName} · {t.price}F</span>
                         </div>
-                        <div className="text-sm font-bold uppercase text-neutral-800 mt-1">
-                          CATÉGORIE : {t.categoryName} · {t.price.toLocaleString()} FCFA
+                        <div className="my-auto flex flex-col items-center">
+                          <img src={t.qrDataUrl} alt="QR" style={{ width: '55px', height: '55px' }} />
+                          <span className="text-[6px] font-mono mt-0.5">{t.serialNumber}</span>
                         </div>
-                        <div className="text-xs text-black mt-1">
-                          <strong className="font-black">{t.event.venue}</strong> · <strong className="font-black">{formatDateLongFrench(t.event.date)}</strong>
+                        <div className="text-[5px] text-center border-t border-black pt-0.5">
+                          LUMARÉEL CO. · SÉCURITÉ VIGILE
                         </div>
                       </div>
-                      <div className="text-right font-mono text-xs">
-                        <div>N° SÉRIE : {t.serialNumber}</div>
-                        <div>LOT : {t.batchNumber}</div>
-                      </div>
-                    </div>
-
-                    <div className="my-auto flex flex-col items-center justify-center space-y-6">
-                      <div className="p-4 border-2 border-black bg-white shadow-xl">
-                        <img src={t.qrDataUrl} alt="QR Code" className="w-56 h-56 object-contain" />
-                      </div>
-                      <div className="text-xs font-mono font-bold tracking-widest uppercase">
-                        JETON UNIQUE : {t.token}
-                      </div>
-                    </div>
-
-                    <div className="w-full border-t border-black pt-4 flex items-center justify-between text-xs font-sans text-neutral-800">
-                      <div>
-                        • Billet nominatif individuel strict. L'entrée aux portes invalide le jeton.<br />
-                        • Toute reproduction ou double usage entraîne le blocage immédiat.
-                      </div>
-                      <div className="font-bold uppercase tracking-widest text-right">
-                        LUMARÉEL CO. · CONTRÔLE VIGILE
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                </div>
-              </React.Fragment>
-            ))
-          )}
+                </React.Fragment>
+              ))
+            )}
+          </div>
         </div>
       )}
     </div>
