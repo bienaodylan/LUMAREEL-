@@ -355,3 +355,23 @@ WITH CHECK (true);
 INSERT INTO public.platform_settings (id, platform_name, tagline, logo_monogram, logo_url, currency, infoline, gate_token)
 VALUES (1, 'LUMARÉEL', 'CO.', 'LR', '', 'XOF (FCFA)', '+225 01 53 508 210', 'VIGILE_AUTH_LMR_2026')
 ON CONFLICT (id) DO NOTHING;
+
+
+-- ============================================================================
+-- 11. STOCKAGE DES DESIGNS (Supabase Storage) — visuels recto des billets
+-- ============================================================================
+-- Sans ce bucket, l'import d'un design de billet échoue ("Bucket not found").
+-- Les fichiers y restent après actualisation et après chaque redéploiement.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('designs', 'designs', true)
+ON CONFLICT (id) DO NOTHING;
+
+DROP POLICY IF EXISTS "Designs lecture publique" ON storage.objects;
+CREATE POLICY "Designs lecture publique"
+ON storage.objects FOR SELECT
+USING (bucket_id = 'designs');
+
+DROP POLICY IF EXISTS "Designs envoi" ON storage.objects;
+CREATE POLICY "Designs envoi"
+ON storage.objects FOR INSERT
+WITH CHECK (bucket_id = 'designs');

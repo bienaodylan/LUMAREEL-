@@ -1089,7 +1089,17 @@ class LumareelDatabase {
 
     for (let i = 1; i <= order.quantity; i++) {
       const ticketId = `tkt_${crypto.randomBytes(8).toString('hex')}`;
-      const serialNumber = `LMR-2026-${eventCode}-${Math.floor(1000 + Math.random() * 9000)}`;
+      // Numéro de série unique : on retire au sort tant qu'il existe déjà (achat en ligne ou billet physique).
+      let serialNumber = '';
+      for (let attempt = 0; attempt < 200; attempt++) {
+        const candidate = `LMR-2026-${eventCode}-${Math.floor(1000 + Math.random() * 9000)}`;
+        let taken = false;
+        for (const existing of this.tickets.values()) {
+          if (existing.serialNumber === candidate) { taken = true; break; }
+        }
+        if (!taken && !issuedTickets.some((t) => t.serialNumber === candidate)) { serialNumber = candidate; break; }
+      }
+      if (!serialNumber) serialNumber = `LMR-2026-${eventCode}-${Date.now().toString().slice(-6)}${i}`;
       const token = `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
 
       const ticket: Ticket = {
@@ -1504,11 +1514,29 @@ class LumareelDatabase {
     const artistCode = event.artist.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'LMR';
     const issuedAt = new Date().toISOString();
 
-    let sequence = this.printTicketList.filter((t) => t.eventId === event.id).length;
+    // Numéros de série des billets physiques : préfixe « P » + 5 chiffres, séquence GLOBALE
+    // (tous événements confondus). Les achats en ligne n'utilisent jamais ce format
+    // (LMR-AAAA-XXX-0000, 4 chiffres, sans « P »), et on vérifie en plus qu'aucun numéro
+    // existant (en ligne ou physique) n'est réutilisé.
+    const serialPrefix = `LMR-${new Date().getFullYear()}-${artistCode}-P`;
+    const usedSerials = new Set<string>();
+    for (const t of this.tickets.values()) usedSerials.add(t.serialNumber);
+    let sequence = 0;
+    for (const serial of usedSerials) {
+      if (serial.startsWith(serialPrefix)) {
+        const n = Number.parseInt(serial.slice(serialPrefix.length), 10);
+        if (Number.isFinite(n) && n > sequence) sequence = n;
+      }
+    }
 
     const created: Ticket[] = [];
     for (let i = 0; i < quantity; i++) {
-      sequence++;
+      let serialNumber: string;
+      do {
+        sequence++;
+        serialNumber = `${serialPrefix}${String(sequence).padStart(5, '0')}`;
+      } while (usedSerials.has(serialNumber));
+      usedSerials.add(serialNumber);
       created.push({
         id: `tkt_${crypto.randomBytes(8).toString('hex')}`,
         orderId: batchId,
@@ -1520,7 +1548,7 @@ class LumareelDatabase {
         eventVenue: event.venue,
         categoryId: category.id,
         categoryName: category.name,
-        serialNumber: `LMR-${new Date().getFullYear()}-${artistCode}-P${String(sequence).padStart(5, '0')}`,
+        serialNumber,
         token: `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`,
         holderName: 'Billet physique',
         holderEmail: '',
