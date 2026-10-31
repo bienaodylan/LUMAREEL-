@@ -77,7 +77,7 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Concert introuvable.'; END IF;
 
   SELECT item INTO v_category
-  FROM jsonb_array_elements(COALESCE(v_event.categories, '[]'::jsonb)) AS item
+  FROM jsonb_array_elements(COALESCE(v_event.categories, '[]'::jsonb)) AS categories(item)
   WHERE item->>'id' = p_category_id
   LIMIT 1;
   IF v_category IS NULL THEN RAISE EXCEPTION 'Catégorie de billet introuvable.'; END IF;
