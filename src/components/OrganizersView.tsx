@@ -109,7 +109,7 @@ export const OrganizersView: React.FC = () => {
           id: `cat_gen_${Date.now()}`,
           name: newEvent.categoryName,
           price: Number(newEvent.categoryPrice),
-          currency: 'XOF',
+          currency: 'FCFA',
           quota: Number(newEvent.categoryQuota),
           sold: 0,
           description: 'Billet officiel émis via la marketplace LUMARÉEL',
@@ -329,10 +329,7 @@ export const OrganizersView: React.FC = () => {
                 VOLUME D'AFFAIRES PARTENAIRES
               </div>
               <div className="text-3xl font-agrandir-extrabold text-white">
-                {totalPartnerRevenue.toLocaleString()} XOF
-              </div>
-              <div className="text-[11px] text-[#555] font-agrandir-regular mt-1">
-                ~{Math.round(totalPartnerRevenue / 655.957).toLocaleString()} € brut
+                {totalPartnerRevenue.toLocaleString()} FCFA
               </div>
             </div>
           </div>
@@ -499,7 +496,7 @@ export const OrganizersView: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-regular">
-                        PRIX DU BILLET (XOF)
+                        PRIX DU BILLET (FCFA)
                       </label>
                       <input
                         type="number"
@@ -575,7 +572,7 @@ export const OrganizersView: React.FC = () => {
                       {totalSold} / {totalQuota} vendus
                     </div>
                     <div className="text-[#777] text-[11px]">
-                      {revenue.toLocaleString()} XOF
+                      {revenue.toLocaleString()} FCFA
                     </div>
                   </div>
 

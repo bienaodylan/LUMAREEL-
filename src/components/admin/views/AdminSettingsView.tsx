@@ -36,7 +36,7 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ showToast 
     tagline: platformSettings.tagline || 'CO.',
     logoMonogram: platformSettings.logoMonogram || 'LR',
     logoUrl: platformSettings.logoUrl || '',
-    currency: platformSettings.currency || 'XOF (FCFA)',
+    currency: platformSettings.currency || 'FCFA',
     infoline: platformSettings.infoline || '+225 01 53 508 210',
     gateToken: platformSettings.gateToken || 'VIGILE_AUTH_LMR_2026',
     githubRepoUrl: platformSettings.githubRepoUrl || '',

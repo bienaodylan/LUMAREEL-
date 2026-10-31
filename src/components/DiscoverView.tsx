@@ -211,7 +211,7 @@ export const DiscoverView: React.FC = () => {
                 {group.events.map((event) => {
                   const { dayOfWeek, dayNumber, fullDate } = getDateParts(event.date);
                   const minPrice = Math.min(...event.categories.map((c) => c.price));
-                  const currency = event.categories[0]?.currency || 'XOF';
+                  const currency = 'FCFA';
                   const ambient = getAmbientStyle(event.artist);
 
                   return (
@@ -276,7 +276,7 @@ export const DiscoverView: React.FC = () => {
                           <div className="mt-2.5">
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[11px] font-agrandir-semibold text-white backdrop-blur-sm shadow-sm">
                               <Ticket className="w-3.5 h-3.5 text-[#d4af37]" />
-                              <span>BILLETS DÈS {minPrice.toLocaleString()} {currency}</span>
+                              <span>BILLETS DÈS {minPrice.toLocaleString()} FCFA</span>
                             </span>
                           </div>
 

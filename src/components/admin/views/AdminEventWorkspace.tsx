@@ -164,7 +164,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
       id: `cat_${Date.now()}`,
       name: 'NOUVELLE CATÉGORIE',
       price: 15000,
-      currency: 'XOF',
+      currency: 'FCFA',
       quota: 500,
       sold: 0,
       description: 'Accès standard événement',

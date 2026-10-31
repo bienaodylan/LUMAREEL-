@@ -20,7 +20,7 @@ export const CheckoutModal: React.FC = () => {
   const currentCategory = checkoutEvent.categories.find((c) => c.id === selectedCatId) || checkoutEvent.categories[0];
   const unitPrice = currentCategory?.price || 0;
   const totalAmount = unitPrice * quantity;
-  const currency = currentCategory?.currency || 'XOF';
+  const currency = 'FCFA';
 
   const handleCreateOrder = async (mode: 'sandbox' | 'geniuspay_live') => {
     if (!email || !name) {
@@ -110,7 +110,7 @@ export const CheckoutModal: React.FC = () => {
           quantity,
           unitPrice,
           totalAmount,
-          currency: 'XOF',
+          currency: 'FCFA',
           paymentStatus: 'completed' as const,
           paymentProvider: 'geniuspay' as const,
           paymentRef: `GP_${Date.now()}`,

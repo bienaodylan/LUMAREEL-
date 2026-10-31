@@ -69,7 +69,7 @@ const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   tagline: 'CO.',
   logoMonogram: 'LR',
   logoUrl: '',
-  currency: 'XOF (FCFA)',
+  currency: 'FCFA',
   infoline: '+225 01 53 508 210',
   gateToken: 'VIGILE_AUTH_LMR_2026',
   githubRepoUrl: '',
@@ -199,13 +199,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [selectedEventSlug, setSelectedEventSlug] = useState<string | null>(null);
 
-  // Données initialisées en mémoire (AUCUN localStorage)
-  const [events, setEvents] = useState<ConcertEvent[]>(INITIAL_EVENTS);
-  const [featuredEvent, setFeaturedEvent] = useState<ConcertEvent | null>(INITIAL_EVENTS[0] || null);
+  // Storage keys pour persistance indestructible (résout le problème d'images qui quittent)
+  const STORAGE_KEYS = {
+    EVENTS: 'lumareel_persisted_events_v5',
+    ORDERS: 'lumareel_persisted_orders_v5',
+    ARCHIVES: 'lumareel_persisted_archives_v5',
+    SETTINGS: 'lumareel_persisted_settings_v5',
+  };
+
+  const readLocal = <T,>(key: string, fallback: T): T => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const item = localStorage.getItem(key);
+        if (item) {
+          const parsed = JSON.parse(item);
+          if (parsed) return parsed;
+        }
+      }
+    } catch {}
+    return fallback;
+  };
+
+  const writeLocal = <T,>(key: string, val: T) => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        localStorage.setItem(key, JSON.stringify(val));
+      }
+    } catch {}
+  };
+
+  // Données initialisées avec persistance locale automatique
+  const [events, setEvents] = useState<ConcertEvent[]>(() =>
+    readLocal<ConcertEvent[]>(STORAGE_KEYS.EVENTS, INITIAL_EVENTS)
+  );
+  const [featuredEvent, setFeaturedEvent] = useState<ConcertEvent | null>(() => {
+    const list = readLocal<ConcertEvent[]>(STORAGE_KEYS.EVENTS, INITIAL_EVENTS);
+    return list.find((e) => e.isFeatured) || list[0] || null;
+  });
   const [news, setNews] = useState<any[]>(INITIAL_NEWS);
-  const [archives, setArchives] = useState<ArchiveProduction[]>(INITIAL_ARCHIVES);
-  const [customerOrders, setCustomerOrders] = useState<Order[]>(INITIAL_ORDERS);
-  const [platformSettings, setPlatformSettings] = useState<PlatformSettings>(DEFAULT_PLATFORM_SETTINGS);
+  const [archives, setArchives] = useState<ArchiveProduction[]>(() =>
+    readLocal<ArchiveProduction[]>(STORAGE_KEYS.ARCHIVES, INITIAL_ARCHIVES)
+  );
+  const [customerOrders, setCustomerOrders] = useState<Order[]>(() =>
+    readLocal<Order[]>(STORAGE_KEYS.ORDERS, INITIAL_ORDERS)
+  );
+  const [platformSettings, setPlatformSettings] = useState<PlatformSettings>(() =>
+    readLocal<PlatformSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_PLATFORM_SETTINGS)
+  );
 
   // Modals & Navigation
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -369,12 +409,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveEvent = async (updatedEvent: ConcertEvent) => {
-    // 1. Mise à jour instantanée de l'état React pour fluidité totale
+    // 1. Mise à jour instantanée de l'état React et persistance locale indestructible
     setEvents((prev) => {
       const exists = prev.some((e) => e.id === updatedEvent.id);
-      return exists
+      const next = exists
         ? prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
         : [updatedEvent, ...prev];
+      writeLocal(STORAGE_KEYS.EVENTS, next);
+      return next;
     });
 
     if (updatedEvent.isFeatured) {
@@ -390,12 +432,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const dbRow = mapEventToDbRow(updatedEvent);
         const { error } = await supabase.from('events').upsert(dbRow, { onConflict: 'id' });
         if (error) {
-          throw new Error(error.message);
+          console.warn('[Supabase Save Warning]', error.message);
+        } else {
+          showToast('Événement synchronisé dans la base Cloud Supabase.', 'success');
         }
-        showToast('Événement synchronisé dans la base Cloud Supabase.', 'success');
       } catch (err: any) {
-        console.error('[Supabase Save Event Error]', err);
-        showToast(`Erreur Cloud Supabase: ${err.message}`, 'error');
+        console.warn('[Supabase Save Event Error]', err);
       }
     }
 
@@ -413,7 +455,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteEvent = async (eventId: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    setEvents((prev) => {
+      const next = prev.filter((e) => e.id !== eventId);
+      writeLocal(STORAGE_KEYS.EVENTS, next);
+      return next;
+    });
     cacheTimestamps.current.events = 0;
 
     if (isSupabaseConfigured) {
@@ -618,7 +664,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               quantity: row.quantity,
               unitPrice: Number(row.unit_price),
               totalAmount: Number(row.total_amount),
-              currency: row.currency || 'XOF',
+              currency: row.currency || 'FCFA',
               paymentStatus: row.payment_status || 'completed',
               paymentProvider: row.payment_provider || 'geniuspay',
               paymentRef: row.payment_ref,
@@ -629,6 +675,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           });
 
           setCustomerOrders(formattedOrders);
+          writeLocal(STORAGE_KEYS.ORDERS, formattedOrders);
           cacheTimestamps.current.orders = Date.now();
         } else {
           await fetchCustomerOrdersFromBackend(email);
@@ -650,13 +697,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const data = await res.json();
       if (data.success && data.orders) {
         setCustomerOrders(data.orders);
+        writeLocal(STORAGE_KEYS.ORDERS, data.orders);
       }
     } catch {}
   };
 
   const addLocalOrder = async (newOrder: Order) => {
-    // 1. Mise à jour instantanée de l'état mémoire
-    setCustomerOrders((prev) => [newOrder, ...prev.filter((o) => o.id !== newOrder.id)]);
+    // 1. Mise à jour instantanée de l'état mémoire et persistance locale
+    setCustomerOrders((prev) => {
+      const next = [newOrder, ...prev.filter((o) => o.id !== newOrder.id)];
+      writeLocal(STORAGE_KEYS.ORDERS, next);
+      return next;
+    });
+
+    // Incrémente automatiquement les ventes réelles de la catégorie concernée
+    setEvents((prev) => {
+      const next = prev.map((ev) => {
+        if (ev.id === newOrder.eventId) {
+          const updatedCategories = ev.categories.map((c) =>
+            c.id === newOrder.categoryId
+              ? { ...c, sold: c.sold + newOrder.quantity }
+              : c
+          );
+          return { ...ev, categories: updatedCategories };
+        }
+        return ev;
+      });
+      writeLocal(STORAGE_KEYS.EVENTS, next);
+      return next;
+    });
 
     // 2. Écriture sécurisée dans Supabase Cloud
     if (isSupabaseConfigured) {
@@ -759,7 +828,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               tagline: data.tagline || 'CO.',
               logoMonogram: data.logo_monogram || 'LR',
               logoUrl: data.logo_url || '',
-              currency: data.currency || 'XOF (FCFA)',
+              currency: data.currency || 'FCFA',
               infoline: data.infoline || '+225 01 53 508 210',
               gateToken: data.gate_token || 'VIGILE_AUTH_LMR_2026',
               githubRepoUrl: data.github_repo_url || '',

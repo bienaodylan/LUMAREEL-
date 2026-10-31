@@ -137,12 +137,6 @@ export const HomeFeed: React.FC = () => {
                       {event.status === 'published' ? 'BILLETTERIE' : 'BIENTÔT'}
                     </span>
                   </div>
-                  {isActive && (
-                    <div className="absolute bottom-2.5 left-2.5 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md border border-[#d4af37]/40 text-[9px] font-agrandir-semibold text-[#d4af37] uppercase">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-ping" />
-                      <span>AFFICHÉ EN BANNIÈRE</span>
-                    </div>
-                  )}
                 </div>
 
                 {/* Les informations, boutons et compte à rebours sous l'image */}

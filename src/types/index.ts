@@ -13,7 +13,7 @@ export interface TicketCategory {
   id: string;
   name: string;
   price: number;
-  currency: 'XOF' | 'EUR';
+  currency: 'FCFA' | 'XOF' | 'EUR' | string;
   quota: number;
   sold: number;
   description: string;
@@ -95,7 +95,7 @@ export interface Order {
   quantity: number;
   unitPrice: number;
   totalAmount: number;
-  currency: 'XOF' | 'EUR';
+  currency: 'FCFA' | 'XOF' | 'EUR' | string;
   paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
   paymentProvider: 'geniuspay';
   paymentRef: string;

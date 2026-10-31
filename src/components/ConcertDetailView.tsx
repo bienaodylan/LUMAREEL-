@@ -31,7 +31,7 @@ export const ConcertDetailView: React.FC = () => {
   const selectedCategory = event.categories.find((c) => c.id === selectedCategoryId) || event.categories[0];
   const remaining = selectedCategory ? selectedCategory.quota - selectedCategory.sold : 0;
   const totalPrice = selectedCategory ? selectedCategory.price * quantity : 0;
-  const currency = selectedCategory?.currency || 'XOF';
+  const currency = 'FCFA';
 
   const handleProceedToPurchase = () => {
     if (!currentUser) {
@@ -166,7 +166,7 @@ export const ConcertDetailView: React.FC = () => {
 
                         <div className="text-right">
                           <span className="text-base sm:text-lg font-agrandir-extrabold text-white">
-                            {cat.price.toLocaleString()} XOF
+                            {cat.price.toLocaleString()} FCFA
                           </span>
                         </div>
                       </div>
@@ -236,10 +236,10 @@ export const ConcertDetailView: React.FC = () => {
                 <span className="text-xs text-[#888] tracking-widest uppercase font-agrandir-semibold">PRIX TOTAL :</span>
                 <div className="text-right">
                   <div className="text-3xl sm:text-4xl font-agrandir-extrabold text-white">
-                    {totalPrice.toLocaleString()} {currency}
+                    {totalPrice.toLocaleString()} FCFA
                   </div>
                   <div className="text-xs text-[#888] mt-0.5">
-                    ~{currency === 'XOF' ? Math.round(totalPrice / 655.957) : totalPrice} € TTC · Frais de plateforme inclus
+                    Frais de billetterie inclus · Paiement sécurisé
                   </div>
                 </div>
               </div>

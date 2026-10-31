@@ -64,7 +64,7 @@ export const FloatingAppNavbar: React.FC = () => {
       initial={{ y: 35, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed bottom-6 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 z-40 max-w-sm mx-auto pointer-events-none select-none"
+      className="fixed bottom-6 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 z-40 max-w-sm mx-auto pointer-events-none select-none md:hidden"
     >
       <nav
         aria-label="Navigation principale Meta Style"

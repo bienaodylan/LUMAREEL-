@@ -134,7 +134,7 @@ export const ProfileView: React.FC = () => {
         {/* Devise */}
         <button
           type="button"
-          onClick={() => showToast('Devise de billetterie officielle : F CFA (XOF).', 'info')}
+          onClick={() => showToast('Devise de billetterie officielle : Francs CFA (FCFA).', 'info')}
           className="flex justify-between items-center w-full py-4 px-6 hover:bg-white/5 active:bg-white/10 cursor-pointer transition-colors text-left"
         >
           <div className="flex items-center gap-3.5">
@@ -145,7 +145,7 @@ export const ProfileView: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-neutral-400 font-agrandir-regular">
-              XOF (F CFA)
+              Francs CFA (FCFA)
             </span>
             <ChevronRight className="w-4 h-4 text-neutral-500" />
           </div>

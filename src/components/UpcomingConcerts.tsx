@@ -2,6 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
 import { Calendar, MapPin, ArrowRight, ShieldCheck, Ticket } from 'lucide-react';
+import { formatDateLongFrench } from '../utils/dateUtils';
 
 export const UpcomingConcerts: React.FC = () => {
   const { events, setSelectedEventSlug, setCurrentPage, setCheckoutEvent } = useApp();
@@ -41,7 +42,7 @@ export const UpcomingConcerts: React.FC = () => {
           const totalSold = event.categories.reduce((acc, cat) => acc + cat.sold, 0);
           const remaining = totalQuota - totalSold;
           const minPrice = Math.min(...event.categories.map((c) => c.price));
-          const currency = event.categories[0]?.currency || 'XOF';
+          const currency = 'FCFA';
 
           return (
             <article
@@ -95,20 +96,17 @@ export const UpcomingConcerts: React.FC = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white/5 border border-white/10 rounded-2xl p-4 my-6 text-xs font-agrandir-regular text-[#aaa]">
                       <div>
                         <div className="text-[#666] text-[10px] uppercase tracking-wider mb-1 font-agrandir-semibold">DATE &amp; HEURE</div>
-                        <div className="text-white font-agrandir-semibold">{event.date} · {event.time}</div>
+                        <div className="text-white font-agrandir-semibold"><strong className="font-agrandir-extrabold text-white">{formatDateLongFrench(event.date)}</strong> · {event.time}</div>
                       </div>
                       <div>
                         <div className="text-[#666] text-[10px] uppercase tracking-wider mb-1 font-agrandir-semibold">LIEU</div>
-                        <div className="text-white font-agrandir-semibold">{event.venue}</div>
+                        <div className="text-white font-agrandir-semibold"><strong className="font-agrandir-extrabold text-white">{event.venue}</strong></div>
                         <div className="text-[#777] text-[11px]">{event.city}, {event.country}</div>
                       </div>
                       <div>
                         <div className="text-[#666] text-[10px] uppercase tracking-wider mb-1 font-agrandir-semibold">TARIF DÈS</div>
-                        <div className="text-white font-agrandir-semibold">
-                          {minPrice.toLocaleString()} {currency}
-                        </div>
-                        <div className="text-[#777] text-[11px]">
-                          ~{currency === 'XOF' ? Math.round(minPrice / 655.957) : minPrice} €
+                        <div className="text-white font-agrandir-extrabold text-sm">
+                          {minPrice.toLocaleString()} FCFA
                         </div>
                       </div>
                     </div>
@@ -126,7 +124,7 @@ export const UpcomingConcerts: React.FC = () => {
                           >
                             <span>{cat.name}</span>
                             <span className="text-[#888] ml-2 font-agrandir-semibold">
-                              {cat.price.toLocaleString()} {cat.currency}
+                              {cat.price.toLocaleString()} FCFA
                             </span>
                           </div>
                         ))}
