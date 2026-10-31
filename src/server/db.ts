@@ -84,6 +84,7 @@ class LumareelDatabase {
     this.loadOrdersFromDisk();
     this.loadScannerTokensFromDisk();
     this.loadSettingsFromDisk();
+    this.loadPrintTicketsFromDisk(); // Modification A1
   }
 
   // --- DISK PERSISTENCE ENGINE ---
@@ -1049,6 +1050,7 @@ class LumareelDatabase {
     };
 
     this.orders.set(order.id, order);
+    this.saveOrdersToDisk(); // Modification A2
     return { success: true, order };
   }
 
@@ -1128,6 +1130,7 @@ class LumareelDatabase {
       contentPreview: `Merci ${order.customerName}. Vos ${order.quantity} billet(s) pour "${event.title}" sont confirmés. Référence : ${order.reference}.`,
     });
 
+    this.saveOrdersToDisk(); // Modification A3
     return { success: true, order, tickets: issuedTickets };
   }
 
@@ -1248,6 +1251,7 @@ class LumareelDatabase {
     ticket.status = 'used';
     ticket.checkedInAt = new Date().toISOString();
     ticket.checkedInBy = params.gateAgentId;
+    this.persistTickets(); // Modification A4
 
     logEntry.result = 'VALID';
     this.checkInLogs.unshift(logEntry);
@@ -1438,6 +1442,105 @@ class LumareelDatabase {
       }
     }
     return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  // --- Billets physiques imprimés (lots) --- (Modification A5)
+  private printTicketList: Ticket[] = [];
+
+  private savePrintTicketsToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(path.join(DATA_DIR, 'print_tickets.json'), JSON.stringify(this.printTicketList), 'utf-8');
+    } catch (e) {
+      console.warn('Failed to save print tickets to disk', e);
+    }
+  }
+
+  private loadPrintTicketsFromDisk() {
+    try {
+      const file = path.join(DATA_DIR, 'print_tickets.json');
+      if (fs.existsSync(file)) {
+        const list: Ticket[] = JSON.parse(fs.readFileSync(file, 'utf-8'));
+        if (Array.isArray(list)) {
+          this.printTicketList = list;
+          for (const t of list) {
+            this.tickets.set(t.id, t);
+            this.tickets.set(t.token, t);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load print tickets from disk', e);
+    }
+  }
+
+  public persistTickets() {
+    this.saveOrdersToDisk();
+    this.savePrintTicketsToDisk();
+  }
+
+  public createPrintBatch(params: {
+    eventId: string;
+    categoryId: string;
+    quantity: number;
+  }): {
+    success: boolean;
+    batchRef?: string;
+    tickets?: Array<{ id: string; serialNumber: string; token: string }>;
+    error?: string;
+  } {
+    const event = this.getEvent(params.eventId);
+    if (!event) return { success: false, error: 'Concert introuvable.' };
+    const category = event.categories.find((c) => c.id === params.categoryId);
+    if (!category) return { success: false, error: 'Catégorie de billet introuvable.' };
+
+    const quantity = Number(params.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10000) {
+      return { success: false, error: 'La quantité doit être comprise entre 1 et 10 000 billets.' };
+    }
+
+    const batchId = `prt_${crypto.randomBytes(5).toString('hex')}`;
+    const batchRef = `LMR-LOT-${batchId.slice(4).toUpperCase()}`;
+    const artistCode = event.artist.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'LMR';
+    const issuedAt = new Date().toISOString();
+
+    let sequence = this.printTicketList.filter((t) => t.eventId === event.id).length;
+
+    const created: Ticket[] = [];
+    for (let i = 0; i < quantity; i++) {
+      sequence++;
+      created.push({
+        id: `tkt_${crypto.randomBytes(8).toString('hex')}`,
+        orderId: batchId,
+        orderRef: batchRef,
+        eventId: event.id,
+        eventTitle: event.title,
+        eventDate: event.date,
+        eventTime: event.time,
+        eventVenue: event.venue,
+        categoryId: category.id,
+        categoryName: category.name,
+        serialNumber: `LMR-${new Date().getFullYear()}-${artistCode}-P${String(sequence).padStart(5, '0')}`,
+        token: `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`,
+        holderName: 'Billet physique',
+        holderEmail: '',
+        status: 'valid',
+        issuedAt,
+      });
+    }
+
+    for (const ticket of created) {
+      this.tickets.set(ticket.id, ticket);
+      this.tickets.set(ticket.token, ticket);
+      this.printTicketList.push(ticket);
+    }
+    this.savePrintTicketsToDisk();
+
+    return {
+      success: true,
+      batchRef,
+      tickets: created.map((t) => ({ id: t.id, serialNumber: t.serialNumber, token: t.token })),
+    };
   }
 }
 
