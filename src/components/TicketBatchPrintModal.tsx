@@ -201,18 +201,28 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       const batchKey = `${selectedEvent.id}|${currentCategory.id}|${quantity}`;
       let registered = batchCacheRef.current?.key === batchKey ? batchCacheRef.current.tickets : null;
       if (!registered) {
-        const response = await fetch('/api/tickets/print-batch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            eventId: selectedEvent.id,
-            categoryId: currentCategory.id,
-            quantity,
-          }),
-        });
+        let response: Response;
+        try {
+          response = await fetch('/api/tickets/print-batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              eventId: selectedEvent.id,
+              categoryId: currentCategory.id,
+              quantity,
+            }),
+          });
+        } catch {
+          throw new Error('Aucun billet n’a été créé : le serveur est injoignable (vérifiez la connexion).');
+        }
         const data = await response.json().catch(() => null);
         if (!response.ok || !data?.success || !Array.isArray(data.tickets)) {
-          throw new Error(data?.error || 'Enregistrement des billets impossible : aucun billet n’a été créé.');
+          const reason =
+            data?.error ||
+            (response.status === 404
+              ? 'la route /api/tickets/print-batch est introuvable (serveur non démarré, ancienne version en ligne, ou route non ajoutée).'
+              : `réponse inattendue du serveur (code ${response.status}).`);
+          throw new Error(`Aucun billet n’a été créé : ${reason}`);
         }
         registered = data.tickets as Array<{ id: string; serialNumber: string; token: string }>;
         batchCacheRef.current = { key: batchKey, tickets: registered };
