@@ -6,6 +6,7 @@ import {
   createProductionLayout,
   generateProductionPDF,
   PrintTicketItem,
+  DuplexFlip,
 } from '../utils/pdfEngine';
 import {
   Printer,
@@ -34,6 +35,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [quantity, setQuantity] = useState(10);
   const [selectedPaperKey, setSelectedPaperKey] = useState('A3');
+  const [duplexFlip, setDuplexFlip] = useState<DuplexFlip>('long');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploadingDesign, setIsUploadingDesign] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -51,14 +53,20 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     || '';
   const selectedPaper = SYSTEM_PAPER_FORMATS[selectedPaperKey];
 
-  const layout = useMemo(() => {
-    if (!selectedPaper || quantity < 1) return null;
+  const { layout, layoutError } = useMemo(() => {
+    if (!selectedPaper || quantity < 1) return { layout: null, layoutError: '' };
     try {
-      return createProductionLayout(selectedPaper, quantity);
-    } catch {
-      return null;
+      return {
+        layout: createProductionLayout(selectedPaper, quantity, undefined, undefined, duplexFlip),
+        layoutError: '',
+      };
+    } catch (error) {
+      return {
+        layout: null,
+        layoutError: error instanceof Error ? error.message : 'Disposition impossible pour ce format.',
+      };
     }
-  }, [selectedPaper, quantity]);
+  }, [selectedPaper, quantity, duplexFlip]);
 
   useEffect(() => {
     if (initialEventId && events.some((event) => event.id === initialEventId)) {
@@ -190,7 +198,13 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     setIsDownloading(true);
     try {
       // Un seul plan partagé : mêmes coordonnées et même orientation sur les deux faces.
-      const sharedLayout = createProductionLayout(selectedPaper, ticketsRef.current.length);
+      const sharedLayout = createProductionLayout(
+        selectedPaper,
+        ticketsRef.current.length,
+        undefined,
+        undefined,
+        duplexFlip
+      );
       showToast('Génération du PDF RECTO...', 'success');
       const rectoPdf = await generateProductionPDF(ticketsRef.current, selectedPaper, 'recto', sharedLayout);
       rectoPdf.save(`LUMAREEL_RECTO_${selectedEvent.artist}_${selectedPaperKey}.pdf`);
@@ -302,16 +316,35 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
               </div>
             </div>
 
+            <div>
+              <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">5. Retournement de la feuille (recto-verso)</label>
+              <select value={duplexFlip} onChange={(event) => setDuplexFlip(event.target.value as DuplexFlip)} className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-2.5 text-xs text-white outline-none focus:border-[#d4af37]">
+                <option value="long">Retournement sur le bord long (réglage standard)</option>
+                <option value="short">Retournement sur le bord court</option>
+              </select>
+              <p className="text-[10px] text-neutral-500 mt-1.5">Le verso est généré en miroir selon ce choix, pour tomber exactement derrière chaque recto. Il doit correspondre au mode recto-verso de l'imprimante.</p>
+            </div>
+
+            {layoutError && (
+              <div className="p-4 rounded-2xl border border-red-500/30 bg-red-500/10 text-[11px] text-red-300">
+                {layoutError} Choisissez un format plus grand.
+              </div>
+            )}
+
             {layout && (
               <div className="p-4 rounded-2xl border border-[#d4af37]/25 bg-[#d4af37]/[0.06] space-y-2">
                 <div className="flex items-center gap-2 text-[#d4af37] text-[10px] font-agrandir-bold uppercase tracking-wider"><FileText className="w-4 h-4" /> Estimation de production</div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div><div className="text-xl font-agrandir-extrabold text-white">{layout.ticketsPerPage}</div><div className="text-[9px] text-neutral-400 uppercase">Billets / feuille</div></div>
                   <div><div className="text-xl font-agrandir-extrabold text-white">{layout.totalPages}</div><div className="text-[9px] text-neutral-400 uppercase">Feuilles nécessaires</div></div>
-                  <div><div className="text-xl font-agrandir-extrabold text-white">{layout.columns} × {layout.rows}</div><div className="text-[9px] text-neutral-400 uppercase">Colonnes × rangées</div></div>
-                  <div><div className="flex items-center gap-1 text-xl font-agrandir-extrabold text-white">{layout.rotated ? <><RotateCw className="w-4 h-4" /> 90°</> : '0°'}</div><div className="text-[9px] text-neutral-400 uppercase">Orientation du billet</div></div>
+                  <div><div className="text-xl font-agrandir-extrabold text-white">{layout.fillPercent} %</div><div className="text-[9px] text-neutral-400 uppercase">Surface utilisée</div></div>
+                  <div><div className="flex items-center gap-1 text-xl font-agrandir-extrabold text-white">{layout.rotatedPerPage > 0 ? <><RotateCw className="w-4 h-4" /> {layout.rotatedPerPage}</> : '0'}</div><div className="text-[9px] text-neutral-400 uppercase">Billets pivotés à 90°</div></div>
                 </div>
-                <p className="text-[10px] text-neutral-400">Calcul avec marge de sécurité de 5 mm et espacement de 2 mm. Le résultat réel dépend des marges non imprimables de l'imprimante.</p>
+                <p className="text-[10px] text-neutral-300">
+                  Feuille {layout.pageOrientation === 'landscape' ? 'paysage' : 'portrait'} · {layout.summary}
+                  {layout.ticketsPerPage > layout.uniformBaselinePerPage ? ` (grille simple : ${layout.uniformBaselinePerPage})` : ''}.
+                </p>
+                <p className="text-[10px] text-neutral-400">Calcul avec marge de sécurité de {layout.marginMm} mm et espacement de {layout.gapMm} mm. Le résultat réel dépend des marges non imprimables de l'imprimante.</p>
               </div>
             )}
 
