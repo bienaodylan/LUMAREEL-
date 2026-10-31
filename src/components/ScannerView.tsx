@@ -363,65 +363,7 @@ export const ScannerView: React.FC = () => {
         // En cas d'erreur de réseau ou Vercel sans Express
       }
 
-      // 2. Si l'API est absente ou injoignable, interrogation directe de Supabase PostgreSQL (< 50ms)
-      if (!data && isSupabaseConfigured) {
-        const cleanCode = ticketCode.trim();
-        // Tentative via la procédure stockée atomique
-        try {
-          const { data: rpcRes, error: rpcErr } = await supabase.rpc('verify_and_check_in_ticket', {
-            p_token: cleanCode,
-            p_event_id: activeEventId || authorizedEvent?.id || null,
-            p_agent_name: agentName,
-          });
-
-          if (!rpcErr && rpcRes) {
-            data = rpcRes;
-            resStatus = rpcRes.status === 'SUCCESS' ? 200 : rpcRes.status === 'ALREADY_USED' ? 403 : 404;
-          }
-        } catch {}
-
-        // Si la procédure RPC n'est pas encore créée, requête directe sur la table indexée tickets
-        if (!data) {
-          const { data: ticketRow } = await supabase
-            .from('tickets')
-            .select('*')
-            .or(`token.eq.${cleanCode},serial_number.eq.${cleanCode}`)
-            .maybeSingle();
-
-          if (!ticketRow) {
-            resStatus = 404;
-            data = { valid: false, error: 'BILLET INTROUVABLE DANS LA BASE CLOUD' };
-          } else if (ticketRow.status === 'used') {
-            resStatus = 403;
-            data = {
-              valid: false,
-              status: 'ALREADY_USED',
-              message: 'BILLET DÉJÀ UTILISÉ',
-              holderName: ticketRow.holder_name,
-              categoryName: ticketRow.category_name,
-              eventTitle: ticketRow.event_title,
-              serialNumber: ticketRow.serial_number,
-              scannedAt: ticketRow.checked_in_at,
-            };
-          } else {
-            // Validation atomique
-            await supabase
-              .from('tickets')
-              .update({ status: 'used', checked_in_at: nowIso, checked_in_by: agentName })
-              .eq('id', ticketRow.id);
-
-            resStatus = 200;
-            data = {
-              valid: true,
-              holderName: ticketRow.holder_name,
-              categoryName: ticketRow.category_name,
-              eventTitle: ticketRow.event_title,
-              serialNumber: ticketRow.serial_number,
-              scannedAt: nowIso,
-            };
-          }
-        }
-      }
+      // Le contrôle d'accès doit rester côté serveur : aucun fallback direct qui contourne le verrou atomique.
 
       if (!data) {
         throw new Error('Service de vérification non disponible.');
