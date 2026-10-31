@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { formatDateLongFrench } from '../utils/dateUtils';
 import {
   SYSTEM_PAPER_FORMATS,
@@ -205,7 +206,13 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
         try {
           response = await fetch('/api/tickets/print-batch', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await (async () => {
+              if (!isSupabaseConfigured) throw new Error('Supabase doit être configuré avant de créer un lot physique.');
+              const { data: sessionData } = await supabase.auth.getSession();
+              const accessToken = sessionData.session?.access_token;
+              if (!accessToken) throw new Error('Connectez-vous avec un compte administrateur authentifié pour créer un lot.');
+              return { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
+            })(),
             body: JSON.stringify({
               eventId: selectedEvent.id,
               categoryId: currentCategory.id,
