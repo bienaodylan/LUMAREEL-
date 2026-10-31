@@ -25,7 +25,9 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-type ScrollableTab = 'tickets' | 'orders' | 'transfer' | 'exchange' | 'cancel' | 'past';
+import { formatDateLongFrench } from '../utils/dateUtils';
+
+type ScrollableTab = 'tickets' | 'orders' | 'transfer' | 'exchange' | 'past';
 
 export const CustomerSpace: React.FC = () => {
   const { currentUser, customerOrders, refreshCustomerOrders, events, setCurrentPage, showToast } = useApp();
@@ -44,11 +46,6 @@ export const CustomerSpace: React.FC = () => {
   const [exchangeTicketId, setExchangeTicketId] = useState<string>('');
   const [exchangeTargetCategory, setExchangeTargetCategory] = useState<string>('');
   const [exchangeSubmitted, setExchangeSubmitted] = useState<boolean>(false);
-
-  // États pour l'annulation & remboursement
-  const [cancelTicketId, setCancelTicketId] = useState<string>('');
-  const [cancelReason, setCancelReason] = useState<string>('');
-  const [cancelSubmitted, setCancelSubmitted] = useState<boolean>(false);
 
   useEffect(() => {
     refreshCustomerOrders();
@@ -117,30 +114,18 @@ export const CustomerSpace: React.FC = () => {
     showToast('Demande d’échange enregistrée. Un agent la validera sous 24h.', 'success');
   };
 
-  // Traitement de l'annulation
-  const handleConfirmCancel = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!cancelTicketId) {
-      showToast('Veuillez sélectionner le billet à annuler.', 'error');
-      return;
-    }
-    setCancelSubmitted(true);
-    showToast('Demande d’annulation transmise selon les CGV LUMARÉEL.', 'success');
-  };
-
   const tabsConfig: Array<{ id: ScrollableTab; label: string; count?: number }> = [
     { id: 'tickets', label: 'Mes billets', count: allTickets.length },
     { id: 'orders', label: 'Commandes', count: customerOrders.length },
     { id: 'transfer', label: 'Transférer' },
     { id: 'exchange', label: 'Échanger' },
-    { id: 'cancel', label: 'Annuler' },
-    { id: 'past', label: 'Passé' },
+    { id: 'past', label: 'Mes anciens billets' },
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-32 select-none font-agrandir-regular">
       
-      {/* 1. Page Header — Transformé en "MES BILLETS" */}
+      {/* 1. Page Header — Transformé en "MES COMMANDES" */}
       <div className="mb-6 border-b border-white/10 pb-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
@@ -148,7 +133,7 @@ export const CustomerSpace: React.FC = () => {
               ESPACE PERSONNEL CLIENT · LUMARÉEL CO.
             </div>
             <h1 className="font-agrandir-extrabold text-3xl sm:text-4xl text-white tracking-tight uppercase">
-              MES BILLETS
+              MES COMMANDES
             </h1>
             <div className="text-xs font-agrandir-regular text-[#aaa] mt-1.5 flex items-center gap-3">
               <span>Compte : <strong className="text-white">{currentUser?.email || 'bienaodylan428@gmail.com'}</strong></span>
@@ -282,11 +267,11 @@ export const CustomerSpace: React.FC = () => {
                         <div className="space-y-1 sm:space-y-1.5 text-[10px] sm:text-xs font-agrandir-regular text-[#ccc]">
                           <div className="flex items-center gap-1.5 sm:gap-2">
                             <Calendar className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-                            <span className="font-agrandir-semibold text-white truncate">{ticket.eventDate} à {ticket.eventTime}</span>
+                            <span className="font-agrandir-semibold text-white truncate"><strong className="font-agrandir-extrabold text-white">{formatDateLongFrench(ticket.eventDate)}</strong> à <strong className="font-agrandir-extrabold text-white">{ticket.eventTime}</strong></span>
                           </div>
                           <div className="flex items-center gap-1.5 sm:gap-2">
                             <MapPin className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-                            <span className="text-[#ddd] truncate">{ticket.eventVenue}</span>
+                            <span className="text-[#ddd] truncate"><strong className="font-agrandir-extrabold text-white">{ticket.eventVenue}</strong></span>
                           </div>
                           <div className="hidden sm:flex items-center gap-2">
                             <User className="w-3.5 h-3.5 text-[#888] shrink-0" />
@@ -609,125 +594,41 @@ export const CustomerSpace: React.FC = () => {
         </div>
       )}
 
-      {/* --- ONGLET 5: ANNULER & REMBOURSEMENT --- */}
-      {activeTab === 'cancel' && (
-        <div className="max-w-2xl bg-[#0e0e0e] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-rose-400">
-              <Ban className="w-5 h-5" />
-              <h2 className="font-agrandir-extrabold text-lg uppercase tracking-tight text-white">
-                Annulation &amp; Remboursement
-              </h2>
-            </div>
-            <p className="text-xs text-[#888] leading-relaxed">
-              Conformément à la charte de transparence LUMARÉEL, tout billet peut faire l'objet d'une demande de remboursement intégrale jusqu'à 72 heures avant le coup d'envoi du concert.
-            </p>
-          </div>
-
-          {cancelSubmitted ? (
-            <div className="p-5 rounded-2xl bg-rose-950/40 border border-rose-500/40 text-center space-y-3">
-              <CheckCircle2 className="w-10 h-10 text-rose-400 mx-auto" />
-              <div className="font-agrandir-extrabold text-white uppercase text-base">Demande d'Annulation Reçue</div>
-              <div className="text-xs text-neutral-300">
-                Votre demande a été prise en compte. Le remboursement sera crédité sous 48h à 72h ouvrées sur votre moyen de paiement d'origine (Wave / Orange Money / Carte Bancaire).
-              </div>
-              <button
-                type="button"
-                onClick={() => setCancelSubmitted(false)}
-                className="px-4 py-2 rounded-full bg-white text-black font-agrandir-semibold text-xs uppercase cursor-pointer"
-              >
-                Retour aux billets
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleConfirmCancel} className="space-y-4">
-              <div>
-                <label className="text-[10px] uppercase font-agrandir-semibold text-[#888] block mb-1">
-                  1. Billet à annuler
-                </label>
-                <select
-                  value={cancelTicketId}
-                  onChange={(e) => setCancelTicketId(e.target.value)}
-                  className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-rose-500"
-                  required
-                >
-                  <option value="">-- Sélectionner le billet --</option>
-                  {allTickets.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.eventTitle} — {t.categoryName} ({t.serialNumber})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[10px] uppercase font-agrandir-semibold text-[#888] block mb-1">
-                  2. Motif de l'annulation (facultatif)
-                </label>
-                <textarea
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="Empêchement professionnel, imprévu médical, etc."
-                  className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-rose-500 h-24 resize-none"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors cursor-pointer shadow-lg"
-              >
-                Confirmer la demande de remboursement
-              </button>
-            </form>
-          )}
-        </div>
-      )}
-
-      {/* --- ONGLET 6: PASSÉ (ARCHIVES DES CONCERTS PASSÉS) --- */}
+      {/* --- ONGLET: MES ANCIENS BILLETS --- */}
       {activeTab === 'past' && (
         <div className="space-y-4">
           <div className="p-6 rounded-3xl bg-[#0c0c0c] border border-white/10 space-y-4">
-            <div className="flex items-center gap-2 text-[#d4af37]">
-              <Archive className="w-5 h-5" />
-              <h2 className="font-agrandir-extrabold text-lg uppercase text-white">
-                Souvenirs &amp; Concerts Passés
-              </h2>
-            </div>
-            <p className="text-xs text-[#888] leading-relaxed">
-              Retrouvez les éditions et représentations historiques auxquelles vous avez participé avec LUMARÉEL CO.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div className="p-4 rounded-2xl bg-[#141414] border border-white/10 space-y-2">
-                <div className="flex items-center justify-between text-[10px] text-[#d4af37] font-agrandir-bold uppercase">
-                  <span>ÉDITION HISTORIQUE</span>
-                  <span className="text-neutral-500">2025</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-5 rounded-2xl bg-[#141414] border border-white/10 space-y-2">
+                <div className="flex items-center justify-between text-xs text-neutral-400 font-agrandir-bold">
+                  <span className="text-white font-agrandir-extrabold text-sm uppercase">TRK EN CONCERT</span>
+                  <span className="text-neutral-500 font-mono">2025</span>
                 </div>
-                <div className="font-agrandir-extrabold text-white text-sm">
-                  TRK en concert au Sofitel Ivoire
+                <div className="text-[11px] text-[#aaa]">
+                  <strong className="text-white font-agrandir-bold">Palais des Congrès du Sofitel Ivoire</strong> · Scénographie sonore et visuelle 360°
                 </div>
-                <div className="text-[11px] text-[#777]">
-                  Palais des Congrès · Scénographie sonore et visuelle 360°
+                <div className="pt-2 flex items-center justify-between">
+                  <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/10 text-[9px] text-neutral-300 uppercase font-agrandir-semibold">
+                    Billet Archivé
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-agrandir-semibold">Terminé</span>
                 </div>
-                <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/10 text-[9px] text-neutral-300 uppercase font-agrandir-semibold">
-                  Billet Souvenir Collector
-                </span>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#141414] border border-white/10 space-y-2">
-                <div className="flex items-center justify-between text-[10px] text-[#d4af37] font-agrandir-bold uppercase">
-                  <span>ÉDITION HISTORIQUE</span>
-                  <span className="text-neutral-500">2025</span>
+              <div className="p-5 rounded-2xl bg-[#141414] border border-white/10 space-y-2">
+                <div className="flex items-center justify-between text-xs text-neutral-400 font-agrandir-bold">
+                  <span className="text-white font-agrandir-extrabold text-sm uppercase">DOPELYM EN CONCERT</span>
+                  <span className="text-neutral-500 font-mono">2025</span>
                 </div>
-                <div className="font-agrandir-extrabold text-white text-sm">
-                  Dopelym en concert avec LUMARÉEL
+                <div className="text-[11px] text-[#aaa]">
+                  <strong className="text-white font-agrandir-bold">Palais de la Culture d'Abidjan</strong> · Live Show Signature
                 </div>
-                <div className="text-[11px] text-[#777]">
-                  Palais de la Culture d'Abidjan · Live Show Signature
+                <div className="pt-2 flex items-center justify-between">
+                  <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/10 text-[9px] text-neutral-300 uppercase font-agrandir-semibold">
+                    Billet Archivé
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-agrandir-semibold">Terminé</span>
                 </div>
-                <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/10 text-[9px] text-neutral-300 uppercase font-agrandir-semibold">
-                  Billet Souvenir Collector
-                </span>
               </div>
             </div>
           </div>

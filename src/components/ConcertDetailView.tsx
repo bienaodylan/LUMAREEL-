@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent, TicketCategory } from '../types';
 import { ArrowLeft, Calendar, MapPin, Clock, ShieldCheck, Ticket, Users, Check, AlertCircle, Building2 } from 'lucide-react';
+import { formatDateLongFrench } from '../utils/dateUtils';
 
 export const ConcertDetailView: React.FC = () => {
   const { events, selectedEventSlug, setCurrentPage, setCheckoutEvent, currentUser, setIsAuthModalOpen } = useApp();
@@ -71,26 +72,6 @@ export const ConcertDetailView: React.FC = () => {
                 <span>{event.artist}</span>
               </div>
             </div>
-
-            {/* Organizer Trust Badge with rounded-2xl */}
-            <div className="p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-[#0c0c0c] border border-white/10 flex items-center gap-3.5 text-xs font-agrandir-regular shadow-lg">
-              <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                <Building2 className="w-5 h-5 text-[#d4af37]" />
-              </div>
-              <div>
-                <div className="text-[10px] text-[#777] uppercase tracking-wider font-agrandir-semibold">PRODUCTION &amp; ORGANISATION</div>
-                <div className="text-white font-agrandir-semibold uppercase">
-                  {event.organizerType === 'lumareel'
-                    ? 'PRODUIT PAR LUMARÉEL CO. (OFFICIEL)'
-                    : `ORGANISATEUR PARTENAIRE : ${event.organizerName}`}
-                </div>
-                <div className="text-[#888] text-[11px] mt-0.5">
-                  {event.organizerType === 'lumareel'
-                    ? 'Scénographie, acoustique spatiale & billetterie exclusive LUMARÉEL'
-                    : 'Organisateur vérifié · Billetterie & contrôle d’accès garantis par LUMARÉEL'}
-                </div>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -111,17 +92,9 @@ export const ConcertDetailView: React.FC = () => {
               </span>
             </div>
 
-            <h1 className="font-agrandir-extrabold text-4xl sm:text-5xl md:text-6xl text-white tracking-tight uppercase leading-[1.02] mb-2 text-balance">
-              {event.artist}
+            <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl md:text-6xl text-white tracking-tight uppercase leading-[1.02] mb-6 text-balance">
+              {event.artist} EN CONCERT
             </h1>
-
-            <div className="text-lg sm:text-2xl text-[#d4d4d4] font-agrandir-semibold uppercase tracking-tight mb-6">
-              {event.title}
-            </div>
-
-            <p className="text-sm font-agrandir-regular text-[#aaa] leading-relaxed mb-8">
-              {event.description}
-            </p>
 
             {/* Practical information grid with rounded-3xl container */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 sm:p-6 bg-[#0c0c0c] border border-white/10 rounded-2xl sm:rounded-3xl mb-8 text-xs font-agrandir-regular shadow-lg">
@@ -131,7 +104,9 @@ export const ConcertDetailView: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-[#777] uppercase text-[10px] tracking-wider font-agrandir-semibold">DATE ET HEURE</div>
-                  <div className="text-white font-agrandir-semibold text-sm mt-0.5">{event.date} à {event.time}</div>
+                  <div className="text-white font-agrandir-semibold text-sm mt-0.5">
+                    <strong className="font-agrandir-extrabold text-white">{formatDateLongFrench(event.date)}</strong> à <strong className="font-agrandir-extrabold text-white">{event.time}</strong>
+                  </div>
                   <div className="text-[#888] text-[11px] mt-0.5">Ouverture des portes : {event.doorsOpen}</div>
                 </div>
               </div>
@@ -142,7 +117,9 @@ export const ConcertDetailView: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-[#777] uppercase text-[10px] tracking-wider font-agrandir-semibold">LIEU &amp; ACCÈS</div>
-                  <div className="text-white font-agrandir-semibold text-sm mt-0.5">{event.venue}</div>
+                  <div className="text-white font-agrandir-semibold text-sm mt-0.5">
+                    <strong className="font-agrandir-extrabold text-white">{event.venue}</strong>
+                  </div>
                   <div className="text-[#888] text-[11px] mt-0.5">{event.address || `${event.city}, ${event.country}`}</div>
                 </div>
               </div>
@@ -152,7 +129,6 @@ export const ConcertDetailView: React.FC = () => {
             <div className="mb-8">
               <div className="flex items-center justify-between text-xs font-agrandir-regular tracking-[0.2em] text-[#AAA] uppercase mb-4">
                 <span className="font-agrandir-semibold text-white">1. SÉLECTIONNER LA CATÉGORIE DE PLACE</span>
-                <span className="text-[11px] text-[#777]">QUOTAS CONTRÔLÉS EN TEMPS RÉEL</span>
               </div>
 
               {/* Category cards with rounded-2xl / rounded-3xl */}
@@ -190,10 +166,7 @@ export const ConcertDetailView: React.FC = () => {
 
                         <div className="text-right">
                           <span className="text-base sm:text-lg font-agrandir-extrabold text-white">
-                            {cat.price.toLocaleString()} {cat.currency}
-                          </span>
-                          <span className="text-[11px] font-agrandir-regular text-[#888] ml-2">
-                            (~{cat.currency === 'XOF' ? Math.round(cat.price / 655.957) : cat.price} €)
+                            {cat.price.toLocaleString()} XOF
                           </span>
                         </div>
                       </div>

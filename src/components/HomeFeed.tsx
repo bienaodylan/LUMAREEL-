@@ -6,13 +6,13 @@ import {
   MapPin,
   ChevronLeft,
   ChevronRight,
-  Search,
   Ticket,
-  ArrowRight,
-  Bookmark,
   Play,
   Image as ImageIcon,
+  Newspaper,
+  User
 } from 'lucide-react';
+import { formatDateLongFrench } from '../utils/dateUtils';
 
 export const HomeFeed: React.FC = () => {
   const {
@@ -32,13 +32,6 @@ export const HomeFeed: React.FC = () => {
   const activeSlides = featuredSlides.length > 0 ? featuredSlides : events.slice(0, 3);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const activeSlide = activeSlides[currentSlideIndex] || activeSlides[0];
-  const [bookmarked, setBookmarked] = useState<Record<string, boolean>>({});
-
-  // Search & Filter state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('all');
-  const [selectedCity, setSelectedCity] = useState('all');
-  const [openOnly, setOpenOnly] = useState(false);
 
   // Countdown state
   const [countdown, setCountdown] = useState({
@@ -102,38 +95,21 @@ export const HomeFeed: React.FC = () => {
     setCheckoutEvent(event);
   };
 
-  const toggleBookmark = (eventId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setBookmarked((prev) => ({ ...prev, [eventId]: !prev[eventId] }));
-  };
-
-  // Filtered events
-  const filteredEvents = events.filter((event) => {
-    const matchesSearch = searchQuery === '' || event.title.toLowerCase().includes(searchQuery.toLowerCase()) || event.artist.toLowerCase().includes(searchQuery.toLowerCase()) || event.venue.toLowerCase().includes(searchQuery.toLowerCase()) || event.city.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGenre = selectedGenre === 'all' || event.genre === selectedGenre;
-    const matchesCity = selectedCity === 'all' || event.city.toLowerCase() === selectedCity.toLowerCase();
-    const matchesOpen = !openOnly || event.status === 'published';
-    return matchesSearch && matchesGenre && matchesCity && matchesOpen;
-  });
-
-  const genres = ['all', ...Array.from(new Set(events.map((e) => e.genre)))];
   const handleSelectArtistSlide = (index: number) => setCurrentSlideIndex(index);
 
   return (
     <div className="min-h-screen bg-[#000000] text-[#FFFFFF] pb-24 select-none">
       
       {/* =========================================================================
-          1. NOUVELLE SECTION PRINCIPALE : PROGRAMMATION OFFICIELLE
-          (Format 16:9 conservé avec boutons et compte à rebours ajoutés en dessous)
+          1. SECTION PRINCIPALE : PROGRAMMATION OFFICIELLE
          ========================================================================= */}
       <section className="relative z-30 max-w-7xl mx-auto px-6 sm:px-12 pt-20 sm:pt-28">
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
           <div className="min-w-0 pr-4">
             <div className="text-[9px] sm:text-[10px] font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-1">
-              PROGRAMMATION OFFICIELLE
             </div>
             <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white tracking-tight uppercase whitespace-nowrap overflow-hidden text-ellipsis">
-              PROCHAIN CONCERT
+              ÉVÉNEMENTS À VENIR
             </h2>
           </div>
           <div className="flex items-center gap-2">
@@ -169,18 +145,18 @@ export const HomeFeed: React.FC = () => {
                   )}
                 </div>
 
-                {/* Ajout : Les informations, boutons et compte à rebours sous l'image */}
+                {/* Les informations, boutons et compte à rebours sous l'image */}
                 <div className="pt-4 px-1 flex flex-col gap-4">
                   <div>
                     <h3 className={`font-agrandir-extrabold text-base sm:text-lg tracking-tight uppercase truncate transition-colors ${isActive ? 'text-white' : 'text-neutral-300 group-hover:text-white'}`}>
-                      {event.artist} — {event.title}
+                      {event.artist} EN CONCERT
                     </h3>
-                    <p className="text-xs font-agrandir-regular text-neutral-400 truncate mt-0.5">
-                      {event.venue} · {event.date}
+                    <p className="text-xs font-agrandir-regular text-neutral-300 truncate mt-0.5">
+                      <strong className="font-agrandir-extrabold text-white">{event.venue}</strong> · <strong className="font-agrandir-extrabold text-white">{formatDateLongFrench(event.date)}</strong>
                     </p>
                   </div>
 
-                  {/* Boutons intégrés de l'image 8 */}
+                  {/* Boutons */}
                   <div className="flex items-center gap-3">
                     <button onClick={(e) => handleBookNow(event, e)} className="flex-1 bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-[10px] sm:text-xs py-3 px-2 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg uppercase tracking-wider">
                       <Ticket className="w-4 h-4" />
@@ -191,17 +167,17 @@ export const HomeFeed: React.FC = () => {
                     </button>
                   </div>
 
-                  {/* Compte à rebours de l'image 8 (affiché pour le slide actif) */}
+                  {/* Compte à rebours */}
                   <div className={`transition-opacity duration-500 ${isActive ? 'opacity-100' : 'opacity-40'}`}>
                     <p className="text-gray-400 text-[9px] font-agrandir-semibold tracking-widest mb-2 uppercase">
-                      EVENT STARTS IN
+                      LE CONCERT DÉBUTE DANS
                     </p>
                     <div className="flex gap-2 sm:gap-3">
                       {[
-                        { value: countdown.days, label: 'DAYS' },
-                        { value: countdown.hours, label: 'HOURS' },
+                        { value: countdown.days, label: 'JOURS' },
+                        { value: countdown.hours, label: 'HEURES' },
                         { value: countdown.minutes, label: 'MINUTES' },
-                        { value: countdown.seconds, label: 'SECONDS', isYellow: true }
+                        { value: countdown.seconds, label: 'SECONDES', isYellow: true }
                       ].map((time, i) => (
                         <div key={i} className="flex flex-col items-center flex-1">
                           <div className="w-full aspect-[4/3] rounded-xl bg-[#0a0a0a] border border-white/10 flex items-center justify-center shadow-inner mb-1.5">
@@ -225,125 +201,93 @@ export const HomeFeed: React.FC = () => {
       </section>
 
       {/* =========================================================================
-          2. SECTION RECHERCHE ET FILTRES
+          2. SECTION : BLOC DE NAVIGATION RAPIDE
          ========================================================================= */}
       <section className="max-w-7xl mx-auto px-6 sm:px-12 pt-6 sm:pt-10 relative z-20">
-        <div className="rounded-3xl sm:rounded-full bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/15 p-3 sm:p-4 shadow-2xl">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-            <div className="md:col-span-5 relative">
-              <Search className="w-4 h-4 text-[#777] absolute left-4 top-1/2 -translate-y-1/2" />
-              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Rechercher un artiste, concert, lieu ou ville..." className="w-full bg-[#181818] border border-white/10 rounded-full pl-11 pr-4 py-2.5 text-xs text-white placeholder-[#666] focus:outline-none focus:border-white font-agrandir-regular" />
-            </div>
-            <div className="md:col-span-3">
-              <select value={selectedGenre} onChange={(e) => setSelectedGenre(e.target.value)} className="w-full bg-[#181818] border border-white/10 rounded-full px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular uppercase tracking-wider">
-                <option value="all">TOUS LES GENRES</option>
-                {genres.filter(g => g !== 'all').map(g => <option key={g} value={g}>{g.toUpperCase()}</option>)}
-              </select>
-            </div>
-            <div className="md:col-span-2">
-              <select value={selectedCity} onChange={(e) => setSelectedCity(e.target.value)} className="w-full bg-[#181818] border border-white/10 rounded-full px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular uppercase tracking-wider">
-                <option value="all">TOUTES LES VILLES</option>
-                <option value="Abidjan">ABIDJAN</option>
-                <option value="Paris">PARIS</option>
-              </select>
-            </div>
-            <div className="md:col-span-2 flex items-center justify-end">
-              <button onClick={() => setOpenOnly(!openOnly)} className={`w-full py-2.5 px-4 rounded-full border text-[11px] font-agrandir-semibold tracking-wider uppercase transition-colors cursor-pointer text-center ${openOnly ? 'bg-white text-black border-white shadow-md' : 'bg-[#181818] text-[#888] border-white/10 hover:text-white'}`}>
-                {openOnly ? '✓ DISPONIBLES' : 'BILLETS OUVERTS'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+        <div className="rounded-[24px] bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/10 p-2 shadow-2xl">
+          <div className="flex flex-col">
 
-      {/* =========================================================================
-          SECTION : BILLETTERIE OUVERTE
-         ========================================================================= */}
-      <section className="max-w-7xl mx-auto px-6 sm:px-12 pt-16 sm:pt-20">
-        <div className="mb-8 pb-4 border-b border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <div className="text-[11px] font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-1">
-              ACCÈS INSTANTANÉ AUX PLACES
-            </div>
-            <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight uppercase">
-              BILLETTERIE OUVERTE
-            </h2>
-          </div>
-          <button onClick={() => setCurrentPage('discover')} className="text-xs font-agrandir-semibold tracking-widest text-[#aaa] hover:text-white uppercase flex items-center gap-1.5 transition-colors cursor-pointer px-4 py-2 rounded-full border border-white/10 bg-white/5">
-            <span>VOIR TOUT LE CATALOGUE</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 sm:gap-6 pb-5 -mx-6 px-6 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 scrollbar-none">
-          {events.filter((e) => e.status === 'published').map((event) => {
-            const totalQuota = event.categories.reduce((acc, c) => acc + c.quota, 0);
-            const totalSold = event.categories.reduce((acc, c) => acc + c.sold, 0);
-            const remaining = totalQuota - totalSold;
-            const minPrice = Math.min(...event.categories.map((c) => c.price));
-            const currency = event.categories[0]?.currency || 'XOF';
-            const artistVisual = event.artistPortrait || event.officialPoster || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg';
-
-            return (
-              <div key={event.id} onClick={() => handleSelectEvent(event)} className="w-[74vw] sm:w-auto shrink-0 snap-start flex flex-col bg-[#0d0d0d] border border-white/10 hover:border-white/25 rounded-2xl sm:rounded-3xl p-3 sm:p-4 transition-all shadow-xl hover:shadow-2xl cursor-pointer group select-none">
-                <div className="aspect-[4/3] w-full rounded-xl sm:rounded-2xl overflow-hidden relative bg-[#141414] border border-white/10">
-                  <img src={artistVisual} alt={event.artist} referrerPolicy="no-referrer" className="w-full h-full object-cover object-top filter brightness-[0.92] contrast-[1.05] group-hover:scale-105 transition-transform duration-500 ease-out" />
-                  <div className="absolute top-2.5 left-2.5 w-6 h-6 rounded-full bg-black/70 backdrop-blur-md text-[#d4af37] border border-[#d4af37]/40 flex items-center justify-center font-bold text-xs shadow-md">✓</div>
-                  <div className="absolute bottom-2.5 right-2.5 rounded-md bg-white/10 backdrop-blur-md border border-white/20 px-2.5 py-0.5 text-[9px] font-agrandir-semibold text-white tracking-wider uppercase flex items-center gap-1 shadow-md">
-                    <span>CONCERT</span>
-                  </div>
-                  {remaining < 150 && (
-                    <div className="absolute top-2.5 right-2.5 rounded-full bg-black/70 backdrop-blur-md px-2 py-0.5 text-[8px] font-agrandir-semibold text-[#d4af37] border border-[#d4af37]/30">
-                      {remaining} PLACES
-                    </div>
-                  )}
+            {/* Menu 1 : Billetterie & Catalogue */}
+            <button 
+              onClick={() => setCurrentPage('discover')} 
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-[#d4af37]/20 group-hover:border-[#d4af37]/30 transition-all shadow-inner">
+                  <Ticket className="w-4 h-4 text-[#aaa] group-hover:text-[#d4af37] transition-colors" />
                 </div>
-                <div className="pt-3 flex-1 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-start justify-between gap-1.5 mb-1.5">
-                      <h3 className="font-agrandir-extrabold text-sm sm:text-base text-white tracking-tight uppercase group-hover:text-[#f0f0f0] transition-colors truncate">
-                        {event.artist} — {event.title}
-                      </h3>
-                      <button onClick={(e) => toggleBookmark(event.id, e)} className="p-1 text-[#888] hover:text-[#d4af37] transition-colors shrink-0">
-                        <Bookmark className={`w-3.5 h-3.5 ${bookmarked[event.id] ? 'fill-[#d4af37] text-[#d4af37]' : ''}`} />
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-[#aaa] font-agrandir-regular mb-1">
-                      <Calendar className="w-3.5 h-3.5 text-[#777] shrink-0" />
-                      <span className="truncate">{event.date} · {event.time}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs font-agrandir-extrabold text-white mb-1">
-                      <span className="text-[10px] text-[#777] font-agrandir-regular">À partir de</span>
-                      <span className="text-[#d4af37]">{minPrice.toLocaleString()} {currency}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-[#888] font-agrandir-regular truncate mb-3">
-                      <MapPin className="w-3.5 h-3.5 text-[#777] shrink-0" />
-                      <span className="truncate">{event.city}, Côte d'Ivoire · {event.venue}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2 pt-2 border-t border-white/10">
-                    <button onClick={(e) => handleBookNow(event, e)} className="w-full py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-colors shadow-lg flex items-center justify-center gap-1.5 cursor-pointer">
-                      <Ticket className="w-3.5 h-3.5" />
-                      <span>Acheter tickets</span>
-                    </button>
-                    <div className="flex items-center justify-between text-[9px] text-[#777] font-agrandir-regular px-0.5">
-                      <span className="truncate">Publié par <strong>LUMARÉEL CO.</strong></span>
-                      <span className="text-[#d4af37]">✓ Certifié</span>
-                    </div>
-                  </div>
-                </div>
+                <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase">
+                  Billetterie & Catalogue
+                </span>
               </div>
-            );
-          })}
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 2 : Archives */}
+            <button 
+              onClick={() => setCurrentPage('archive')} 
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all shadow-inner">
+                  <Play className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
+                </div>
+                <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase">
+                  Archives 
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 3 : Actualités & Éditions */}
+            <button 
+              onClick={() => setCurrentPage('news')} 
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all shadow-inner">
+                  <Newspaper className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
+                </div>
+                <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase">
+                  Actualités & Éditions
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 4 : Mon Profil & Paramètres */}
+            <button 
+              onClick={() => setCurrentPage('profile')} 
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all shadow-inner">
+                  <User className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
+                </div>
+                <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase">
+                  Mon Profil & Paramètres
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+          </div>
         </div>
       </section>
 
       {/* =========================================================================
-          SECTION : ARCHIVES
+          3. SECTION : ARCHIVES
          ========================================================================= */}
       <section className="max-w-7xl mx-auto px-6 sm:px-12 pt-16 sm:pt-20">
         <div className="mb-8 pb-4 border-b border-white/10 flex items-center justify-between">
           <div>
-            <div className="text-[10px] font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-1">MÉMOIRE D'ESSAI</div>
+            <div className="text-[10px] font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-1"></div>
             <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight uppercase">ARCHIVES</h2>
           </div>
           <button onClick={() => setCurrentPage('archive')} className="w-9 h-9 rounded-full border border-white/15 hover:border-white text-neutral-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer bg-white/5 shadow-sm">
@@ -372,10 +316,9 @@ export const HomeFeed: React.FC = () => {
                 </div>
                 <div className="pt-3 px-1">
                   <div className="text-[10px] font-agrandir-regular text-[#888] uppercase tracking-wider flex items-center gap-2 mb-1">
-                    <span>{item.date || item.year}</span><span>·</span><span className="truncate">{item.venue}</span>
+                    <strong className="font-agrandir-extrabold text-white">{item.date ? formatDateLongFrench(item.date) : item.year}</strong><span>·</span><strong className="font-agrandir-extrabold text-white truncate">{item.venue}</strong>
                   </div>
                   <h3 className="font-agrandir-extrabold text-base text-white uppercase tracking-tight group-hover:text-white transition-colors truncate">{item.title}</h3>
-                  <p className="font-agrandir-regular text-xs text-[#888] line-clamp-2 mt-1 leading-relaxed">{item.description}</p>
                   <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
                     <button onClick={(e) => { e.stopPropagation(); setCurrentPage('archive'); }} className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-[#d4af37] text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center gap-1.5 border border-[#d4af37]/30 transition-colors">
                       <ImageIcon className="w-3.5 h-3.5 text-[#d4af37]" /><span>Voir les images</span>
@@ -390,13 +333,12 @@ export const HomeFeed: React.FC = () => {
       </section>
 
       {/* =========================================================================
-          SECTION : ACTUALITÉS
+          4. SECTION : ACTUALITÉS
          ========================================================================= */}
       {news && news.length > 0 && (
         <section className="max-w-7xl mx-auto px-6 sm:px-12 pt-16 sm:pt-20">
           <div className="mb-8 pb-4 border-b border-white/10 flex items-center justify-between">
             <div>
-              <div className="text-[10px] font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-1">ÉDITIONS &amp; COMMUNIQUÉS</div>
               <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight uppercase">ACTUALITÉS</h2>
             </div>
             <button onClick={() => setCurrentPage('news')} className="w-9 h-9 rounded-full border border-white/15 hover:border-white text-neutral-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer bg-white/5 shadow-sm">
@@ -409,7 +351,7 @@ export const HomeFeed: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between text-[10px] font-agrandir-regular tracking-wider uppercase text-[#777] mb-3">
                     <span className="text-[#d4af37] font-agrandir-semibold">{article.category}</span>
-                    <span>{article.date}</span>
+                    <strong className="font-agrandir-bold text-white">{formatDateLongFrench(article.date)}</strong>
                   </div>
                   <h3 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight mb-3 leading-snug">{article.title}</h3>
                   <p className="font-agrandir-regular text-xs text-[#888] leading-relaxed line-clamp-3 mb-6">{article.summary}</p>

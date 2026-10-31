@@ -52,6 +52,7 @@ interface AppContextType {
   showToast: (message: string, type?: 'info' | 'success' | 'error') => void;
   platformSettings: PlatformSettings;
   updatePlatformSettings: (settings: Partial<PlatformSettings>) => Promise<void>;
+  
   // États de scalabilité et base de données Cloud
   isLoadingEvents: boolean;
   isLoadingOrders: boolean;

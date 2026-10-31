@@ -18,6 +18,9 @@ export interface TicketCategory {
   sold: number;
   description: string;
   perks: string[];
+  // NOUVEAU : Propriétés pour le design visuel du billet physique
+  ticketImageUrl?: string; // L'URL de l'image (blob local ou URL cloud)
+  ticketImageFile?: File;  // Le fichier physique sélectionné depuis l'ordinateur
 }
 
 export interface ConcertEvent {
@@ -206,5 +209,3 @@ export interface PlatformSettings {
   supabaseUrl?: string;
   supabaseAnonKey?: string;
 }
-
-

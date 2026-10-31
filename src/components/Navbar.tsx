@@ -9,20 +9,15 @@ import { User as UserIcon } from 'lucide-react';
  */
 export const Navbar: React.FC = () => {
   const { currentPage, setCurrentPage, currentUser, setIsAuthModalOpen, platformSettings } = useApp();
-  const [abidjanTime, setAbidjanTime] = useState('');
+  const [currentLang, setCurrentLang] = useState<'fr' | 'en'>(() => {
+    return (localStorage.getItem('lumareel_lang') as 'fr' | 'en') || 'fr';
+  });
   const [scrolled, setScrolled] = useState(false);
 
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      const hours = String(now.getUTCHours()).padStart(2, '0');
-      const mins = String(now.getUTCMinutes()).padStart(2, '0');
-      setAbidjanTime(`${hours}:${mins}`);
-    };
-    updateTime();
-    const timer = setInterval(updateTime, 30000);
-    return () => clearInterval(timer);
-  }, []);
+  const handleToggleLang = (lang: 'fr' | 'en') => {
+    setCurrentLang(lang);
+    localStorage.setItem('lumareel_lang', lang);
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -35,7 +30,7 @@ export const Navbar: React.FC = () => {
   // Menu desktop discret
   const navItems: Array<{ label: string; page: PageView }> = [
     { label: 'Accueil', page: 'home' },
-    { label: 'Mes billets', page: 'client_space' },
+    { label: 'Mes commandes', page: 'client_space' },
     { label: 'Archives', page: 'archive' },
     { label: 'Actualités', page: 'news' },
   ];
@@ -110,11 +105,33 @@ export const Navbar: React.FC = () => {
           })}
         </nav>
 
-        {/* Zone 3: Horloge en direct Abidjan (Alignement propre) */}
-        <div className="flex items-center gap-2.5 shrink-0">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 border border-white/10 text-[11px] text-[#999] font-agrandir-regular tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-pulse" />
-            <span>ABIDJAN {abidjanTime}</span>
+        {/* Zone 3: Sélecteur de langue fonctionnel (Français / Anglais) */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center p-1 rounded-full bg-black/60 border border-white/15 backdrop-blur-md shadow-inner text-[11px] font-agrandir-bold tracking-wider">
+            <button
+              type="button"
+              onClick={() => handleToggleLang('fr')}
+              className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+                currentLang === 'fr'
+                  ? 'bg-white text-black font-agrandir-extrabold shadow-sm'
+                  : 'text-[#888] hover:text-white'
+              }`}
+              title="Passer en Français"
+            >
+              FR
+            </button>
+            <button
+              type="button"
+              onClick={() => handleToggleLang('en')}
+              className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+                currentLang === 'en'
+                  ? 'bg-white text-black font-agrandir-extrabold shadow-sm'
+                  : 'text-[#888] hover:text-white'
+              }`}
+              title="Switch to English"
+            >
+              EN
+            </button>
           </div>
         </div>
 

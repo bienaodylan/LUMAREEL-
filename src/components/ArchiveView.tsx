@@ -2,17 +2,13 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ArchiveProduction } from '../types';
 import { 
-  Play, Image as ImageIcon, Calendar, MapPin, X, ChevronLeft, ChevronRight, 
-  Maximize2, Volume2, Sparkles, Film, ArrowLeft, Search, Filter
+  Play, Image as ImageIcon, MapPin, X, ChevronLeft, ChevronRight, 
+  Maximize2, Film, ArrowLeft
 } from 'lucide-react';
+import { formatDateLongFrench } from '../utils/dateUtils';
 
 export const ArchiveView: React.FC = () => {
   const { archives, setCurrentPage } = useApp();
-
-  // Search & Filter state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedYear, setSelectedYear] = useState('all');
-  const [selectedFormat, setSelectedFormat] = useState<'all' | 'video' | 'photos'>('all');
 
   // Active media mode per archive ('video' | 'photos')
   const [activeTab, setActiveTab] = useState<Record<string, 'video' | 'photos'>>({});
@@ -46,31 +42,6 @@ export const ArchiveView: React.FC = () => {
   const handleOpenModal = (archive: ArchiveProduction, mode: 'video' | 'photos', photoIndex = 0) => {
     setModalItem({ archive, mode, photoIndex });
   };
-
-  // Filtered archives based on user search query and filters
-  const filteredArchives = archives.filter((item) => {
-    const matchesSearch =
-      searchQuery === '' ||
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.venue.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (item.artists && item.artists.some((a) => a.toLowerCase().includes(searchQuery.toLowerCase())));
-
-    const matchesYear =
-      selectedYear === 'all' ||
-      item.year === selectedYear ||
-      (item.date && item.date.includes(selectedYear));
-
-    const matchesFormat =
-      selectedFormat === 'all' ||
-      (selectedFormat === 'video' && Boolean(item.youtubeUrl || item.youtubeEmbedUrl)) ||
-      (selectedFormat === 'photos' && Boolean(item.photos && item.photos.length > 0));
-
-    return matchesSearch && matchesYear && matchesFormat;
-  });
-
-  const availableYears = ['all', ...Array.from(new Set(archives.map((a) => a.year || (a.date ? a.date.slice(-4) : '2026'))))];
 
   return (
     <div className="relative min-h-screen bg-[#060606] text-[#efefef] flex flex-col justify-between overflow-hidden select-none">
@@ -110,80 +81,9 @@ export const ArchiveView: React.FC = () => {
           </h2>
         </div>
 
-        <p className="text-sm sm:text-base text-[#999] font-agrandir-regular font-light max-w-xl mb-8">
+        <p className="text-sm sm:text-base text-[#999] font-agrandir-regular font-light max-w-xl mb-12">
           Des artistes, des publics, des instants uniques captés à jamais.
         </p>
-
-        {/* =========================================================================
-            BARRE DE RECHERCHE ET FILTRES DÉDIÉE AUX ARCHIVES
-            Comme la barre de recherche officielle de l'accueil, permet de filtrer
-            les concerts passés par artiste, concept, lieu, ville et format (vidéo / photos).
-           ========================================================================= */}
-        <div className="mb-12">
-          <div className="rounded-3xl sm:rounded-full bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/15 p-3 sm:p-4 shadow-2xl">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-              
-              {/* Champ de recherche */}
-              <div className="md:col-span-6 relative">
-                <Search className="w-4 h-4 text-[#777] absolute left-4 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher une archive, un artiste (Jeune Lion, Wantché...), une salle..."
-                  className="w-full bg-[#181818] border border-white/10 rounded-full pl-11 pr-4 py-2.5 text-xs text-white placeholder-[#666] focus:outline-none focus:border-white font-agrandir-regular"
-                />
-              </div>
-
-              {/* Filtre Année */}
-              <div className="md:col-span-3">
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="w-full bg-[#181818] border border-white/10 rounded-full px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular uppercase tracking-wider"
-                >
-                  <option value="all">TOUTES LES DATES</option>
-                  {availableYears.filter((y) => y !== 'all').map((year) => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Filtre Format Média (Vidéo / Photos) */}
-              <div className="md:col-span-3">
-                <select
-                  value={selectedFormat}
-                  onChange={(e) => setSelectedFormat(e.target.value as any)}
-                  className="w-full bg-[#181818] border border-white/10 rounded-full px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular uppercase tracking-wider"
-                >
-                  <option value="all">TOUS LES FORMATS</option>
-                  <option value="video">RÉCAPS VIDÉO HD</option>
-                  <option value="photos">GALERIES PHOTOS</option>
-                </select>
-              </div>
-
-            </div>
-          </div>
-
-          {/* Quick results counter */}
-          <div className="flex items-center justify-between text-xs font-agrandir-regular text-[#777] mt-3 px-2">
-            <span>
-              {filteredArchives.length} {filteredArchives.length > 1 ? 'archives répertoriées' : 'archive répertoriée'}
-            </span>
-            {(searchQuery || selectedYear !== 'all' || selectedFormat !== 'all') && (
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setSelectedYear('all');
-                  setSelectedFormat('all');
-                }}
-                className="text-[11px] text-[#aaa] hover:text-white uppercase font-agrandir-semibold transition-colors cursor-pointer"
-              >
-                Réinitialiser la recherche
-              </button>
-            )}
-          </div>
-        </div>
 
         {/* =========================================================================
             DISPOSITION DE LA LISTE : STYLE "HISTORIQUE YOUTUBE" VERTICAL
@@ -191,40 +91,23 @@ export const ArchiveView: React.FC = () => {
             - Bloc Média (Cadre 16:9 avec bouton Play ou Carrousel Photos) + Boutons Toggle
             - Bloc Informations (Titre, date, lieu, résumé court)
            ========================================================================= */}
-        {filteredArchives.length === 0 ? (
+        {(!archives || archives.length === 0) ? (
           <div className="text-center py-20 rounded-3xl bg-[#0c0c0c] border border-white/10 p-8 my-6">
             <Film className="w-10 h-10 text-[#555] mx-auto mb-3" />
             <h3 className="font-agrandir-extrabold text-xl text-white uppercase mb-2">
-              AUCUNE ARCHIVE CORRESPONDANTE
+              AUCUNE ARCHIVE DISPONIBLE
             </h3>
             <p className="font-agrandir-regular text-xs text-[#888] max-w-sm mx-auto mb-6">
-              Aucun concert passé ne correspond à vos critères de recherche.
+              Revenez bientôt pour découvrir nos récaps vidéos.
             </p>
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedYear('all');
-                setSelectedFormat('all');
-              }}
-              className="px-6 py-2.5 rounded-full bg-white text-black font-agrandir-semibold text-xs uppercase tracking-wider cursor-pointer hover:bg-neutral-200 transition-colors"
-            >
-              Voir toutes les archives
-            </button>
           </div>
         ) : (
           <div>
             {/* =========================================================================
-                VUE MOBILE (STYLE "HISTORIQUE YOUTUBE" — CAPTURE FOURNIE)
-                - Ligne horizontale avec miniature 16:9 + barre de progression rouge + durée
-                - Titre et métadonnées à droite avec bouton d'options (⋮)
-                - Bouton "Voir les images" directement sous chaque élément
+                VUE MOBILE (STYLE "HISTORIQUE YOUTUBE")
                ========================================================================= */}
             <div className="md:hidden space-y-4">
-              <div className="text-[11px] font-agrandir-extrabold text-[#d4af37] tracking-[0.2em] uppercase mb-3 px-1">
-                CONCERTS RÉCENTS · HISTORIQUE
-              </div>
-
-              {filteredArchives.map((item) => {
+              {archives.map((item) => {
                 const isPlaying = activePlayingId === item.id;
                 const photoList = item.photos && item.photos.length > 0 ? item.photos : [item.coverImage];
                 const safeCover = item.coverImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg';
@@ -286,10 +169,10 @@ export const ArchiveView: React.FC = () => {
                             {item.title}
                           </h3>
                           <p className="text-[10px] text-[#888] font-agrandir-regular mt-1 truncate">
-                            LUMARÉEL CO. · {item.venue}
+                            <strong className="font-agrandir-extrabold text-neutral-300">{item.venue}</strong>
                           </p>
                           <p className="text-[9px] text-[#666] font-agrandir-regular mt-0.5">
-                            {item.date || item.year} · {item.city}
+                            <strong className="font-agrandir-extrabold text-neutral-400">{item.date ? formatDateLongFrench(item.date) : item.year}</strong> · {item.city}
                           </p>
                         </div>
 
@@ -332,13 +215,12 @@ export const ArchiveView: React.FC = () => {
                 VUE DESKTOP (GRAND ÉCRAN AVEC LECTEUR ET INFORMATIONS IMMERSIVES)
                ========================================================================= */}
             <div className="hidden md:block space-y-10 sm:space-y-12">
-              {filteredArchives.map((item, idx) => {
+              {archives.map((item, idx) => {
                 const currentMode = getMediaMode(item.id);
                 const isPlaying = activePlayingId === item.id;
                 const currentPhotoIdx = activePhotoIndex[item.id] || 0;
                 const photoList = item.photos && item.photos.length > 0 ? item.photos : [item.coverImage];
                 const safeCover = item.coverImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg';
-                const currentPhoto = photoList[currentPhotoIdx] || safeCover;
 
                 return (
                   <div
@@ -517,7 +399,7 @@ export const ArchiveView: React.FC = () => {
                           ARCHIVE OFFICIELLE 0{idx + 1}
                         </span>
                         <span className="text-xs text-[#888] font-agrandir-regular">
-                          {item.date || item.year}
+                          <strong className="font-agrandir-extrabold text-white">{item.date ? formatDateLongFrench(item.date) : item.year}</strong>
                         </span>
                       </div>
 
@@ -529,7 +411,7 @@ export const ArchiveView: React.FC = () => {
                       {/* Lieu & Ville */}
                       <div className="flex items-center gap-2 text-xs text-[#aaa] mb-4">
                         <MapPin className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-                        <span>{item.venue} · {item.city} ({item.country})</span>
+                        <span><strong className="font-agrandir-extrabold text-white">{item.venue}</strong> · {item.city} ({item.country})</span>
                       </div>
 
                       {/* Résumé Court */}
@@ -649,7 +531,7 @@ export const ArchiveView: React.FC = () => {
       {/* Footer matching LUMARÉEL aesthetic */}
       <footer className="relative z-10 w-full px-6 sm:px-10 py-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] sm:text-[11px] font-agrandir-regular tracking-[0.2em] text-[#666] uppercase">
         <div>
-          © 2026 ARÉEL GROUPE / LUMAREEL CO. · TOUS DROITS RÉSERVÉS
+          ©️ 2026 ARÉEL GROUPE / LUMAREEL CO. · TOUS DROITS RÉSERVÉS
         </div>
         <div className="flex items-center gap-4 text-[#777]">
           <span className="hover:text-white transition-colors cursor-pointer">INSTAGRAM</span>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ArrowLeft, Calendar, User, Clock, ArrowRight, X } from 'lucide-react';
+import { formatDateLongFrench } from '../utils/dateUtils';
 
 export const NewsView: React.FC = () => {
   const { news, setCurrentPage } = useApp();
@@ -13,11 +14,8 @@ export const NewsView: React.FC = () => {
       <div className="mb-12 pb-6 border-b border-[#1c1c1c]">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="text-xs font-agrandir-regular tracking-[0.25em] text-[#d4af37] uppercase mb-1">
-              JOURNAL &amp; NOTES DE PRODUCTION
-            </div>
             <h1 className="font-agrandir-extrabold text-2xl sm:text-4xl md:text-5xl text-white tracking-tight uppercase whitespace-nowrap">
-              ACTUALITÉS OFFICIELLES
+              ACTUALITÉS
             </h1>
           </div>
 
@@ -29,9 +27,6 @@ export const NewsView: React.FC = () => {
             <span>RETOUR SUR TOUTES LES ACTUALITÉS</span>
           </button>
         </div>
-        <p className="mt-3 text-xs sm:text-sm font-agrandir-regular text-[#888] max-w-xl font-light">
-          Annonces des billetteries, coulisses des scénographies d’ombre et intégrations des nouveaux organisateurs partenaires.
-        </p>
       </div>
 
       {/* Grid of articles */}
@@ -56,7 +51,7 @@ export const NewsView: React.FC = () => {
               <div className="p-6">
                 <div className="flex items-center justify-between text-[10px] font-agrandir-regular text-[#777] uppercase tracking-wider mb-2">
                   <span className="text-[#d4af37] font-agrandir-semibold">{article.category}</span>
-                  <span>{article.date}</span>
+                  <strong className="font-agrandir-bold text-white">{formatDateLongFrench(article.date)}</strong>
                 </div>
 
                 <h3 className="font-agrandir-extrabold text-xl text-white uppercase tracking-tight group-hover:text-white transition-colors mb-3 leading-snug">
@@ -94,7 +89,7 @@ export const NewsView: React.FC = () => {
             </button>
 
             <div className="text-[10px] font-agrandir-semibold text-[#d4af37] uppercase tracking-widest mb-2">
-              {selectedArticle.category} · {selectedArticle.date}
+              {selectedArticle.category} · <strong className="text-white">{formatDateLongFrench(selectedArticle.date)}</strong>
             </div>
 
             <h2 className="font-agrandir-extrabold text-2xl sm:text-4xl text-white uppercase tracking-tight mb-4 text-balance">

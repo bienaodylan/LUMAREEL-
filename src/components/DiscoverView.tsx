@@ -257,26 +257,19 @@ export const DiscoverView: React.FC = () => {
 
                             <div className="flex items-center gap-1.5 text-xs text-[#aaa] font-agrandir-regular">
                               <Calendar className="w-3.5 h-3.5 text-[#888]" />
-                              <span>{event.time} · {fullDate}</span>
+                              <span>{event.time} · <strong className="font-agrandir-extrabold text-white">{fullDate}</strong></span>
                             </div>
                           </div>
 
-                          {/* Massive Spaced Artist Name (Matching "L A N Y" / "THE WEEKND") */}
-                          <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl md:text-4xl text-white tracking-[0.06em] uppercase leading-tight truncate drop-shadow-md">
-                            {event.artist}
+                          {/* Massive Spaced Artist Name */}
+                          <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl md:text-4xl text-white tracking-[0.04em] uppercase leading-tight truncate drop-shadow-md">
+                            {event.artist} EN CONCERT
                           </h2>
-
-                          {/* Subtitle / Tour Name */}
-                          {event.subtitle && (
-                            <p className="text-xs font-agrandir-semibold text-[#888] uppercase tracking-wide truncate mt-0.5">
-                              {event.subtitle}
-                            </p>
-                          )}
 
                           {/* Venue Location with MapPin */}
                           <div className="flex items-center gap-1.5 text-xs text-[#ccc] font-agrandir-regular mt-2 truncate">
                             <MapPin className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-                            <span className="truncate">{event.venue} ({event.city})</span>
+                            <span className="truncate"><strong className="font-agrandir-extrabold text-white">{event.venue}</strong> ({event.city})</span>
                           </div>
 
                           {/* Ticket Price Badge Pill (Matching "TICKETS FROM RM 298") */}

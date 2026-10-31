@@ -120,6 +120,24 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
     }
   };
 
+  // NOUVEAU : Gérer l'upload du design spécifique d'un billet de catégorie
+  const handleCategoryTicketImageUpload = async (catId: string, file: File) => {
+    try {
+      const fileUrl = await readFileAsDataURL(file);
+      setFormData((prev) => {
+        const updatedCategories = prev.categories.map((c) => {
+          if (c.id !== catId) return c;
+          return { ...c, ticketImageUrl: fileUrl, ticketImageFile: file };
+        });
+        return { ...prev, categories: updatedCategories };
+      });
+      setIsDirty(true);
+      showToast(`Design du billet importé. N'oubliez pas de sauvegarder.`, 'info');
+    } catch (error) {
+      showToast("Erreur lors de l'import de l'image du billet.", 'error');
+    }
+  };
+
   // Ticket categories handlers
   const handleCategoryChange = (catId: string, field: keyof TicketCategory, value: any) => {
     setFormData((prev) => {
@@ -518,7 +536,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
         </div>
       )}
 
-      {/* TAB 3: MÉDIAS (VISUELS, AFFICHES, PORTRAITS) - CENTRAL DANS LA REQUÊTE UTILISATEUR */}
+      {/* TAB 3: MÉDIAS (VISUELS, AFFICHES, PORTRAITS) */}
       {currentTab === 'media' && (
         <div className="space-y-6">
           <div className="bg-[#0c0c0c] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-4">
@@ -536,7 +554,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
               
-              {/* 1. AFFICHE OFFICIELLE DU CONCERT (Affichée dans Prochains Concerts & Billets) */}
+              {/* 1. AFFICHE OFFICIELLE DU CONCERT */}
               <div className="bg-[#121212] border border-white/10 rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -585,7 +603,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                 </div>
               </div>
 
-              {/* 2. PORTRAIT DE L'ARTISTE (Affiché en grand sur la bannière Hero d'accueil) */}
+              {/* 2. PORTRAIT DE L'ARTISTE */}
               <div className="bg-[#121212] border border-white/10 rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -781,6 +799,46 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                       className="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-2 text-xs text-neutral-300 focus:outline-none focus:border-white font-agrandir-regular"
                     />
                   </div>
+
+                  {/* NOUVEAU : ZONE D'IMPORT DU DESIGN DU BILLET PAR CATÉGORIE */}
+                  <div className="sm:col-span-3 pt-3 border-t border-white/5 mt-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-[10px] font-agrandir-semibold uppercase text-[#888]">
+                        Design du Billet Physique pour l'impression (Recto)
+                      </label>
+                      <span className="text-[9px] font-mono font-bold text-[#d4af37] bg-[#d4af37]/10 px-2 py-0.5 rounded border border-[#d4af37]/30">
+                        Format recommandé : 1536 × 548 px
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+                      {cat.ticketImageUrl ? (
+                        <div className="w-48 aspect-[1536/548] rounded-lg overflow-hidden border border-white/20 shrink-0 bg-black">
+                           <img src={cat.ticketImageUrl} alt="Aperçu Billet" className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-48 aspect-[1536/548] rounded-lg bg-black/40 border border-dashed border-white/20 flex flex-col items-center justify-center text-[#555] shrink-0">
+                           <ImageIcon className="w-5 h-5 mb-1" />
+                           <span className="text-[9px] uppercase font-bold">Aucun design (1536 × 548)</span>
+                        </div>
+                      )}
+                      
+                      <label className="py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-agrandir-semibold text-[10px] uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors w-full sm:w-auto">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{cat.ticketImageUrl ? 'Changer le design du billet' : 'Importer une image'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleCategoryTicketImageUpload(cat.id, file);
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                  {/* FIN NOUVEAU */}
+                  
                 </div>
               );
             })}
@@ -951,7 +1009,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
               </button>
             </div>
 
-            {/* Générateur de Lien Magique Vigile (Token URL pour WhatsApp) */}
+            {/* Générateur de Lien Magique Vigile */}
             <div className="pt-2">
               <ScannerLinkGenerator
                 eventId={formData.id}

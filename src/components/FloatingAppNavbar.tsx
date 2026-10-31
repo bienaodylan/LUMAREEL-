@@ -38,7 +38,7 @@ export const FloatingAppNavbar: React.FC = () => {
     },
     {
       page: 'client_space',
-      label: 'Mes billets',
+      label: 'Mes commandes',
       icon: Ticket,
       badge: activeTicketsCount > 0 ? activeTicketsCount : undefined,
     },
