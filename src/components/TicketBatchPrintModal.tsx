@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { ConcertEvent, TicketCategory } from '../types';
+import { ConcertEvent } from '../types';
 import QRCode from 'qrcode';
 import {
   Printer,
@@ -8,45 +8,16 @@ import {
   CheckCircle2,
   Loader2,
   Upload,
-  Check
+  Download
 } from 'lucide-react';
 import { formatDateLongFrench } from '../utils/dateUtils';
-
-interface GeneratedPrintTicket {
-  id: string;
-  serialNumber: string;
-  token: string;
-  qrDataUrl: string;
-  categoryName: string;
-  price: number;
-  currency: string;
-  event: ConcertEvent;
-  batchNumber: string;
-  ticketDesignUrl: string;
-}
+import { SYSTEM_PAPER_FORMATS, generateProductionPDF, PrintTicketItem } from './pdfEngine';
 
 interface TicketBatchPrintModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialEventId?: string;
 }
-
-const PAPER_FORMATS = [
-  { name: 'A1 (594 × 841 mm)', width: 594, height: 841, cols: 6, rows: 8 }, // ~48 billets
-  { name: 'A2 (420 × 594 mm)', width: 420, height: 594, cols: 2, rows: 2 }, // ~4 billets
-  { name: 'A3 (297 × 420 mm)', width: 297, height: 420, cols: 2, rows: 4 }, // ~8 billets
-  { name: 'A4 (210 × 297 mm)', width: 210, height: 297, cols: 2, rows: 2 }, // ~4 billets
-  { name: 'A5 (148 × 210 mm)', width: 148, height: 210, cols: 1, rows: 2 }, // ~2 billets
-  { name: 'A6 (105 × 148 mm)', width: 105, height: 148, cols: 1, rows: 1 }, // 1 billet
-  { name: 'B1 (707 × 1000 mm)', width: 707, height: 1000, cols: 8, rows: 8 }, // ~64 billets
-  { name: 'B2 (500 × 707 mm)', width: 500, height: 707, cols: 6, rows: 6 }, // ~36 billets
-  { name: 'B3 (353 × 500 mm)', width: 353, height: 500, cols: 3, rows: 4 }, // ~12 billets
-  { name: 'B4 (250 × 353 mm)', width: 250, height: 353, cols: 2, rows: 8 }, // ~16 billets
-  { name: 'B5 (176 × 250 mm)', width: 176, height: 250, cols: 1, rows: 2 }, // ~2 billets
-  { name: 'SRA2 (450 × 640 mm)', width: 450, height: 640, cols: 2, rows: 2 }, // ~4 billets
-  { name: 'SRA3 (320 × 450 mm)', width: 320, height: 450, cols: 2, rows: 4 }, // ~8 billets
-  { name: 'A3+ (329 × 483 mm)', width: 329, height: 483, cols: 2, rows: 5 }, // ~10 billets
-];
 
 export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   isOpen,
@@ -82,13 +53,12 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   }, [selectedEventId, selectedEvent]);
 
   const [quantity, setQuantity] = useState<number>(10);
-  const [printOrderMode, setPrintOrderMode] = useState<'batched' | 'paired'>('batched');
-  const [selectedPaper, setSelectedPaper] = useState(PAPER_FORMATS[2]); // A3 par défaut
+  const [selectedPaperKey, setSelectedPaperKey] = useState<string>('A3');
   
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isUploadingDesign, setIsUploadingDesign] = useState<boolean>(false);
 
-  const ticketsRef = useRef<GeneratedPrintTicket[]>([]);
+  const ticketsRef = useRef<PrintTicketItem[]>([]);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [isReadyToPrint, setIsReadyToPrint] = useState(false);
 
@@ -166,12 +136,11 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     ticketsRef.current = [];
     setGenerationProgress(0);
 
-    const batchNum = `BAT-${Date.now().toString(36).toUpperCase().slice(-5)}`;
-    const CHUNK_SIZE = 100;
     let generatedCount = 0;
+    const CHUNK_SIZE = 50;
 
     const generateChunk = async () => {
-      const chunkTickets: GeneratedPrintTicket[] = [];
+      const chunkTickets: PrintTicketItem[] = [];
       const limit = Math.min(generatedCount + CHUNK_SIZE, quantity);
 
       for (let i = generatedCount + 1; i <= limit; i++) {
@@ -180,22 +149,15 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
         const serialNumber = `LMR-2026-${artistCode}-${String(100000 + i).slice(-5)}`;
         const token = `TKT_SEC_${Math.random().toString(36).substring(2, 10).toUpperCase()}_${Date.now().toString(36).toUpperCase()}`;
 
-        const qrDataUrl = await QRCode.toDataURL(token, {
-          margin: 1,
-          color: { dark: '#000000', light: '#ffffff' },
-          width: 340,
-        });
-
         chunkTickets.push({
           id,
           serialNumber,
           token,
-          qrDataUrl,
           categoryName: currentCategory.name,
           price: currentCategory.price,
-          currency: 'FCFA',
-          event: selectedEvent,
-          batchNumber: batchNum,
+          artist: selectedEvent.artist,
+          venue: selectedEvent.venue,
+          dateStr: formatDateLongFrench(selectedEvent.date),
           ticketDesignUrl: categoryDesignUrl,
         });
       }
@@ -209,34 +171,33 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       } else {
         setIsGenerating(false);
         setIsReadyToPrint(true);
-        showToast(`Préparation de ${quantity} billets en grille terminée.`, 'success');
+        showToast(`Lot de ${quantity} billets préparé avec succès.`, 'success');
       }
     };
 
     generateChunk();
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
+  // Téléchargement des PDF générés par le PDF Engine
+  const handleDownloadPDFs = async () => {
+    const paper = SYSTEM_PAPER_FORMATS[selectedPaperKey];
+    if (!paper) return;
 
-  // Regroupement des billets par pages en fonction de la capacité de la grille (cols * rows)
-  const ticketsPerPage = selectedPaper.cols * selectedPaper.rows;
-  const chunkArray = (arr: GeneratedPrintTicket[], size: number) => {
-    const res = [];
-    for (let i = 0; i < arr.length; i += size) {
-      res.push(arr.slice(i, i + size));
-    }
-    return res;
-  };
+    showToast('Génération du PDF RECTO en cours...', 'success');
+    const rectoPdf = await generateProductionPDF(ticketsRef.current, paper, 'recto');
+    rectoPdf.save(`LUMAREEL_RECTO_${selectedEvent.artist}_${selectedPaperKey}.pdf`);
 
-  const ticketPages = chunkArray(ticketsRef.current, ticketsPerPage);
+    setTimeout(async () => {
+      showToast('Génération du PDF VERSO en cours...', 'success');
+      const versoPdf = await generateProductionPDF(ticketsRef.current, paper, 'verso');
+      versoPdf.save(`LUMAREEL_VERSO_${selectedEvent.artist}_${selectedPaperKey}.pdf`);
+    }, 1000);
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-xl overflow-y-auto font-agrandir-regular print:fixed print:inset-0 print:bg-white print:z-[99999] print:p-0 print:m-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-xl overflow-y-auto font-agrandir-regular">
       
-      {/* UI Modal Box - Strictement masqué pendant l'impression */}
-      <div className="relative w-full max-w-3xl bg-[#0c0c0c] border border-white/15 rounded-3xl p-6 sm:p-8 text-white shadow-2xl my-6 print:hidden">
+      <div className="relative w-full max-w-3xl bg-[#0c0c0c] border border-white/15 rounded-3xl p-6 sm:p-8 text-white shadow-2xl my-6">
         
         <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
           <div className="flex items-center gap-3">
@@ -245,7 +206,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
             </div>
             <div>
               <div className="text-[10px] text-[#d4af37] tracking-[0.25em] uppercase font-agrandir-bold">
-                MODULE PROFESSIONNEL D'IMPOSITION EN GRILLE
+                MOTEUR PDF PROFESSIONNEL (PDF ENGINE)
               </div>
               <h2 className="font-agrandir-extrabold text-xl sm:text-2xl uppercase tracking-tight text-white">
                 Générateur de Billets Physiques
@@ -284,7 +245,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                   </div>
                 </div>
                 <span className="hidden sm:inline-flex px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-agrandir-semibold uppercase">
-                  Production Active
+                  Prêt
                 </span>
               </div>
             ) : (
@@ -311,7 +272,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
             {selectedEvent && (
               <div className="space-y-2">
                 <label className="block text-[11px] uppercase font-agrandir-bold text-[#888]">
-                  2. Catégorie de Place &amp; Design (1536 × 548 px)
+                  2. Catégorie de Place &amp; Design Officiel (1536 × 548 px)
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {selectedEvent.categories.map((cat) => {
@@ -354,7 +315,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
               <div className="p-4 bg-[#141414] border border-white/10 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="text-[10px] font-agrandir-bold text-[#d4af37] uppercase tracking-wider">
-                    VISUEL RECTO OFFICIEL : {currentCategory.name}
+                    VISUEL RECTO : {currentCategory.name}
                   </div>
                   <label className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors">
                     <Upload className="w-3 h-3 text-[#d4af37]" />
@@ -381,27 +342,24 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                     />
                   </div>
                   <div className="text-[11px] text-neutral-400 leading-relaxed">
-                    Le format de chaque billet est normalisé à <strong className="text-white font-mono">1536 × 548 px</strong> et disposé automatiquement en grille sur la feuille sélectionnée.
+                    Le moteur PDF normalise chaque billet aux dimensions exactes en millimètres et gère l'imposition automatique en grille.
                   </div>
                 </div>
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">
-                  3. Format du Papier
+                  3. Format du Papier (ISO & Pro)
                 </label>
                 <select
-                  value={selectedPaper.name}
-                  onChange={(e) => {
-                    const p = PAPER_FORMATS.find(x => x.name === e.target.value);
-                    if (p) setSelectedPaper(p);
-                  }}
+                  value={selectedPaperKey}
+                  onChange={(e) => setSelectedPaperKey(e.target.value)}
                   className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-2.5 text-xs text-white outline-none focus:border-[#d4af37]"
                 >
-                  {PAPER_FORMATS.map((paper) => (
-                    <option key={paper.name} value={paper.name}>
+                  {Object.entries(SYSTEM_PAPER_FORMATS).map(([key, paper]) => (
+                    <option key={key} value={key}>
                       {paper.name} (~{paper.cols * paper.rows} billets/feuille)
                     </option>
                   ))}
@@ -410,7 +368,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
 
               <div>
                 <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">
-                  4. Quantité de billets
+                  4. Quantité de billets à préparer
                 </label>
                 <input
                   type="number"
@@ -422,20 +380,6 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                   required
                   disabled={isGenerating}
                 />
-              </div>
-
-              <div>
-                <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">
-                  5. Mode d'impression
-                </label>
-                <select
-                  value={printOrderMode}
-                  onChange={(e) => setPrintOrderMode(e.target.value as 'batched' | 'paired')}
-                  className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-2.5 text-xs text-white outline-none focus:border-[#d4af37]"
-                >
-                  <option value="batched">Tous les Rectos puis tous les Versos</option>
-                  <option value="paired">Recto / Verso Alterné</option>
-                </select>
               </div>
             </div>
 
@@ -452,13 +396,13 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                   />
                   <Loader2 className="w-4 h-4 animate-spin relative z-10" />
                   <span className="relative z-10">
-                    Génération des planches en grille... {generationProgress}%
+                    Préparation du lot... {generationProgress}%
                   </span>
                 </>
               ) : (
                 <>
                   <Printer className="w-4 h-4" />
-                  <span>Préparer {quantity.toLocaleString()} billets physiques</span>
+                  <span>Préparer {quantity.toLocaleString()} billets pour le PDF Engine</span>
                 </>
               )}
             </button>
@@ -470,10 +414,10 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
             </div>
             <div>
               <h3 className="text-2xl font-agrandir-extrabold uppercase text-white mb-2">
-                Planches Prêtes à l'Impression
+                Lot Prêt pour la Génération PDF
               </h3>
               <p className="text-[#888] text-xs max-w-md mx-auto leading-relaxed">
-                <strong className="text-white font-agrandir-bold">{ticketsRef.current.length} billets</strong> répartis sur <strong className="text-[#d4af37] font-agrandir-bold">{ticketPages.length} feuille(s)</strong> au format <strong className="text-white">{selectedPaper.name}</strong> ({selectedPaper.cols} colonnes × {selectedPaper.rows} lignes par page).
+                <strong className="text-white font-agrandir-bold">{ticketsRef.current.length} billets</strong> configurés sur le format <strong className="text-white">{SYSTEM_PAPER_FORMATS[selectedPaperKey]?.name}</strong>. Cliquez ci-dessous pour télécharger directement les fichiers PDF de production (Recto et Verso).
               </p>
             </div>
 
@@ -487,160 +431,17 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={handlePrint}
+                onClick={handleDownloadPDFs}
                 className="px-8 py-3.5 rounded-2xl bg-[#d4af37] hover:bg-[#e6c158] text-black font-agrandir-extrabold text-sm uppercase tracking-wider flex items-center gap-2 shadow-[0_0_25px_rgba(212,175,55,0.35)] transition-transform hover:scale-105 cursor-pointer"
               >
-                <Printer className="w-5 h-5" />
-                <span>Lancer l'impression PDF</span>
+                <Download className="w-5 h-5" />
+                <span>Télécharger les PDF Recto & Verso</span>
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* =========================================================================
-          MOTEUR D'IMPRESSION NATIVE EN GRILLE (MASQUE TOUT LE RESTE DU SITE)
-         ========================================================================= */}
-      {isReadyToPrint && (
-        <div className="hidden print:block print:w-full print:bg-white print:text-black print:m-0 print:p-0">
-          <style
-            dangerouslySetInnerHTML={{
-              __html: `
-                @media print {
-                  body * {
-                    visibility: hidden !important;
-                  }
-                  #printable-sheet-area, #printable-sheet-area * {
-                    visibility: visible !important;
-                  }
-                  #printable-sheet-area {
-                    position: absolute !important;
-                    left: 0 !important;
-                    top: 0 !important;
-                    width: 100% !important;
-                    background: #ffffff !important;
-                  }
-                  @page {
-                    size: ${selectedPaper.width}mm ${selectedPaper.height}mm;
-                    margin: 0 !important;
-                  }
-                  html, body {
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    background: #ffffff !important;
-                    color: #000000 !important;
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                  }
-                  .print-page-grid {
-                    width: ${selectedPaper.width}mm !important;
-                    height: ${selectedPaper.height}mm !important;
-                    max-width: ${selectedPaper.width}mm !important;
-                    max-height: ${selectedPaper.height}mm !important;
-                    overflow: hidden !important;
-                    page-break-after: always !important;
-                    break-after: page !important;
-                    display: grid !important;
-                    grid-template-columns: repeat(${selectedPaper.cols}, 1fr) !important;
-                    grid-template-rows: repeat(${selectedPaper.rows}, 1fr) !important;
-                    gap: 2mm !important;
-                    padding: 5mm !important;
-                    box-sizing: border-box !important;
-                    background: #ffffff !important;
-                  }
-                  .print-ticket-cell {
-                    border: 1px dashed #666666 !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    overflow: hidden !important;
-                    background: #ffffff !important;
-                    box-sizing: border-box !important;
-                  }
-                }
-              `,
-            }}
-          />
-
-          <div id="printable-sheet-area">
-            {printOrderMode === 'batched' ? (
-              <>
-                {/* 1. TOUTES LES PAGES RECTO EN GRILLE */}
-                {ticketPages.map((pageTickets, pageIdx) => (
-                  <div key={`recto-grid-page-${pageIdx}`} className="print-page-grid">
-                    {pageTickets.map((t) => (
-                      <div key={`recto-cell-${t.id}`} className="print-ticket-cell">
-                        <img
-                          src={t.ticketDesignUrl}
-                          alt={t.categoryName}
-                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ))}
-
-                {/* 2. TOUTES LES PAGES VERSO EN GRILLE */}
-                {ticketPages.map((pageTickets, pageIdx) => (
-                  <div key={`verso-grid-page-${pageIdx}`} className="print-page-grid">
-                    {pageTickets.map((t) => (
-                      <div key={`verso-cell-${t.id}`} className="print-ticket-cell p-2 flex flex-col justify-between text-black bg-white">
-                        <div className="flex justify-between text-[7px] font-bold border-b border-black pb-0.5">
-                          <span>{t.event.artist}</span>
-                          <span>{t.categoryName} · {t.price}F</span>
-                        </div>
-                        <div className="my-auto flex flex-col items-center">
-                          <img src={t.qrDataUrl} alt="QR" style={{ width: '55px', height: '55px' }} />
-                          <span className="text-[6px] font-mono mt-0.5">{t.serialNumber}</span>
-                        </div>
-                        <div className="text-[5px] text-center border-t border-black pt-0.5">
-                          LUMARÉEL CO. · SÉCURITÉ VIGILE
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </>
-            ) : (
-              /* Mode Alterné : Page Recto, puis Page Verso pour chaque lot */
-              ticketPages.map((pageTickets, pageIdx) => (
-                <React.Fragment key={`paired-grid-group-${pageIdx}`}>
-                  {/* Recto Page */}
-                  <div className="print-page-grid">
-                    {pageTickets.map((t) => (
-                      <div key={`paired-recto-cell-${t.id}`} className="print-ticket-cell">
-                        <img
-                          src={t.ticketDesignUrl}
-                          alt={t.categoryName}
-                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  {/* Verso Page */}
-                  <div className="print-page-grid">
-                    {pageTickets.map((t) => (
-                      <div key={`paired-verso-cell-${t.id}`} className="print-ticket-cell p-2 flex flex-col justify-between text-black bg-white">
-                        <div className="flex justify-between text-[7px] font-bold border-b border-black pb-0.5">
-                          <span>{t.event.artist}</span>
-                          <span>{t.categoryName} · {t.price}F</span>
-                        </div>
-                        <div className="my-auto flex flex-col items-center">
-                          <img src={t.qrDataUrl} alt="QR" style={{ width: '55px', height: '55px' }} />
-                          <span className="text-[6px] font-mono mt-0.5">{t.serialNumber}</span>
-                        </div>
-                        <div className="text-[5px] text-center border-t border-black pt-0.5">
-                          LUMARÉEL CO. · SÉCURITÉ VIGILE
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </React.Fragment>
-              ))
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
