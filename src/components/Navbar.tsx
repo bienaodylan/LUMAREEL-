@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useApp, PageView } from '../context/AppContext';
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon, Shield } from 'lucide-react';
 
 /**
  * Navbar.tsx — En-tête épuré et moderne LUMARÉEL CO.
- * Le menu tiroir mobile et le bouton hamburger ont été retirés conformément à la demande,
- * la navigation étant désormais intégralement assurée par la barre mobile flottante en bas de l'écran.
+ * Dispose désormais d'un menu profil complet sur ordinateur ainsi que du sélecteur de langue complet FR / EN.
  */
 export const Navbar: React.FC = () => {
-  const { currentPage, setCurrentPage, currentUser, setIsAuthModalOpen, platformSettings } = useApp();
-  const [currentLang, setCurrentLang] = useState<'fr' | 'en'>(() => {
-    return (localStorage.getItem('lumareel_lang') as 'fr' | 'en') || 'fr';
-  });
-  const [scrolled, setScrolled] = useState(false);
+  const {
+    currentPage,
+    setCurrentPage,
+    currentUser,
+    platformSettings,
+    language,
+    setLanguage,
+    t,
+  } = useApp();
 
-  const handleToggleLang = (lang: 'fr' | 'en') => {
-    setCurrentLang(lang);
-    localStorage.setItem('lumareel_lang', lang);
-  };
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -27,12 +27,13 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Menu desktop discret
+  // Menu desktop
   const navItems: Array<{ label: string; page: PageView }> = [
-    { label: 'Accueil', page: 'home' },
-    { label: 'Mes commandes', page: 'client_space' },
-    { label: 'Archives', page: 'archive' },
-    { label: 'Actualités', page: 'news' },
+    { label: t('nav.home'), page: 'home' },
+    { label: t('nav.orders'), page: 'client_space' },
+    { label: t('nav.archives'), page: 'archive' },
+    { label: t('nav.news'), page: 'news' },
+    { label: t('nav.profile'), page: 'profile' },
   ];
 
   // Masqué sur l'écran d'accueil splash ou pendant le contrôle vigile plein écran
@@ -105,14 +106,38 @@ export const Navbar: React.FC = () => {
           })}
         </nav>
 
-        {/* Zone 3: Sélecteur de langue fonctionnel (Français / Anglais) */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Zone 3: Sélecteur de langue & Accès Profil sur Ordinateur */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          
+          {/* Bouton Profil dédié sur Ordinateur (Desktop) */}
+          <button
+            type="button"
+            onClick={() => setCurrentPage('profile')}
+            className={`hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full border transition-all cursor-pointer ${
+              currentPage === 'profile'
+                ? 'bg-white text-black border-white font-agrandir-extrabold shadow-md'
+                : 'bg-white/5 border-white/15 text-neutral-200 hover:text-white hover:bg-white/10 hover:border-white/30'
+            }`}
+            title={t('profile.title')}
+          >
+            <UserIcon className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span className="text-xs font-agrandir-semibold tracking-wide">
+              {currentUser?.name || t('nav.profile')}
+            </span>
+            {isSuperAdmin && (
+              <span className="text-[9px] font-agrandir-extrabold text-[#d4af37] px-1.5 py-0.2 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/40 uppercase tracking-widest">
+                Admin
+              </span>
+            )}
+          </button>
+
+          {/* Sélecteur de langue fonctionnel (Français / Anglais) */}
           <div className="flex items-center p-1 rounded-full bg-black/60 border border-white/15 backdrop-blur-md shadow-inner text-[11px] font-agrandir-bold tracking-wider">
             <button
               type="button"
-              onClick={() => handleToggleLang('fr')}
+              onClick={() => setLanguage('fr')}
               className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
-                currentLang === 'fr'
+                language === 'fr'
                   ? 'bg-white text-black font-agrandir-extrabold shadow-sm'
                   : 'text-[#888] hover:text-white'
               }`}
@@ -122,9 +147,9 @@ export const Navbar: React.FC = () => {
             </button>
             <button
               type="button"
-              onClick={() => handleToggleLang('en')}
+              onClick={() => setLanguage('en')}
               className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
-                currentLang === 'en'
+                language === 'en'
                   ? 'bg-white text-black font-agrandir-extrabold shadow-sm'
                   : 'text-[#888] hover:text-white'
               }`}

@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
  * animations fluides (framer-motion) avec ressort spring layoutId pour l'indicateur actif.
  */
 export const FloatingAppNavbar: React.FC = () => {
-  const { currentPage, setCurrentPage, customerOrders } = useApp();
+  const { currentPage, setCurrentPage, customerOrders, t } = useApp();
 
   // Ne pas afficher sur le splash screen ou pendant le scan vigile plein écran
   if (currentPage === 'splash' || currentPage === 'gate_scanner') {
@@ -33,28 +33,28 @@ export const FloatingAppNavbar: React.FC = () => {
   }> = [
     {
       page: 'home',
-      label: 'Accueil',
+      label: t('nav.home'),
       icon: Home,
     },
     {
       page: 'client_space',
-      label: 'Mes commandes',
+      label: t('nav.orders'),
       icon: Ticket,
       badge: activeTicketsCount > 0 ? activeTicketsCount : undefined,
     },
     {
       page: 'archive',
-      label: 'Archives',
+      label: t('nav.archives'),
       icon: Film,
     },
     {
       page: 'news',
-      label: 'Actualités',
+      label: t('nav.news'),
       icon: Newspaper,
     },
     {
       page: 'profile',
-      label: 'Compte & Préférences',
+      label: t('profile.title'),
       icon: User,
     },
   ];

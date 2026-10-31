@@ -147,7 +147,7 @@ export const AdminDashboard: React.FC = () => {
         city: newEventCity,
         country: 'Côte d’Ivoire',
         address: newEventVenue,
-        description: `Production et scénographie officielle signée LUMARÉEL CO.`,
+        description: `Concert live exceptionnel et performance scénique.`,
         artistPortrait: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg',
         officialPoster: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg',
         bannerImage: '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg',

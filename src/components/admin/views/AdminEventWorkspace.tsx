@@ -981,19 +981,6 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
           <div className="space-y-4">
             <div className="flex items-center justify-between p-4 rounded-2xl bg-[#121212] border border-white/10">
               <div>
-                <div className="font-agrandir-bold text-sm text-white">Mise en avant sur l'accueil (Bannière Hero)</div>
-                <div className="text-xs text-[#888]">Active le passage de l'artiste dans le carrousel supérieur.</div>
-              </div>
-              <input
-                type="checkbox"
-                checked={formData.isFeatured}
-                onChange={(e) => handleChange('isFeatured', e.target.checked)}
-                className="w-5 h-5 accent-[#d4af37] cursor-pointer"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-[#121212] border border-white/10">
-              <div>
                 <div className="font-agrandir-bold text-sm text-white">Statut de la billetterie</div>
                 <div className="text-xs text-[#888]">Ouvre ou ferme la possibilité d'acheter des places en ligne.</div>
               </div>

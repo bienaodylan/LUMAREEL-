@@ -1,11 +1,11 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
-import { Calendar, MapPin, ArrowRight, ShieldCheck, Ticket } from 'lucide-react';
-import { formatDateLongFrench } from '../utils/dateUtils';
+import { ArrowRight, Ticket } from 'lucide-react';
+import { formatDateLong } from '../utils/dateUtils';
 
 export const UpcomingConcerts: React.FC = () => {
-  const { events, setSelectedEventSlug, setCurrentPage, setCheckoutEvent } = useApp();
+  const { events, setSelectedEventSlug, setCurrentPage, setCheckoutEvent, language, t } = useApp();
 
   const handleSelectEvent = (event: ConcertEvent) => {
     setSelectedEventSlug(event.slug);
@@ -20,18 +20,18 @@ export const UpcomingConcerts: React.FC = () => {
   const publishedEvents = events.filter((e) => e.status !== 'draft');
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-28 sm:pt-32 pb-16">
+    <div className="max-w-7xl mx-auto px-6 pt-28 sm:pt-32 pb-16 select-none">
       
       {/* Header */}
       <div className="mb-14 border-b border-[#1c1c1c] pb-8">
         <div className="text-xs font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-2">
-          PROGRAMMATION OFFICIELLE · SAISON 2026
+          {t('upcoming.headerKicker')}
         </div>
         <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl text-white tracking-tight uppercase">
-          UPCOMING PRODUCTIONS
+          {t('upcoming.mainTitle')}
         </h1>
         <p className="mt-3 text-sm font-agrandir-regular text-[#888] max-w-xl font-light">
-          Tous les événements sont conçus en jauges limitées pour garantir une immersion acoustique et spatiale totale. Billetterie sécurisée et émission nominative.
+          {t('upcoming.subtitle')}
         </p>
       </div>
 
@@ -42,7 +42,6 @@ export const UpcomingConcerts: React.FC = () => {
           const totalSold = event.categories.reduce((acc, cat) => acc + cat.sold, 0);
           const remaining = totalQuota - totalSold;
           const minPrice = Math.min(...event.categories.map((c) => c.price));
-          const currency = 'FCFA';
 
           return (
             <article
@@ -52,7 +51,7 @@ export const UpcomingConcerts: React.FC = () => {
             >
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
                 
-                {/* Visual: Official Concert Poster Preview with rounded-2xl */}
+                {/* Visual: Official Concert Poster Preview */}
                 <div className="lg:col-span-4 aspect-[3/4] bg-[#161616] border border-white/10 rounded-2xl overflow-hidden relative shadow-lg">
                   <img
                     src={event.officialPoster}
@@ -61,7 +60,7 @@ export const UpcomingConcerts: React.FC = () => {
                     className="w-full h-full object-cover filter contrast-105 group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-md px-3 py-1 text-[10px] font-agrandir-semibold tracking-widest text-white uppercase rounded-full border border-white/15">
-                    AFFICHE OFFICIELLE
+                    {t('upcoming.officialPoster')}
                   </div>
                 </div>
 
@@ -70,41 +69,41 @@ export const UpcomingConcerts: React.FC = () => {
                   <div>
                     {/* Index & Status */}
                     <div className="flex items-center justify-between text-xs font-agrandir-regular tracking-wider text-[#777] mb-3">
-                      <span className="font-agrandir-semibold text-[#888]">0{index + 1} / SÉLECTION OFFICIELLE</span>
+                      <span className="font-agrandir-semibold text-[#888]">0{index + 1} / {t('upcoming.officialSelection')}</span>
                       <span className="text-white font-agrandir-semibold px-3 py-0.5 rounded-full bg-white/10 border border-white/15 text-[11px]">
                         {event.status === 'sold_out'
-                          ? 'COMPLET'
+                          ? t('upcoming.soldOut')
                           : remaining < 50
-                          ? `DERNIÈRES PLACES (${remaining} RESTANTES)`
-                          : 'BILLETTERIE OUVERTE'}
+                          ? `${t('upcoming.lastSeats')} (${remaining})`
+                          : t('upcoming.available')}
                       </span>
                     </div>
 
                     {/* Artist & Title */}
                     <h2 className="font-agrandir-extrabold text-2xl sm:text-4xl text-white tracking-tight mb-1 group-hover:text-[#FAFAFA] transition-colors uppercase">
-                      {event.title}
+                      {event.artist} EN CONCERT
                     </h2>
                     <div className="text-base sm:text-xl text-[#d4d4d4] font-agrandir-semibold mb-4 uppercase">
-                      {event.artist}
+                      {event.title}
                     </div>
 
                     <p className="text-sm font-agrandir-regular text-[#888] leading-relaxed line-clamp-3 mb-6">
                       {event.description}
                     </p>
 
-                    {/* Metadata row with rounded-2xl container */}
+                    {/* Metadata row with bold date and venue */}
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white/5 border border-white/10 rounded-2xl p-4 my-6 text-xs font-agrandir-regular text-[#aaa]">
                       <div>
-                        <div className="text-[#666] text-[10px] uppercase tracking-wider mb-1 font-agrandir-semibold">DATE &amp; HEURE</div>
-                        <div className="text-white font-agrandir-semibold"><strong className="font-agrandir-extrabold text-white">{formatDateLongFrench(event.date)}</strong> · {event.time}</div>
+                        <div className="text-[#666] text-[10px] uppercase tracking-wider mb-1 font-agrandir-semibold">{t('upcoming.dateTime')}</div>
+                        <div className="text-white font-agrandir-semibold"><strong className="font-agrandir-extrabold text-white">{formatDateLong(event.date, language)}</strong> · {event.time}</div>
                       </div>
                       <div>
-                        <div className="text-[#666] text-[10px] uppercase tracking-wider mb-1 font-agrandir-semibold">LIEU</div>
+                        <div className="text-[#666] text-[10px] uppercase tracking-wider mb-1 font-agrandir-semibold">{t('upcoming.venue')}</div>
                         <div className="text-white font-agrandir-semibold"><strong className="font-agrandir-extrabold text-white">{event.venue}</strong></div>
                         <div className="text-[#777] text-[11px]">{event.city}, {event.country}</div>
                       </div>
                       <div>
-                        <div className="text-[#666] text-[10px] uppercase tracking-wider mb-1 font-agrandir-semibold">TARIF DÈS</div>
+                        <div className="text-[#666] text-[10px] uppercase tracking-wider mb-1 font-agrandir-semibold">{t('upcoming.startPrice')}</div>
                         <div className="text-white font-agrandir-extrabold text-sm">
                           {minPrice.toLocaleString()} FCFA
                         </div>
@@ -114,7 +113,7 @@ export const UpcomingConcerts: React.FC = () => {
                     {/* Categories overview with rounded-full pills */}
                     <div className="mb-6">
                       <div className="text-[10px] font-agrandir-regular tracking-wider text-[#666] uppercase mb-2">
-                        CATÉGORIES DISPONIBLES :
+                        {t('upcoming.availableCategories')}
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {event.categories.map((cat) => (
@@ -138,7 +137,7 @@ export const UpcomingConcerts: React.FC = () => {
                       onClick={() => handleSelectEvent(event)}
                       className="px-6 py-3.5 text-xs font-agrandir-semibold tracking-widest uppercase bg-white text-black hover:bg-[#EAEAEA] rounded-full transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg"
                     >
-                      <span>CONSULTER LA FICHE COMPLÈTE</span>
+                      <span>{t('upcoming.viewDetails')}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
 
@@ -147,7 +146,7 @@ export const UpcomingConcerts: React.FC = () => {
                       className="px-6 py-3.5 text-xs font-agrandir-semibold tracking-widest uppercase border border-white/20 text-[#CCC] hover:text-white hover:border-white rounded-full transition-colors flex items-center justify-center gap-2 cursor-pointer bg-white/5"
                     >
                       <Ticket className="w-3.5 h-3.5 text-[#d4af37]" />
-                      <span>RÉSERVER DES BILLETS</span>
+                      <span>{t('upcoming.bookTickets')}</span>
                     </button>
                   </div>
 
@@ -158,7 +157,6 @@ export const UpcomingConcerts: React.FC = () => {
           );
         })}
       </div>
-
     </div>
   );
 };

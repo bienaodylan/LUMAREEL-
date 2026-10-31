@@ -3,6 +3,7 @@ import { User, ConcertEvent, Order, Ticket, ArchiveProduction, PlatformSettings 
 import { INITIAL_EVENTS, INITIAL_NEWS, INITIAL_ORDERS, INITIAL_ARCHIVES } from '../data/initialData';
 import { convertToYouTubeEmbed } from '../utils/mediaUtils';
 import { supabase, isSupabaseConfigured, configureSupabase, testSupabaseConnection } from '../lib/supabaseClient';
+import { SupportedLanguage, getTranslation } from '../i18n/translations';
 
 export type PageView =
   | 'splash'
@@ -53,6 +54,11 @@ interface AppContextType {
   platformSettings: PlatformSettings;
   updatePlatformSettings: (settings: Partial<PlatformSettings>) => Promise<void>;
   
+  // Internationalisation
+  language: SupportedLanguage;
+  setLanguage: (lang: SupportedLanguage) => void;
+  t: (key: string, fallback?: string) => string;
+
   // États de scalabilité et base de données Cloud
   isLoadingEvents: boolean;
   isLoadingOrders: boolean;
@@ -253,6 +259,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' | 'error' } | null>(null);
 
+  // Internationalisation (Français / Anglais)
+  const [language, setLanguageState] = useState<SupportedLanguage>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('lumareel_lang') as SupportedLanguage) || 'fr';
+    }
+    return 'fr';
+  });
+
+  const setLanguage = (lang: SupportedLanguage) => {
+    setLanguageState(lang);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('lumareel_lang', lang);
+    }
+  };
+
+  const t = (key: string, fallback?: string): string => {
+    return getTranslation(language, key, fallback);
+  };
+
   // Indicateurs de performance & Cloud DB
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
@@ -376,7 +401,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!res.ok) return;
       const data = await res.json();
       if (data.success && data.events && data.events.length > 0) {
-        setEvents(data.events);
+        setEvents((prev) => {
+          const localSaved = readLocal<ConcertEvent[]>(STORAGE_KEYS.EVENTS, []);
+          if (localSaved && localSaved.length > 0) {
+            const merged = localSaved.map((localEv) => {
+              const beEv = data.events.find((b: any) => b.id === localEv.id);
+              return beEv ? { ...beEv, ...localEv } : localEv;
+            });
+            return merged;
+          }
+          return data.events;
+        });
         const feat = data.events.find((e: ConcertEvent) => e.isFeatured) || data.events[0];
         setFeaturedEvent(feat || null);
         cacheTimestamps.current.events = Date.now();
@@ -1046,6 +1081,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         showToast,
         platformSettings,
         updatePlatformSettings,
+        language,
+        setLanguage,
+        t,
         isLoadingEvents,
         isLoadingOrders,
         isCloudDbActive,

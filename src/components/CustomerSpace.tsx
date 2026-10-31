@@ -30,7 +30,7 @@ import { formatDateLongFrench } from '../utils/dateUtils';
 type ScrollableTab = 'tickets' | 'orders' | 'transfer' | 'exchange' | 'past';
 
 export const CustomerSpace: React.FC = () => {
-  const { currentUser, customerOrders, refreshCustomerOrders, events, setCurrentPage, showToast } = useApp();
+  const { currentUser, customerOrders, refreshCustomerOrders, events, setCurrentPage, showToast, language, t } = useApp();
   const [activeTab, setActiveTab] = useState<ScrollableTab>('tickets');
   const [selectedTicketForQr, setSelectedTicketForQr] = useState<Ticket | null>(null);
   const [qrCodeDataUrls, setQrCodeDataUrls] = useState<Record<string, string>>({});
@@ -115,30 +115,30 @@ export const CustomerSpace: React.FC = () => {
   };
 
   const tabsConfig: Array<{ id: ScrollableTab; label: string; count?: number }> = [
-    { id: 'tickets', label: 'Mes billets', count: allTickets.length },
-    { id: 'orders', label: 'Commandes', count: customerOrders.length },
-    { id: 'transfer', label: 'Transférer' },
-    { id: 'exchange', label: 'Échanger' },
-    { id: 'past', label: 'Mes anciens billets' },
+    { id: 'tickets', label: t('orders.tabTickets'), count: allTickets.length },
+    { id: 'orders', label: t('orders.tabOrders'), count: customerOrders.length },
+    { id: 'transfer', label: t('orders.tabTransfer') },
+    { id: 'exchange', label: t('orders.tabExchange') },
+    { id: 'past', label: t('orders.tabPast') },
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-32 select-none font-agrandir-regular">
       
-      {/* 1. Page Header — Transformé en "MES COMMANDES" */}
+      {/* 1. Page Header — "MES COMMANDES" */}
       <div className="mb-6 border-b border-white/10 pb-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="text-[10px] font-agrandir-regular tracking-[0.25em] text-[#d4af37] uppercase mb-1">
-              ESPACE PERSONNEL CLIENT · LUMARÉEL CO.
+              {t('orders.accountKicker')}
             </div>
             <h1 className="font-agrandir-extrabold text-3xl sm:text-4xl text-white tracking-tight uppercase">
-              MES COMMANDES
+              {t('orders.headerTitle')}
             </h1>
             <div className="text-xs font-agrandir-regular text-[#aaa] mt-1.5 flex items-center gap-3">
-              <span>Compte : <strong className="text-white">{currentUser?.email || 'bienaodylan428@gmail.com'}</strong></span>
+              <span>{t('orders.account')} <strong className="text-white">{currentUser?.email || 'bienaodylan428@gmail.com'}</strong></span>
               <span aria-hidden="true" className="text-white/30">·</span>
-              <span className="text-emerald-400 font-agrandir-semibold">Titulaire Vérifié</span>
+              <span className="text-emerald-400 font-agrandir-semibold">{t('orders.verified')}</span>
             </div>
           </div>
         </div>
