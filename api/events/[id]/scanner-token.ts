@@ -23,6 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const fullUrl = `${protocol}://${host}/?page=gate_scanner&eventId=${encodeURIComponent(eventId)}&token=${encodeURIComponent(token)}`;
     return res.status(201).json({
       success: true, token, expiresAt, fullUrl, eventId,
+      scannerToken: { id: token, token, eventId, eventTitle: event.title, artistName: event.artist, createdAt: new Date().toISOString(), expiresAt, revoked: false, createdBy: auth.user.email },
       eventTitle: event.title, artistName: event.artist
     });
   } catch (error: any) {
