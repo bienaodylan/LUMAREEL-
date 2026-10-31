@@ -1,4 +1,228 @@
-<button onClick={onClose} className="p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-neutral-400 hover:text-white transition-colors" aria-label="Fermer">
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useApp } from '../context/AppContext';
+import { formatDateLongFrench } from '../utils/dateUtils';
+import {
+  SYSTEM_PAPER_FORMATS,
+  createProductionLayout,
+  generateProductionPDF,
+  PrintTicketItem,
+} from '../utils/pdfEngine';
+import {
+  Printer,
+  X,
+  CheckCircle2,
+  Loader2,
+  Upload,
+  Download,
+  FileText,
+  RotateCw,
+} from 'lucide-react';
+
+interface TicketBatchPrintModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialEventId?: string;
+}
+
+export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
+  isOpen,
+  onClose,
+  initialEventId,
+}) => {
+  const { events, showToast, saveEvent } = useApp();
+  const [selectedEventId, setSelectedEventId] = useState(initialEventId || events[0]?.id || '');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
+  const [quantity, setQuantity] = useState(10);
+  const [selectedPaperKey, setSelectedPaperKey] = useState('A3');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isUploadingDesign, setIsUploadingDesign] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [isReadyToPrint, setIsReadyToPrint] = useState(false);
+  const ticketsRef = useRef<PrintTicketItem[]>([]);
+
+  const selectedEvent = events.find((event) => event.id === selectedEventId) || events[0];
+  const currentCategory = selectedEvent?.categories.find((category) => category.id === selectedCategoryId)
+    || selectedEvent?.categories[0];
+  const categoryDesignUrl = currentCategory?.ticketImageUrl
+    || selectedEvent?.officialPoster
+    || selectedEvent?.bannerImage
+    || selectedEvent?.artistPortrait
+    || '';
+  const selectedPaper = SYSTEM_PAPER_FORMATS[selectedPaperKey];
+
+  const layout = useMemo(() => {
+    if (!selectedPaper || quantity < 1) return null;
+    try {
+      return createProductionLayout(selectedPaper, quantity);
+    } catch {
+      return null;
+    }
+  }, [selectedPaper, quantity]);
+
+  useEffect(() => {
+    if (initialEventId && events.some((event) => event.id === initialEventId)) {
+      setSelectedEventId(initialEventId);
+    }
+  }, [initialEventId, isOpen, events]);
+
+  useEffect(() => {
+    if (selectedEvent?.categories.length) {
+      if (!selectedEvent.categories.some((category) => category.id === selectedCategoryId)) {
+        setSelectedCategoryId(selectedEvent.categories[0].id);
+      }
+    } else {
+      setSelectedCategoryId('');
+    }
+  }, [selectedEventId, selectedEvent, selectedCategoryId]);
+
+  useEffect(() => {
+    setIsReadyToPrint(false);
+    ticketsRef.current = [];
+    setGenerationProgress(0);
+  }, [selectedEventId, selectedCategoryId, selectedPaperKey, isOpen]);
+
+  if (!isOpen) return null;
+
+  const handleUploadCategoryDesign = async (file: File) => {
+    if (!selectedEvent || !currentCategory) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Veuillez sélectionner un fichier image.', 'error');
+      return;
+    }
+
+    try {
+      setIsUploadingDesign(true);
+      let fileUrl = '';
+      try {
+        const uploadForm = new FormData();
+        uploadForm.append('file', file);
+        const response = await fetch('/api/upload', { method: 'POST', body: uploadForm });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.url) fileUrl = data.url;
+        }
+      } catch (error) {
+        console.warn('Upload distant indisponible, utilisation du Data URL.', error);
+      }
+
+      if (!fileUrl) {
+        fileUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ''));
+          reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const updatedEvent = {
+        ...selectedEvent,
+        categories: selectedEvent.categories.map((category) =>
+          category.id === currentCategory.id
+            ? { ...category, ticketImageUrl: fileUrl }
+            : category
+        ),
+      };
+      await saveEvent(updatedEvent);
+      showToast(`Design de la catégorie ${currentCategory.name} mis à jour !`, 'success');
+    } catch (error) {
+      console.error(error);
+      showToast("Erreur lors de l'import du visuel de ticket.", 'error');
+    } finally {
+      setIsUploadingDesign(false);
+    }
+  };
+
+  const handleGenerateBatch = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedEvent || !currentCategory || quantity <= 0 || !categoryDesignUrl) {
+      showToast('Configuration d’impression incomplète ou visuel manquant.', 'error');
+      return;
+    }
+    if (!Number.isInteger(quantity) || quantity > 10000) {
+      showToast('La quantité doit être comprise entre 1 et 10 000 billets.', 'error');
+      return;
+    }
+
+    setIsGenerating(true);
+    setIsReadyToPrint(false);
+    ticketsRef.current = [];
+    setGenerationProgress(0);
+
+    try {
+      const generated: PrintTicketItem[] = [];
+      const artistCode = selectedEvent.artist.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'LMR';
+      for (let index = 1; index <= quantity; index++) {
+        const now = Date.now();
+        const serialNumber = `LMR-${new Date().getFullYear()}-${artistCode}-${String(index).padStart(5, '0')}`;
+        const token = `TKT_SEC_${Math.random().toString(36).slice(2, 12).toUpperCase()}_${now.toString(36).toUpperCase()}`;
+        generated.push({
+          id: `tkt_phys_${now}_${index}`,
+          serialNumber,
+          token,
+          categoryName: currentCategory.name,
+          price: currentCategory.price,
+          artist: selectedEvent.artist,
+          venue: selectedEvent.venue,
+          dateStr: formatDateLongFrench(selectedEvent.date),
+          ticketDesignUrl: categoryDesignUrl,
+        });
+        if (index % 50 === 0 || index === quantity) {
+          setGenerationProgress(Math.round((index / quantity) * 100));
+          await new Promise((resolve) => window.setTimeout(resolve, 0));
+        }
+      }
+
+      ticketsRef.current = generated;
+      setIsReadyToPrint(true);
+      showToast(`Lot de ${quantity.toLocaleString()} billets préparé.`, 'success');
+    } catch (error) {
+      console.error(error);
+      showToast('Une erreur est survenue pendant la préparation du lot.', 'error');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadPDFs = async () => {
+    if (!selectedPaper || !selectedEvent || !ticketsRef.current.length) return;
+
+    setIsDownloading(true);
+    try {
+      // Un seul plan partagé : mêmes coordonnées et même orientation sur les deux faces.
+      const sharedLayout = createProductionLayout(selectedPaper, ticketsRef.current.length);
+      showToast('Génération du PDF RECTO...', 'success');
+      const rectoPdf = await generateProductionPDF(ticketsRef.current, selectedPaper, 'recto', sharedLayout);
+      rectoPdf.save(`LUMAREEL_RECTO_${selectedEvent.artist}_${selectedPaperKey}.pdf`);
+
+      // Laisse au navigateur le temps de déclencher le premier téléchargement.
+      await new Promise((resolve) => window.setTimeout(resolve, 700));
+      showToast('Génération du PDF VERSO...', 'success');
+      const versoPdf = await generateProductionPDF(ticketsRef.current, selectedPaper, 'verso', sharedLayout);
+      versoPdf.save(`LUMAREEL_VERSO_${selectedEvent.artist}_${selectedPaperKey}.pdf`);
+      showToast(`Les PDF recto et verso sont prêts : ${sharedLayout.totalPages} feuille(s), ${sharedLayout.ticketsPerPage} billet(s) maximum par feuille.`, 'success');
+    } catch (error) {
+      console.error('Erreur de production PDF :', error);
+      showToast(error instanceof Error ? error.message : 'Erreur pendant la génération des PDF.', 'error');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/90 backdrop-blur-xl overflow-y-auto font-agrandir-regular">
+      <div className="relative w-full max-w-3xl bg-[#0c0c0c] border border-white/15 rounded-3xl p-6 sm:p-8 text-white shadow-2xl my-6">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#d4af37]/15 border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37]">
+              <Printer className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-[10px] text-[#d4af37] tracking-[0.25em] uppercase font-agrandir-bold">MOTEUR DE PRODUCTION LUMARÉEL</div>
+              <h2 className="font-agrandir-extrabold text-xl sm:text-2xl uppercase tracking-tight">Générateur de billets physiques</h2>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/15 text-neutral-400 hover:text-white transition-colors" aria-label="Fermer">
             <X className="w-5 h-5" />
           </button>
         </div>
