@@ -10,8 +10,6 @@ import {
   Loader2,
   Upload,
   Check,
-  Layers,
-  Sparkles,
   Scissors
 } from 'lucide-react';
 import { formatDateLongFrench } from '../utils/dateUtils';
@@ -71,7 +69,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   }, [selectedEventId, selectedEvent]);
 
   const [quantity, setQuantity] = useState<number>(10);
-  const [printOrderMode, setPrintOrderMode] = useState<'paired' | 'batched'>('paired');
+  const [printOrderMode, setPrintOrderMode] = useState<'paired' | 'batched'>('batched'); // Par défaut : tous les rectos puis tous les versos
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [isUploadingDesign, setIsUploadingDesign] = useState<boolean>(false);
 
@@ -145,8 +143,8 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       return;
     }
     if (!categoryDesignUrl) {
-      showToast("Aucun design ou affiche n'est disponible pour ce billet.", 'error');
-      return;
+       showToast("Aucun design ou affiche n'est disponible pour ce billet.", 'error');
+       return;
     }
 
     setIsGenerating(true);
@@ -240,7 +238,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
         {!isReadyToPrint ? (
           <form onSubmit={handleGenerateBatch} className="space-y-6">
             
-            {/* 1. Event Selection (Locked automatically when opened from workspace) */}
+            {/* 1. Event Selection */}
             {initialEventId && selectedEvent ? (
               <div className="p-4 bg-[#141414] border border-[#d4af37]/30 rounded-2xl flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3.5">
@@ -367,7 +365,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                   </div>
                   <div className="text-[11px] text-neutral-400 leading-relaxed">
                     Format standard : <strong className="text-white font-mono">1536 × 548 px</strong>.<br />
-                    Ce visuel est imprimé sur le <strong className="text-white">Recto</strong> de la page A5 avec les découpes massicot. Le <strong className="text-white">Verso</strong> génère le code QR unitaire et les mentions de contrôle vigile.
+                    Ce visuel est imprimé sur le <strong className="text-white">Recto</strong> de la page A5 (zéro marge, taille réelle). Le <strong className="text-white">Verso</strong> génère le code QR unitaire et les mentions de contrôle vigile.
                   </div>
                 </div>
               </div>
@@ -417,19 +415,6 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 <div className="space-y-1.5">
                   <button
                     type="button"
-                    onClick={() => setPrintOrderMode('paired')}
-                    className={`w-full p-2.5 rounded-xl border text-left text-xs transition-all flex items-center justify-between ${
-                      printOrderMode === 'paired'
-                        ? 'bg-white/10 border-white text-white font-agrandir-bold'
-                        : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    <span>Recto / Verso Alterné (Imprimante recto-verso)</span>
-                    {printOrderMode === 'paired' && <Check className="w-3.5 h-3.5 text-[#d4af37]" />}
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={() => setPrintOrderMode('batched')}
                     className={`w-full p-2.5 rounded-xl border text-left text-xs transition-all flex items-center justify-between ${
                       printOrderMode === 'batched'
@@ -439,6 +424,19 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                   >
                     <span>Tous les Rectos puis tous les Versos</span>
                     {printOrderMode === 'batched' && <Check className="w-3.5 h-3.5 text-[#d4af37]" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPrintOrderMode('paired')}
+                    className={`w-full p-2.5 rounded-xl border text-left text-xs transition-all flex items-center justify-between ${
+                      printOrderMode === 'paired'
+                        ? 'bg-white/10 border-white text-white font-agrandir-bold'
+                        : 'bg-white/5 border-white/10 text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    <span>Recto / Verso Alterné</span>
+                    {printOrderMode === 'paired' && <Check className="w-3.5 h-3.5 text-[#d4af37]" />}
                   </button>
                 </div>
               </div>
@@ -482,7 +480,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 Planches A5 Prêtes
               </h3>
               <p className="text-[#888] text-xs max-w-md mx-auto leading-relaxed">
-                <strong className="text-white font-agrandir-bold">{ticketsRef.current.length} billets</strong> de catégorie <strong className="text-[#d4af37] font-agrandir-bold">{currentCategory?.name}</strong> prêts pour l'impression A5 paysage avec découpes massicot.
+                <strong className="text-white font-agrandir-bold">{ticketsRef.current.length} billets</strong> de catégorie <strong className="text-[#d4af37] font-agrandir-bold">{currentCategory?.name}</strong> prêts pour l'impression A5 paysage (zéro marge).
               </p>
             </div>
 
@@ -508,9 +506,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       </div>
 
       {/* =========================================================================
-          NATIVE PRINT LAYOUT (VISIBLE UNIQUEMENT LORS DU PRINT NAVIGATEUR)
-          Format calibré : Page A5 Paysage (210mm × 148mm)
-          Chaque face de billet prend exactement 1 page A5, zéro débordement.
+          NATIVE PRINT LAYOUT (ZÉRO MARGE & BLOCS RECTOS / VERSOS SÉPARÉS)
          ========================================================================= */}
       {isReadyToPrint && (
         <div className="hidden print:block print:w-full print:bg-white print:text-black">
@@ -520,7 +516,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 @media print {
                   @page {
                     size: A5 landscape;
-                    margin: 0;
+                    margin: 0 !important;
                   }
                   html, body {
                     margin: 0 !important;
@@ -543,7 +539,8 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                     justify-content: center !important;
                     box-sizing: border-box !important;
                     position: relative !important;
-                    padding: 6mm !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
                   }
                 }
               `,
@@ -551,146 +548,37 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
           />
 
           {/* RENDERING PAGES BASED ON SELECTED MODE */}
-          {printOrderMode === 'paired' ? (
-            /* Mode Alterné : Recto 1, Verso 1, Recto 2, Verso 2 ... */
-            ticketsRef.current.map((t, idx) => (
-              <React.Fragment key={`ticket-pair-${t.id}`}>
-                {/* 1. FACE RECTO SUR PAGE A5 */}
-                <div className="print-page-ticket bg-white">
-                  <div className="w-[198mm] h-[136mm] border border-black/30 relative flex flex-col items-center justify-center p-3 box-sizing-border">
-                    {/* Repères de découpe massicot aux 4 coins */}
-                    <div className="absolute top-1 left-1 text-[9px] font-mono text-black font-bold">┌ ✂</div>
-                    <div className="absolute top-1 right-1 text-[9px] font-mono text-black font-bold">✂ ┐</div>
-                    <div className="absolute bottom-1 left-1 text-[9px] font-mono text-black font-bold">└ ✂</div>
-                    <div className="absolute bottom-1 right-1 text-[9px] font-mono text-black font-bold">✂ ┘</div>
-
-                    {/* En-tête de régie officielle */}
-                    <div className="w-full flex items-center justify-between text-[7px] font-mono uppercase text-black/70 mb-1 px-4">
-                      <span>LUMARÉEL CO. · BILLETTERIE OFFICIELLE CERTIFIÉE</span>
-                      <span>PAGE A5 · FACE RECTO (BILLET {idx + 1}/{ticketsRef.current.length})</span>
-                    </div>
-
-                    {/* Ligne de découpe supérieure avec ciseaux */}
-                    <div className="w-full text-center text-[7.5px] font-mono text-black/60 border-b border-dashed border-black/60 pb-1 mb-2 tracking-widest">
-                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - - -
-                    </div>
-
-                    {/* Billet Recto 153.6mm × 54.8mm */}
-                    <div className="w-[153.6mm] h-[54.8mm] border-2 border-black bg-black relative overflow-hidden shrink-0 shadow-none">
-                      <img
-                        src={t.ticketDesignUrl}
-                        alt={t.categoryName}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-
-                    {/* Ligne de découpe inférieure */}
-                    <div className="w-full text-center text-[7.5px] font-mono text-black/60 border-t border-dashed border-black/60 pt-1 mt-2 tracking-widest">
-                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - - -
-                    </div>
-
-                    {/* Pied de page et talon */}
-                    <div className="w-full flex items-center justify-between text-[7px] font-mono text-black/70 mt-1 px-4">
-                      <span>N° SÉRIE : <strong>{t.serialNumber}</strong></span>
-                      <span>CATÉGORIE : <strong>{t.categoryName}</strong></span>
-                      <span>TARIF : <strong>{t.price.toLocaleString()} FCFA</strong></span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 2. FACE VERSO SUR PAGE A5 SUIVANTE */}
-                <div className="print-page-ticket bg-white">
-                  <div className="w-[198mm] h-[136mm] border border-black/30 relative flex flex-col items-center justify-center p-3 box-sizing-border">
-                    {/* Repères de découpe massicot */}
-                    <div className="absolute top-1 left-1 text-[9px] font-mono text-black font-bold">┌ ✂</div>
-                    <div className="absolute top-1 right-1 text-[9px] font-mono text-black font-bold">✂ ┐</div>
-                    <div className="absolute bottom-1 left-1 text-[9px] font-mono text-black font-bold">└ ✂</div>
-                    <div className="absolute bottom-1 right-1 text-[9px] font-mono text-black font-bold">✂ ┘</div>
-
-                    {/* En-tête de régie */}
-                    <div className="w-full flex items-center justify-between text-[7px] font-mono uppercase text-black/70 mb-1 px-4">
-                      <span>LUMARÉEL CO. · PROTOCOLE DE SÉCURITÉ CONTRÔLE VIGILE</span>
-                      <span>PAGE A5 · FACE VERSO (BILLET {idx + 1}/{ticketsRef.current.length})</span>
-                    </div>
-
-                    {/* Ligne de découpe supérieure */}
-                    <div className="w-full text-center text-[7.5px] font-mono text-black/60 border-b border-dashed border-black/60 pb-1 mb-2 tracking-widest">
-                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - - -
-                    </div>
-
-                    {/* Billet Verso 153.6mm × 54.8mm */}
-                    <div className="w-[153.6mm] h-[54.8mm] border-2 border-black p-3.5 flex items-center justify-between text-left bg-white text-black relative shrink-0">
-                      {/* Informations du concert avec date et lieu obligatoirement en gras */}
-                      <div className="flex-1 pr-3 flex flex-col justify-between h-full">
-                        <div>
-                          <div className="text-[11px] font-black uppercase tracking-wider text-black">
-                            {t.event.artist} EN CONCERT
-                          </div>
-                          <div className="text-[9px] font-bold uppercase tracking-wider text-black mt-0.5">
-                            CATÉGORIE : {t.categoryName} · {t.price.toLocaleString()} FCFA
-                          </div>
-                          <div className="text-[8.5px] text-black mt-1">
-                            <strong className="font-black text-black">{t.event.venue}</strong> · <strong className="font-black text-black">{formatDateLongFrench(t.event.date)}</strong>
-                          </div>
-                        </div>
-
-                        <div className="border-t border-black/40 pt-1.5 mt-1">
-                          <div className="text-[7px] leading-tight text-neutral-800 font-sans">
-                            • Billet individuel strict. L'entrée aux portes invalide le jeton.<br />
-                            • Toute tentative de reproduction est passible de poursuites pénales.<br />
-                            • Contrôle d'accès et régie : LUMARÉEL CO.
-                          </div>
-                          <div className="text-[7.5px] font-mono font-bold mt-1 text-black">
-                            N° {t.serialNumber} · {t.token.slice(0, 20)}...
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Bloc QR Code unitaire */}
-                      <div className="p-1 border border-black shrink-0 flex flex-col items-center justify-center bg-white">
-                        <img src={t.qrDataUrl} alt="QR Code" className="w-24 h-24 object-contain" />
-                        <span className="text-[7px] font-mono font-bold mt-0.5">SCAN PORTILLON</span>
-                      </div>
-                    </div>
-
-                    {/* Ligne de découpe inférieure */}
-                    <div className="w-full text-center text-[7.5px] font-mono text-black/60 border-t border-dashed border-black/60 pt-1 mt-2 tracking-widest">
-                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - - -
-                    </div>
-
-                    {/* Talon bas */}
-                    <div className="w-full flex items-center justify-between text-[7px] font-mono text-black/70 mt-1 px-4">
-                      <span>JETON CRYPTÉ : <strong>{t.token.slice(0, 16)}</strong></span>
-                      <span>SCELLÉ OFFICIEL LUMARÉEL CO.</span>
-                    </div>
-                  </div>
-                </div>
-              </React.Fragment>
-            ))
-          ) : (
-            /* Mode groupé : Tous les Rectos, puis tous les Versos */
+          {printOrderMode === 'batched' ? (
+            /* Mode Groupé par défaut : Tous les Rectos d'abord, puis tous les Versos */
             <>
+              {/* 1. TOUS LES RECTOS */}
               {ticketsRef.current.map((t, idx) => (
                 <div key={`recto-only-${t.id}`} className="print-page-ticket bg-white">
-                  <div className="w-[198mm] h-[136mm] border border-black/30 relative flex flex-col items-center justify-center p-3 box-sizing-border">
-                    <div className="absolute top-1 left-1 text-[9px] font-mono text-black font-bold">┌ ✂</div>
-                    <div className="absolute top-1 right-1 text-[9px] font-mono text-black font-bold">✂ ┐</div>
-                    <div className="absolute bottom-1 left-1 text-[9px] font-mono text-black font-bold">└ ✂</div>
-                    <div className="absolute bottom-1 right-1 text-[9px] font-mono text-black font-bold">✂ ┘</div>
-                    <div className="w-full flex items-center justify-between text-[7px] font-mono uppercase text-black/70 mb-1 px-4">
+                  <div className="w-[210mm] h-[148mm] relative flex flex-col items-center justify-center p-2 box-sizing-border">
+                    {/* Repères de découpe massicot aux 4 coins */}
+                    <div className="absolute top-2 left-2 text-[9px] font-mono text-black font-bold">┌ ✂</div>
+                    <div className="absolute top-2 right-2 text-[9px] font-mono text-black font-bold">✂ ┐</div>
+                    <div className="absolute bottom-2 left-2 text-[9px] font-mono text-black font-bold">└ ✂</div>
+                    <div className="absolute bottom-2 right-2 text-[9px] font-mono text-black font-bold">✂ ┘</div>
+
+                    <div className="w-full flex items-center justify-between text-[7px] font-mono uppercase text-black/70 mb-1 px-8">
                       <span>LUMARÉEL CO. · BILLETTERIE OFFICIELLE</span>
                       <span>PAGE A5 · FACE RECTO ({idx + 1}/{ticketsRef.current.length})</span>
                     </div>
+
                     <div className="w-full text-center text-[7.5px] font-mono text-black/60 border-b border-dashed border-black/60 pb-1 mb-2 tracking-widest">
-                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - - -
+                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - -
                     </div>
+
                     <div className="w-[153.6mm] h-[54.8mm] border-2 border-black bg-black relative overflow-hidden shrink-0 shadow-none">
                       <img src={t.ticketDesignUrl} alt={t.categoryName} className="w-full h-full object-cover" />
                     </div>
+
                     <div className="w-full text-center text-[7.5px] font-mono text-black/60 border-t border-dashed border-black/60 pt-1 mt-2 tracking-widest">
-                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - - -
+                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - -
                     </div>
-                    <div className="w-full flex items-center justify-between text-[7px] font-mono text-black/70 mt-1 px-4">
+
+                    <div className="w-full flex items-center justify-between text-[7px] font-mono text-black/70 mt-1 px-8">
                       <span>N° {t.serialNumber}</span>
                       <span>CATÉGORIE : {t.categoryName}</span>
                       <span>{t.price.toLocaleString()} FCFA</span>
@@ -699,20 +587,24 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 </div>
               ))}
 
+              {/* 2. TOUS LES VERSOS */}
               {ticketsRef.current.map((t, idx) => (
                 <div key={`verso-only-${t.id}`} className="print-page-ticket bg-white">
-                  <div className="w-[198mm] h-[136mm] border border-black/30 relative flex flex-col items-center justify-center p-3 box-sizing-border">
-                    <div className="absolute top-1 left-1 text-[9px] font-mono text-black font-bold">┌ ✂</div>
-                    <div className="absolute top-1 right-1 text-[9px] font-mono text-black font-bold">✂ ┐</div>
-                    <div className="absolute bottom-1 left-1 text-[9px] font-mono text-black font-bold">└ ✂</div>
-                    <div className="absolute bottom-1 right-1 text-[9px] font-mono text-black font-bold">✂ ┘</div>
-                    <div className="w-full flex items-center justify-between text-[7px] font-mono uppercase text-black/70 mb-1 px-4">
+                  <div className="w-[210mm] h-[148mm] relative flex flex-col items-center justify-center p-2 box-sizing-border">
+                    <div className="absolute top-2 left-2 text-[9px] font-mono text-black font-bold">┌ ✂</div>
+                    <div className="absolute top-2 right-2 text-[9px] font-mono text-black font-bold">✂ ┐</div>
+                    <div className="absolute bottom-2 left-2 text-[9px] font-mono text-black font-bold">└ ✂</div>
+                    <div className="absolute bottom-2 right-2 text-[9px] font-mono text-black font-bold">✂ ┘</div>
+
+                    <div className="w-full flex items-center justify-between text-[7px] font-mono uppercase text-black/70 mb-1 px-8">
                       <span>LUMARÉEL CO. · PROTOCOLE DE CONTRÔLE VIGILE</span>
                       <span>PAGE A5 · FACE VERSO ({idx + 1}/{ticketsRef.current.length})</span>
                     </div>
+
                     <div className="w-full text-center text-[7.5px] font-mono text-black/60 border-b border-dashed border-black/60 pb-1 mb-2 tracking-widest">
-                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - - -
+                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - -
                     </div>
+
                     <div className="w-[153.6mm] h-[54.8mm] border-2 border-black p-3.5 flex items-center justify-between text-left bg-white text-black relative shrink-0">
                       <div className="flex-1 pr-3 flex flex-col justify-between h-full">
                         <div>
@@ -742,10 +634,12 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                         <span className="text-[7px] font-mono font-bold mt-0.5">SCAN PORTILLON</span>
                       </div>
                     </div>
+
                     <div className="w-full text-center text-[7.5px] font-mono text-black/60 border-t border-dashed border-black/60 pt-1 mt-2 tracking-widest">
-                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - - -
+                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - -
                     </div>
-                    <div className="w-full flex items-center justify-between text-[7px] font-mono text-black/70 mt-1 px-4">
+
+                    <div className="w-full flex items-center justify-between text-[7px] font-mono text-black/70 mt-1 px-8">
                       <span>JETON CRYPTÉ : {t.token.slice(0, 16)}</span>
                       <span>SCELLÉ OFFICIEL LUMARÉEL CO.</span>
                     </div>
@@ -753,6 +647,102 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 </div>
               ))}
             </>
+          ) : (
+            /* Mode Alterné : Recto 1, Verso 1, Recto 2, Verso 2 ... */
+            ticketsRef.current.map((t, idx) => (
+              <React.Fragment key={`ticket-pair-${t.id}`}>
+                {/* Recto */}
+                <div className="print-page-ticket bg-white">
+                  <div className="w-[210mm] h-[148mm] relative flex flex-col items-center justify-center p-2 box-sizing-border">
+                    <div className="absolute top-2 left-2 text-[9px] font-mono text-black font-bold">┌ ✂</div>
+                    <div className="absolute top-2 right-2 text-[9px] font-mono text-black font-bold">✂ ┐</div>
+                    <div className="absolute bottom-2 left-2 text-[9px] font-mono text-black font-bold">└ ✂</div>
+                    <div className="absolute bottom-2 right-2 text-[9px] font-mono text-black font-bold">✂ ┘</div>
+
+                    <div className="w-full flex items-center justify-between text-[7px] font-mono uppercase text-black/70 mb-1 px-8">
+                      <span>LUMARÉEL CO. · BILLETTERIE OFFICIELLE CERTIFIÉE</span>
+                      <span>PAGE A5 · FACE RECTO (BILLET {idx + 1}/{ticketsRef.current.length})</span>
+                    </div>
+
+                    <div className="w-full text-center text-[7.5px] font-mono text-black/60 border-b border-dashed border-black/60 pb-1 mb-2 tracking-widest">
+                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - -
+                    </div>
+
+                    <div className="w-[153.6mm] h-[54.8mm] border-2 border-black bg-black relative overflow-hidden shrink-0 shadow-none">
+                      <img src={t.ticketDesignUrl} alt={t.categoryName} className="w-full h-full object-cover" />
+                    </div>
+
+                    <div className="w-full text-center text-[7.5px] font-mono text-black/60 border-t border-dashed border-black/60 pt-1 mt-2 tracking-widest">
+                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - -
+                    </div>
+
+                    <div className="w-full flex items-center justify-between text-[7px] font-mono text-black/70 mt-1 px-8">
+                      <span>N° SÉRIE : <strong>{t.serialNumber}</strong></span>
+                      <span>CATÉGORIE : <strong>{t.categoryName}</strong></span>
+                      <span>TARIF : <strong>{t.price.toLocaleString()} FCFA</strong></span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Verso */}
+                <div className="print-page-ticket bg-white">
+                  <div className="w-[210mm] h-[148mm] relative flex flex-col items-center justify-center p-2 box-sizing-border">
+                    <div className="absolute top-2 left-2 text-[9px] font-mono text-black font-bold">┌ ✂</div>
+                    <div className="absolute top-2 right-2 text-[9px] font-mono text-black font-bold">✂ ┐</div>
+                    <div className="absolute bottom-2 left-2 text-[9px] font-mono text-black font-bold">└ ✂</div>
+                    <div className="absolute bottom-2 right-2 text-[9px] font-mono text-black font-bold">✂ ┘</div>
+
+                    <div className="w-full flex items-center justify-between text-[7px] font-mono uppercase text-black/70 mb-1 px-8">
+                      <span>LUMARÉEL CO. · PROTOCOLE DE SÉCURITÉ CONTRÔLE VIGILE</span>
+                      <span>PAGE A5 · FACE VERSO (BILLET {idx + 1}/{ticketsRef.current.length})</span>
+                    </div>
+
+                    <div className="w-full text-center text-[7.5px] font-mono text-black/60 border-b border-dashed border-black/60 pb-1 mb-2 tracking-widest">
+                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - -
+                    </div>
+
+                    <div className="w-[153.6mm] h-[54.8mm] border-2 border-black p-3.5 flex items-center justify-between text-left bg-white text-black relative shrink-0">
+                      <div className="flex-1 pr-3 flex flex-col justify-between h-full">
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-wider text-black">
+                            {t.event.artist} EN CONCERT
+                          </div>
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-black mt-0.5">
+                            CATÉGORIE : {t.categoryName} · {t.price.toLocaleString()} FCFA
+                          </div>
+                          <div className="text-[8.5px] text-black mt-1">
+                            <strong className="font-black text-black">{t.event.venue}</strong> · <strong className="font-black text-black">{formatDateLongFrench(t.event.date)}</strong>
+                          </div>
+                        </div>
+                        <div className="border-t border-black/40 pt-1.5 mt-1">
+                          <div className="text-[7px] leading-tight text-neutral-800 font-sans">
+                            • Billet individuel strict. L'entrée aux portes invalide le jeton.<br />
+                            • Toute tentative de reproduction est passible de poursuites pénales.<br />
+                            • Contrôle d'accès et régie : LUMARÉEL CO.
+                          </div>
+                          <div className="text-[7.5px] font-mono font-bold mt-1 text-black">
+                            N° {t.serialNumber} · {t.token.slice(0, 20)}...
+                          </div>
+                        </div>
+                      </div>
+                      <div className="p-1 border border-black shrink-0 flex flex-col items-center justify-center bg-white">
+                        <img src={t.qrDataUrl} alt="QR Code" className="w-24 h-24 object-contain" />
+                        <span className="text-[7px] font-mono font-bold mt-0.5">SCAN PORTILLON</span>
+                      </div>
+                    </div>
+
+                    <div className="w-full text-center text-[7.5px] font-mono text-black/60 border-t border-dashed border-black/60 pt-1 mt-2 tracking-widest">
+                      - - - - - - - - - - ✂ LIGNE DE DÉCOUPE OFFICIELLE (153.6 × 54.8 MM) ✂ - - - - - - - - -
+                    </div>
+
+                    <div className="w-full flex items-center justify-between text-[7px] font-mono text-black/70 mt-1 px-8">
+                      <span>JETON CRYPTÉ : <strong>{t.token.slice(0, 16)}</strong></span>
+                      <span>SCELLÉ OFFICIEL LUMARÉEL CO.</span>
+                    </div>
+                  </div>
+                </div>
+              </React.Fragment>
+            ))
           )}
         </div>
       )}
