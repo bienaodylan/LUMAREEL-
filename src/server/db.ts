@@ -1504,7 +1504,8 @@ class LumareelDatabase {
     const artistCode = event.artist.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'LMR';
     const issuedAt = new Date().toISOString();
 
-    let sequence = this.printTicketList.filter((t) => t.eventId === event.id).length;
+    // Compteur global des billets physiques : évite les doublons entre deux événements du même artiste.
+    let sequence = this.printTicketList.length;
 
     const created: Ticket[] = [];
     for (let i = 0; i < quantity; i++) {
