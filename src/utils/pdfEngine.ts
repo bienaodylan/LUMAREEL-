@@ -277,111 +277,64 @@ function mirrorPlacement(
  *  - centre la composition ;
  *  - calcule le plan VERSO en miroir selon le retournement de la feuille.
  */
+export type TicketOrientationMode = 'auto' | 'horizontal' | 'vertical';
+
 export function createProductionLayout(
   paper: PaperFormat,
   ticketCount: number,
   marginMm = PRINT_SAFE_MARGIN_MM,
   gapMm = TICKET_GAP_MM,
-  flip: DuplexFlip = 'long'
+  flip: DuplexFlip = 'long',
+  orientationMode: TicketOrientationMode = 'auto'
 ): ProductionLayout {
-  if (
-    !Number.isFinite(paper.widthMm) ||
-    !Number.isFinite(paper.heightMm) ||
-    paper.widthMm <= 0 ||
-    paper.heightMm <= 0
-  ) {
-    throw new Error('Dimensions du papier invalides.');
-  }
-  if (!Number.isFinite(ticketCount) || ticketCount < 1) {
-    throw new Error('La quantité de billets doit être supérieure à zéro.');
-  }
-  if (marginMm < 0 || gapMm < 0) {
-    throw new Error('Les marges et espacements ne peuvent pas être négatifs.');
-  }
+  if (!Number.isFinite(paper.widthMm) || !Number.isFinite(paper.heightMm) || paper.widthMm <= 0 || paper.heightMm <= 0) throw new Error('Dimensions du papier invalides.');
+  if (!Number.isInteger(ticketCount) || ticketCount < 1) throw new Error('La quantité de billets doit être supérieure à zéro.');
+  if (!Number.isFinite(marginMm) || !Number.isFinite(gapMm) || marginMm < 0 || gapMm < 0) throw new Error('Les marges et espacements ne peuvent pas être négatifs.');
 
   const shortSide = Math.min(paper.widthMm, paper.heightMm);
   const longSide = Math.max(paper.widthMm, paper.heightMm);
-
-  const options = (['portrait', 'landscape'] as const).map((orientation) => {
+  const candidates: Array<{ orientation: 'portrait' | 'landscape'; pageW: number; pageH: number; rotated: boolean; columns: number; rows: number; count: number }> = [];
+  for (const orientation of ['portrait', 'landscape'] as const) {
     const pageW = orientation === 'portrait' ? shortSide : longSide;
     const pageH = orientation === 'portrait' ? longSide : shortSide;
     const usableW = pageW - marginMm * 2;
     const usableH = pageH - marginMm * 2;
-    const packed =
-      usableW > 0 && usableH > 0
-        ? packGuillotine(usableW, usableH, TICKET_WIDTH_MM, TICKET_HEIGHT_MM, gapMm)
-        : { rects: [] as PackedRect[], score: 0 };
-    return { orientation, pageW, pageH, ...packed };
-  });
-
-  // Nombre de billets d'abord, moins de pivotés ensuite, portrait en cas d'égalité.
-  const best = options.reduce((a, b) => (b.score > a.score ? b : a));
-
-  if (!best.rects.length) {
-    throw new Error(
-      `Aucun billet de ${TICKET_WIDTH_MM} × ${TICKET_HEIGHT_MM} mm ne tient sur ce papier avec une marge de ${marginMm} mm.`
-    );
+    const rotations = orientationMode === 'auto' ? [false, true] : [orientationMode === 'vertical'];
+    for (const rotated of rotations) {
+      const tw = rotated ? TICKET_HEIGHT_MM : TICKET_WIDTH_MM;
+      const th = rotated ? TICKET_WIDTH_MM : TICKET_HEIGHT_MM;
+      const columns = Math.max(0, Math.floor((usableW + gapMm) / (tw + gapMm)));
+      const rows = Math.max(0, Math.floor((usableH + gapMm) / (th + gapMm)));
+      if (columns && rows) candidates.push({ orientation, pageW, pageH, rotated, columns, rows, count: columns * rows });
+    }
   }
+  candidates.sort((a, b) => b.count - a.count || Number(a.rotated) - Number(b.rotated) || (a.orientation === 'portrait' ? -1 : 1));
+  const best = candidates[0];
+  if (!best) throw new Error(`Aucun billet de ${TICKET_WIDTH_MM} × ${TICKET_HEIGHT_MM} mm ne tient sur ce papier avec une marge de ${marginMm} mm.`);
 
-  const base = best.rects.map((rect) => ({
-    x: rect.x,
-    y: rect.y,
-    width: rect.rot ? TICKET_HEIGHT_MM : TICKET_WIDTH_MM,
-    height: rect.rot ? TICKET_WIDTH_MM : TICKET_HEIGHT_MM,
-    rotated: rect.rot,
-    rotation: (rect.rot ? 90 : 0) as Rotation,
-  }));
-
-  // Centrage de l'ensemble sur la feuille (dans la zone utile).
-  const minX = Math.min(...base.map((p) => p.x));
-  const minY = Math.min(...base.map((p) => p.y));
-  const maxX = Math.max(...base.map((p) => p.x + p.width));
-  const maxY = Math.max(...base.map((p) => p.y + p.height));
-  const offsetX = (best.pageW - (maxX - minX)) / 2 - minX;
-  const offsetY = (best.pageH - (maxY - minY)) / 2 - minY;
-
-  // Ordre de lecture : de haut en bas, puis de gauche à droite.
-  const placements: TicketPlacement[] = base
-    .map((p) => ({ ...p, x: round2(p.x + offsetX), y: round2(p.y + offsetY) }))
-    .sort((a, b) => a.y - b.y || a.x - b.x);
-
+  const tw = best.rotated ? TICKET_HEIGHT_MM : TICKET_WIDTH_MM;
+  const th = best.rotated ? TICKET_WIDTH_MM : TICKET_HEIGHT_MM;
+  const occupiedW = best.columns * tw + (best.columns - 1) * gapMm;
+  const occupiedH = best.rows * th + (best.rows - 1) * gapMm;
+  const offsetX = (best.pageW - occupiedW) / 2;
+  const offsetY = (best.pageH - occupiedH) / 2;
+  const placements: TicketPlacement[] = [];
+  for (let row = 0; row < best.rows; row++) for (let column = 0; column < best.columns; column++) {
+    placements.push({ x: round2(offsetX + column * (tw + gapMm)), y: round2(offsetY + row * (th + gapMm)), width: tw, height: th, rotated: best.rotated, rotation: best.rotated ? 90 : 0 });
+  }
   const longIsVertical = best.orientation === 'portrait';
   const mirrorAxis: 'x' | 'y' = (flip === 'long') === longIsVertical ? 'x' : 'y';
   const versoPlacements = placements.map((p) => mirrorPlacement(p, mirrorAxis, best.pageW, best.pageH));
-
-  const rotatedPerPage = placements.filter((p) => p.rotated).length;
-  const normalPerPage = placements.length - rotatedPerPage;
   const ticketArea = TICKET_WIDTH_MM * TICKET_HEIGHT_MM * placements.length;
-  const summary =
-    rotatedPerPage === 0
-      ? `${placements.length} billets à 0°`
-      : normalPerPage === 0
-        ? `${placements.length} billets pivotés à 90°`
-        : `${normalPerPage} billets à 0° + ${rotatedPerPage} pivoté${rotatedPerPage > 1 ? 's' : ''} à 90°`;
-
   return {
-    paper,
-    pageWidthMm: best.pageW,
-    pageHeightMm: best.pageH,
-    pageOrientation: best.orientation,
-    marginMm,
-    gapMm,
-    columns: new Set(placements.map((p) => p.x)).size,
-    rows: new Set(placements.map((p) => p.y)).size,
-    ticketsPerPage: placements.length,
-    totalPages: Math.ceil(ticketCount / placements.length),
-    rotated: rotatedPerPage === placements.length,
-    rotatedPerPage,
+    paper, pageWidthMm: best.pageW, pageHeightMm: best.pageH, pageOrientation: best.orientation,
+    marginMm, gapMm, columns: best.columns, rows: best.rows, ticketsPerPage: placements.length,
+    totalPages: Math.ceil(ticketCount / placements.length), rotated: best.rotated,
+    rotatedPerPage: best.rotated ? placements.length : 0,
     fillPercent: Math.round((ticketArea / (best.pageW * best.pageH)) * 1000) / 10,
-    uniformBaselinePerPage: Math.max(
-      uniformGridCount(shortSide, longSide, marginMm, gapMm),
-      uniformGridCount(longSide, shortSide, marginMm, gapMm)
-    ),
-    summary,
-    flip,
-    mirrorAxis,
-    placements,
-    versoPlacements,
+    uniformBaselinePerPage: placements.length,
+    summary: `${placements.length} billets ${best.rotated ? 'verticaux (90°)' : 'horizontaux (0°)'} — grille ${best.columns} × ${best.rows}`,
+    flip, mirrorAxis, placements, versoPlacements,
   };
 }
 
@@ -553,87 +506,56 @@ function drawVerso(pdf: jsPDF, ticket: PrintTicketItem, p: TicketPlacement, qrDa
 export async function generateProductionPDF(
   tickets: PrintTicketItem[],
   paper: PaperFormat,
-  type: 'recto' | 'verso',
+  type: 'recto' | 'verso' | 'duplex',
   sharedLayout?: ProductionLayout
 ): Promise<jsPDF> {
   if (!tickets.length) throw new Error('Aucun billet à imprimer.');
-
   const layout = sharedLayout || createProductionLayout(paper, tickets.length);
-  const pdf = new jsPDF({
-    orientation: layout.pageOrientation,
-    unit: 'mm',
-    format: [layout.pageWidthMm, layout.pageHeightMm],
-    compress: true,
-  });
-
-  // Les deux faces lisent le MÊME plan ; le verso utilise les positions miroir.
-  const positions = type === 'recto' ? layout.placements : layout.versoPlacements;
-
-  // Un seul embarquement par visuel distinct (alias), au lieu d'un par billet.
+  const pdf = new jsPDF({ orientation: layout.pageOrientation, unit: 'mm', format: [layout.pageWidthMm, layout.pageHeightMm], compress: true });
   const designs = new Map<string, DesignInfo>();
-  if (type === 'recto') {
-    for (const ticket of tickets) {
-      if (designs.has(ticket.ticketDesignUrl)) continue;
-      try {
-        const props = pdf.getImageProperties(ticket.ticketDesignUrl);
-        designs.set(ticket.ticketDesignUrl, {
-          alias: `design_${designs.size}`,
-          format: getImageFormat(ticket.ticketDesignUrl),
-          ratio: props.width / props.height,
-        });
-      } catch (error) {
-        console.error('Visuel recto illisible :', error);
-      }
-    }
+  if (type !== 'verso') for (const ticket of tickets) {
+    if (designs.has(ticket.ticketDesignUrl)) continue;
+    try {
+      const props = pdf.getImageProperties(ticket.ticketDesignUrl);
+      designs.set(ticket.ticketDesignUrl, { alias: `design_${designs.size}`, format: getImageFormat(ticket.ticketDesignUrl), ratio: props.width / props.height });
+    } catch (error) { console.error('Visuel recto illisible :', error); }
   }
-
-  for (let pageIdx = 0; pageIdx < layout.totalPages; pageIdx++) {
-    if (pageIdx > 0) {
-      pdf.addPage([layout.pageWidthMm, layout.pageHeightMm], layout.pageOrientation);
-    }
-
-    const pageTickets = tickets.slice(pageIdx * layout.ticketsPerPage, (pageIdx + 1) * layout.ticketsPerPage);
-
+  const renderFace = async (pageTickets: PrintTicketItem[], face: 'recto' | 'verso') => {
+    const positions = face === 'recto' ? layout.placements : layout.versoPlacements;
     for (let i = 0; i < pageTickets.length; i++) {
       const ticket = pageTickets[i];
       const placement = positions[i];
       if (!placement) continue;
-
-      if (type === 'recto') {
+      if (face === 'recto') {
         const info = designs.get(ticket.ticketDesignUrl);
         try {
           if (!info) throw new Error('Visuel indisponible');
           addRectoImage(pdf, ticket, placement, info);
         } catch (error) {
           console.error('Erreur lors de l’ajout du visuel recto :', error);
-          pdf.setFillColor(25, 25, 25);
-          pdf.rect(placement.x, placement.y, placement.width, placement.height, 'F');
+          pdf.setFillColor(25, 25, 25); pdf.rect(placement.x, placement.y, placement.width, placement.height, 'F');
           const pos = localToPage(placement, TICKET_WIDTH_MM / 2, TICKET_HEIGHT_MM / 2);
-          pdf.setTextColor(255, 255, 255);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setFontSize(10);
-          pdf.text(ticket.categoryName, pos.x, pos.y, {
-            align: 'center',
-            angle: placement.rotation,
-          });
+          pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10);
+          pdf.text(ticket.categoryName, pos.x, pos.y, { align: 'center', angle: placement.rotation });
         }
       } else {
         let qrDataUrl: string | undefined;
-        try {
-          qrDataUrl = await QRCode.toDataURL(ticket.token, {
-            margin: 1,
-            width: 240,
-            errorCorrectionLevel: 'M',
-          });
-        } catch (error) {
-          console.error('Erreur génération QR code PDF', error);
-        }
+        try { qrDataUrl = await QRCode.toDataURL(ticket.token, { margin: 1, width: 240, errorCorrectionLevel: 'M' }); }
+        catch (error) { console.error('Erreur génération QR code PDF', error); }
         drawVerso(pdf, ticket, placement, qrDataUrl, `qr_${ticket.id}`);
       }
-
       drawCropMarks(pdf, placement, layout.gapMm);
     }
+  };
+  let pageNumber = 0;
+  for (let sheet = 0; sheet < layout.totalPages; sheet++) {
+    const pageTickets = tickets.slice(sheet * layout.ticketsPerPage, (sheet + 1) * layout.ticketsPerPage);
+    const faces: Array<'recto' | 'verso'> = type === 'duplex' ? ['recto', 'verso'] : [type];
+    for (const face of faces) {
+      if (pageNumber > 0) pdf.addPage([layout.pageWidthMm, layout.pageHeightMm], layout.pageOrientation);
+      await renderFace(pageTickets, face);
+      pageNumber++;
+    }
   }
-
   return pdf;
 }
