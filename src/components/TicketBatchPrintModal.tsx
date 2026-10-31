@@ -7,7 +7,9 @@ import {
   generateProductionPDF,
   PrintTicketItem,
   DuplexFlip,
+  TicketOrientationMode,
 } from '../utils/pdfEngine';
+import { uploadDesign, urlToDataUrl } from '../utils/designStorage';
 import {
   Printer,
   X,
@@ -36,12 +38,18 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   const [quantity, setQuantity] = useState(10);
   const [selectedPaperKey, setSelectedPaperKey] = useState('A3');
   const [duplexFlip, setDuplexFlip] = useState<DuplexFlip>('long');
+  const [orientationMode, setOrientationMode] = useState<TicketOrientationMode>('auto');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isUploadingDesign, setIsUploadingDesign] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [isReadyToPrint, setIsReadyToPrint] = useState(false);
+  const [previewUrls, setPreviewUrls] = useState<{ recto: string; verso: string } | null>(null);
+  const [previewTab, setPreviewTab] = useState<'recto' | 'verso'>('recto');
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const ticketsRef = useRef<PrintTicketItem[]>([]);
+  // Lot déjà enregistré sur le serveur : évite de créer un 2e lot si on change seulement le papier ou le sens.
+  const batchCacheRef = useRef<{ key: string; tickets: Array<{ id: string; serialNumber: string; token: string }> } | null>(null);
 
   const selectedEvent = events.find((event) => event.id === selectedEventId) || events[0];
   const currentCategory = selectedEvent?.categories.find((category) => category.id === selectedCategoryId)
@@ -57,7 +65,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     if (!selectedPaper || quantity < 1) return { layout: null, layoutError: '' };
     try {
       return {
-        layout: createProductionLayout(selectedPaper, quantity, undefined, undefined, duplexFlip),
+        layout: createProductionLayout(selectedPaper, quantity, undefined, undefined, duplexFlip, orientationMode),
         layoutError: '',
       };
     } catch (error) {
@@ -66,7 +74,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
         layoutError: error instanceof Error ? error.message : 'Disposition impossible pour ce format.',
       };
     }
-  }, [selectedPaper, quantity, duplexFlip]);
+  }, [selectedPaper, quantity, duplexFlip, orientationMode]);
 
   useEffect(() => {
     if (initialEventId && events.some((event) => event.id === initialEventId)) {
@@ -88,7 +96,49 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     setIsReadyToPrint(false);
     ticketsRef.current = [];
     setGenerationProgress(0);
+    if (!isOpen) batchCacheRef.current = null;
   }, [selectedEventId, selectedCategoryId, selectedPaperKey, isOpen]);
+
+  // Aperçu de la première feuille : recto puis verso (QR codes), tels qu'ils seront imprimés.
+  useEffect(() => {
+    if (!isReadyToPrint || !selectedPaper || !ticketsRef.current.length) {
+      setPreviewUrls(null);
+      return;
+    }
+    let cancelled = false;
+    const created: string[] = [];
+    (async () => {
+      setIsPreviewing(true);
+      try {
+        const full = createProductionLayout(
+          selectedPaper,
+          ticketsRef.current.length,
+          undefined,
+          undefined,
+          duplexFlip,
+          orientationMode
+        );
+        const firstSheet = ticketsRef.current.slice(0, full.ticketsPerPage);
+        const onePage = { ...full, totalPages: 1 };
+        const recto = await generateProductionPDF(firstSheet, selectedPaper, 'recto', onePage);
+        const verso = await generateProductionPDF(firstSheet, selectedPaper, 'verso', onePage);
+        if (cancelled) return;
+        const rectoUrl = URL.createObjectURL(recto.output('blob'));
+        const versoUrl = URL.createObjectURL(verso.output('blob'));
+        created.push(rectoUrl, versoUrl);
+        setPreviewUrls({ recto: rectoUrl, verso: versoUrl });
+      } catch (error) {
+        console.error('Aperçu impossible :', error);
+        if (!cancelled) setPreviewUrls(null);
+      } finally {
+        if (!cancelled) setIsPreviewing(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      created.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [isReadyToPrint, selectedPaper, duplexFlip, orientationMode]);
 
   if (!isOpen) return null;
 
@@ -101,27 +151,8 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
 
     try {
       setIsUploadingDesign(true);
-      let fileUrl = '';
-      try {
-        const uploadForm = new FormData();
-        uploadForm.append('file', file);
-        const response = await fetch('/api/upload', { method: 'POST', body: uploadForm });
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.url) fileUrl = data.url;
-        }
-      } catch (error) {
-        console.warn('Upload distant indisponible, utilisation du Data URL.', error);
-      }
-
-      if (!fileUrl) {
-        fileUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result || ''));
-          reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
-          reader.readAsDataURL(file);
-        });
-      }
+      // Envoi dans Supabase Storage : l'URL reste valable après actualisation et redéploiement.
+      const fileUrl = await uploadDesign(file, `tickets/${selectedEvent.id}`);
 
       const updatedEvent = {
         ...selectedEvent,
@@ -135,7 +166,10 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       showToast(`Design de la catégorie ${currentCategory.name} mis à jour !`, 'success');
     } catch (error) {
       console.error(error);
-      showToast("Erreur lors de l'import du visuel de ticket.", 'error');
+      showToast(
+        error instanceof Error ? error.message : "Erreur lors de l'import du visuel de ticket.",
+        'error'
+      );
     } finally {
       setIsUploadingDesign(false);
     }
@@ -158,37 +192,87 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     setGenerationProgress(0);
 
     try {
-      const generated: PrintTicketItem[] = [];
-      const artistCode = selectedEvent.artist.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'LMR';
-      for (let index = 1; index <= quantity; index++) {
-        const now = Date.now();
-        const serialNumber = `LMR-${new Date().getFullYear()}-${artistCode}-${String(index).padStart(5, '0')}`;
-        const token = `TKT_SEC_${Math.random().toString(36).slice(2, 12).toUpperCase()}_${now.toString(36).toUpperCase()}`;
-        generated.push({
-          id: `tkt_phys_${now}_${index}`,
-          serialNumber,
-          token,
-          categoryName: currentCategory.name,
-          price: currentCategory.price,
-          artist: selectedEvent.artist,
-          venue: selectedEvent.venue,
-          dateStr: formatDateLongFrench(selectedEvent.date),
-          ticketDesignUrl: categoryDesignUrl,
+      // Le PDF a besoin du visuel en Data URL : on le télécharge une seule fois pour tout le lot.
+      const designData = await urlToDataUrl(categoryDesignUrl);
+      setGenerationProgress(15);
+
+      // Les billets sont créés et enregistrés sur le serveur AVANT l'impression :
+      // chaque QR code contient un jeton réel, reconnu au contrôle d'entrée.
+      const batchKey = `${selectedEvent.id}|${currentCategory.id}|${quantity}`;
+      let registered = batchCacheRef.current?.key === batchKey ? batchCacheRef.current.tickets : null;
+      if (!registered) {
+        const response = await fetch('/api/tickets/print-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            eventId: selectedEvent.id,
+            categoryId: currentCategory.id,
+            quantity,
+          }),
         });
-        if (index % 50 === 0 || index === quantity) {
-          setGenerationProgress(Math.round((index / quantity) * 100));
-          await new Promise((resolve) => window.setTimeout(resolve, 0));
+        const data = await response.json().catch(() => null);
+        if (!response.ok || !data?.success || !Array.isArray(data.tickets)) {
+          throw new Error(data?.error || 'Enregistrement des billets impossible : aucun billet n’a été créé.');
         }
+        registered = data.tickets as Array<{ id: string; serialNumber: string; token: string }>;
+        batchCacheRef.current = { key: batchKey, tickets: registered };
       }
+      setGenerationProgress(80);
+
+      const dateStr = formatDateLongFrench(selectedEvent.date);
+      const generated: PrintTicketItem[] = registered.map((ticket) => ({
+        id: ticket.id,
+        serialNumber: ticket.serialNumber,
+        token: ticket.token,
+        categoryName: currentCategory.name,
+        price: currentCategory.price,
+        artist: selectedEvent.artist,
+        venue: selectedEvent.venue,
+        dateStr,
+        ticketDesignUrl: designData,
+      }));
+      setGenerationProgress(100);
 
       ticketsRef.current = generated;
       setIsReadyToPrint(true);
       showToast(`Lot de ${quantity.toLocaleString()} billets préparé.`, 'success');
     } catch (error) {
       console.error(error);
-      showToast('Une erreur est survenue pendant la préparation du lot.', 'error');
+      showToast(
+        error instanceof Error ? error.message : 'Une erreur est survenue pendant la préparation du lot.',
+        'error'
+      );
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // Un seul PDF : recto, verso, recto, verso... pour imprimer les deux faces en une fois.
+  const handleDownloadDuplexPDF = async () => {
+    if (!selectedPaper || !selectedEvent || !ticketsRef.current.length) return;
+
+    setIsDownloading(true);
+    try {
+      const sharedLayout = createProductionLayout(
+        selectedPaper,
+        ticketsRef.current.length,
+        undefined,
+        undefined,
+        duplexFlip,
+        orientationMode
+      );
+      showToast('Génération du PDF recto-verso...', 'success');
+      const duplexPdf = await generateProductionPDF(ticketsRef.current, selectedPaper, 'duplex', sharedLayout);
+      duplexPdf.save(`LUMAREEL_RECTO-VERSO_${selectedEvent.artist}_${selectedPaperKey}.pdf`);
+      showToast(
+        `PDF recto-verso prêt : ${sharedLayout.totalPages} feuille(s), ${sharedLayout.totalPages * 2} pages. Imprimez en recto-verso, retournement sur le bord ${duplexFlip === 'long' ? 'long' : 'court'}.`,
+        'success'
+      );
+    } catch (error) {
+      console.error('Erreur de production PDF recto-verso :', error);
+      showToast(error instanceof Error ? error.message : 'Erreur pendant la génération du PDF.', 'error');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -203,7 +287,8 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
         ticketsRef.current.length,
         undefined,
         undefined,
-        duplexFlip
+        duplexFlip,
+        orientationMode
       );
       showToast('Génération du PDF RECTO...', 'success');
       const rectoPdf = await generateProductionPDF(ticketsRef.current, selectedPaper, 'recto', sharedLayout);
@@ -325,6 +410,16 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
               <p className="text-[10px] text-neutral-500 mt-1.5">Le verso est généré en miroir selon ce choix, pour tomber exactement derrière chaque recto. Il doit correspondre au mode recto-verso de l'imprimante.</p>
             </div>
 
+            <div>
+              <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">6. Sens des billets sur la feuille</label>
+              <select value={orientationMode} onChange={(event) => setOrientationMode(event.target.value as TicketOrientationMode)} className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-2.5 text-xs text-white outline-none focus:border-[#d4af37]">
+                <option value="auto">Automatique (le plus de billets par feuille)</option>
+                <option value="horizontal">Horizontal (billets à plat)</option>
+                <option value="vertical">Vertical (tous les billets tournés à 90°)</option>
+              </select>
+              <p className="text-[10px] text-neutral-500 mt-1.5">Tous les billets d'une feuille ont le même sens, alignés en colonnes et en rangées régulières.</p>
+            </div>
+
             {layoutError && (
               <div className="p-4 rounded-2xl border border-red-500/30 bg-red-500/10 text-[11px] text-red-300">
                 {layoutError} Choisissez un format plus grand.
@@ -341,8 +436,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                   <div><div className="flex items-center gap-1 text-xl font-agrandir-extrabold text-white">{layout.rotatedPerPage > 0 ? <><RotateCw className="w-4 h-4" /> {layout.rotatedPerPage}</> : '0'}</div><div className="text-[9px] text-neutral-400 uppercase">Billets pivotés à 90°</div></div>
                 </div>
                 <p className="text-[10px] text-neutral-300">
-                  Feuille {layout.pageOrientation === 'landscape' ? 'paysage' : 'portrait'} · {layout.summary}
-                  {layout.ticketsPerPage > layout.uniformBaselinePerPage ? ` (grille simple : ${layout.uniformBaselinePerPage})` : ''}.
+                  Feuille {layout.pageOrientation === 'landscape' ? 'paysage' : 'portrait'} · {layout.summary}.
                 </p>
                 <p className="text-[10px] text-neutral-400">Calcul avec marge de sécurité de {layout.marginMm} mm et espacement de {layout.gapMm} mm. Le résultat réel dépend des marges non imprimables de l'imprimante.</p>
               </div>
@@ -358,13 +452,38 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
             <div>
               <h3 className="text-2xl font-agrandir-extrabold uppercase text-white mb-2">Lot prêt pour la production</h3>
               <p className="text-[#888] text-xs max-w-md mx-auto leading-relaxed"><strong className="text-white">{ticketsRef.current.length.toLocaleString('fr-FR')} billets</strong> · papier <strong className="text-white">{selectedPaper?.name}</strong> · <strong className="text-white">{layout?.ticketsPerPage}</strong> billets par feuille · <strong className="text-white">{layout?.totalPages}</strong> feuille(s).</p>
-              <p className="text-[10px] text-neutral-500 mt-2">Deux fichiers distincts seront générés : RECTO et VERSO. Ils partageront exactement le même plan de placement.</p>
+              <p className="text-[10px] text-neutral-500 mt-2">Le PDF recto-verso alterne les pages (recto, verso, recto, verso…) : imprimez-le en recto-verso, avec le retournement choisi, pour que chaque QR code tombe derrière son billet.</p>
             </div>
+
+            <div className="w-full space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                {(['recto', 'verso'] as const).map((tab) => (
+                  <button key={tab} type="button" onClick={() => setPreviewTab(tab)} className={`px-5 py-2 rounded-xl text-xs font-agrandir-bold uppercase border transition-colors ${previewTab === tab ? 'bg-[#d4af37] text-black border-[#d4af37]' : 'bg-white/5 text-neutral-300 border-white/15 hover:bg-white/10'}`}>
+                    {tab === 'recto' ? 'Recto' : 'Verso (QR codes)'}
+                  </button>
+                ))}
+              </div>
+              <div className="relative w-full h-[460px] rounded-2xl overflow-hidden border border-white/15 bg-neutral-900">
+                {isPreviewing || !previewUrls ? (
+                  <div className="absolute inset-0 flex items-center justify-center gap-2 text-xs text-neutral-400">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Préparation de l'aperçu...
+                  </div>
+                ) : (
+                  <iframe key={previewTab} title={`Aperçu ${previewTab}`} src={`${previewUrls[previewTab]}#view=Fit&toolbar=0`} className="w-full h-full bg-white" />
+                )}
+              </div>
+              <p className="text-[10px] text-neutral-500">
+                Feuille 1 sur {layout?.totalPages}. Le verso est montré tel qu'il sera imprimé : en miroir du recto, selon le retournement choisi, pour que chaque QR code tombe derrière le bon billet.
+                {previewUrls && <> <a href={previewUrls[previewTab]} target="_blank" rel="noreferrer" className="text-[#d4af37] underline">Ouvrir dans un nouvel onglet</a></>}
+              </p>
+            </div>
+
             <div className="flex flex-col sm:flex-row items-center gap-3 mt-6">
               <button type="button" onClick={() => setIsReadyToPrint(false)} disabled={isDownloading} className="px-6 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-agrandir-bold uppercase">Modifier</button>
-              <button type="button" onClick={() => void handleDownloadPDFs()} disabled={isDownloading} className="px-8 py-3.5 rounded-2xl bg-[#d4af37] hover:bg-[#e6c158] text-black font-agrandir-extrabold text-sm uppercase flex items-center gap-2 shadow-[0_0_25px_rgba(212,175,55,0.25)] disabled:opacity-60">
+              <button type="button" onClick={() => void handleDownloadPDFs()} disabled={isDownloading} className="px-6 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-neutral-300 text-xs font-agrandir-bold uppercase disabled:opacity-60">Recto et verso séparés</button>
+              <button type="button" onClick={() => void handleDownloadDuplexPDF()} disabled={isDownloading} className="px-8 py-3.5 rounded-2xl bg-[#d4af37] hover:bg-[#e6c158] text-black font-agrandir-extrabold text-sm uppercase flex items-center gap-2 shadow-[0_0_25px_rgba(212,175,55,0.25)] disabled:opacity-60">
                 {isDownloading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
-                <span>{isDownloading ? 'Génération...' : 'Télécharger les PDF recto / verso'}</span>
+                <span>{isDownloading ? 'Génération...' : 'Télécharger le PDF recto-verso'}</span>
               </button>
             </div>
           </div>
