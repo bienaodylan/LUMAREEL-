@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useApp } from '../context/AppContext';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import {
   Shield,
   Camera,
@@ -237,11 +236,6 @@ export const ScannerView: React.FC = () => {
     try {
       setAuthStatus('checking');
 
-      // Super admin or gate agent bypass
-      if (currentUser?.role === 'super_admin' || currentUser?.role === 'gate_agent') {
-        tokenToVerify = tokenToVerify || 'SEC_SESSION_AUTHORIZED';
-      }
-
       let url = `/api/verify-scanner-token?token=${encodeURIComponent(tokenToVerify.trim())}`;
       if (eventIdToVerify) {
         url += `&eventId=${encodeURIComponent(eventIdToVerify.trim())}`;
@@ -250,37 +244,9 @@ export const ScannerView: React.FC = () => {
       let data: any = null;
       let isVerified = false;
 
-      try {
-        const res = await fetch(url);
-        data = await res.json();
-        if (res.ok && data.valid) {
-          isVerified = true;
-        }
-      } catch (errApi) {
-        // Fallback Supabase si Express n'est pas actif (ex: déploiement Vercel pur)
-        if (isSupabaseConfigured) {
-          try {
-            const { data: tokenRow } = await supabase
-              .from('scanner_tokens')
-              .select('*')
-              .eq('token', tokenToVerify.trim())
-              .eq('is_revoked', false)
-              .gt('expires_at', new Date().toISOString())
-              .maybeSingle();
-
-            if (tokenRow) {
-              isVerified = true;
-              data = { valid: true, event: { id: tokenRow.event_id, title: 'Concert Officiel' } };
-            }
-          } catch {}
-        }
-      }
-
-      // Bypass pour super_admin
-      if (!isVerified && (currentUser?.role === 'super_admin' || tokenToVerify.includes('VIGILE_AUTH'))) {
-        isVerified = true;
-        data = { valid: true, event: { id: eventIdToVerify || 'ev_1', title: 'Accès Contrôleur LUMARÉEL' } };
-      }
+      const res = await fetch(url);
+      const data = await res.json();
+      const isVerified = res.ok && data.valid === true;
 
       if (isVerified && data) {
         setAuthStatus('authorized');
