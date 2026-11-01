@@ -214,6 +214,11 @@ export const CheckoutModal: React.FC = () => {
                 />
               </div>
               <div className="flex-1 min-w-0 pr-8">
+                <img
+                  src="/assets/logo-lumareel.png"
+                  alt="LUMARÉEL CO."
+                  className="h-5 w-auto object-contain mb-1.5"
+                />
                 <div className="flex items-center gap-2 text-[10px] font-agrandir-regular tracking-[0.2em] text-[#888] uppercase mb-1">
                   <span>BILLETTERIE OFFICIELLE</span>
                   <span>·</span>

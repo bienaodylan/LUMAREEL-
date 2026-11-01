@@ -74,7 +74,7 @@ const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   platformName: 'LUMARÉEL',
   tagline: 'CO.',
   logoMonogram: 'LR',
-  logoUrl: '',
+  logoUrl: '/assets/logo-lumareel.png',
   currency: 'FCFA',
   infoline: '+225 01 53 508 210',
   gateToken: 'VIGILE_AUTH_LMR_2026',
@@ -211,6 +211,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ORDERS: 'lumareel_persisted_orders_v5',
     ARCHIVES: 'lumareel_persisted_archives_v5',
     SETTINGS: 'lumareel_persisted_settings_v5',
+    CURRENT_USER: 'lumareel_persisted_user_v5',
   };
 
   const readLocal = <T,>(key: string, fallback: T): T => {
@@ -316,15 +317,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     orders: 10000,    // 10 secondes pour les commandes du compte
   };
 
-  // Utilisateur connecté par défaut (Super Administrateur)
-  const [currentUser, setCurrentUser] = useState<User | null>({
+  const DEFAULT_ADMIN: User = {
     id: 'usr_admin_dylan',
     email: 'bienaodylan428@gmail.com',
     name: 'Dylan B.',
     role: 'super_admin',
     emailVerified: true,
     createdAt: '2026-01-10T00:00:00Z',
-  });
+  };
+
+  // Utilisateur connecté persistant
+  const [currentUser, setCurrentUserState] = useState<User | null>(() =>
+    readLocal<User | null>(STORAGE_KEYS.CURRENT_USER, DEFAULT_ADMIN)
+  );
+
+  const setCurrentUser = (user: User | null) => {
+    setCurrentUserState(user);
+    if (user) {
+      writeLocal(STORAGE_KEYS.CURRENT_USER, user);
+    } else {
+      try {
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      } catch {}
+    }
+  };
 
   const enterPlatform = () => {
     setHasEnteredPlatform(true);

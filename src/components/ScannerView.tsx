@@ -697,7 +697,10 @@ export const ScannerView: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col justify-between pt-5 sm:pt-7 pb-10 px-3 sm:px-6 select-none font-agrandir-regular">
+    <div
+      className="min-h-screen text-white flex flex-col justify-between pt-5 sm:pt-7 pb-10 px-3 sm:px-6 select-none font-agrandir-regular bg-cover bg-center bg-fixed"
+      style={{ backgroundImage: "url('/assets/app-bg.jpg')" }}
+    >
       <div className="max-w-lg w-full mx-auto space-y-3 mb-3">
         <div className="flex items-center justify-between border-b border-white/10 pb-3 gap-2">
           <div>

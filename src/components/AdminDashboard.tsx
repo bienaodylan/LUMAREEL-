@@ -177,7 +177,11 @@ export const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex select-none font-agrandir-regular">
+    <div
+      className="min-h-screen text-white flex select-none font-agrandir-regular bg-cover bg-center bg-fixed relative"
+      style={{ backgroundImage: "url('/assets/app-bg.jpg')" }}
+    >
+      <div className="absolute inset-0 bg-black/60 pointer-events-none" />
       
       {/* 1. Persistent Sidebar (Inspirée de Shopify) */}
       <AdminSidebar

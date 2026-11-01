@@ -134,7 +134,7 @@ const EventCardCountdown: React.FC<{
   const handleSelectArtistSlide = (index: number) => setCurrentSlideIndex(index);
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#FFFFFF] pb-24 select-none">
+    <div className="min-h-screen bg-transparent text-[#FFFFFF] pb-24 select-none">
       
       {/* =========================================================================
           1. SECTION PRINCIPALE : PROGRAMMATION OFFICIELLE

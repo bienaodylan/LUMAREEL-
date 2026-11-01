@@ -44,7 +44,7 @@ export const ArchiveView: React.FC = () => {
   };
 
   return (
-    <div className="relative bg-[#060606] text-[#efefef] flex flex-col overflow-hidden select-none">
+    <div className="relative bg-transparent text-[#efefef] flex flex-col overflow-hidden select-none">
       
       {/* Downward spotlight beam in background matching user reference */}
       <div className="absolute inset-0 pointer-events-none flex justify-center overflow-hidden" aria-hidden="true">

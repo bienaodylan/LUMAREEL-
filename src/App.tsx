@@ -21,13 +21,18 @@ const MainApp: React.FC = () => {
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative">
+    <div
+      className="min-h-screen text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative bg-cover bg-center bg-fixed bg-no-repeat"
+      style={{ backgroundImage: "url('/assets/app-bg.jpg')" }}
+    >
+      {/* Léger filtre sombre pour garantir un contraste parfait */}
+      <div className="fixed inset-0 bg-black/40 pointer-events-none z-0" />
       
       {/* Top Navbar (Masquée sur le scanner et la console admin) */}
       {!isAdminOrScanner && <Navbar />}
 
       {/* Dynamic View Router avec transition de page fluide et espacement optimisé */}
-      <main className={`flex-1 ${!isAdminOrScanner ? 'pb-8 sm:pb-12' : ''}`}>
+      <main className={`flex-1 relative z-10 ${!isAdminOrScanner ? 'pb-8 sm:pb-12' : ''}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPage}
@@ -55,17 +60,23 @@ const MainApp: React.FC = () => {
       {/* Barre de Navigation Flottante Style Instagram (Translucide en pilule) */}
       {!isAdminOrScanner && <FloatingAppNavbar />}
 
-      {/* Pied de page public épuré avec réseaux sociaux officiels ordonnés */}
+      {/* Pied de page public épuré avec logo officiel et réseaux sociaux officiels ordonnés */}
       {!isAdminOrScanner && (
-        <footer className="border-t border-[#181818] bg-[#050505] py-8 px-6 sm:px-10 text-xs font-agrandir-regular text-[#777] mb-16 md:mb-0">
+        <footer className="relative z-10 border-t border-white/10 bg-[#050505]/85 backdrop-blur-md py-8 px-6 sm:px-10 text-xs font-agrandir-regular text-[#777] mb-16 md:mb-0">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
             <div>
-              <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
-                <span className="font-agrandir-extrabold text-white text-base tracking-widest uppercase">{platformSettings?.platformName || 'LUMARÉEL CO.'}</span>
-                <span aria-hidden="true" className="text-[#444]">·</span>
-                <span>{platformSettings?.tagline || 'PARIS / ABIDJAN'}</span>
-                <span aria-hidden="true" className="text-[#444]">·</span>
-                <span>© {new Date().getFullYear()}</span>
+              <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3 mb-2.5">
+                <img
+                  src="/assets/logo-lumareel.png"
+                  alt="LUMARÉEL CO."
+                  className="h-6 sm:h-7 object-contain"
+                />
+                <div className="flex items-center gap-2 text-[11px] text-[#888]">
+                  <span aria-hidden="true" className="text-[#444]">·</span>
+                  <span>{platformSettings?.tagline || 'PARIS / ABIDJAN'}</span>
+                  <span aria-hidden="true" className="text-[#444]">·</span>
+                  <span>© {new Date().getFullYear()}</span>
+                </div>
               </div>
               <p className="text-[11px] text-[#555] max-w-md font-light">
                 Plateforme de production et billetterie certifiée pour concerts et créations scéniques d'exception.

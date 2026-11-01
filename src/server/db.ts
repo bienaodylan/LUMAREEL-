@@ -79,6 +79,7 @@ class LumareelDatabase {
 
   constructor() {
     this.seedInitialData();
+    this.loadUsersFromDisk();
     this.loadEventsFromDisk();
     this.loadArchivesFromDisk();
     this.loadOrdersFromDisk();
@@ -88,6 +89,41 @@ class LumareelDatabase {
   }
 
   // --- DISK PERSISTENCE ENGINE ---
+  private saveUsersToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      const seen = new Set<string>();
+      const list: User[] = [];
+      for (const u of this.users.values()) {
+        if (!seen.has(u.id)) {
+          seen.add(u.id);
+          list.push(u);
+        }
+      }
+      fs.writeFileSync(path.join(DATA_DIR, 'users.json'), JSON.stringify(list, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('Failed to save users to disk', e);
+    }
+  }
+
+  private loadUsersFromDisk() {
+    try {
+      const file = path.join(DATA_DIR, 'users.json');
+      if (fs.existsSync(file)) {
+        const raw = fs.readFileSync(file, 'utf-8');
+        const list: User[] = JSON.parse(raw);
+        if (Array.isArray(list) && list.length > 0) {
+          for (const u of list) {
+            this.users.set(u.id, u);
+            this.users.set(u.email.toLowerCase(), u);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load users from disk', e);
+    }
+  }
+
   private saveEventsToDisk() {
     try {
       if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -848,6 +884,7 @@ class LumareelDatabase {
     };
     this.users.set(user.id, user);
     this.users.set(user.email, user);
+    this.saveUsersToDisk();
     return user;
   }
 
