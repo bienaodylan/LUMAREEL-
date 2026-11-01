@@ -490,7 +490,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 )}
               </div>
               <p className="text-[10px] text-neutral-500">
-                Feuille 1 sur {layout?.totalPages}. Le verso est montré tel qu'il sera imprimé : en miroir du recto, selon le retournement choisi, pour que chaque QR code tombe derrière le bon billet.
+                Feuille 1 sur {layout?.totalPages}. Le verso est montré tel qu'il sera imprimé : en miroir du recto, selon le retournement choisi, pour que chaque QR code tombe derrière le bon billet. Selon le retournement, il peut apparaître à l'envers à l'écran : c'est voulu, le haut du verso est placé du même côté que le haut du recto, il se lit donc à l'endroit une fois le billet retourné comme une page de livre.
                 {previewUrls && <> <a href={previewUrls[previewTab]} target="_blank" rel="noreferrer" className="text-[#d4af37] underline">Ouvrir dans un nouvel onglet</a></>}
               </p>
             </div>

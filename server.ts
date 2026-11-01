@@ -546,7 +546,7 @@ async function startServer() {
     }
   });
 
-  // --- Nouvelle route pour les lots de billets physiques (Modification B1) ---
+  // --- Route pour les lots de billets physiques (Correction de l'erreur 405) ---
   app.post('/api/tickets/print-batch', (req: Request, res: Response) => {
     try {
       const { eventId, categoryId, quantity } = req.body || {};
@@ -628,7 +628,7 @@ async function startServer() {
       (ticket as any).scannedAt = scanTimestamp;
       ticket.checkedInAt = scanTimestamp;
       ticket.checkedInBy = req.body.gateAgentId || 'Vigile LUMARÉEL CO.';
-      db.persistTickets(); // Sauvegarde du scan (Modification B2)
+      db.persistTickets(); // Sauvegarde du scan
 
       return res.status(200).json({
         valid: true,
@@ -681,7 +681,6 @@ async function startServer() {
   app.post('/api/tickets/verify-and-burn', handleScannerVerification);
 
   // --- MAGIC LINK GATE SCANNER ACCESS (Tokens URL) ---
-  // Route de génération : POST /api/events/:id/scanner-token
   app.post('/api/events/:id/scanner-token', (req: Request, res: Response) => {
     try {
       const eventId = req.params.id;
@@ -717,7 +716,6 @@ async function startServer() {
     }
   });
 
-  // Route de validation : GET /api/verify-scanner-token
   app.get('/api/verify-scanner-token', (req: Request, res: Response) => {
     try {
       const token = (req.query.token as string || '').trim();
@@ -750,7 +748,6 @@ async function startServer() {
     }
   });
 
-  // List tokens for event
   app.get('/api/events/:id/scanner-tokens', (req: Request, res: Response) => {
     try {
       const tokens = db.getScannerTokensForEvent(req.params.id);
@@ -788,7 +785,6 @@ async function startServer() {
     }
   });
 
-  // Settings Endpoints
   app.get('/api/admin/settings', (_req: Request, res: Response) => {
     try {
       const settings = db.getSettings();
@@ -807,7 +803,6 @@ async function startServer() {
     }
   });
 
-  // Supabase Config Direct Endpoint
   app.post('/api/admin/supabase-config', (req: Request, res: Response) => {
     try {
       const { supabaseUrl, supabaseAnonKey } = req.body;
@@ -815,17 +810,14 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'URL et clé anon Supabase requises.' });
       }
 
-      // 1. Sauvegarde dans les réglages de la base
       const updated = db.updateSettings({
         supabaseUrl: supabaseUrl.trim(),
         supabaseAnonKey: supabaseAnonKey.trim(),
       });
 
-      // 2. Mise à jour de process.env pour le runtime
       process.env.VITE_SUPABASE_URL = supabaseUrl.trim();
       process.env.VITE_SUPABASE_ANON_KEY = supabaseAnonKey.trim();
 
-      // 3. Écriture dans le fichier .env local
       try {
         const envPath = path.resolve(process.cwd(), '.env');
         let currentEnv = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf-8') : '';
