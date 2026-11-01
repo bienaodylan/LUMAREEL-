@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { formatDateLongFrench } from '../utils/dateUtils';
 import {
   SYSTEM_PAPER_FORMATS,
@@ -21,6 +20,67 @@ import {
   FileText,
   RotateCw,
 } from 'lucide-react';
+
+const ADMIN_KEY_STORAGE = 'lumareel_admin_key';
+
+/** Erreur définitive : inutile de réessayer automatiquement. */
+class FatalError extends Error {}
+
+const makeRequestId = (): string =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `req-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+const FATAL_CODES = ['TABLES_MISSING', 'KEY_REJECTED', 'SERVER_NOT_CONFIGURED', 'UNAUTHORIZED'];
+
+/**
+ * Enregistre le lot sur le serveur. Jusqu'à 3 essais en cas de coupure réseau ou d'erreur
+ * temporaire ; le même requestId est renvoyé à chaque essai, donc jamais de lot en double.
+ */
+async function postPrintBatch(payload: Record<string, unknown>, adminKey: string) {
+  const attempts = 3;
+  let lastMessage = 'Serveur injoignable.';
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 90000);
+    try {
+      const response = await fetch('/api/tickets/print-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': adminKey },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+      const isJson = (response.headers.get('content-type') || '').includes('application/json');
+      const data = isJson ? await response.json().catch(() => null) : null;
+
+      if (response.ok && data?.success && Array.isArray(data.tickets)) return data;
+
+      if (!data) {
+        throw new FatalError(
+          'Les fonctions serveur (/api) ne sont pas installées sur ce site. Ajoutez le dossier api/ au dépôt GitHub, puis redéployez sur Vercel.'
+        );
+      }
+      if (response.status === 401) {
+        throw new FatalError('Clé d’administration refusée. Elle doit être identique à ADMIN_API_KEY dans Vercel.');
+      }
+      if ((response.status >= 400 && response.status < 500) || FATAL_CODES.includes(data.code)) {
+        throw new FatalError(data.error || `Demande refusée par le serveur (code ${response.status}).`);
+      }
+      lastMessage = data.error || `Erreur du serveur (code ${response.status}).`;
+    } catch (error) {
+      if (error instanceof FatalError) throw error;
+      lastMessage =
+        error instanceof DOMException && error.name === 'AbortError'
+          ? 'Le serveur met trop de temps à répondre.'
+          : 'Le serveur est injoignable (vérifiez la connexion internet).';
+    } finally {
+      window.clearTimeout(timer);
+    }
+    if (attempt < attempts) await new Promise((resolve) => window.setTimeout(resolve, 1500 * attempt));
+  }
+  throw new Error(`Le lot n’a pas pu être confirmé : ${lastMessage} Relancez la préparation : aucun doublon ne sera créé.`);
+}
 
 interface TicketBatchPrintModalProps {
   isOpen: boolean;
@@ -50,6 +110,16 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   const [isPreviewing, setIsPreviewing] = useState(false);
   const ticketsRef = useRef<PrintTicketItem[]>([]);
   // Lot déjà enregistré sur le serveur : évite de créer un 2e lot si on change seulement le papier ou le sens.
+  const [adminKey, setAdminKey] = useState<string>(() => {
+    try {
+      return window.localStorage.getItem(ADMIN_KEY_STORAGE) || '';
+    } catch {
+      return '';
+    }
+  });
+  const [isCheckingServer, setIsCheckingServer] = useState(false);
+  // Identifiant de la demande en cours : réutilisé à chaque nouvel essai pour éviter les doublons.
+  const pendingRequestRef = useRef<{ key: string; id: string } | null>(null);
   const batchCacheRef = useRef<{ key: string; tickets: Array<{ id: string; serialNumber: string; token: string }> } | null>(null);
 
   const selectedEvent = events.find((event) => event.id === selectedEventId) || events[0];
@@ -97,7 +167,10 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     setIsReadyToPrint(false);
     ticketsRef.current = [];
     setGenerationProgress(0);
-    if (!isOpen) batchCacheRef.current = null;
+    if (!isOpen) {
+      batchCacheRef.current = null;
+      pendingRequestRef.current = null;
+    }
   }, [selectedEventId, selectedCategoryId, selectedPaperKey, isOpen]);
 
   // Aperçu de la première feuille : recto puis verso (QR codes), tels qu'ils seront imprimés.
@@ -143,6 +216,51 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
 
   if (!isOpen) return null;
 
+  const updateAdminKey = (value: string) => {
+    setAdminKey(value);
+    try {
+      window.localStorage.setItem(ADMIN_KEY_STORAGE, value);
+    } catch {
+      // stockage indisponible : la clé reste valable pour cette session
+    }
+  };
+
+  const handleCheckServer = async () => {
+    setIsCheckingServer(true);
+    try {
+      const key = adminKey.trim();
+      const response = await fetch('/api/health', { headers: key ? { 'x-admin-key': key } : {} });
+      const isJson = (response.headers.get('content-type') || '').includes('application/json');
+      const data = isJson ? await response.json().catch(() => null) : null;
+      if (!data) {
+        showToast('Serveur non installé : les fonctions /api n’existent pas sur ce site. Ajoutez le dossier api/ et redéployez.', 'error');
+        return;
+      }
+      if (!data.detailed) {
+        showToast(
+          key
+            ? 'Serveur joignable, mais la clé est refusée ou ADMIN_API_KEY est absente de Vercel.'
+            : 'Serveur joignable. Saisissez la clé d’administration pour tester aussi la base de données.',
+          key ? 'error' : 'success'
+        );
+        return;
+      }
+      if (data.ok) {
+        showToast('Connexion OK : serveur, clé d’administration et base de données fonctionnent.', 'success');
+      } else {
+        const problems = Object.entries(data.checks as Record<string, string>)
+          .filter(([, value]) => value !== 'ok')
+          .map(([name, value]) => `${name.replace(/_/g, ' ')} : ${value}`)
+          .join(' · ');
+        showToast(`Problème détecté — ${problems}`, 'error');
+      }
+    } catch {
+      showToast('Serveur injoignable : vérifiez votre connexion internet.', 'error');
+    } finally {
+      setIsCheckingServer(false);
+    }
+  };
+
   const handleUploadCategoryDesign = async (file: File) => {
     if (!selectedEvent || !currentCategory) return;
     if (!file.type.startsWith('image/')) {
@@ -187,6 +305,11 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       return;
     }
 
+    if (!adminKey.trim()) {
+      showToast('Saisissez la clé d’administration (étape 7) pour enregistrer les billets sur le serveur.', 'error');
+      return;
+    }
+
     setIsGenerating(true);
     setIsReadyToPrint(false);
     ticketsRef.current = [];
@@ -202,37 +325,27 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       const batchKey = `${selectedEvent.id}|${currentCategory.id}|${quantity}`;
       let registered = batchCacheRef.current?.key === batchKey ? batchCacheRef.current.tickets : null;
       if (!registered) {
-        let response: Response;
-        try {
-          response = await fetch('/api/tickets/print-batch', {
-            method: 'POST',
-            headers: await (async () => {
-              if (!isSupabaseConfigured) throw new Error('Supabase doit être configuré avant de créer un lot physique.');
-              const { data: sessionData } = await supabase.auth.getSession();
-              const accessToken = sessionData.session?.access_token;
-              if (!accessToken) throw new Error('Connectez-vous avec un compte administrateur authentifié pour créer un lot.');
-              return { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
-            })(),
-            body: JSON.stringify({
-              eventId: selectedEvent.id,
-              categoryId: currentCategory.id,
-              quantity,
-            }),
-          });
-        } catch {
-          throw new Error('Aucun billet n’a été créé : le serveur est injoignable (vérifiez la connexion).');
+        if (pendingRequestRef.current?.key !== batchKey) {
+          pendingRequestRef.current = { key: batchKey, id: makeRequestId() };
         }
-        const data = await response.json().catch(() => null);
-        if (!response.ok || !data?.success || !Array.isArray(data.tickets)) {
-          const reason =
-            data?.error ||
-            (response.status === 404
-              ? 'la route /api/tickets/print-batch est introuvable (serveur non démarré, ancienne version en ligne, ou route non ajoutée).'
-              : `réponse inattendue du serveur (code ${response.status}).`);
-          throw new Error(`Aucun billet n’a été créé : ${reason}`);
-        }
+        const data = await postPrintBatch(
+          {
+            requestId: pendingRequestRef.current.id,
+            eventId: selectedEvent.id,
+            eventTitle: selectedEvent.title,
+            artist: selectedEvent.artist,
+            eventDate: selectedEvent.date,
+            eventTime: selectedEvent.time,
+            eventVenue: selectedEvent.venue,
+            categoryId: currentCategory.id,
+            categoryName: currentCategory.name,
+            quantity,
+          },
+          adminKey.trim()
+        );
         registered = data.tickets as Array<{ id: string; serialNumber: string; token: string }>;
         batchCacheRef.current = { key: batchKey, tickets: registered };
+        pendingRequestRef.current = null;
       }
       setGenerationProgress(80);
 
@@ -437,6 +550,18 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
               <p className="text-[10px] text-neutral-500 mt-1.5">Tous les billets d'une feuille ont le même sens, alignés en colonnes et en rangées régulières.</p>
             </div>
 
+            <div>
+              <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">7. Clé d’administration</label>
+              <div className="flex gap-2">
+                <input type="password" autoComplete="off" value={adminKey} onChange={(event) => updateAdminKey(event.target.value)} placeholder="Collez la clé (ADMIN_API_KEY de Vercel)" className="flex-1 min-w-0 bg-[#161616] border border-white/15 rounded-2xl px-4 py-2.5 text-xs text-white outline-none focus:border-[#d4af37]" />
+                <button type="button" onClick={() => void handleCheckServer()} disabled={isCheckingServer} className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[10px] font-agrandir-semibold uppercase flex items-center gap-1.5 shrink-0 disabled:opacity-60">
+                  {isCheckingServer ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>Tester la connexion</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-neutral-500 mt-1.5">Les billets sont enregistrés sur le serveur avant l'impression, pour que chaque QR code soit reconnu à l'entrée. La clé reste mémorisée sur cet appareil uniquement.</p>
+            </div>
+
             {layoutError && (
               <div className="p-4 rounded-2xl border border-red-500/30 bg-red-500/10 text-[11px] text-red-300">
                 {layoutError} Choisissez un format plus grand.
@@ -490,7 +615,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 )}
               </div>
               <p className="text-[10px] text-neutral-500">
-                Feuille 1 sur {layout?.totalPages}. Le verso est montré tel qu'il sera imprimé : en miroir du recto, selon le retournement choisi, pour que chaque QR code tombe derrière le bon billet. Selon le retournement, il peut apparaître à l'envers à l'écran : c'est voulu, le haut du verso est placé du même côté que le haut du recto, il se lit donc à l'endroit une fois le billet retourné comme une page de livre.
+                Feuille 1 sur {layout?.totalPages}. Le verso est montré tel qu'il sera imprimé : en miroir du recto, selon le retournement choisi, pour que chaque QR code tombe derrière le bon billet.
                 {previewUrls && <> <a href={previewUrls[previewTab]} target="_blank" rel="noreferrer" className="text-[#d4af37] underline">Ouvrir dans un nouvel onglet</a></>}
               </p>
             </div>
