@@ -241,9 +241,6 @@ export const ScannerView: React.FC = () => {
         url += `&eventId=${encodeURIComponent(eventIdToVerify.trim())}`;
       }
 
-      let data: any = null;
-      let isVerified = false;
-
       const res = await fetch(url);
       const data = await res.json();
       const isVerified = res.ok && data.valid === true;
