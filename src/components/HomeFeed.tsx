@@ -33,36 +33,70 @@ export const HomeFeed: React.FC = () => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const activeSlide = activeSlides[currentSlideIndex] || activeSlides[0];
 
-  // Countdown state
-  const [countdown, setCountdown] = useState({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-  });
+const calculateEventCountdown = (dateStr?: string, timeStr?: string) => {
+  if (!dateStr) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  const safeTime = timeStr ? (timeStr.includes(':') ? timeStr : `${timeStr}:00`) : '18:00';
+  let targetDate = 0;
+  if (dateStr.includes('-')) {
+    const parts = dateStr.split('T')[0].split('-').map(Number);
+    const [h, min] = safeTime.split(':').map(Number);
+    targetDate = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1, h || 0, min || 0, 0).getTime();
+  } else {
+    targetDate = new Date(`${dateStr} ${safeTime}`).getTime();
+  }
+  const now = Date.now();
+  const diff = Math.max(0, targetDate - now);
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / 1000 / 60) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+  };
+};
 
-  // Dynamic countdown calculating in real time for the currently active concert strictly based on event date & time
+const EventCardCountdown: React.FC<{
+  dateStr?: string;
+  timeStr?: string;
+  isActive: boolean;
+  t: (key: string) => string;
+}> = ({ dateStr, timeStr, isActive, t }) => {
+  const [cd, setCd] = useState(() => calculateEventCountdown(dateStr, timeStr));
+
   useEffect(() => {
-    if (!activeSlide) return;
-    const timeStr = activeSlide.time ? (activeSlide.time.includes(':') ? activeSlide.time : `${activeSlide.time}:00`) : '18:00';
-    const [year, month, day] = (activeSlide.date || '2026-12-19').split('-').map(Number);
-    const [hour, minute] = timeStr.split(':').map(Number);
-    const targetDate = new Date(year, (month || 1) - 1, day || 1, hour || 0, minute || 0, 0).getTime();
-
-    const updateCountdown = () => {
-      const now = new Date().getTime();
-      const diff = Math.max(0, targetDate - now);
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-      const minutes = Math.floor((diff / 1000 / 60) % 60);
-      const seconds = Math.floor((diff / 1000) % 60);
-      setCountdown({ days, hours, minutes, seconds });
-    };
-
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
+    setCd(calculateEventCountdown(dateStr, timeStr));
+    const interval = setInterval(() => {
+      setCd(calculateEventCountdown(dateStr, timeStr));
+    }, 1000);
     return () => clearInterval(interval);
-  }, [activeSlide?.id, activeSlide?.date, activeSlide?.time]);
+  }, [dateStr, timeStr]);
+
+  return (
+    <div className={`transition-opacity duration-500 ${isActive ? 'opacity-100' : 'opacity-40'}`}>
+      <p className="text-gray-400 text-[9px] font-agrandir-semibold tracking-widest mb-2 uppercase">
+        {t('home.startsIn')}
+      </p>
+      <div className="flex gap-2 sm:gap-3">
+        {[
+          { value: cd.days, label: t('home.days') },
+          { value: cd.hours, label: t('home.hours') },
+          { value: cd.minutes, label: t('home.minutes') },
+          { value: cd.seconds, label: t('home.seconds'), isYellow: true },
+        ].map((time, i) => (
+          <div key={i} className="flex flex-col items-center flex-1">
+            <div className="w-full aspect-[4/3] rounded-xl bg-[#0a0a0a] border border-white/10 flex items-center justify-center shadow-inner mb-1.5">
+              <span className={`text-xl sm:text-2xl font-agrandir-extrabold ${time.isYellow ? 'text-[#d4af37]' : 'text-white'}`}>
+                {String(time.value).padStart(2, '0')}
+              </span>
+            </div>
+            <span className="text-[8px] text-[#777] font-agrandir-semibold tracking-widest uppercase">
+              {time.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
   // Auto-play carousel every 7s
   useEffect(() => {
@@ -100,7 +134,7 @@ export const HomeFeed: React.FC = () => {
   const handleSelectArtistSlide = (index: number) => setCurrentSlideIndex(index);
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#FFFFFF] pb-24 select-none">
+    <div className="min-h-screen bg-transparent text-[#FFFFFF] pb-24 select-none">
       
       {/* =========================================================================
           1. SECTION PRINCIPALE : PROGRAMMATION OFFICIELLE
@@ -156,31 +190,8 @@ export const HomeFeed: React.FC = () => {
                     </button>
                   </div>
 
-                  {/* Compte à rebours réel */}
-                  <div className={`transition-opacity duration-500 ${isActive ? 'opacity-100' : 'opacity-40'}`}>
-                    <p className="text-gray-400 text-[9px] font-agrandir-semibold tracking-widest mb-2 uppercase">
-                      {t('home.startsIn')}
-                    </p>
-                    <div className="flex gap-2 sm:gap-3">
-                      {[
-                        { value: countdown.days, label: t('home.days') },
-                        { value: countdown.hours, label: t('home.hours') },
-                        { value: countdown.minutes, label: t('home.minutes') },
-                        { value: countdown.seconds, label: t('home.seconds'), isYellow: true }
-                      ].map((time, i) => (
-                        <div key={i} className="flex flex-col items-center flex-1">
-                          <div className="w-full aspect-[4/3] rounded-xl bg-[#0a0a0a] border border-white/10 flex items-center justify-center shadow-inner mb-1.5">
-                            <span className={`text-xl sm:text-2xl font-agrandir-extrabold ${time.isYellow ? 'text-[#d4af37]' : 'text-white'}`}>
-                              {String(time.value).padStart(2, '0')}
-                            </span>
-                          </div>
-                          <span className="text-[8px] text-[#777] font-agrandir-semibold tracking-widest uppercase">
-                            {time.label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Compte à rebours dynamique relié aux date et heure réelles de l'événement */}
+                  <EventCardCountdown dateStr={event.date} timeStr={event.time} isActive={isActive} t={t} />
                 </div>
 
               </div>

@@ -8,7 +8,7 @@ export const NewsView: React.FC = () => {
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-24 sm:pt-28 pb-20">
+    <div className="max-w-7xl mx-auto px-6 pt-24 sm:pt-28 pb-6 sm:pb-8">
       
       {/* Header */}
       <div className="mb-12 pb-6 border-b border-[#1c1c1c]">

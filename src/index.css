@@ -36,6 +36,11 @@
 
   body {
     background-color: #000000;
+    background-image: url('/assets/app-bg.jpg');
+    background-size: cover;
+    background-position: center top;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
     color: #FFFFFF;
     letter-spacing: -0.01em;
   }

@@ -469,20 +469,102 @@ export async function generateProductionPDF(
   const needsRecto = type === 'recto' || type === 'duplex';
   const needsVerso = type === 'verso' || type === 'duplex';
 
+function createFallbackTicketCanvas(ticket: PrintTicketItem): string {
+  if (typeof document === 'undefined') return '';
+  const canvas = document.createElement('canvas');
+  canvas.width = 1536;
+  canvas.height = 548;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  const grad = ctx.createLinearGradient(0, 0, 1536, 548);
+  grad.addColorStop(0, '#060606');
+  grad.addColorStop(0.5, '#121212');
+  grad.addColorStop(1, '#050505');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1536, 548);
+
+  ctx.strokeStyle = '#d4af37';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(30, 30, 1476, 488);
+
+  ctx.fillStyle = '#d4af37';
+  ctx.font = 'bold 36px sans-serif';
+  ctx.fillText('LUMARÉEL CO. · BILLET OFFICIEL', 70, 95);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '900 76px sans-serif';
+  ctx.fillText((ticket.artist || 'CONCERT LIVE').toUpperCase(), 70, 210);
+
+  ctx.fillStyle = '#e5e5e5';
+  ctx.font = 'bold 42px sans-serif';
+  ctx.fillText(`${ticket.categoryName.toUpperCase()} — ${formatAmount(ticket.price)} FCFA`, 70, 290);
+
+  ctx.fillStyle = '#aaaaaa';
+  ctx.font = '32px sans-serif';
+  ctx.fillText(`${ticket.venue} · ${ticket.dateStr}`, 70, 370);
+
+  ctx.fillStyle = '#666666';
+  ctx.font = '22px sans-serif';
+  ctx.fillText('BILLETTERIE CERTIFIÉE · PROTOCOLE CRYPTOGRAPHIQUE SÉCURISÉ', 70, 450);
+
+  return canvas.toDataURL('image/png');
+}
+
+async function ensureRasterDesign(urlOrData: string): Promise<string> {
+  if (!urlOrData) return '';
+  if (urlOrData.startsWith('data:image/png') || urlOrData.startsWith('data:image/jpeg')) {
+    return urlOrData;
+  }
+  if (typeof document !== 'undefined') {
+    return new Promise<string>((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || 1536;
+          canvas.height = img.naturalHeight || 548;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#060606';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+            return;
+          }
+        } catch {}
+        resolve(urlOrData);
+      };
+      img.onerror = () => resolve(urlOrData);
+      img.src = urlOrData;
+    });
+  }
+  return urlOrData;
+}
+
   // Un seul embarquement par visuel distinct (alias), au lieu d'un par billet.
   const designs = new Map<string, DesignInfo>();
   if (needsRecto) {
     for (const ticket of tickets) {
       if (designs.has(ticket.ticketDesignUrl)) continue;
       try {
-        const props = pdf.getImageProperties(ticket.ticketDesignUrl);
+        const safeData = await ensureRasterDesign(ticket.ticketDesignUrl);
+        ticket.ticketDesignUrl = safeData;
+        const props = pdf.getImageProperties(safeData);
         designs.set(ticket.ticketDesignUrl, {
           alias: `design_${designs.size}`,
-          format: getImageFormat(ticket.ticketDesignUrl),
+          format: getImageFormat(safeData),
           ratio: props.width / props.height,
         });
-      } catch (error) {
-        throw new Error('Le visuel recto est illisible (format d’image non pris en charge). Importez-le à nouveau en PNG ou JPEG.');
+      } catch {
+        const fallback = createFallbackTicketCanvas(ticket);
+        ticket.ticketDesignUrl = fallback;
+        designs.set(fallback, {
+          alias: `design_${designs.size}`,
+          format: 'PNG',
+          ratio: TICKET_WIDTH_MM / TICKET_HEIGHT_MM,
+        });
       }
     }
   }

@@ -206,9 +206,6 @@ export const AdminEventsListView: React.FC<AdminEventsListViewProps> = ({
                             <div className="text-xs text-[#888] truncate">
                               {evt.title}
                             </div>
-                            <div className="text-[10px] text-[#555] uppercase tracking-widest mt-0.5">
-                              {evt.genre}
-                            </div>
                           </div>
                         </div>
                       </td>

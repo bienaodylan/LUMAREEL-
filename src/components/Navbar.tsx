@@ -55,33 +55,19 @@ export const Navbar: React.FC = () => {
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         
-        {/* Zone 1: Logo Officiel LUMARÉEL CO. (Dynamique) */}
+        {/* Zone 1: Logo Officiel LUMARÉEL CO. */}
         <div className="flex items-center gap-3 shrink-0">
           <button
             type="button"
             onClick={() => setCurrentPage('home')}
-            className="flex items-center gap-2.5 group cursor-pointer focus:outline-none"
-            aria-label={`${platformSettings.platformName} ${platformSettings.tagline} Accueil`}
+            className="flex items-center group cursor-pointer focus:outline-none"
+            aria-label={`${platformSettings.platformName || 'LUMARÉEL'} Accueil`}
           >
-            {platformSettings.logoUrl ? (
-              <img
-                src={platformSettings.logoUrl}
-                alt={platformSettings.platformName}
-                className="w-8 h-8 rounded-full object-cover border border-white/30 group-hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.3)] bg-black"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center font-agrandir-extrabold text-sm tracking-tighter text-white bg-white/5 backdrop-blur-sm group-hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.3)]">
-                {platformSettings.logoMonogram || 'LR'}
-              </div>
-            )}
-            <div className="flex flex-col text-left">
-              <span className="font-agrandir-extrabold text-base sm:text-lg text-white tracking-tight uppercase leading-none group-hover:text-[#f0f0f0] transition-colors">
-                {platformSettings.platformName || 'LUMARÉEL'}
-              </span>
-              <span className="text-[9px] font-agrandir-semibold tracking-[0.25em] text-[#999] uppercase leading-none mt-0.5">
-                {platformSettings.tagline || 'CO.'}
-              </span>
-            </div>
+            <img
+              src="/assets/logo-lumareel.png"
+              alt={platformSettings.platformName || 'LUMARÉEL CO.'}
+              className="h-8 sm:h-9 md:h-10 w-auto object-contain group-hover:scale-105 transition-all duration-300 drop-shadow-[0_2px_10px_rgba(255,255,255,0.15)]"
+            />
           </button>
         </div>
 

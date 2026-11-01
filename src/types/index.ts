@@ -208,4 +208,11 @@ export interface PlatformSettings {
   githubRepoUrl?: string;
   supabaseUrl?: string;
   supabaseAnonKey?: string;
+  socialLinks?: {
+    tiktok?: string;
+    instagram?: string;
+    snapchat?: string;
+    youtube?: string;
+    facebook?: string;
+  };
 }

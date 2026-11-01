@@ -40,6 +40,13 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ showToast 
     infoline: platformSettings.infoline || '+225 01 53 508 210',
     gateToken: platformSettings.gateToken || 'VIGILE_AUTH_LMR_2026',
     githubRepoUrl: platformSettings.githubRepoUrl || '',
+    socialLinks: {
+      tiktok: platformSettings.socialLinks?.tiktok || '',
+      instagram: platformSettings.socialLinks?.instagram || '',
+      snapchat: platformSettings.socialLinks?.snapchat || '',
+      youtube: platformSettings.socialLinks?.youtube || '',
+      facebook: platformSettings.socialLinks?.facebook || '',
+    },
   });
 
   const [supabaseInputUrl, setSupabaseInputUrl] = useState(platformSettings.supabaseUrl || '');
@@ -342,6 +349,112 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ showToast 
                 onChange={(e) => setFormData((prev) => ({ ...prev, logoMonogram: e.target.value.toUpperCase() }))}
                 className="w-full bg-[#141414] border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-extrabold uppercase font-mono tracking-wider"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* SECTION 1.5 : RÉSEAUX SOCIAUX OFFICIELS (FOOTER) */}
+        {/* ========================================================================= */}
+        <div className="bg-[#0c0c0c] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="flex items-center gap-2.5 text-xs font-agrandir-extrabold text-white uppercase">
+              <Globe className="w-4 h-4 text-[#d4af37]" />
+              <span>RÉSEAUX SOCIAUX OFFICIELS (PIED DE PAGE)</span>
+            </div>
+            <span className="text-[10px] font-agrandir-semibold text-[#d4af37] px-2.5 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/30 uppercase">
+              5 Réseaux Connectés
+            </span>
+          </div>
+
+          <p className="text-xs text-[#888] leading-relaxed">
+            Collez ici les liens officiels de vos réseaux sociaux. Ils s'affichent automatiquement dans le pied de page dans l'ordre exact demandé : <strong>1. TikTok, 2. Instagram, 3. Snapchat, 4. YouTube, 5. Facebook</strong>.
+          </p>
+
+          <div className="space-y-4">
+            {/* 1. TikTok */}
+            <div className="flex items-center gap-4 bg-[#141414] p-3 rounded-2xl border border-white/10">
+              <img src="/assets/aistudio/tt_icon_76a5ff4c.png" alt="TikTok" className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shrink-0 shadow-sm" />
+              <div className="flex-1">
+                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-wider text-[#d4af37] mb-1">
+                  1. TikTok (Logo 1)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://www.tiktok.com/@lumareel"
+                  value={formData.socialLinks.tiktok}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, socialLinks: { ...prev.socialLinks, tiktok: e.target.value } }))}
+                  className="w-full bg-[#0a0a0a] border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white font-mono"
+                />
+              </div>
+            </div>
+
+            {/* 2. Instagram */}
+            <div className="flex items-center gap-4 bg-[#141414] p-3 rounded-2xl border border-white/10">
+              <img src="/assets/aistudio/ig_icon_-_Copie_d6d567d1.png" alt="Instagram" className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shrink-0 shadow-sm" />
+              <div className="flex-1">
+                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-wider text-[#d4af37] mb-1">
+                  2. Instagram (Logo 2)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://www.instagram.com/lumareel"
+                  value={formData.socialLinks.instagram}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, socialLinks: { ...prev.socialLinks, instagram: e.target.value } }))}
+                  className="w-full bg-[#0a0a0a] border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white font-mono"
+                />
+              </div>
+            </div>
+
+            {/* 3. Snapchat */}
+            <div className="flex items-center gap-4 bg-[#141414] p-3 rounded-2xl border border-white/10">
+              <img src="/assets/aistudio/sc_icon_709e5263.png" alt="Snapchat" className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shrink-0 shadow-sm" />
+              <div className="flex-1">
+                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-wider text-[#d4af37] mb-1">
+                  3. Snapchat (Logo 3)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://www.snapchat.com/add/lumareel"
+                  value={formData.socialLinks.snapchat}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, socialLinks: { ...prev.socialLinks, snapchat: e.target.value } }))}
+                  className="w-full bg-[#0a0a0a] border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white font-mono"
+                />
+              </div>
+            </div>
+
+            {/* 4. YouTube */}
+            <div className="flex items-center gap-4 bg-[#141414] p-3 rounded-2xl border border-white/10">
+              <img src="/assets/aistudio/yt_icon_539fd1be.png" alt="YouTube" className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shrink-0 shadow-sm" />
+              <div className="flex-1">
+                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-wider text-[#d4af37] mb-1">
+                  4. YouTube (Logo 4)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://www.youtube.com/@lumareel"
+                  value={formData.socialLinks.youtube}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, socialLinks: { ...prev.socialLinks, youtube: e.target.value } }))}
+                  className="w-full bg-[#0a0a0a] border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white font-mono"
+                />
+              </div>
+            </div>
+
+            {/* 5. Facebook */}
+            <div className="flex items-center gap-4 bg-[#141414] p-3 rounded-2xl border border-white/10">
+              <img src="/assets/aistudio/fb_icon_343fb35c.png" alt="Facebook" className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shrink-0 shadow-sm" />
+              <div className="flex-1">
+                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-wider text-[#d4af37] mb-1">
+                  5. Facebook (Logo 5)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://www.facebook.com/lumareel"
+                  value={formData.socialLinks.facebook}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, socialLinks: { ...prev.socialLinks, facebook: e.target.value } }))}
+                  className="w-full bg-[#0a0a0a] border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white font-mono"
+                />
+              </div>
             </div>
           </div>
         </div>

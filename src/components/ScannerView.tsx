@@ -72,16 +72,9 @@ interface AuthorizedEvent {
   time?: string;
 }
 
-/**
- * ScannerView.tsx — Terminal de contrôle d'accès sécurisé LUMARÉEL CO.
- * Dispose d'une rétroaction sonore native (Web Audio API), d'un Journal d'Activité
- * temps réel affichant les 10 derniers billets scannés avec leur statut (Valide / Déjà utilisé / Invalide),
- * et d'une fonction d'export du journal au format CSV pour les rapports de fin de soirée.
- */
 export const ScannerView: React.FC = () => {
   const { currentUser, setCurrentPage } = useApp();
 
-  // 1. États d'autorisation & validation du jeton
   const [authStatus, setAuthStatus] = useState<'checking' | 'authorized' | 'denied'>('checking');
   const [deniedReason, setDeniedReason] = useState<string>('');
   const [activeToken, setActiveToken] = useState<string>('');
@@ -89,7 +82,6 @@ export const ScannerView: React.FC = () => {
   const [authorizedEvent, setAuthorizedEvent] = useState<AuthorizedEvent | null>(null);
   const [manualTokenInput, setManualTokenInput] = useState<string>('');
 
-  // 2. États du lecteur optique (Caméra / QR Scanner)
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -97,9 +89,7 @@ export const ScannerView: React.FC = () => {
   const [resumeCountdown, setResumeCountdown] = useState<number | null>(null);
   const [manualTicketInput, setManualTicketInput] = useState('');
 
-  // 3. Journal d'Activité & Export CSV
   const [activityLog, setActivityLog] = useState<ScanActivityRecord[]>(() => {
-    // Initialise avec un log de session (stocké éventuellement dans sessionStorage pour persister durant la soirée)
     try {
       const saved = sessionStorage.getItem('lumareel_scanner_log');
       if (saved) return JSON.parse(saved);
@@ -108,7 +98,6 @@ export const ScannerView: React.FC = () => {
   });
   const [exportFeedback, setExportFeedback] = useState<string | null>(null);
 
-  // 4. Paramètres audio (Rétroaction sonore)
   const [soundEnabled, setSoundEnabled] = useState(true);
   const audioContextRef = useRef<AudioContext | null>(null);
 
@@ -117,14 +106,12 @@ export const ScannerView: React.FC = () => {
   const isProcessingRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sauvegarde le journal dans sessionStorage pour éviter la perte lors d'un rechargement intempestif
   useEffect(() => {
     try {
       sessionStorage.setItem('lumareel_scanner_log', JSON.stringify(activityLog));
     } catch {}
   }, [activityLog]);
 
-  // Initialisation / Récupération du contexte audio Web Audio API
   const getAudioContext = (): AudioContext | null => {
     try {
       if (!audioContextRef.current) {
@@ -143,11 +130,6 @@ export const ScannerView: React.FC = () => {
     }
   };
 
-  /**
-   * Rétroaction sonore :
-   * - Bip aigu cristallin pour les billets valides (double tonalité 1046Hz -> 1760Hz).
-   * - Tonalité basse de refus/alerte pour les billets invalides ou déjà utilisés (160Hz -> 90Hz sawtooth).
-   */
   const playSound = (type: 'success' | 'error') => {
     if (!soundEnabled) return;
 
@@ -158,18 +140,17 @@ export const ScannerView: React.FC = () => {
       const now = ctx.currentTime;
 
       if (type === 'success') {
-        // --- BIP AIGU POUR BILLETS VALIDES (Chime harmonieux deux temps 1046Hz -> 1760Hz) ---
         const osc1 = ctx.createOscillator();
         const osc2 = ctx.createOscillator();
         const gainNode = ctx.createGain();
 
         osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(1046.5, now); // Do6
-        osc1.frequency.setValueAtTime(1318.5, now + 0.08); // Mi6
-        osc1.frequency.setValueAtTime(1760.0, now + 0.16); // La6
+        osc1.frequency.setValueAtTime(1046.5, now);
+        osc1.frequency.setValueAtTime(1318.5, now + 0.08);
+        osc1.frequency.setValueAtTime(1760.0, now + 0.16);
 
         osc2.type = 'triangle';
-        osc2.frequency.setValueAtTime(2093.0, now + 0.16); // Harmonique aiguë limpide
+        osc2.frequency.setValueAtTime(2093.0, now + 0.16);
 
         gainNode.gain.setValueAtTime(0.001, now);
         gainNode.gain.linearRampToValueAtTime(0.35, now + 0.02);
@@ -185,12 +166,10 @@ export const ScannerView: React.FC = () => {
         osc1.stop(now + 0.45);
         osc2.stop(now + 0.45);
       } else {
-        // --- TONALITÉ BASSE POUR BILLETS INVALIDES OU DÉJÀ UTILISÉS (Buzz d'alerte grave) ---
         const osc = ctx.createOscillator();
         const subOsc = ctx.createOscillator();
         const gainNode = ctx.createGain();
 
-        // Tonalité basse avec onde en dents de scie pour un timbre distinctif de refus
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(160, now);
         osc.frequency.setValueAtTime(120, now + 0.12);
@@ -219,13 +198,11 @@ export const ScannerView: React.FC = () => {
     }
   };
 
-  // Test manuel des sons par le vigile
   const handleTestSound = (type: 'success' | 'error') => {
     getAudioContext();
     playSound(type);
   };
 
-  // 4. Fonction de validation du jeton auprès de l'API backend (/api/verify-scanner-token)
   const verifyTokenWithBackend = async (tokenToVerify: string, eventIdToVerify?: string) => {
     if (!tokenToVerify || !tokenToVerify.trim()) {
       setAuthStatus('denied');
@@ -241,23 +218,20 @@ export const ScannerView: React.FC = () => {
         url += `&eventId=${encodeURIComponent(eventIdToVerify.trim())}`;
       }
 
-      let data: any = null;
-      let isVerified = false;
-
       const res = await fetch(url);
-      const data = await res.json();
-      const isVerified = res.ok && data.valid === true;
+      const jsonResponse = await res.json();
+      const verified = res.ok && jsonResponse.valid === true;
 
-      if (isVerified && data) {
+      if (verified && jsonResponse) {
         setAuthStatus('authorized');
         setActiveToken(tokenToVerify);
-        if (data.event) {
-          setAuthorizedEvent(data.event);
-          setActiveEventId(data.event.id);
+        if (jsonResponse.event) {
+          setAuthorizedEvent(jsonResponse.event);
+          setActiveEventId(jsonResponse.event.id);
         }
       } else {
         setAuthStatus('denied');
-        setDeniedReason(data?.error || 'Accès Refusé. Ce lien est invalide ou a expiré.');
+        setDeniedReason(jsonResponse?.error || 'Accès Refusé. Ce lien est invalide ou a expiré.');
       }
     } catch (err: any) {
       setAuthStatus('denied');
@@ -265,7 +239,6 @@ export const ScannerView: React.FC = () => {
     }
   };
 
-  // 5. Sécurité à l'ouverture : Lecture des paramètres URL via URLSearchParams dès le montage
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -286,7 +259,6 @@ export const ScannerView: React.FC = () => {
     }
   }, []);
 
-  // Formatage de l'heure locale (HH:MM:SS)
   const formatLocalTime = (isoString?: string) => {
     const date = isoString ? new Date(isoString) : new Date();
     return date.toLocaleTimeString('fr-FR', {
@@ -296,7 +268,6 @@ export const ScannerView: React.FC = () => {
     });
   };
 
-  // 6. Validation d'un billet scanné (POST /api/verify-ticket)
   const handleVerifyTicket = async (ticketCode: string) => {
     if (isProcessingRef.current || authStatus !== 'authorized') return;
     isProcessingRef.current = true;
@@ -306,11 +277,10 @@ export const ScannerView: React.FC = () => {
     const formattedNow = formatLocalTime(nowIso);
     const agentName = currentUser?.name || 'Vigile LUMARÉEL (Lien Magique)';
 
-    let data: any = null;
+    let responseData: any = null;
     let resStatus = 500;
 
     try {
-      // 1. Essai via l'API Express / Backend
       try {
         const res = await fetch('/api/verify-ticket', {
           method: 'POST',
@@ -324,43 +294,38 @@ export const ScannerView: React.FC = () => {
           }),
         });
         resStatus = res.status;
-        data = await res.json();
-      } catch (errApi) {
-        // En cas d'erreur de réseau ou Vercel sans Express
-      }
+        responseData = await res.json();
+      } catch (errApi) {}
 
-      // Le contrôle d'accès doit rester côté serveur : aucun fallback direct qui contourne le verrou atomique.
-
-      if (!data) {
+      if (!responseData) {
         throw new Error('Service de vérification non disponible.');
       }
 
-      if (resStatus === 200 && data.valid) {
-        // --- 200 OK : ACCÈS VALIDE ---
-        playSound('success'); // Bip aigu
+      if (resStatus === 200 && responseData.valid) {
+        playSound('success');
 
         const successState: ScanResultState = {
           status: 'SUCCESS',
           message: 'ACCÈS AUTORISÉ',
-          holderName: data.holderName || data.ticket?.holderName || 'Titulaire Officiel',
-          categoryName: data.categoryName || data.ticket?.categoryName || 'PASS STANDARD',
-          eventTitle: data.ticket?.eventTitle || authorizedEvent?.title || 'Concert Live',
-          serialNumber: data.ticket?.serialNumber || data.serialNumber || ticketCode.slice(0, 16),
-          scannedAt: data.scannedAt || nowIso,
-          ticket: data.ticket,
+          holderName: responseData.holderName || responseData.ticket?.holderName || 'Titulaire Officiel',
+          categoryName: responseData.categoryName || responseData.ticket?.categoryName || 'PASS STANDARD',
+          eventTitle: responseData.ticket?.eventTitle || authorizedEvent?.title || 'Concert Live',
+          serialNumber: responseData.ticket?.serialNumber || responseData.serialNumber || ticketCode.slice(0, 16),
+          scannedAt: responseData.scannedAt || nowIso,
+          ticket: responseData.ticket,
         };
         setScanResult(successState);
 
         const newEntry: ScanActivityRecord = {
           id: `scan_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-          timestamp: data.scannedAt || nowIso,
+          timestamp: responseData.scannedAt || nowIso,
           formattedTime: formattedNow,
           status: 'SUCCESS',
           message: 'Billet vérifié avec succès. Entrée validée.',
-          holderName: data.holderName || data.ticket?.holderName || 'Titulaire Officiel',
-          categoryName: data.categoryName || data.ticket?.categoryName || 'PASS STANDARD',
-          eventTitle: data.ticket?.eventTitle || authorizedEvent?.title || 'Concert Live',
-          serialNumber: data.ticket?.serialNumber || data.serialNumber || ticketCode,
+          holderName: responseData.holderName || responseData.ticket?.holderName || 'Titulaire Officiel',
+          categoryName: responseData.categoryName || responseData.ticket?.categoryName || 'PASS STANDARD',
+          eventTitle: responseData.ticket?.eventTitle || authorizedEvent?.title || 'Concert Live',
+          serialNumber: responseData.ticket?.serialNumber || responseData.serialNumber || ticketCode,
           ticketCode: ticketCode.trim(),
           agentName,
           reason: 'Billet conforme & signature cryptographique valide.',
@@ -368,18 +333,17 @@ export const ScannerView: React.FC = () => {
         setActivityLog((prev) => [newEntry, ...prev]);
 
       } else if (resStatus === 403) {
-        // --- 403 FORBIDDEN : BILLET DÉJÀ UTILISÉ ---
-        playSound('error'); // Tonalité basse de refus
+        playSound('error');
 
         const alreadyUsedState: ScanResultState = {
           status: 'ALREADY_USED',
           message: 'BILLET DÉJÀ UTILISÉ',
-          holderName: data.holderName || data.ticket?.holderName || 'Titulaire Identifié',
-          categoryName: data.categoryName || data.ticket?.categoryName || 'PASS STANDARD',
-          eventTitle: data.eventTitle || data.ticket?.eventTitle || authorizedEvent?.title,
-          serialNumber: data.serialNumber || data.ticket?.serialNumber || ticketCode.slice(0, 16),
-          scannedAt: data.scannedAt || data.ticket?.scannedAt || nowIso,
-          ticket: data.ticket,
+          holderName: responseData.holderName || responseData.ticket?.holderName || 'Titulaire Identifié',
+          categoryName: responseData.categoryName || responseData.ticket?.categoryName || 'PASS STANDARD',
+          eventTitle: responseData.eventTitle || responseData.ticket?.eventTitle || authorizedEvent?.title,
+          serialNumber: responseData.serialNumber || responseData.ticket?.serialNumber || ticketCode.slice(0, 16),
+          scannedAt: responseData.scannedAt || responseData.ticket?.scannedAt || nowIso,
+          ticket: responseData.ticket,
         };
         setScanResult(alreadyUsedState);
 
@@ -388,24 +352,23 @@ export const ScannerView: React.FC = () => {
           timestamp: nowIso,
           formattedTime: formattedNow,
           status: 'ALREADY_USED',
-          message: data.message || 'Billet déjà validé précédemment. Refus d’accès.',
-          holderName: data.holderName || data.ticket?.holderName || 'Titulaire Déjà Enregistré',
-          categoryName: data.categoryName || data.ticket?.categoryName || 'PASS STANDARD',
-          eventTitle: data.eventTitle || data.ticket?.eventTitle || authorizedEvent?.title || 'Concert Live',
-          serialNumber: data.serialNumber || data.ticket?.serialNumber || ticketCode,
+          message: responseData.message || 'Billet déjà validé précédemment. Refus d’accès.',
+          holderName: responseData.holderName || responseData.ticket?.holderName || 'Titulaire Déjà Enregistré',
+          categoryName: responseData.categoryName || responseData.ticket?.categoryName || 'PASS STANDARD',
+          eventTitle: responseData.eventTitle || responseData.ticket?.eventTitle || authorizedEvent?.title || 'Concert Live',
+          serialNumber: responseData.serialNumber || responseData.ticket?.serialNumber || ticketCode,
           ticketCode: ticketCode.trim(),
           agentName,
-          reason: `Déjà validé le ${formatLocalTime(data.scannedAt || data.ticket?.scannedAt)}. Risque de double usage.`,
+          reason: `Déjà validé le ${formatLocalTime(responseData.scannedAt || responseData.ticket?.scannedAt)}. Risque de double usage.`,
         };
         setActivityLog((prev) => [newEntry, ...prev]);
 
       } else {
-        // --- 404 / 400 / 500 : BILLET INVALIDE / FAUX ---
-        playSound('error'); // Tonalité basse de refus
+        playSound('error');
 
         const invalidState: ScanResultState = {
           status: 'INVALID',
-          message: data.error || 'BILLET INVALIDE OU INTROUVABLE',
+          message: responseData.error || 'BILLET INVALIDE OU INTROUVABLE',
           serialNumber: ticketCode.slice(0, 16),
         };
         setScanResult(invalidState);
@@ -415,7 +378,7 @@ export const ScannerView: React.FC = () => {
           timestamp: nowIso,
           formattedTime: formattedNow,
           status: 'INVALID',
-          message: data.error || 'Billet inexistant ou signature non reconnue.',
+          message: responseData.error || 'Billet inexistant ou signature non reconnue.',
           holderName: 'Inconnu (Non enregistré)',
           categoryName: 'Inconnue',
           eventTitle: authorizedEvent?.title || 'Événement non associé',
@@ -448,7 +411,6 @@ export const ScannerView: React.FC = () => {
       };
       setActivityLog((prev) => [newEntry, ...prev]);
     } finally {
-      // Reprise automatique du scanner après 2 secondes pour le prochain client
       setResumeCountdown(2);
       setTimeout(() => {
         setResumeCountdown(1);
@@ -463,9 +425,6 @@ export const ScannerView: React.FC = () => {
     }
   };
 
-  /**
-   * 7. Exportation du journal d'activité complet au format CSV pour les rapports de fin de soirée
-   */
   const handleExportJournalCSV = () => {
     if (activityLog.length === 0) {
       setExportFeedback('Aucun scan enregistré dans le journal pour le moment.');
@@ -474,7 +433,6 @@ export const ScannerView: React.FC = () => {
     }
 
     try {
-      // UTF-8 BOM (\uFEFF) pour un rendu parfait des accents dans Excel et LibreOffice
       const bom = '\uFEFF';
       const headers = [
         'Date et Heure',
@@ -543,11 +501,10 @@ export const ScannerView: React.FC = () => {
     }
   };
 
-  // 8. Démarrage de la caméra via html5-qrcode
   const startCamera = async () => {
     if (authStatus !== 'authorized') return;
     setCameraError(null);
-    getAudioContext(); // Débloque l'audio sur ce geste utilisateur
+    getAudioContext();
 
     if (!navigator?.mediaDevices?.getUserMedia) {
       setCameraError(
@@ -600,7 +557,6 @@ export const ScannerView: React.FC = () => {
     }
   };
 
-  // 9. Arrêt de la caméra
   const stopCamera = async () => {
     try {
       if (html5QrCodeRef.current && isScanningRef.current) {
@@ -613,7 +569,6 @@ export const ScannerView: React.FC = () => {
     }
   };
 
-  // Nettoyage à la fermeture du composant
   useEffect(() => {
     return () => {
       if (html5QrCodeRef.current && isScanningRef.current) {
@@ -623,7 +578,6 @@ export const ScannerView: React.FC = () => {
     };
   }, []);
 
-  // Décodage d'un QR code depuis une image / capture d'écran
   const handleImageFileScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || authStatus !== 'authorized') return;
@@ -651,7 +605,6 @@ export const ScannerView: React.FC = () => {
     }
   };
 
-  // Saisie manuelle d'un code de déverrouillage de session
   const handleManualUnlockSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (manualTokenInput.trim()) {
@@ -659,14 +612,12 @@ export const ScannerView: React.FC = () => {
     }
   };
 
-  // Les 10 derniers billets scannés pour affichage immédiat
   const last10Scans = activityLog.slice(0, 10);
   const totalCount = activityLog.length;
   const validCount = activityLog.filter((s) => s.status === 'SUCCESS').length;
   const alreadyUsedCount = activityLog.filter((s) => s.status === 'ALREADY_USED').length;
   const invalidCount = activityLog.filter((s) => s.status === 'INVALID').length;
 
-  // --- ÉTAT 1 : VÉRIFICATION DU TOKEN URL EN COURS (LOADER) ---
   if (authStatus === 'checking') {
     return (
       <div className="min-h-screen bg-[#050505] text-white flex flex-col items-center justify-center p-6 text-center select-none font-agrandir-regular">
@@ -687,7 +638,6 @@ export const ScannerView: React.FC = () => {
     );
   }
 
-  // --- ÉTAT 2 : ACCÈS REFUSÉ (TOKEN INVALIDE, EXPIRÉ OU ABSENT) ---
   if (authStatus === 'denied') {
     return (
       <div className="min-h-screen bg-[#050505] text-white flex flex-col items-center justify-center p-4 sm:p-6 select-none font-agrandir-regular">
@@ -711,7 +661,6 @@ export const ScannerView: React.FC = () => {
             </p>
           </div>
 
-          {/* Déverrouillage manuel de secours */}
           <div className="pt-4 border-t border-white/10 space-y-3 text-left">
             <form onSubmit={handleManualUnlockSubmit} className="space-y-2">
               <label className="text-[10px] text-[#888] uppercase tracking-wider font-agrandir-semibold block">
@@ -747,11 +696,11 @@ export const ScannerView: React.FC = () => {
     );
   }
 
-  // --- ÉTAT 3 : ACCÈS VALIDÉ — INTERFACE DU SCANNER AVEC JOURNAL ET RÉTROACTION SONORE ---
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col justify-between pt-5 sm:pt-7 pb-10 px-3 sm:px-6 select-none font-agrandir-regular">
-      
-      {/* 1. Header Vigile Luxe & Paramètres Audio */}
+    <div
+      className="min-h-screen text-white flex flex-col justify-between pt-5 sm:pt-7 pb-10 px-3 sm:px-6 select-none font-agrandir-regular bg-cover bg-center bg-fixed"
+      style={{ backgroundImage: "url('/assets/app-bg.jpg')" }}
+    >
       <div className="max-w-lg w-full mx-auto space-y-3 mb-3">
         <div className="flex items-center justify-between border-b border-white/10 pb-3 gap-2">
           <div>
@@ -764,9 +713,7 @@ export const ScannerView: React.FC = () => {
             </h1>
           </div>
 
-          {/* Outils Audio & État Caméra */}
           <div className="flex items-center gap-2 shrink-0">
-            {/* Bouton Toggle Rétroaction Sonore */}
             <button
               type="button"
               onClick={() => {
@@ -783,7 +730,6 @@ export const ScannerView: React.FC = () => {
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
             </button>
 
-            {/* Indicateur de caméra */}
             <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-[#121212] border border-white/15">
               <span
                 className={`w-2 h-2 rounded-full ${
@@ -797,7 +743,6 @@ export const ScannerView: React.FC = () => {
           </div>
         </div>
 
-        {/* Badge de l'événement autorisé */}
         {authorizedEvent && (
           <div className="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3 text-xs">
             <div className="min-w-0">
@@ -818,7 +763,6 @@ export const ScannerView: React.FC = () => {
           </div>
         )}
 
-        {/* Feedback d'export CSV temporaire */}
         {exportFeedback && (
           <div className="p-2.5 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#d4af37] text-xs font-agrandir-semibold flex items-center gap-2 animate-fadeIn">
             <Sparkles className="w-4 h-4 shrink-0" />
@@ -827,15 +771,10 @@ export const ScannerView: React.FC = () => {
         )}
       </div>
 
-      {/* 2. Centre : Zone Caméra / Viseur QR */}
       <div className="max-w-lg w-full mx-auto flex flex-col justify-center">
-        
         <div className="relative aspect-square w-full rounded-3xl overflow-hidden bg-[#0c0c0c] border border-white/15 shadow-2xl flex items-center justify-center">
-          
-          {/* Point de montage html5-qrcode */}
           <div id="qr-reader" className="w-full h-full object-cover" />
 
-          {/* Écran d'attente si caméra inactive */}
           {!isCameraActive && !scanResult && (
             <div className="absolute inset-0 bg-black/90 p-6 flex flex-col items-center justify-center text-center space-y-4 z-20">
               <div className="w-16 h-16 rounded-full bg-white/5 border border-white/20 flex items-center justify-center text-[#d4af37]">
@@ -882,7 +821,6 @@ export const ScannerView: React.FC = () => {
                 />
               </div>
 
-              {/* Raccourci de test audio pour le vigile */}
               <div className="pt-2 flex items-center gap-2 text-[10px] text-neutral-400 font-agrandir-semibold">
                 <span>Test Audio :</span>
                 <button
@@ -903,14 +841,12 @@ export const ScannerView: React.FC = () => {
             </div>
           )}
 
-          {/* Viseur optique quand caméra active */}
           {isCameraActive && !scanResult && (
             <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-between p-8 z-10">
               <div className="text-[10px] font-agrandir-semibold tracking-widest text-[#d4af37] bg-black/70 px-3 py-1 rounded-full uppercase border border-[#d4af37]/30">
                 Pointez vers le QR code
               </div>
 
-              {/* Cadre de visée */}
               <div className="w-56 h-56 border-2 border-white/40 rounded-2xl relative shadow-[0_0_20px_rgba(255,255,255,0.1)]">
                 <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-[#d4af37] rounded-tl-lg" />
                 <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-[#d4af37] rounded-tr-lg" />
@@ -924,7 +860,6 @@ export const ScannerView: React.FC = () => {
             </div>
           )}
 
-          {/* Overlay Résultat Visuel Immédiat */}
           {scanResult && (
             <div
               className={`absolute inset-0 z-30 p-6 flex flex-col items-center justify-center text-center animate-fadeIn ${
@@ -935,7 +870,6 @@ export const ScannerView: React.FC = () => {
                   : 'bg-rose-950/95 border-2 border-rose-500'
               }`}
             >
-              {/* Icône de résultat */}
               <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mb-3 shadow-xl">
                 {scanResult.status === 'SUCCESS' && (
                   <CheckCircle2 className="w-12 h-12 text-emerald-400 animate-bounce" />
@@ -948,12 +882,10 @@ export const ScannerView: React.FC = () => {
                 )}
               </div>
 
-              {/* Titre & Message d'accès */}
               <h2 className="font-agrandir-extrabold text-2xl uppercase tracking-tight text-white mb-1">
                 {scanResult.message}
               </h2>
 
-              {/* Détails du titulaire */}
               {scanResult.holderName && (
                 <div className="mt-2.5 p-3.5 rounded-2xl bg-black/60 border border-white/10 w-full max-w-xs text-left space-y-1">
                   <div className="text-[9px] text-[#aaa] uppercase tracking-wider font-agrandir-semibold">
@@ -973,7 +905,6 @@ export const ScannerView: React.FC = () => {
                 </div>
               )}
 
-              {/* Compte à rebours avant réarmement automatique (2 secondes) */}
               {resumeCountdown !== null && (
                 <div className="text-xs text-white/70 mt-3 flex items-center gap-1.5 font-agrandir-semibold">
                   <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -982,10 +913,8 @@ export const ScannerView: React.FC = () => {
               )}
             </div>
           )}
-
         </div>
 
-        {/* Boutons d'action sous la caméra */}
         {isCameraActive && (
           <div className="flex gap-2.5 mt-3">
             <button
@@ -1006,13 +935,11 @@ export const ScannerView: React.FC = () => {
           </div>
         )}
 
-        {/* Saisie manuelle de secours pour vigile */}
         <div className="mt-3 p-3 rounded-2xl bg-[#0c0c0c] border border-white/10 space-y-2">
           <div className="flex items-center justify-between">
             <div className="text-[9px] font-agrandir-semibold uppercase tracking-wider text-[#777]">
               Saisie Manuelle (si le code QR est illisible)
             </div>
-            {/* Raccourcis démo pour test immédiat */}
             <div className="flex gap-1.5 text-[9px]">
               <button
                 type="button"
@@ -1069,13 +996,9 @@ export const ScannerView: React.FC = () => {
             </button>
           </form>
         </div>
-
       </div>
 
-      {/* 3. Section dédiée : JOURNAL D'ACTIVITÉ & EXPORT CSV */}
       <div className="max-w-lg w-full mx-auto mt-5 pt-4 border-t border-white/10 space-y-3">
-        
-        {/* Entête du Journal avec Titre & Bouton 'Exporter le journal' */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[#d4af37]">
@@ -1096,7 +1019,6 @@ export const ScannerView: React.FC = () => {
             </div>
           </div>
 
-          {/* Bouton Exporter le journal au format CSV */}
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -1110,7 +1032,6 @@ export const ScannerView: React.FC = () => {
           </div>
         </div>
 
-        {/* Compteurs statistiques de soirée */}
         <div className="grid grid-cols-3 gap-2 text-center text-xs">
           <div className="p-2 rounded-xl bg-[#0c0c0c] border border-white/10">
             <div className="text-[9px] uppercase font-agrandir-bold text-neutral-400">Total Scannés</div>
@@ -1128,7 +1049,6 @@ export const ScannerView: React.FC = () => {
           </div>
         </div>
 
-        {/* Liste des 10 derniers billets scannés */}
         {last10Scans.length === 0 ? (
           <div className="p-6 rounded-2xl bg-[#0c0c0c] border border-white/10 text-center space-y-1.5">
             <FileSpreadsheet className="w-7 h-7 text-neutral-600 mx-auto" />
@@ -1158,7 +1078,6 @@ export const ScannerView: React.FC = () => {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    {/* Colonne gauche : Titulaire & Informations */}
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <div className="flex items-center gap-2">
                         <span className="font-agrandir-extrabold text-xs text-white truncate">
@@ -1191,7 +1110,6 @@ export const ScannerView: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Colonne droite : Badge de Statut Visuel Immédiat */}
                     <div className="shrink-0 flex items-center">
                       {isSuccess && (
                         <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-agrandir-extrabold flex items-center gap-1 shadow-sm">
@@ -1221,15 +1139,12 @@ export const ScannerView: React.FC = () => {
           </div>
         )}
 
-        {/* Note de bas de section */}
         <div className="text-center pt-2">
           <p className="text-[10px] text-neutral-600">
             LUMARÉEL CO. · Système de contrôle d'accès cryptographique inviolable
           </p>
         </div>
-
       </div>
-
     </div>
   );
 };

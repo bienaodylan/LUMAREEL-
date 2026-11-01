@@ -33,7 +33,7 @@ export const ProfileView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white font-agrandir-regular select-none pb-36 pt-8 sm:pt-12 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-transparent text-white font-agrandir-regular select-none pb-36 pt-8 sm:pt-12 max-w-2xl mx-auto">
       
       {/* INFORMATIONS COMPTE ACTIF */}
       <div className="px-6 py-6 border-b border-white/10 flex items-center justify-between">
