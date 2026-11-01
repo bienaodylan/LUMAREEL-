@@ -1230,3 +1230,6 @@ export const ScannerView: React.FC = () => {
     </div>
   );
 };
+git add src/components/ScannerView.tsx
+git commit -m "Correction des variables en double dans ScannerView"
+git push origin main
