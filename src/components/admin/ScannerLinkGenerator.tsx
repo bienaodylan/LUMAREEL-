@@ -12,6 +12,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { ScannerToken } from '../../types';
+import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient';
 
 interface ScannerLinkGeneratorProps {
   eventId: string;
@@ -37,7 +38,10 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
     let isMounted = true;
     const fetchTokens = async () => {
       try {
-        const res = await fetch(`/api/events/${eventId}/scanner-tokens`);
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (!isSupabaseConfigured || !accessToken) return;
+        const res = await fetch(`/api/events/${eventId}/scanner-tokens`, { headers: { Authorization: `Bearer ${accessToken}` } });
         if (res.ok) {
           const data = await res.json();
           if (isMounted && data.success && data.tokens && data.tokens.length > 0) {
@@ -68,9 +72,12 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
       setIsGenerating(true);
       setCopied(false);
 
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!isSupabaseConfigured || !accessToken) throw new Error('Connectez-vous avec un compte administrateur vérifié.');
       const res = await fetch(`/api/events/${eventId}/scanner-token`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({
           createdBy: 'Direction LUMARÉEL CO.',
           durationHours: 24,
@@ -83,7 +90,7 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
       }
 
       const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const fullUrl = `${origin}/?page=gate_scanner&eventId=${eventId}&token=${data.token}`;
+      const fullUrl = data.fullUrl || `${origin}/?page=gate_scanner&eventId=${eventId}&token=${data.token}`;
       setGeneratedUrl(fullUrl);
       setActiveToken(data.scannerToken);
       setExistingTokens((prev) => [data.scannerToken, ...prev.filter((t) => t.id !== data.scannerToken.id)]);
