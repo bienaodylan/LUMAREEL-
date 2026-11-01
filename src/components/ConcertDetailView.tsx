@@ -76,11 +76,8 @@ export const ConcertDetailView: React.FC = () => {
         <div className="lg:col-span-7 flex flex-col justify-between">
           
           <div>
-            {/* Header info pills */}
+            {/* Header info pills sans catégorie musicale */}
             <div className="flex flex-wrap items-center gap-2.5 text-xs font-agrandir-regular tracking-wider uppercase mb-3">
-              <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-white font-agrandir-semibold text-[11px]">
-                {event.genre}
-              </span>
               <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#aaa] text-[11px]">
                 {event.city}, {event.country}
               </span>

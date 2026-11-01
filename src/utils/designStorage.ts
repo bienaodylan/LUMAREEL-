@@ -42,16 +42,41 @@ export async function uploadDesign(file: File, folder = 'tickets'): Promise<stri
   return supabase.storage.from(DESIGN_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-/** Convertit une URL (ou chemin) d'image en Data URL, nécessaire pour jsPDF. */
 export async function urlToDataUrl(url: string): Promise<string> {
+  if (!url) return '';
   if (url.startsWith('data:')) return url;
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Visuel inaccessible (${response.status}).`);
-  const blob = await response.blob();
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Lecture du visuel impossible.'));
-    reader.readAsDataURL(blob);
+  try {
+    const response = await fetch(url);
+    if (response.ok) {
+      const blob = await response.blob();
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(blob);
+      });
+    }
+  } catch {}
+
+  // Fallback avec élément Image pour contourner certains blocages réseau / CORS
+  return new Promise<string>((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || 600;
+        canvas.height = img.naturalHeight || 850;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0);
+          resolve(canvas.toDataURL('image/png'));
+          return;
+        }
+      } catch {}
+      resolve('');
+    };
+    img.onerror = () => resolve('');
+    img.src = url;
   });
 }

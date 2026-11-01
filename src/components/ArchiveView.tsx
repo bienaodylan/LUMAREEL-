@@ -44,7 +44,7 @@ export const ArchiveView: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#060606] text-[#efefef] flex flex-col justify-between overflow-hidden select-none">
+    <div className="relative bg-[#060606] text-[#efefef] flex flex-col overflow-hidden select-none">
       
       {/* Downward spotlight beam in background matching user reference */}
       <div className="absolute inset-0 pointer-events-none flex justify-center overflow-hidden" aria-hidden="true">
@@ -52,8 +52,8 @@ export const ArchiveView: React.FC = () => {
         <div className="absolute inset-0 bg-grain opacity-25 mix-blend-screen" />
       </div>
 
-      {/* Main content container */}
-      <div className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-10 lg:px-12 pt-28 sm:pt-32 pb-24 flex-1">
+      {/* Main content container avec espacement ajusté */}
+      <div className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-10 lg:px-12 pt-24 sm:pt-28 pb-6 sm:pb-8 flex-1">
         
         {/* Navigation & Section kicker */}
         <div className="flex items-center justify-between mb-6">
@@ -527,20 +527,6 @@ export const ArchiveView: React.FC = () => {
 
         </div>
       )}
-
-      {/* Footer matching LUMARÉEL aesthetic */}
-      <footer className="relative z-10 w-full px-6 sm:px-10 py-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] sm:text-[11px] font-agrandir-regular tracking-[0.2em] text-[#666] uppercase">
-        <div>
-          ©️ 2026 ARÉEL GROUPE / LUMAREEL CO. · TOUS DROITS RÉSERVÉS
-        </div>
-        <div className="flex items-center gap-4 text-[#777]">
-          <span className="hover:text-white transition-colors cursor-pointer">INSTAGRAM</span>
-          <span>·</span>
-          <span className="hover:text-white transition-colors cursor-pointer">TIKTOK</span>
-          <span>·</span>
-          <span className="hover:text-white transition-colors cursor-pointer">YOUTUBE OFFICIEL</span>
-        </div>
-      </footer>
 
     </div>
   );
