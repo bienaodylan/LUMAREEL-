@@ -4,13 +4,12 @@ import { formatDateLongFrench } from '../utils/dateUtils';
 import {
   SYSTEM_PAPER_FORMATS,
   createProductionLayout,
-  generateProductionPDF,
   PrintTicketItem,
   DuplexFlip,
   TicketOrientationMode,
 } from '../utils/pdfEngine';
-import { uploadDesign, urlToDataUrl } from '../utils/designStorage';
-import { Printer, X, Loader2, Upload } from 'lucide-react';
+import { exportPhysicalTicketsToExcel, exportPhysicalTicketsToCsv } from '../utils/physicalTicketExport';
+import { Printer, X, Loader2 } from 'lucide-react';
 
 // Clé d'administration transmise depuis les variables d'environnement
 const BACKEND_ADMIN_KEY = import.meta.env.VITE_ADMIN_API_KEY || '';
@@ -95,7 +94,6 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   const [duplexFlip, setDuplexFlip] = useState<DuplexFlip>('long');
   const [orientationMode, setOrientationMode] = useState<TicketOrientationMode>('auto');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isUploadingDesign, setIsUploadingDesign] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
 
   // Identifiant de la demande en cours : réutilisé pour éviter les doublons
@@ -115,11 +113,6 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   const selectedEvent = events.find((event) => event.id === selectedEventId) || events[0];
   const currentCategory = selectedEvent?.categories.find((category) => category.id === selectedCategoryId)
     || selectedEvent?.categories[0];
-  const categoryDesignUrl = currentCategory?.ticketImageUrl
-    || selectedEvent?.officialPoster
-    || selectedEvent?.bannerImage
-    || selectedEvent?.artistPortrait
-    || '';
   const selectedPaper = SYSTEM_PAPER_FORMATS[selectedPaperKey];
 
   const { layout, layoutError } = useMemo(() => {
@@ -163,42 +156,10 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleUploadCategoryDesign = async (file: File) => {
-    if (!selectedEvent || !currentCategory) return;
-    if (!file.type.startsWith('image/')) {
-      showToast('Veuillez sélectionner un fichier image.', 'error');
-      return;
-    }
-
-    try {
-      setIsUploadingDesign(true);
-      const fileUrl = await uploadDesign(file, `tickets/${selectedEvent.id}`);
-
-      const updatedEvent = {
-        ...selectedEvent,
-        categories: selectedEvent.categories.map((category) =>
-          category.id === currentCategory.id
-            ? { ...category, ticketImageUrl: fileUrl }
-            : category
-        ),
-      };
-      await saveEvent(updatedEvent);
-      showToast(`Design de la catégorie ${currentCategory.name} mis à jour !`, 'success');
-    } catch (error) {
-      console.error(error);
-      showToast(
-        error instanceof Error ? error.message : "Erreur lors de l'import du visuel de ticket.",
-        'error'
-      );
-    } finally {
-      setIsUploadingDesign(false);
-    }
-  };
-
   const handleGenerateBatch = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedEvent || !currentCategory || quantity <= 0 || !categoryDesignUrl) {
-      showToast('Configuration d’impression incomplète ou visuel manquant.', 'error');
+    if (!selectedEvent || !currentCategory || quantity <= 0) {
+      showToast('Configuration du lot incomplète.', 'error');
       return;
     }
     if (!Number.isInteger(quantity) || quantity > 10000) {
@@ -210,10 +171,6 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     setGenerationProgress(0);
 
     try {
-      // 1. Préparation du visuel
-      const designData = await urlToDataUrl(categoryDesignUrl);
-      setGenerationProgress(25);
-
       // 2. Création et enregistrement du lot sur le serveur
       const batchKey = `${selectedEvent.id}|${currentCategory.id}|${quantity}`;
       let registered = batchCacheRef.current?.key === batchKey ? batchCacheRef.current.tickets : null;
@@ -249,11 +206,11 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
         artist: selectedEvent.artist,
         venue: selectedEvent.venue,
         dateStr,
-        ticketDesignUrl: designData,
+        ticketDesignUrl: '',
       }));
       setGenerationProgress(90);
 
-      // 3. Génération du PDF et ouverture DIRECTE dans Google Chrome
+      // 3. Export Excel avec QR codes intégrés + registre CSV pour l'imprimeur
       const fullLayout = createProductionLayout(
         selectedPaper,
         generated.length,
@@ -262,19 +219,16 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
         duplexFlip,
         orientationMode
       );
-      const duplexPdf = await generateProductionPDF(generated, selectedPaper, 'duplex', fullLayout);
-      const pdfBlob = duplexPdf.output('blob');
-      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const safeArtist = selectedEvent.artist.replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '');
+      const fileBaseName = `LUMAREEL_${safeArtist}_${quantity}BILLETS`;
+      await exportPhysicalTicketsToExcel(generated, selectedPaper, fullLayout, fileBaseName);
+      exportPhysicalTicketsToCsv(generated, fileBaseName);
 
-      // Ouvre immédiatement dans un onglet Google Chrome
-      window.open(pdfUrl, '_blank');
+      showToast(
+        `Lot de ${quantity} billets enregistré. Fichiers Excel (QR intégrés) et CSV téléchargés.`,
+        'success'
+      );
 
-      // Déclenche également le téléchargement du fichier PDF complet
-      duplexPdf.save(`LUMAREEL_${selectedEvent.artist.replace(/\s+/g, '_')}_${quantity}BILLETS.pdf`);
-
-      showToast(`Lot de ${quantity} billets préparé : ouvert directement dans Google Chrome !`, 'success');
-      
-      // Ferme automatiquement la modal pour revenir à l'espace de travail
       onClose();
     } catch (error) {
       console.error(error);
@@ -356,24 +310,10 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
             </div>
           )}
 
-          {currentCategory && (
-            <div className="p-4 bg-[#141414] border border-white/10 rounded-2xl space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-[10px] font-agrandir-bold text-[#d4af37] uppercase tracking-wider">Visuel recto : {currentCategory.name}</div>
-                <label className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[10px] font-agrandir-semibold uppercase flex items-center gap-1.5 cursor-pointer">
-                  <Upload className="w-3 h-3 text-[#d4af37]" />
-                  <span>{isUploadingDesign ? 'Import...' : 'Changer le visuel'}</span>
-                  <input type="file" accept="image/png,image/jpeg,image/webp" disabled={isUploadingDesign || isGenerating} onChange={(event) => { const file = event.target.files?.[0]; if (file) void handleUploadCategoryDesign(file); event.currentTarget.value = ''; }} className="hidden" />
-                </label>
-              </div>
-              <div className="flex flex-col sm:flex-row items-center gap-4">
-                <div className="w-full sm:w-60 aspect-[1536/548] overflow-hidden rounded-xl bg-black border border-white/20 shrink-0">
-                  {categoryDesignUrl ? <img src={categoryDesignUrl} alt={currentCategory.name} className="w-full h-full object-contain" /> : <div className="h-full flex items-center justify-center text-xs text-neutral-500">Aucun visuel</div>}
-                </div>
-                <p className="text-[11px] text-neutral-400 leading-relaxed">Format physique fixe : 153,6 × 54,8 mm. Le visuel est ajusté sans déformation. Le verso comporte le QR code et les informations de contrôle.</p>
-              </div>
-            </div>
-          )}
+          <div className="rounded-2xl border border-white/10 bg-[#141414] p-4 text-[11px] leading-relaxed text-neutral-300">
+            L’export Excel contient les planches de verso avec les QR codes intégrés et un registre des billets.
+            Le CSV complémentaire contient les données QR nécessaires aux logiciels d’impression. Le recto n’est pas exporté.
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -416,7 +356,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
           {/* Bouton blanc unique demandé : "Préparer 10 billets" */}
           <button
             type="submit"
-            disabled={isGenerating || isUploadingDesign || !categoryDesignUrl || !layout}
+            disabled={isGenerating || !layout}
             className="w-full py-4 rounded-2xl bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-sm uppercase tracking-wider transition-all shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 relative overflow-hidden cursor-pointer active:scale-[0.99]"
           >
             {isGenerating ? (
@@ -426,7 +366,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 <span className="relative z-10">Préparation en cours... {generationProgress}%</span>
               </>
             ) : (
-              <span>Préparer {quantity} billets</span>
+              <span>Exporter {quantity} billets (Excel + CSV)</span>
             )}
           </button>
         </form>
