@@ -17,7 +17,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       p_venue: String(body.venue || '').slice(0,250),
       p_event_date: String(body.date || '').slice(0,40),
       p_event_time: String(body.time || '').slice(0,40),
-      p_actor_email: auth.user.email || '',
       p_duration_hours: durationHours,
     });
     if (error || !data?.token) {
