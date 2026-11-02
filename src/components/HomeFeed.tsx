@@ -207,9 +207,9 @@ const EventCardCountdown: React.FC<{
         <div className="rounded-[24px] bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/10 p-2 shadow-2xl">
           <div className="flex flex-col">
 
-            {/* Menu 1 : Réservations */}
+            {/* Menu 1 : Commandes */}
             <button 
-              onClick={() => setCurrentPage('discover')} 
+              onClick={() => setCurrentPage('my oders')} 
               className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
             >
               <div className="flex items-center gap-4">
