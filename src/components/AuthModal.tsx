@@ -56,7 +56,7 @@ export const AuthModal: React.FC = () => {
       const normalizedEmail = authData.user.email.toLowerCase();
       const isSuperAdmin = normalizedEmail === 'bienaodylan428@gmail.com';
       const fallbackName = name.trim() || authData.user.user_metadata?.name || (isSuperAdmin ? 'Dylan B. (Super Admin)' : normalizedEmail.split('@')[0]);
-      const fallbackRole = isSuperAdmin ? 'super_admin' : (authData.user.user_metadata?.role || 'customer');
+      const fallbackRole = 'customer';
 
       let userProfile: { id: string; email: string; name: string; role: string; email_verified?: boolean } | null = null;
 
