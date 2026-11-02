@@ -10,9 +10,7 @@ import {
 } from '../utils/pdfEngine';
 import { exportPhysicalTicketsToExcel, exportPhysicalTicketsToCsv } from '../utils/physicalTicketExport';
 import { Printer, X, Loader2 } from 'lucide-react';
-
-// Clé d'administration transmise depuis les variables d'environnement
-const BACKEND_ADMIN_KEY = import.meta.env.VITE_ADMIN_API_KEY || '';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 /** Erreur définitive : inutile de réessayer automatiquement. */
 class FatalError extends Error {}
@@ -35,11 +33,14 @@ async function postPrintBatch(payload: Record<string, unknown>) {
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 90000);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!isSupabaseConfigured || !accessToken) throw new FatalError('Connectez-vous avec un compte administrateur autorisé avant de créer un lot.');
       const response = await fetch('/api/tickets/print-batch', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-key': BACKEND_ADMIN_KEY,
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(payload),
         signal: controller.signal,
@@ -51,7 +52,7 @@ async function postPrintBatch(payload: Record<string, unknown>) {
 
       if (!data) {
         throw new FatalError(
-          'Les fonctions serveur (/api) ne sont pas installées sur ce site. Ajoutez le dossier api/ au dépôt GitHub, puis redéployez sur Vercel.'
+          'Le serveur a renvoyé une réponse illisible. Vérifiez les journaux de la fonction API.'
         );
       }
       if (response.status === 401) {
