@@ -10,7 +10,8 @@ export const translations = {
     'nav.profile': 'Profil',
     'nav.admin': 'Admin',
     'nav.account': 'Mon Compte',
-    
+    'nav.scanner': 'Contrôle Accès',
+
     // Home & Upcoming
     'home.upcomingTitle': 'ÉVÉNEMENTS À VENIR',
     'home.buyTickets': 'ACHETER TICKETS',
@@ -65,6 +66,27 @@ export const translations = {
     'detail.secureBadge': 'PAIEMENT SÉCURISÉ · ÉMISSION IMMÉDIATE DU BILLET AVEC QR CODE UNIQUE',
     'detail.remaining': 'billets restants',
 
+    // Archive View
+    'archive.backHome': 'Retour à l’accueil',
+    'archive.kicker': 'ARCHIVE OFFICIELLE',
+    'archive.heroTitle1': 'Les scènes',
+    'archive.heroTitle2': 'qu’on a fait vibrer.',
+    'archive.subtitle': 'Des artistes, des publics, des instants uniques captés à jamais.',
+    'archive.none': 'AUCUNE ARCHIVE DISPONIBLE',
+    'archive.noneDesc': 'Revenez bientôt pour découvrir nos récaps vidéos.',
+    'archive.photos': 'PHOTOS',
+    'archive.video': 'VIDÉO',
+    'archive.fullView': 'Plein écran',
+    'archive.close': 'Fermer',
+
+    // News View
+    'news.title': 'ACTUALITÉS & COMMUNIQUÉS',
+    'news.backHome': 'RETOUR À L’ACCUEIL',
+    'news.readTime': 'min de lecture',
+    'news.officialRelease': 'COMMUNIQUÉ OFFICIEL',
+    'news.share': 'Partager',
+    'news.close': 'FERMER',
+
     // Customer Space
     'orders.headerTitle': 'MES COMMANDES',
     'orders.accountKicker': 'ESPACE PERSONNEL CLIENT',
@@ -73,7 +95,6 @@ export const translations = {
     'orders.tabTickets': 'Mes billets',
     'orders.tabOrders': 'Commandes',
     'orders.tabTransfer': 'Transférer',
-    'orders.tabExchange': 'Échanger',
     'orders.tabPast': 'Mes anciens billets',
     'orders.print': 'Imprimer',
     'orders.download': 'Télécharger PDF',
@@ -83,6 +104,10 @@ export const translations = {
     'orders.archivedTicket': 'Billet Archivé',
     'orders.completed': 'Terminé',
     'orders.noTickets': 'Aucun billet trouvé pour ce compte.',
+    'orders.transferNotice': 'Transférez un billet de manière irrévocable à un proche.',
+    'orders.recipientName': 'Nom et prénom du destinataire',
+    'orders.recipientContact': 'Numéro de téléphone ou e-mail',
+    'orders.confirmTransfer': 'CONFIRMER LE TRANSFERT',
 
     // Profile View
     'profile.title': 'Compte & Préférences',
@@ -96,7 +121,51 @@ export const translations = {
     'profile.visitor': 'Visiteur',
     'profile.notConnected': 'Non connecté',
     'profile.superAdmin': 'Super Admin',
+
+    // Checkout Tunnel (4 Steps)
+    'checkout.step1': 'Billets',
+    'checkout.step2': 'Récapitulatif',
+    'checkout.step3': 'Paiement',
+    'checkout.step4': 'Confirmation',
+    'checkout.step1Title': 'SÉLECTION DES BILLETS',
+    'checkout.step2Title': 'RÉCAPITULATIF DE LA COMMANDE',
+    'checkout.step3Title': 'MODE DE PAIEMENT',
+    'checkout.step4Title': 'CONFIRMATION DE COMMANDE',
+    'checkout.lowStock': 'Risque de rupture',
+    'checkout.soldOut': 'Épuisé',
+    'checkout.available': 'Disponible',
+    'checkout.promoPlaceholder': 'Code promo (ex: AREEL20)',
+    'checkout.applyPromo': 'Appliquer',
+    'checkout.promoApplied': 'Code appliqué (-{percent}%)',
+    'checkout.promoInvalid': 'Code promo invalide ou expiré',
+    'checkout.total': 'Total',
+    'checkout.continue': 'Continuer',
+    'checkout.back': 'Retour',
+    'checkout.lockNotice': 'Places réservées pendant {time} — Billets temporairement verrouillés',
+    'checkout.customerDetails': 'Coordonnées de l’acheteur',
+    'checkout.fullName': 'Nom & Prénom',
+    'checkout.email': 'Adresse e-mail',
+    'checkout.phone': 'Numéro de téléphone',
+    'checkout.proceedToPayment': 'Procéder au paiement',
+    'checkout.idSelector': 'Sélecteur d’identification',
+    'checkout.number': 'Numéro',
+    'checkout.selectPaymentMethod': 'Choisissez votre moyen de paiement',
+    'checkout.payWith': 'Payer {amount} via {method}',
+    'checkout.merchant': 'Marchand :',
+    'checkout.merchantName': 'LUMARÉEL CO. · AREEL GROUPE',
+    'checkout.simulationInstruction': 'Veuillez valider le débit sur votre application ou par notification mobile.',
+    'checkout.simulateApproval': 'Simuler la confirmation du paiement',
+    'checkout.orderSuccess': 'PAIEMENT CONFIRMÉ & BILLETS ÉMIS',
+    'checkout.ticketsReady': 'Vos billets certifiés sont disponibles',
+    'checkout.viewEmail': 'Consulter mon e-mail de confirmation',
+    'checkout.accessClientSpace': 'Accéder à mon espace client',
+    'checkout.printPdf': 'IMPRIMER / PDF (A4)',
+
+    // Footer
+    'footer.description': 'Agence de AREEL GROUPE, spécialisée dans l’Organisation et la Promotion d’Événements Festifs.',
+    'footer.security': 'BILLETTERIE SÉCURISÉE · PROTOCOLE CRYPTOGRAPHIQUE',
   },
+
   en: {
     // Navigation
     'nav.home': 'Home',
@@ -106,6 +175,7 @@ export const translations = {
     'nav.profile': 'Profile',
     'nav.admin': 'Admin',
     'nav.account': 'My Account',
+    'nav.scanner': 'Access Control',
 
     // Home & Upcoming
     'home.upcomingTitle': 'UPCOMING EVENTS',
@@ -161,6 +231,27 @@ export const translations = {
     'detail.secureBadge': 'SECURE PAYMENT · INSTANT TICKET ISSUANCE WITH UNIQUE QR CODE',
     'detail.remaining': 'tickets left',
 
+    // Archive View
+    'archive.backHome': 'Back to home',
+    'archive.kicker': 'OFFICIAL ARCHIVE',
+    'archive.heroTitle1': 'The stages',
+    'archive.heroTitle2': 'we set ablaze.',
+    'archive.subtitle': 'Artists, audiences, and unique moments captured forever.',
+    'archive.none': 'NO ARCHIVES AVAILABLE',
+    'archive.noneDesc': 'Come back soon to discover our video recaps.',
+    'archive.photos': 'PHOTOS',
+    'archive.video': 'VIDEO',
+    'archive.fullView': 'Fullscreen',
+    'archive.close': 'Close',
+
+    // News View
+    'news.title': 'NEWS & PRESS RELEASES',
+    'news.backHome': 'BACK TO HOME',
+    'news.readTime': 'min read',
+    'news.officialRelease': 'OFFICIAL RELEASE',
+    'news.share': 'Share',
+    'news.close': 'CLOSE',
+
     // Customer Space
     'orders.headerTitle': 'MY ORDERS',
     'orders.accountKicker': 'CUSTOMER PERSONAL SPACE',
@@ -169,7 +260,6 @@ export const translations = {
     'orders.tabTickets': 'My tickets',
     'orders.tabOrders': 'Orders',
     'orders.tabTransfer': 'Transfer',
-    'orders.tabExchange': 'Exchange',
     'orders.tabPast': 'My past tickets',
     'orders.print': 'Print',
     'orders.download': 'Download PDF',
@@ -179,6 +269,10 @@ export const translations = {
     'orders.archivedTicket': 'Archived Ticket',
     'orders.completed': 'Completed',
     'orders.noTickets': 'No tickets found for this account.',
+    'orders.transferNotice': 'Irrevocably transfer a ticket to a contact.',
+    'orders.recipientName': 'Recipient full name',
+    'orders.recipientContact': 'Phone number or email address',
+    'orders.confirmTransfer': 'CONFIRM TRANSFER',
 
     // Profile View
     'profile.title': 'Account & Preferences',
@@ -192,6 +286,49 @@ export const translations = {
     'profile.visitor': 'Visitor',
     'profile.notConnected': 'Not connected',
     'profile.superAdmin': 'Super Admin',
+
+    // Checkout Tunnel (4 Steps)
+    'checkout.step1': 'Tickets',
+    'checkout.step2': 'Summary',
+    'checkout.step3': 'Payment',
+    'checkout.step4': 'Confirmation',
+    'checkout.step1Title': 'SELECT TICKETS',
+    'checkout.step2Title': 'ORDER SUMMARY',
+    'checkout.step3Title': 'PAYMENT METHOD',
+    'checkout.step4Title': 'ORDER CONFIRMATION',
+    'checkout.lowStock': 'Low stock warning',
+    'checkout.soldOut': 'Sold out',
+    'checkout.available': 'Available',
+    'checkout.promoPlaceholder': 'Promo code (e.g. AREEL20)',
+    'checkout.applyPromo': 'Apply',
+    'checkout.promoApplied': 'Promo applied (-{percent}%)',
+    'checkout.promoInvalid': 'Invalid or expired promo code',
+    'checkout.total': 'Total',
+    'checkout.continue': 'Continue',
+    'checkout.back': 'Back',
+    'checkout.lockNotice': 'Seats locked for {time} — Tickets temporarily reserved',
+    'checkout.customerDetails': 'Buyer details',
+    'checkout.fullName': 'Full Name',
+    'checkout.email': 'Email Address',
+    'checkout.phone': 'Phone Number',
+    'checkout.proceedToPayment': 'Proceed to payment',
+    'checkout.idSelector': 'Identity Selector',
+    'checkout.number': 'Number',
+    'checkout.selectPaymentMethod': 'Choose your payment method',
+    'checkout.payWith': 'Pay {amount} via {method}',
+    'checkout.merchant': 'Merchant:',
+    'checkout.merchantName': 'LUMARÉEL CO. · AREEL GROUPE',
+    'checkout.simulationInstruction': 'Please authorize the payment on your mobile app or via push prompt.',
+    'checkout.simulateApproval': 'Simulate Payment Approval',
+    'checkout.orderSuccess': 'PAYMENT CONFIRMED & TICKETS ISSUED',
+    'checkout.ticketsReady': 'Your certified tickets are ready',
+    'checkout.viewEmail': 'View my confirmation email',
+    'checkout.accessClientSpace': 'Access my customer space',
+    'checkout.printPdf': 'PRINT / PDF (A4)',
+
+    // Footer
+    'footer.description': 'Agency of AREEL GROUPE, specializing in Festive Event Organization and Promotion.',
+    'footer.security': 'SECURE TICKETING · CRYPTOGRAPHIC PROTOCOL',
   }
 };
 

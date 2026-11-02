@@ -5,7 +5,6 @@ import {
   User,
   Bell,
   Globe,
-  Coins,
   LogOut,
   Shield,
 } from 'lucide-react';
@@ -129,26 +128,6 @@ export const ProfileView: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="text-xs text-[#d4af37] font-agrandir-bold">
               {language === 'fr' ? 'Français' : 'English'}
-            </span>
-            <ChevronRight className="w-4 h-4 text-neutral-500" />
-          </div>
-        </button>
-
-        {/* Devise */}
-        <button
-          type="button"
-          onClick={() => showToast('Devise officielle : Francs CFA (FCFA).', 'info')}
-          className="flex justify-between items-center w-full py-4 px-6 hover:bg-white/5 active:bg-white/10 cursor-pointer transition-colors text-left"
-        >
-          <div className="flex items-center gap-3.5">
-            <Coins className="w-5 h-5 text-white stroke-[1.8]" />
-            <span className="text-sm font-agrandir-regular text-white">
-              {t('profile.currency')}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-neutral-400 font-agrandir-regular">
-              Francs CFA (FCFA)
             </span>
             <ChevronRight className="w-4 h-4 text-neutral-500" />
           </div>

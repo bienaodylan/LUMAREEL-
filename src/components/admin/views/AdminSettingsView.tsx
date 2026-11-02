@@ -742,8 +742,53 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ showToast 
             </button>
           </div>
 
-          <div className="text-[11px] text-[#777] font-mono leading-relaxed bg-[#101010] p-3.5 rounded-xl border border-white/5">
-            Variables requises sur Vercel : <span className="text-emerald-400">VITE_SUPABASE_URL</span> et <span className="text-emerald-400">VITE_SUPABASE_ANON_KEY</span>. Le script SQL complet avec procédures stockées anti-collision est disponible dans <code className="text-[#d4af37]">src/lib/supabase-schema.sql</code>.
+          <div className="text-[11px] text-[#777] font-mono leading-relaxed bg-[#101010] p-4 rounded-xl border border-white/5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-white font-agrandir-bold text-xs uppercase flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-[#d4af37]" />
+                <span>Script DDL — Table public.users &amp; Cache PostgREST</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const sql = `-- LUMARÉEL CO. : Table public.users & Rechargement du cache de schéma
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TABLE IF NOT EXISTS public.users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('super_admin', 'box_office', 'gate_agent', 'customer')),
+    email_verified BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Activation des politiques RLS permissives pour la billetterie
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Lecture publique users" ON public.users FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Insertion libre users" ON public.users FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Mise à jour users" ON public.users FOR UPDATE USING (true);
+
+-- Super administrateur garanti
+INSERT INTO public.users (email, name, role, email_verified)
+VALUES ('bienaodylan428@gmail.com', 'Dylan B. (Super Admin)', 'super_admin', true)
+ON CONFLICT (email) DO UPDATE SET role = 'super_admin', email_verified = true;
+
+-- Notification impérative pour recharger le cache PostgREST Supabase
+NOTIFY pgrst, 'reload schema';`;
+                  navigator.clipboard.writeText(sql);
+                  showToast('Script SQL copié dans le presse-papier ! Collez-le dans le SQL Editor de Supabase.', 'success');
+                }}
+                className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[#d4af37] text-[10px] font-agrandir-bold uppercase transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <Copy className="w-3 h-3" />
+                <span>Copier le SQL</span>
+              </button>
+            </div>
+            <p className="text-[10px] text-[#888]">
+              Résout l’erreur <code className="text-[#d4af37]">Could not find the table 'users' in the schema cache</code>. Exécutez ce script dans l'éditeur SQL de votre projet Supabase (<span className="text-white font-mono">kupznytxykaesfqnngtb</span>) pour créer la table et recharger le cache d’API instantanément.
+            </p>
           </div>
         </div>
 

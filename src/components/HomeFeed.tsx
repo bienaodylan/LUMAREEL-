@@ -207,7 +207,7 @@ const EventCardCountdown: React.FC<{
         <div className="rounded-[24px] bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/10 p-2 shadow-2xl">
           <div className="flex flex-col">
 
-            {/* Menu 1 : Réservations & Catalogue */}
+            {/* Menu 1 : Réservations */}
             <button 
               onClick={() => setCurrentPage('discover')} 
               className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
@@ -243,7 +243,7 @@ const EventCardCountdown: React.FC<{
 
             <div className="h-px bg-white/5 mx-4 my-1" />
 
-            {/* Menu 3 : Actualités & Éditions */}
+            {/* Menu 3 : Actualités */}
             <button 
               onClick={() => setCurrentPage('news')} 
               className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"

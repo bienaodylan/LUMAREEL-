@@ -27,7 +27,7 @@ import {
 
 import { formatDateLongFrench } from '../utils/dateUtils';
 
-type ScrollableTab = 'tickets' | 'orders' | 'transfer' | 'exchange' | 'past';
+type ScrollableTab = 'tickets' | 'transfer' | 'past';
 
 export const CustomerSpace: React.FC = () => {
   const { currentUser, customerOrders, refreshCustomerOrders, events, setCurrentPage, showToast, language, t } = useApp();
@@ -41,11 +41,6 @@ export const CustomerSpace: React.FC = () => {
   const [recipientName, setRecipientName] = useState<string>('');
   const [recipientContact, setRecipientContact] = useState<string>('');
   const [transferSuccessToken, setTransferSuccessToken] = useState<string | null>(null);
-
-  // États pour l'échange de billet
-  const [exchangeTicketId, setExchangeTicketId] = useState<string>('');
-  const [exchangeTargetCategory, setExchangeTargetCategory] = useState<string>('');
-  const [exchangeSubmitted, setExchangeSubmitted] = useState<boolean>(false);
 
   useEffect(() => {
     refreshCustomerOrders();
@@ -103,22 +98,9 @@ export const CustomerSpace: React.FC = () => {
     showToast(`Billet transféré à ${recipientName}. Jeton : ${token}`, 'success');
   };
 
-  // Traitement de l'échange de billet
-  const handleConfirmExchange = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!exchangeTicketId || !exchangeTargetCategory) {
-      showToast('Veuillez sélectionner un billet et une catégorie cible.', 'error');
-      return;
-    }
-    setExchangeSubmitted(true);
-    showToast('Demande d’échange enregistrée. Un agent la validera sous 24h.', 'success');
-  };
-
   const tabsConfig: Array<{ id: ScrollableTab; label: string; count?: number }> = [
     { id: 'tickets', label: t('orders.tabTickets'), count: allTickets.length },
-    { id: 'orders', label: t('orders.tabOrders'), count: customerOrders.length },
     { id: 'transfer', label: t('orders.tabTransfer') },
-    { id: 'exchange', label: t('orders.tabExchange') },
     { id: 'past', label: t('orders.tabPast') },
   ];
 
@@ -350,65 +332,7 @@ export const CustomerSpace: React.FC = () => {
         </div>
       )}
 
-      {/* --- ONGLET 2: COMMANDES --- */}
-      {activeTab === 'orders' && (
-        <div className="space-y-4">
-          {customerOrders.length === 0 ? (
-            <div className="text-center py-20 border border-dashed border-white/15 rounded-3xl bg-[#0c0c0c] p-8">
-              <p className="text-xs font-agrandir-regular text-[#777]">Aucune commande enregistrée.</p>
-            </div>
-          ) : (
-            customerOrders.map((ord) => (
-              <div
-                key={ord.id}
-                className="bg-[#0e0e0e] border border-white/10 rounded-3xl p-6 sm:p-7 flex flex-col md:flex-row md:items-center justify-between gap-6 font-agrandir-regular text-xs shadow-lg"
-              >
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="font-agrandir-extrabold text-white text-sm tracking-wide">{ord.reference}</span>
-                    <span
-                      className={`text-[10px] font-agrandir-semibold tracking-wider uppercase px-2.5 py-0.5 rounded-full border ${
-                        ord.paymentStatus === 'completed'
-                          ? 'border-emerald-500/50 text-emerald-400 bg-emerald-950/20'
-                          : 'border-amber-500/50 text-amber-400 bg-amber-950/20'
-                      }`}
-                    >
-                      {ord.paymentStatus === 'completed' ? 'PAYÉE & CONFIRMÉE' : 'EN ATTENTE'}
-                    </span>
-                  </div>
-
-                  <div className="text-white text-sm font-agrandir-semibold mt-1">
-                    {ord.eventTitle}
-                  </div>
-                  <div className="text-[#888] text-[11px] mt-0.5">
-                    {ord.quantity}x {ord.categoryName} · {ord.eventDate} ({ord.eventVenue})
-                  </div>
-                  <div className="text-[#666] text-[10px] mt-1">
-                    Date d’achat : {new Date(ord.createdAt).toLocaleDateString('fr-FR')} · Réf. transaction : {ord.paymentRef}
-                  </div>
-                </div>
-
-                <div className="text-right flex flex-col md:items-end justify-between gap-2">
-                  <div className="text-base sm:text-lg font-agrandir-extrabold text-white">
-                    {ord.totalAmount.toLocaleString()} {ord.currency}
-                  </div>
-                  {ord.paymentStatus === 'completed' && ord.tickets && ord.tickets.length > 0 && (
-                    <button
-                      type="button"
-                      className="text-[11px] text-[#d4af37] hover:underline cursor-pointer font-agrandir-semibold"
-                      onClick={() => setActiveTab('tickets')}
-                    >
-                      Voir mes {ord.tickets.length} billets →
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-
-      {/* --- ONGLET 3: TRANSFÉRER --- */}
+      {/* --- ONGLET: TRANSFÉRER --- */}
       {activeTab === 'transfer' && (
         <div className="max-w-2xl bg-[#0e0e0e] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
           <div className="space-y-1">
@@ -518,81 +442,7 @@ export const CustomerSpace: React.FC = () => {
         </div>
       )}
 
-      {/* --- ONGLET 4: ÉCHANGER --- */}
-      {activeTab === 'exchange' && (
-        <div className="max-w-2xl bg-[#0e0e0e] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-[#d4af37]">
-              <RefreshCw className="w-5 h-5" />
-              <h2 className="font-agrandir-extrabold text-lg uppercase tracking-tight text-white">
-                Échanger ou surclasser un billet
-              </h2>
-            </div>
-            <p className="text-xs text-[#888] leading-relaxed">
-              Vous souhaitez passer en Carré Or, VIP ou changer de date ? Sélectionnez votre billet actuel et formulez votre demande de réattribution.
-            </p>
-          </div>
 
-          {exchangeSubmitted ? (
-            <div className="p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-center space-y-3">
-              <Check className="w-10 h-10 text-emerald-400 mx-auto" />
-              <div className="font-agrandir-extrabold text-white uppercase text-base">Demande d'Échange Transmise</div>
-              <div className="text-xs text-neutral-300">
-                Votre dossier est en cours de traitement par notre régie billetterie. Vous recevrez un lien de confirmation sous 24h.
-              </div>
-              <button
-                type="button"
-                onClick={() => setExchangeSubmitted(false)}
-                className="px-4 py-2 rounded-full bg-white text-black font-agrandir-semibold text-xs uppercase cursor-pointer"
-              >
-                Nouvelle demande
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handleConfirmExchange} className="space-y-4">
-              <div>
-                <label className="text-[10px] uppercase font-agrandir-semibold text-[#888] block mb-1">
-                  1. Billet d'origine
-                </label>
-                <select
-                  value={exchangeTicketId}
-                  onChange={(e) => setExchangeTicketId(e.target.value)}
-                  className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-[#d4af37]"
-                  required
-                >
-                  <option value="">-- Sélectionner un billet --</option>
-                  {allTickets.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.eventTitle} — {t.categoryName} ({t.serialNumber})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[10px] uppercase font-agrandir-semibold text-[#888] block mb-1">
-                  2. Catégorie ou surclassement souhaité
-                </label>
-                <input
-                  type="text"
-                  value={exchangeTargetCategory}
-                  onChange={(e) => setExchangeTargetCategory(e.target.value)}
-                  placeholder="Ex: Surclassement en PASS VIP ou Carré Or"
-                  className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-[#d4af37]"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3.5 rounded-full bg-white text-black font-agrandir-extrabold text-xs uppercase tracking-wider hover:bg-neutral-200 transition-colors cursor-pointer shadow-lg"
-              >
-                Transmettre la demande d'échange
-              </button>
-            </form>
-          )}
-        </div>
-      )}
 
       {/* --- ONGLET: MES ANCIENS BILLETS --- */}
       {activeTab === 'past' && (

@@ -8,7 +8,7 @@ import {
 import { formatDateLongFrench } from '../utils/dateUtils';
 
 export const ArchiveView: React.FC = () => {
-  const { archives, setCurrentPage } = useApp();
+  const { archives, setCurrentPage, language, t } = useApp();
 
   // Active media mode per archive ('video' | 'photos')
   const [activeTab, setActiveTab] = useState<Record<string, 'video' | 'photos'>>({});
@@ -62,11 +62,11 @@ export const ArchiveView: React.FC = () => {
             className="flex items-center gap-2 text-xs font-agrandir-semibold text-[#888] hover:text-white uppercase tracking-wider transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Retour à l’accueil</span>
+            <span>{t('archive.backHome')}</span>
           </button>
 
           <div className="text-[11px] font-agrandir-regular tracking-[0.25em] text-[#d4af37] uppercase">
-            ARCHIVE OFFICIELLE
+            {t('archive.kicker')}
           </div>
         </div>
 
@@ -74,31 +74,28 @@ export const ArchiveView: React.FC = () => {
             "Les scènes" in bold white sans + "qu'on a fait vibrer." in italic serif */}
         <div className="mb-4">
           <h1 className="font-agrandir-extrabold text-5xl sm:text-7xl md:text-8xl tracking-tight text-white leading-[0.95] text-balance uppercase">
-            Les scènes
+            {t('archive.heroTitle1')}
           </h1>
           <h2 className="font-editorial-italic font-normal text-5xl sm:text-7xl md:text-8xl text-[#F2F2F2] tracking-tight leading-[1.05] mt-1 text-balance">
-            qu’on a fait vibrer.
+            {t('archive.heroTitle2')}
           </h2>
         </div>
 
         <p className="text-sm sm:text-base text-[#999] font-agrandir-regular font-light max-w-xl mb-12">
-          Des artistes, des publics, des instants uniques captés à jamais.
+          {t('archive.subtitle')}
         </p>
 
         {/* =========================================================================
             DISPOSITION DE LA LISTE : STYLE "HISTORIQUE YOUTUBE" VERTICAL
-            Chaque ligne se divise en deux :
-            - Bloc Média (Cadre 16:9 avec bouton Play ou Carrousel Photos) + Boutons Toggle
-            - Bloc Informations (Titre, date, lieu, résumé court)
            ========================================================================= */}
         {(!archives || archives.length === 0) ? (
           <div className="text-center py-20 rounded-3xl bg-[#0c0c0c] border border-white/10 p-8 my-6">
             <Film className="w-10 h-10 text-[#555] mx-auto mb-3" />
             <h3 className="font-agrandir-extrabold text-xl text-white uppercase mb-2">
-              AUCUNE ARCHIVE DISPONIBLE
+              {t('archive.none')}
             </h3>
             <p className="font-agrandir-regular text-xs text-[#888] max-w-sm mx-auto mb-6">
-              Revenez bientôt pour découvrir nos récaps vidéos.
+              {t('archive.noneDesc')}
             </p>
           </div>
         ) : (

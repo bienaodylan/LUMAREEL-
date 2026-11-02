@@ -4,7 +4,7 @@ import { ArrowLeft, Calendar, User, Clock, ArrowRight, X } from 'lucide-react';
 import { formatDateLongFrench } from '../utils/dateUtils';
 
 export const NewsView: React.FC = () => {
-  const { news, setCurrentPage } = useApp();
+  const { news, setCurrentPage, language, t } = useApp();
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
 
   return (
@@ -15,7 +15,7 @@ export const NewsView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="font-agrandir-extrabold text-2xl sm:text-4xl md:text-5xl text-white tracking-tight uppercase whitespace-nowrap">
-              ACTUALITÉS
+              {t('news.title')}
             </h1>
           </div>
 
@@ -24,7 +24,7 @@ export const NewsView: React.FC = () => {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-agrandir-semibold text-neutral-300 hover:text-white uppercase tracking-wider transition-colors cursor-pointer shrink-0 self-start sm:self-center"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>RETOUR SUR TOUTES LES ACTUALITÉS</span>
+            <span>{t('news.backHome')}</span>
           </button>
         </div>
       </div>

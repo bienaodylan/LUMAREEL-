@@ -97,7 +97,7 @@ export interface Order {
   totalAmount: number;
   currency: 'FCFA' | 'XOF' | 'EUR' | string;
   paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
-  paymentProvider: 'geniuspay';
+  paymentProvider: 'geniuspay' | 'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'djamo' | 'card' | string;
   paymentRef: string;
   createdAt: string;
   paidAt?: string;
@@ -173,6 +173,13 @@ export interface TransactionalEmail {
   status: 'sent' | 'queued' | 'failed';
   timestamp: string;
   contentPreview: string;
+  htmlContent?: string;
+  customerName?: string;
+  eventTitle?: string;
+  artistName?: string;
+  totalAmount?: number;
+  currency?: string;
+  ticketsCount?: number;
 }
 
 export interface AdminStats {
