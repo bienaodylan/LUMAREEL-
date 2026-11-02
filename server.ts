@@ -546,20 +546,35 @@ async function startServer() {
     }
   });
 
-  // --- Nouvelle route pour les lots de billets physiques (Modification B1) ---
+  // --- Santé du serveur : permet à l'administration de vérifier la connexion avant d'imprimer ---
+  app.get('/api/health', (_req: Request, res: Response) => {
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: true, service: 'lumareel', time: new Date().toISOString(), printTickets: db.getPrintTicketCount() });
+  });
+
+  // --- Lots de billets physiques ---
+  // `requestId` rend la requête rejouable sans risque (même lot renvoyé) ; `snapshot` décrit le
+  // concert si le serveur ne le connaît pas (redémarrage, concert créé depuis un autre appareil).
   app.post('/api/tickets/print-batch', (req: Request, res: Response) => {
     try {
-      const { eventId, categoryId, quantity } = req.body || {};
+      const { eventId, categoryId, quantity, requestId, snapshot } = req.body || {};
       if (!eventId || !categoryId) {
-        return res.status(400).json({ success: false, error: 'Concert et catégorie requis.' });
+        return res.status(400).json({ success: false, code: 'PARAMETRES', error: 'Concert et catégorie requis.' });
       }
-      const result = db.createPrintBatch({ eventId, categoryId, quantity: Number(quantity) });
+      const result = db.createPrintBatch({
+        eventId,
+        categoryId,
+        quantity: Number(quantity),
+        requestId: typeof requestId === 'string' ? requestId : undefined,
+        snapshot: snapshot && typeof snapshot === 'object' ? snapshot : undefined,
+      });
       if (!result.success) {
-        return res.status(400).json(result);
+        // Échec d'écriture disque = problème serveur (500) ; le reste = requête invalide (400).
+        return res.status(result.code === 'DISQUE' ? 500 : 400).json(result);
       }
-      res.status(201).json(result);
+      res.status(result.reused ? 200 : 201).json(result);
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      res.status(500).json({ success: false, code: 'SERVEUR', error: error.message });
     }
   });
 

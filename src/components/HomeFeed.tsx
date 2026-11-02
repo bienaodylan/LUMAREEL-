@@ -122,15 +122,16 @@ export const HomeFeed: React.FC = () => {
           </div>
         </div>
 
-        <div ref={featuredRowRef} className="flex items-start gap-6 overflow-x-auto pb-6 scrollbar-none snap-x snap-mandatory pt-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div ref={featuredRowRef} className="flex items-start gap-4 sm:gap-6 overflow-x-auto pb-6 scrollbar-none snap-x snap-mandatory pt-3 -mx-6 sm:-mx-12 px-6 sm:px-12 scroll-px-6 sm:scroll-px-12" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {activeSlides.map((event, idx) => {
             const isActive = idx === currentSlideIndex;
             return (
-              <div key={event.id} onClick={() => handleSelectArtistSlide(idx)} className="w-[85vw] sm:w-[400px] shrink-0 cursor-pointer group snap-start transition-all duration-300 select-none">
+              <div key={event.id} onClick={() => handleSelectArtistSlide(idx)} className="w-[84vw] sm:w-[400px] shrink-0 cursor-pointer group snap-start transition-all duration-300 select-none">
                 
                 {/* Image 16:9 sans aucun badge billetterie ou bouton superposé */}
-                <div className={`aspect-[16/9] w-full rounded-3xl overflow-hidden relative transition-all duration-300 bg-[#111111] ${isActive ? 'ring-2 ring-[#d4af37] ring-offset-2 ring-offset-black shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(212,175,55,0.35)] scale-[1.02]' : 'border border-white/10 hover:border-white/30 opacity-80 hover:opacity-100 hover:scale-[1.01]'}`}>
-                  <img src={event.officialPoster || event.bannerImage} alt={event.title} referrerPolicy="no-referrer" className="w-full h-full object-cover filter brightness-[0.95] group-hover:brightness-105 group-hover:scale-105 transition-all duration-500 ease-out" />
+                <div className={`aspect-[16/9] w-full rounded-3xl overflow-hidden relative transition-all duration-300 bg-[#111111] ${isActive ? 'ring-2 ring-[#d4af37] ring-offset-2 ring-offset-black shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(212,175,55,0.35)] sm:scale-[1.02]' : 'border border-white/10 hover:border-white/30 opacity-80 hover:opacity-100 sm:hover:scale-[1.01]'}`}>
+                  <img src={event.officialPoster || event.bannerImage} alt="" aria-hidden="true" referrerPolicy="no-referrer" className="absolute inset-0 w-full h-full object-cover blur-2xl scale-110 opacity-60" />
+                  <img src={event.officialPoster || event.bannerImage} alt={event.title} referrerPolicy="no-referrer" className="relative w-full h-full object-contain filter brightness-[0.95] group-hover:brightness-105 sm:group-hover:scale-105 transition-all duration-500 ease-out" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
                 </div>
 
@@ -196,9 +197,9 @@ export const HomeFeed: React.FC = () => {
         <div className="rounded-[24px] bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/10 p-2 shadow-2xl">
           <div className="flex flex-col">
 
-            {/* Menu 1 : Réservations & Catalogue */}
+            {/* Menu 1 : Mes commandes */}
             <button 
-              onClick={() => setCurrentPage('discover')} 
+              onClick={() => setCurrentPage('client_space')} 
               className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
             >
               <div className="flex items-center gap-4">

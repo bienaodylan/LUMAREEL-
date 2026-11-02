@@ -66,60 +66,15 @@ export const CheckoutModal: React.FC = () => {
           }
         }
       } catch (err) {
-        console.warn('Backend unavailable, generating ticket locally for Vercel/client runtime', err);
+        console.warn('Serveur de billetterie injoignable', err);
       }
 
-      // If backend not reachable (e.g. Vercel static deployment), generate valid order & tickets client-side
+      // Aucun billet n'est jamais fabriqué côté navigateur : un billet sans enregistrement serveur
+      // serait refusé à l'entrée et pourrait être dupliqué. Sans réponse du serveur, on s'arrête.
       if (!tickets || tickets.length === 0 || !order) {
-        const orderId = `ord_${Date.now()}`;
-        const orderRef = `LMR-${Math.floor(1000 + Math.random() * 9000)}`;
-        const generatedTickets: Ticket[] = Array.from({ length: quantity }, (_, idx) => ({
-          id: `tkt_${Date.now()}_${idx + 1}`,
-          orderId,
-          orderRef,
-          eventId: checkoutEvent.id,
-          eventTitle: checkoutEvent.title,
-          eventDate: checkoutEvent.date,
-          eventTime: checkoutEvent.time,
-          eventVenue: checkoutEvent.venue,
-          categoryId: currentCategory.id,
-          categoryName: currentCategory.name,
-          serialNumber: `LR-2026-${checkoutEvent.artist.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
-          token: `LUMAREEL:TKT:LR-2026-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-          holderName: name,
-          holderEmail: email,
-          status: 'valid' as const,
-          issuedAt: new Date().toISOString(),
-        }));
-
-        tickets = generatedTickets;
-
-        const generatedOrder: Order = {
-          id: orderId,
-          reference: orderRef,
-          customerId: currentUser?.id || 'guest',
-          customerName: name,
-          customerEmail: email,
-          customerPhone: phone,
-          eventId: checkoutEvent.id,
-          eventTitle: checkoutEvent.title,
-          eventDate: checkoutEvent.date,
-          eventVenue: checkoutEvent.venue,
-          categoryId: currentCategory.id,
-          categoryName: currentCategory.name,
-          quantity,
-          unitPrice,
-          totalAmount,
-          currency: 'FCFA',
-          paymentStatus: 'completed' as const,
-          paymentProvider: 'geniuspay' as const,
-          paymentRef: `GP_${Date.now()}`,
-          createdAt: new Date().toISOString(),
-          paidAt: new Date().toISOString(),
-          tickets: generatedTickets,
-        };
-
-        order = generatedOrder;
+        throw new Error(
+          "Le serveur de billetterie est injoignable ou n'a pas validé le paiement : aucun billet n'a été émis et rien n'a été débité. Réessayez dans un instant."
+        );
       }
 
       if (order) {

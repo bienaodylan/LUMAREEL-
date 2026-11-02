@@ -11,6 +11,15 @@ import {
 } from '../utils/pdfEngine';
 import { uploadDesign, urlToDataUrl } from '../utils/designStorage';
 import {
+  BatchError,
+  BackendStatus,
+  BatchResult,
+  checkBackend,
+  createPhysicalBatch,
+  getDefaultDeps,
+  newRequestId,
+} from '../utils/printBatch';
+import {
   Printer,
   X,
   CheckCircle2,
@@ -49,7 +58,14 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   const [isPreviewing, setIsPreviewing] = useState(false);
   const ticketsRef = useRef<PrintTicketItem[]>([]);
   // Lot déjà enregistré sur le serveur : évite de créer un 2e lot si on change seulement le papier ou le sens.
-  const batchCacheRef = useRef<{ key: string; tickets: Array<{ id: string; serialNumber: string; token: string }> } | null>(null);
+  const batchCacheRef = useRef<{ key: string; result: BatchResult } | null>(null);
+  // Identifiant du lot en préparation : conservé entre les essais pour qu'un nouvel essai ne crée jamais un 2e lot.
+  const requestIdRef = useRef<{ key: string; id: string } | null>(null);
+  const [progressText, setProgressText] = useState('');
+  const [batchError, setBatchError] = useState<{ message: string; details: string[] } | null>(null);
+  const [batchInfo, setBatchInfo] = useState<{ ref: string; source: string; notes: string[] } | null>(null);
+  const [backendStatus, setBackendStatus] = useState<BackendStatus | null>(null);
+  const [isCheckingBackend, setIsCheckingBackend] = useState(false);
 
   const selectedEvent = events.find((event) => event.id === selectedEventId) || events[0];
   const currentCategory = selectedEvent?.categories.find((category) => category.id === selectedCategoryId)
@@ -175,6 +191,25 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     }
   };
 
+  const handleTestConnection = async () => {
+    setIsCheckingBackend(true);
+    try {
+      setBackendStatus(await checkBackend(await getDefaultDeps()));
+    } finally {
+      setIsCheckingBackend(false);
+    }
+  };
+
+  // Nouveau lot : nouveaux numéros (le lot actuel reste enregistré).
+  const handleNewBatch = () => {
+    batchCacheRef.current = null;
+    requestIdRef.current = null;
+    ticketsRef.current = [];
+    setIsReadyToPrint(false);
+    setBatchInfo(null);
+    setBatchError(null);
+  };
+
   const handleGenerateBatch = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedEvent || !currentCategory || quantity <= 0 || !categoryDesignUrl) {
@@ -188,6 +223,8 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
 
     setIsGenerating(true);
     setIsReadyToPrint(false);
+    setBatchError(null);
+    setBatchInfo(null);
     ticketsRef.current = [];
     setGenerationProgress(0);
 
@@ -196,37 +233,36 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       const designData = await urlToDataUrl(categoryDesignUrl);
       setGenerationProgress(15);
 
-      // Les billets sont créés et enregistrés sur le serveur AVANT l'impression :
+      // Les billets sont créés et enregistrés de façon durable AVANT l'impression :
       // chaque QR code contient un jeton réel, reconnu au contrôle d'entrée.
       const batchKey = `${selectedEvent.id}|${currentCategory.id}|${quantity}`;
-      let registered = batchCacheRef.current?.key === batchKey ? batchCacheRef.current.tickets : null;
-      if (!registered) {
-        let response: Response;
-        try {
-          response = await fetch('/api/tickets/print-batch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              eventId: selectedEvent.id,
-              categoryId: currentCategory.id,
-              quantity,
-            }),
-          });
-        } catch {
-          throw new Error('Aucun billet n’a été créé : le serveur est injoignable (vérifiez la connexion).');
-        }
-        const data = await response.json().catch(() => null);
-        if (!response.ok || !data?.success || !Array.isArray(data.tickets)) {
-          const reason =
-            data?.error ||
-            (response.status === 404
-              ? 'la route /api/tickets/print-batch est introuvable (serveur non démarré, ancienne version en ligne, ou route non ajoutée).'
-              : `réponse inattendue du serveur (code ${response.status}).`);
-          throw new Error(`Aucun billet n’a été créé : ${reason}`);
-        }
-        registered = data.tickets as Array<{ id: string; serialNumber: string; token: string }>;
-        batchCacheRef.current = { key: batchKey, tickets: registered };
+      let result = batchCacheRef.current?.key === batchKey ? batchCacheRef.current.result : null;
+      if (!result) {
+        if (requestIdRef.current?.key !== batchKey) requestIdRef.current = { key: batchKey, id: newRequestId() };
+        const deps = await getDefaultDeps();
+        result = await createPhysicalBatch(
+          {
+            eventId: selectedEvent.id,
+            categoryId: currentCategory.id,
+            quantity,
+            requestId: requestIdRef.current.id,
+            snapshot: {
+              eventTitle: selectedEvent.title || `${selectedEvent.artist} EN CONCERT`,
+              artist: selectedEvent.artist,
+              date: selectedEvent.date,
+              time: selectedEvent.time || '',
+              venue: selectedEvent.venue,
+              categoryName: currentCategory.name,
+              price: currentCategory.price,
+            },
+          },
+          deps,
+          setProgressText
+        );
+        batchCacheRef.current = { key: batchKey, result };
       }
+      const registered = result.tickets;
+      setBatchInfo({ ref: result.batchRef, source: result.source, notes: result.notes });
       setGenerationProgress(80);
 
       const dateStr = formatDateLongFrench(selectedEvent.date);
@@ -248,11 +284,11 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       showToast(`Lot de ${quantity.toLocaleString()} billets préparé.`, 'success');
     } catch (error) {
       console.error(error);
-      showToast(
-        error instanceof Error ? error.message : 'Une erreur est survenue pendant la préparation du lot.',
-        'error'
-      );
+      const message = error instanceof Error ? error.message : 'Une erreur est survenue pendant la préparation du lot.';
+      setBatchError({ message, details: error instanceof BatchError ? error.details : [] });
+      showToast(message, 'error');
     } finally {
+      setProgressText('');
       setIsGenerating(false);
     }
   };
@@ -452,8 +488,31 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
               </div>
             )}
 
+            <div className="rounded-2xl border border-white/10 bg-[#161616] p-3 text-[11px] text-[#bbb] space-y-2" data-testid="backend-panel">
+              <div className="flex items-center justify-between gap-2">
+                <span className="uppercase font-agrandir-bold text-[#888]">Connexion</span>
+                <button type="button" onClick={() => void handleTestConnection()} disabled={isCheckingBackend || isGenerating} className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[10px] uppercase disabled:opacity-50">
+                  {isCheckingBackend ? 'Test…' : 'Tester la connexion'}
+                </button>
+              </div>
+              {backendStatus && (
+                <ul className="space-y-1">
+                  <li className={backendStatus.server.state === 'ok' ? 'text-emerald-400' : 'text-amber-400'}>Serveur : {backendStatus.server.message}</li>
+                  <li className={backendStatus.cloud.state === 'ok' ? 'text-emerald-400' : 'text-amber-400'}>Cloud : {backendStatus.cloud.message}</li>
+                </ul>
+              )}
+            </div>
+
+            {batchError && (
+              <div role="alert" className="rounded-2xl border border-red-500/40 bg-red-500/10 p-3 text-[11px] text-red-200 space-y-1" data-testid="batch-error">
+                <p className="font-agrandir-bold">{batchError.message}</p>
+                {batchError.details.map((d) => <p key={d} className="text-red-300/80">• {d}</p>)}
+                <p className="text-red-300/80">Vous pouvez réessayer : un nouvel essai ne crée jamais de doublon.</p>
+              </div>
+            )}
+
             <button type="submit" disabled={isGenerating || isUploadingDesign || !categoryDesignUrl || !layout} className="w-full py-4 rounded-2xl bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 relative overflow-hidden">
-              {isGenerating ? <><div className="absolute inset-y-0 left-0 bg-[#d4af37]/25" style={{ width: `${generationProgress}%`, transition: 'width 0.2s' }} /><Loader2 className="w-4 h-4 animate-spin relative z-10" /><span className="relative z-10">Préparation du lot... {generationProgress}%</span></> : <><Printer className="w-4 h-4" /><span>Préparer {quantity.toLocaleString('fr-FR')} billets</span></>}
+              {isGenerating ? <><div className="absolute inset-y-0 left-0 bg-[#d4af37]/25" style={{ width: `${generationProgress}%`, transition: 'width 0.2s' }} /><Loader2 className="w-4 h-4 animate-spin relative z-10" /><span className="relative z-10">{progressText || 'Préparation du lot...'} {generationProgress}%</span></> : <><Printer className="w-4 h-4" /><span>Préparer {quantity.toLocaleString('fr-FR')} billets</span></>}
             </button>
           </form>
         ) : (
@@ -462,6 +521,13 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
             <div>
               <h3 className="text-2xl font-agrandir-extrabold uppercase text-white mb-2">Lot prêt pour la production</h3>
               <p className="text-[#888] text-xs max-w-md mx-auto leading-relaxed"><strong className="text-white">{ticketsRef.current.length.toLocaleString('fr-FR')} billets</strong> · papier <strong className="text-white">{selectedPaper?.name}</strong> · <strong className="text-white">{layout?.ticketsPerPage}</strong> billets par feuille · <strong className="text-white">{layout?.totalPages}</strong> feuille(s).</p>
+              {batchInfo && (
+                <div className="mt-3 text-[10px] text-[#bbb] space-y-1" data-testid="batch-info">
+                  <p>Référence du lot : <strong className="text-white">{batchInfo.ref}</strong> ({batchInfo.source === 'cloud' ? 'enregistré dans la base cloud' : 'enregistré sur le serveur'})</p>
+                  {batchInfo.notes.map((n) => <p key={n} className="text-amber-300">⚠ {n}</p>)}
+                </div>
+              )}
+              <button type="button" onClick={handleNewBatch} className="mt-3 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[10px] uppercase">Nouveau lot (nouveaux numéros)</button>
               <p className="text-[10px] text-neutral-500 mt-2">Le PDF recto-verso alterne les pages (recto, verso, recto, verso…) : imprimez-le en recto-verso, avec le retournement choisi, pour que chaque QR code tombe derrière son billet.</p>
             </div>
 

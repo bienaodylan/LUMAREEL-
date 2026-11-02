@@ -65,9 +65,6 @@ export const ArchiveView: React.FC = () => {
             <span>Retour à l’accueil</span>
           </button>
 
-          <div className="text-[11px] font-agrandir-regular tracking-[0.25em] text-[#d4af37] uppercase">
-            ARCHIVE OFFICIELLE
-          </div>
         </div>
 
         {/* Hero headline matching exact typography:
@@ -395,9 +392,6 @@ export const ArchiveView: React.FC = () => {
                     <div>
                       {/* Top Tag & Date */}
                       <div className="flex items-center gap-2.5 mb-2 flex-wrap">
-                        <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[10px] font-agrandir-semibold tracking-widest text-[#d4af37] uppercase">
-                          ARCHIVE OFFICIELLE 0{idx + 1}
-                        </span>
                         <span className="text-xs text-[#888] font-agrandir-regular">
                           <strong className="font-agrandir-extrabold text-white">{item.date ? formatDateLongFrench(item.date) : item.year}</strong>
                         </span>

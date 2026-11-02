@@ -375,3 +375,130 @@ DROP POLICY IF EXISTS "Designs envoi" ON storage.objects;
 CREATE POLICY "Designs envoi"
 ON storage.objects FOR INSERT
 WITH CHECK (bucket_id = 'designs');
+
+
+-- ============================================================================
+-- 12. BILLETS PHYSIQUES — CRÉATION DE LOTS DIRECTEMENT DANS LA BASE (repli cloud)
+-- ============================================================================
+-- Utilisé par l'administration quand le serveur Express est injoignable.
+-- Numéros de série : LMR-AAAA-XXX-C00001 (« C » = cloud). Ils ne croisent jamais
+-- ceux des lots du serveur (…-P00001) ni ceux des achats en ligne (…-0000).
+--  * Compteur atomique : deux administrateurs qui créent un lot en même temps
+--    obtiennent des plages de numéros différentes (verrou de ligne PostgreSQL).
+--  * Idempotent : rejouer la même requête (p_request_id) renvoie le même lot.
+--  * Tout ou rien : si une étape échoue, aucun billet n'est créé.
+CREATE TABLE IF NOT EXISTS public.print_serial_counters (
+    prefix TEXT PRIMARY KEY,
+    last_value BIGINT NOT NULL DEFAULT 0
+);
+-- Table interne : aucun accès direct (pas de policy), seule la fonction ci-dessous l'utilise.
+ALTER TABLE public.print_serial_counters ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION public.create_print_batch(
+    p_request_id TEXT,
+    p_event_id TEXT,
+    p_category_id TEXT,
+    p_quantity INTEGER
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_event RECORD;
+    v_cat JSONB;
+    v_token TEXT;
+    v_batch_id TEXT;
+    v_batch_ref TEXT;
+    v_prefix TEXT;
+    v_artist_code TEXT;
+    v_last BIGINT;
+    v_start BIGINT;
+    v_price NUMERIC := 0;
+BEGIN
+    IF p_request_id IS NULL OR length(trim(p_request_id)) = 0 THEN
+        RETURN jsonb_build_object('success', false, 'code', 'PARAMETRES', 'error', 'Identifiant de requête manquant.');
+    END IF;
+    IF p_quantity IS NULL OR p_quantity < 1 OR p_quantity > 10000 THEN
+        RETURN jsonb_build_object('success', false, 'code', 'QUANTITE', 'error', 'La quantité doit être comprise entre 1 et 10 000 billets.');
+    END IF;
+
+    v_token := substr(md5(p_request_id), 1, 10);
+    v_batch_id := 'prt_' || v_token;
+    v_batch_ref := 'LMR-LOT-' || upper(v_token);
+
+    -- Verrou par requête : deux appels simultanés avec le même identifiant sont sérialisés.
+    PERFORM pg_advisory_xact_lock(hashtext(v_batch_id));
+
+    -- Idempotence : ce lot existe déjà -> on le renvoie.
+    IF EXISTS (SELECT 1 FROM public.orders WHERE id = v_batch_id) THEN
+        RETURN jsonb_build_object(
+            'success', true, 'reused', true, 'batchRef', v_batch_ref,
+            'tickets', (
+                SELECT COALESCE(jsonb_agg(jsonb_build_object('id', t.id, 'serialNumber', t.serial_number, 'token', t.token) ORDER BY t.serial_number), '[]'::jsonb)
+                FROM public.tickets t WHERE t.order_id = v_batch_id
+            )
+        );
+    END IF;
+
+    SELECT * INTO v_event FROM public.events WHERE id = p_event_id;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object('success', false, 'code', 'CONCERT', 'error', 'Concert introuvable dans la base cloud.');
+    END IF;
+
+    SELECT c INTO v_cat FROM jsonb_array_elements(v_event.categories) AS c WHERE c->>'id' = p_category_id LIMIT 1;
+    IF v_cat IS NULL THEN
+        RETURN jsonb_build_object('success', false, 'code', 'CATEGORIE', 'error', 'Catégorie de billet introuvable.');
+    END IF;
+    BEGIN
+        v_price := COALESCE((v_cat->>'price')::NUMERIC, 0);
+    EXCEPTION WHEN OTHERS THEN
+        v_price := 0;
+    END;
+
+    v_artist_code := upper(left(regexp_replace(COALESCE(v_event.artist, ''), '[^A-Za-z]', '', 'g'), 3));
+    IF v_artist_code = '' THEN v_artist_code := 'LMR'; END IF;
+    v_prefix := 'LMR-' || to_char(now(), 'YYYY') || '-' || v_artist_code || '-C';
+
+    -- Réservation ATOMIQUE de la plage de numéros (la ligne est verrouillée jusqu'au COMMIT).
+    INSERT INTO public.print_serial_counters (prefix, last_value) VALUES (v_prefix, p_quantity)
+    ON CONFLICT (prefix) DO UPDATE SET last_value = public.print_serial_counters.last_value + p_quantity
+    RETURNING last_value INTO v_last;
+    v_start := v_last - p_quantity;
+
+    -- Commande technique portant le lot (la table tickets exige une commande).
+    INSERT INTO public.orders (
+        id, reference, customer_id, customer_name, customer_email, event_id, event_title, event_date,
+        event_venue, category_id, category_name, quantity, unit_price, total_amount, currency,
+        payment_status, payment_provider, payment_ref
+    ) VALUES (
+        v_batch_id, v_batch_ref, 'print_batch', 'Lot physique', '', v_event.id, v_event.title, v_event.date::TEXT,
+        v_event.venue, p_category_id, COALESCE(v_cat->>'name', ''), p_quantity, v_price, 0, 'FCFA',
+        'completed', 'physical_batch', v_batch_ref
+    );
+
+    INSERT INTO public.tickets (
+        id, order_id, order_ref, event_id, event_title, event_date, event_time, event_venue,
+        category_id, category_name, serial_number, token, holder_name, holder_email, status
+    )
+    SELECT
+        'tkt_' || substr(replace(gen_random_uuid()::TEXT, '-', ''), 1, 16),
+        v_batch_id, v_batch_ref, v_event.id, v_event.title, v_event.date::TEXT, v_event.time, v_event.venue,
+        p_category_id, COALESCE(v_cat->>'name', ''),
+        v_prefix || lpad((v_start + g)::TEXT, 5, '0'),
+        'TKT_SEC_' || upper(replace(gen_random_uuid()::TEXT, '-', '')),
+        'Billet physique', '', 'valid'
+    FROM generate_series(1, p_quantity) AS g;
+
+    RETURN jsonb_build_object(
+        'success', true, 'reused', false, 'batchRef', v_batch_ref,
+        'tickets', (
+            SELECT jsonb_agg(jsonb_build_object('id', t.id, 'serialNumber', t.serial_number, 'token', t.token) ORDER BY t.serial_number)
+            FROM public.tickets t WHERE t.order_id = v_batch_id
+        )
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.create_print_batch(TEXT, TEXT, TEXT, INTEGER) TO anon, authenticated;

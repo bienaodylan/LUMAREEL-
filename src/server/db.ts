@@ -1100,7 +1100,10 @@ class LumareelDatabase {
         if (!taken && !issuedTickets.some((t) => t.serialNumber === candidate)) { serialNumber = candidate; break; }
       }
       if (!serialNumber) serialNumber = `LMR-2026-${eventCode}-${Date.now().toString().slice(-6)}${i}`;
-      const token = `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
+      let token = '';
+      do {
+        token = `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
+      } while (this.tickets.has(token));
 
       const ticket: Ticket = {
         id: ticketId,
@@ -1454,33 +1457,46 @@ class LumareelDatabase {
     return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
-  // --- Billets physiques imprimés (lots) --- (Modification A5)
+  // --- Billets physiques imprimés (lots) ---
   private printTicketList: Ticket[] = [];
 
-  private savePrintTicketsToDisk() {
+  /**
+   * Écrit le registre des billets physiques de façon atomique (fichier temporaire puis
+   * renommage, avec copie de secours). Renvoie false si l'écriture échoue : l'appelant ne
+   * doit alors JAMAIS annoncer un lot comme créé, car il serait perdu au redémarrage.
+   */
+  private savePrintTicketsToDisk(): boolean {
     try {
       if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-      fs.writeFileSync(path.join(DATA_DIR, 'print_tickets.json'), JSON.stringify(this.printTicketList), 'utf-8');
+      const file = path.join(DATA_DIR, 'print_tickets.json');
+      const tmp = `${file}.tmp`;
+      fs.writeFileSync(tmp, JSON.stringify(this.printTicketList), 'utf-8');
+      if (fs.existsSync(file)) fs.copyFileSync(file, `${file}.bak`);
+      fs.renameSync(tmp, file);
+      return true;
     } catch (e) {
-      console.warn('Failed to save print tickets to disk', e);
+      console.error('[LUMARÉEL] ÉCHEC de sauvegarde des billets physiques sur le disque :', e);
+      return false;
     }
   }
 
   private loadPrintTicketsFromDisk() {
-    try {
-      const file = path.join(DATA_DIR, 'print_tickets.json');
-      if (fs.existsSync(file)) {
-        const list: Ticket[] = JSON.parse(fs.readFileSync(file, 'utf-8'));
-        if (Array.isArray(list)) {
-          this.printTicketList = list;
-          for (const t of list) {
-            this.tickets.set(t.id, t);
-            this.tickets.set(t.token, t);
-          }
+    const file = path.join(DATA_DIR, 'print_tickets.json');
+    for (const candidate of [file, `${file}.bak`]) {
+      try {
+        if (!fs.existsSync(candidate)) continue;
+        const list: Ticket[] = JSON.parse(fs.readFileSync(candidate, 'utf-8'));
+        if (!Array.isArray(list)) continue;
+        this.printTicketList = list;
+        for (const t of list) {
+          this.tickets.set(t.id, t);
+          this.tickets.set(t.token, t);
         }
+        if (candidate !== file) console.warn('[LUMARÉEL] Registre des billets physiques restauré depuis la copie de secours.');
+        return;
+      } catch (e) {
+        console.error(`[LUMARÉEL] Lecture impossible de ${path.basename(candidate)} :`, e);
       }
-    } catch (e) {
-      console.warn('Failed to load print tickets from disk', e);
     }
   }
 
@@ -1489,35 +1505,100 @@ class LumareelDatabase {
     this.savePrintTicketsToDisk();
   }
 
+  /** Nombre de billets physiques enregistrés (diagnostic). */
+  public getPrintTicketCount(): number {
+    return this.printTicketList.length;
+  }
+
+  /**
+   * Crée un lot de billets physiques.
+   *
+   *  - `requestId` (idempotence) : la même requête rejouée (coupure réseau, nouvel essai)
+   *    renvoie le MÊME lot au lieu d'en créer un second.
+   *  - `snapshot` : description du concert envoyée par l'administration. Utilisée seulement
+   *    si le concert est absent de la mémoire du serveur (redémarrage, concert créé ailleurs).
+   *  - Numéros de série physiques : `LMR-AAAA-XXX-P00001`, séquence globale. Les achats en
+   *    ligne (`...-0000`) et les lots créés via le cloud (`...-C00001`) ne croisent jamais ce format.
+   *  - Si l'écriture sur disque échoue, le lot est annulé en mémoire et une erreur est renvoyée.
+   */
   public createPrintBatch(params: {
     eventId: string;
     categoryId: string;
     quantity: number;
+    requestId?: string;
+    snapshot?: {
+      eventTitle?: string;
+      artist?: string;
+      date?: string;
+      time?: string;
+      venue?: string;
+      categoryName?: string;
+    };
   }): {
     success: boolean;
+    batchId?: string;
     batchRef?: string;
+    reused?: boolean;
     tickets?: Array<{ id: string; serialNumber: string; token: string }>;
     error?: string;
+    code?: string;
   } {
-    const event = this.getEvent(params.eventId);
-    if (!event) return { success: false, error: 'Concert introuvable.' };
-    const category = event.categories.find((c) => c.id === params.categoryId);
-    if (!category) return { success: false, error: 'Catégorie de billet introuvable.' };
-
     const quantity = Number(params.quantity);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10000) {
-      return { success: false, error: 'La quantité doit être comprise entre 1 et 10 000 billets.' };
+      return { success: false, code: 'QUANTITE', error: 'La quantité doit être comprise entre 1 et 10 000 billets.' };
     }
 
-    const batchId = `prt_${crypto.randomBytes(5).toString('hex')}`;
-    const batchRef = `LMR-LOT-${batchId.slice(4).toUpperCase()}`;
-    const artistCode = event.artist.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'LMR';
+    const requestId = typeof params.requestId === 'string' ? params.requestId.trim().slice(0, 100) : '';
+    const batchToken = requestId
+      ? crypto.createHash('sha256').update(requestId).digest('hex').slice(0, 10)
+      : crypto.randomBytes(5).toString('hex');
+    const batchId = `prt_${batchToken}`;
+    const batchRef = `LMR-LOT-${batchToken.toUpperCase()}`;
+
+    // Idempotence : ce lot existe déjà (même requestId) -> on le renvoie tel quel.
+    const existing = this.printTicketList.filter((t) => t.orderId === batchId);
+    if (existing.length > 0) {
+      return {
+        success: true,
+        reused: true,
+        batchId,
+        batchRef,
+        tickets: existing.map((t) => ({ id: t.id, serialNumber: t.serialNumber, token: t.token })),
+      };
+    }
+
+    // Concert et catégorie : la mémoire du serveur fait foi, sinon la description envoyée.
+    const known = this.getEvent(params.eventId);
+    const knownCategory = known?.categories.find((c) => c.id === params.categoryId);
+    const snap = params.snapshot || {};
+    if (known && !knownCategory && !snap.categoryName) {
+      return { success: false, code: 'CATEGORIE', error: 'Catégorie de billet introuvable.' };
+    }
+    if (!known && !(snap.eventTitle && snap.artist && snap.categoryName)) {
+      return {
+        success: false,
+        code: 'CONCERT',
+        error: 'Concert introuvable sur le serveur (il a peut-être été créé après son dernier redémarrage). Rechargez la page de l’administration et réessayez.',
+      };
+    }
+    const eventInfo = {
+      id: params.eventId,
+      title: known?.title ?? snap.eventTitle ?? '',
+      artist: known?.artist ?? snap.artist ?? '',
+      date: known?.date ?? snap.date ?? '',
+      time: known?.time ?? snap.time ?? '',
+      venue: known?.venue ?? snap.venue ?? '',
+    };
+    const categoryInfo = {
+      id: params.categoryId,
+      name: knownCategory?.name ?? snap.categoryName ?? '',
+    };
+
+    const artistCode = eventInfo.artist.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'LMR';
     const issuedAt = new Date().toISOString();
 
-    // Numéros de série des billets physiques : préfixe « P » + 5 chiffres, séquence GLOBALE
-    // (tous événements confondus). Les achats en ligne n'utilisent jamais ce format
-    // (LMR-AAAA-XXX-0000, 4 chiffres, sans « P »), et on vérifie en plus qu'aucun numéro
-    // existant (en ligne ou physique) n'est réutilisé.
+    // Séquence globale : on repart du plus grand numéro déjà utilisé avec ce préfixe, et on
+    // vérifie chaque numéro contre TOUS les billets existants (achats en ligne compris).
     const serialPrefix = `LMR-${new Date().getFullYear()}-${artistCode}-P`;
     const usedSerials = new Set<string>();
     for (const t of this.tickets.values()) usedSerials.add(t.serialNumber);
@@ -1537,19 +1618,30 @@ class LumareelDatabase {
         serialNumber = `${serialPrefix}${String(sequence).padStart(5, '0')}`;
       } while (usedSerials.has(serialNumber));
       usedSerials.add(serialNumber);
+
+      let token: string;
+      do {
+        token = `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
+      } while (this.tickets.has(token));
+
+      let id: string;
+      do {
+        id = `tkt_${crypto.randomBytes(8).toString('hex')}`;
+      } while (this.tickets.has(id));
+
       created.push({
-        id: `tkt_${crypto.randomBytes(8).toString('hex')}`,
+        id,
         orderId: batchId,
         orderRef: batchRef,
-        eventId: event.id,
-        eventTitle: event.title,
-        eventDate: event.date,
-        eventTime: event.time,
-        eventVenue: event.venue,
-        categoryId: category.id,
-        categoryName: category.name,
+        eventId: eventInfo.id,
+        eventTitle: eventInfo.title,
+        eventDate: eventInfo.date,
+        eventTime: eventInfo.time,
+        eventVenue: eventInfo.venue,
+        categoryId: categoryInfo.id,
+        categoryName: categoryInfo.name,
         serialNumber,
-        token: `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`,
+        token,
         holderName: 'Billet physique',
         holderEmail: '',
         status: 'valid',
@@ -1557,15 +1649,30 @@ class LumareelDatabase {
       });
     }
 
+    const previousLength = this.printTicketList.length;
     for (const ticket of created) {
       this.tickets.set(ticket.id, ticket);
       this.tickets.set(ticket.token, ticket);
       this.printTicketList.push(ticket);
     }
-    this.savePrintTicketsToDisk();
+
+    if (!this.savePrintTicketsToDisk()) {
+      // Annulation complète : aucun billet ne doit exister en mémoire sans être sur le disque.
+      for (const ticket of created) {
+        this.tickets.delete(ticket.id);
+        this.tickets.delete(ticket.token);
+      }
+      this.printTicketList.length = previousLength;
+      return {
+        success: false,
+        code: 'DISQUE',
+        error: 'Le serveur n’a pas pu enregistrer le lot sur son disque (espace plein ou dossier en lecture seule). Aucun billet n’a été créé.',
+      };
+    }
 
     return {
       success: true,
+      batchId,
       batchRef,
       tickets: created.map((t) => ({ id: t.id, serialNumber: t.serialNumber, token: t.token })),
     };

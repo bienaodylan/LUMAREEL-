@@ -1,5 +1,3 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-
 /**
  * Stockage durable des designs (billets, affiches…) dans Supabase Storage.
  * Les fichiers restent après actualisation ET après chaque redéploiement Vercel,
@@ -7,24 +5,20 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
  */
 export const DESIGN_BUCKET = 'designs';
 
-let client: SupabaseClient | null = null;
-
-function getClient(): SupabaseClient {
-  if (client) return client;
-  const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-  if (!url || !key) {
+async function getClient() {
+  // Client partagé de l'application (prend aussi en compte une configuration saisie dans l'admin).
+  const { supabase, isSupabaseConfigured } = await import('../lib/supabaseClient');
+  if (!isSupabaseConfigured) {
     throw new Error(
-      'Supabase non configuré : ajoutez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY dans les variables d’environnement Vercel.'
+      'Supabase non configuré : ajoutez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY dans les variables d’environnement, sinon le visuel ne peut pas être conservé durablement.'
     );
   }
-  client = createClient(url, key);
-  return client;
+  return supabase;
 }
 
 /** Envoie un fichier dans le bucket et renvoie son URL publique permanente. */
 export async function uploadDesign(file: File, folder = 'tickets'): Promise<string> {
-  const supabase = getClient();
+  const supabase = await getClient();
   const dot = file.name.lastIndexOf('.');
   const ext = (dot >= 0 ? file.name.slice(dot + 1) : 'png').toLowerCase();
   const base = (dot >= 0 ? file.name.slice(0, dot) : file.name)
@@ -37,9 +31,23 @@ export async function uploadDesign(file: File, folder = 'tickets'): Promise<stri
     contentType: file.type,
     upsert: false,
   });
-  if (error) throw new Error(`Upload impossible : ${error.message}`);
+  if (error) {
+    throw new Error(
+      /bucket.*not found/i.test(error.message)
+        ? 'Le dossier de stockage « designs » n’existe pas : exécutez la section 11 de src/lib/supabase-schema.sql dans Supabase.'
+        : `Upload impossible : ${error.message}`
+    );
+  }
 
-  return supabase.storage.from(DESIGN_BUCKET).getPublicUrl(path).data.publicUrl;
+  const publicUrl = supabase.storage.from(DESIGN_BUCKET).getPublicUrl(path).data.publicUrl;
+  // On ne confirme l'import que si le fichier est réellement relisible depuis son adresse publique.
+  try {
+    const check = await fetch(publicUrl, { method: 'HEAD', cache: 'no-store' });
+    if (!check.ok) throw new Error(String(check.status));
+  } catch {
+    throw new Error('Le visuel a été envoyé mais son adresse publique n’est pas lisible (le bucket « designs » doit être public).');
+  }
+  return publicUrl;
 }
 
 /** Convertit une URL (ou chemin) d'image en Data URL, nécessaire pour jsPDF. */

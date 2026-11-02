@@ -280,7 +280,7 @@ export function createProductionLayout(
 /*  Dessin                                                                     */
 /* -------------------------------------------------------------------------- */
 
-function getImageFormat(dataUrl: string): 'PNG' | 'JPEG' | 'WEBP' {
+export function getImageFormat(dataUrl: string): 'PNG' | 'JPEG' | 'WEBP' {
   const header = dataUrl.slice(0, 100).toLowerCase();
   if (header.startsWith('data:image/png')) return 'PNG';
   if (header.startsWith('data:image/webp')) return 'WEBP';
