@@ -209,7 +209,7 @@ const EventCardCountdown: React.FC<{
 
             {/* Menu 1 : Commandes */}
             <button 
-              onClick={() => setCurrentPage('oders')} 
+              onClick={() => setCurrentPage('client_space')} 
               className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
             >
               <div className="flex items-center gap-4">

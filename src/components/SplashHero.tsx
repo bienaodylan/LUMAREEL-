@@ -99,7 +99,7 @@ export const SplashHero: React.FC = () => {
             onClick={() => handleNavigate('archive')}
             className="text-xs sm:text-sm font-agrandir-regular hover:font-agrandir-semibold text-[#888] hover:text-white tracking-[0.25em] uppercase transition-all cursor-pointer py-1"
           >
-            ARCHIVE
+            ARCHIVES
           </button>
 
           {/* 3. PARTENAIRES */}
