@@ -1,83 +1,54 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { requireRole, methodNotAllowed, adminDb } from '../_lib/supabase';
-import crypto from 'crypto';
+import { requireRole, methodNotAllowed } from '../_lib/supabase';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
+  res.setHeader('Cache-Control', 'no-store');
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(204).end();
   }
-
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
 
-  const { eventId, categoryId, quantity } = req.body || {};
-  const qty = Number(quantity);
-  if (!eventId || !categoryId || !Number.isInteger(qty) || qty < 1 || qty > 10000) {
-    return res.status(400).json({ success: false, error: 'Événement, catégorie et quantité (1 à 10 000) requis.' });
-  }
-
-  // 1. Try Supabase authenticated RPC if credentials & session are available
   try {
     const auth = await requireRole(req, ['super_admin', 'box_office']);
-    if (auth.ok) {
-      const { data, error } = await auth.db.rpc('create_physical_ticket_batch', {
-        p_event_id: String(eventId),
-        p_category_id: String(categoryId),
-        p_quantity: qty,
-        p_created_by: auth.user.email || 'LUMARÉEL CO.',
-      });
-      if (!error && data && data.success && Array.isArray(data.tickets)) {
-        return res.status(201).json(data);
-      }
-    }
-  } catch (supabaseError) {
-    console.warn('Supabase create_physical_ticket_batch unavailable, using cryptographic serverless generator:', supabaseError);
-  }
+    if (!auth.ok) return res.status(auth.status).json({ success: false, error: auth.error });
 
-  // 2. Resilient cryptographic generator fallback: ensures ticket batch printing ALWAYS succeeds on Vercel
-  try {
-    const batchId = `prt_${crypto.randomBytes(5).toString('hex')}`;
-    const batchRef = `LMR-LOT-${batchId.slice(4).toUpperCase()}`;
-    const year = new Date().getFullYear();
-    const tickets = [];
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    const requestId = String(body.requestId || '').trim();
+    const eventId = String(body.eventId || '').trim();
+    const categoryId = String(body.categoryId || '').trim();
+    const quantity = Number(body.quantity);
 
-    for (let i = 1; i <= qty; i++) {
-      const token = `TKT-${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
-      const serialNumber = `LMR-${year}-PHY-P${String(i).padStart(5, '0')}`;
-      tickets.push({
-        id: `tkt_${crypto.randomBytes(8).toString('hex')}`,
-        serialNumber,
-        token,
-      });
+    if (requestId.length < 8 || requestId.length > 100 || !eventId || !categoryId ||
+        !Number.isInteger(quantity) || quantity < 1 || quantity > 10000) {
+      return res.status(400).json({ success: false, error: 'Identifiant, événement, catégorie ou quantité invalide.' });
     }
 
-    // Try background insert into tickets table if adminDb is available
-    try {
-      const db = adminDb();
-      const insertRows = tickets.map((t) => ({
-        id: t.id,
-        order_id: batchId,
-        order_ref: batchRef,
-        event_id: String(eventId),
-        category_id: String(categoryId),
-        serial_number: t.serialNumber,
-        token: t.token,
-        status: 'valid',
-        issued_at: new Date().toISOString(),
-      }));
-      await db.from('tickets').insert(insertRows);
-    } catch {}
-
-    return res.status(201).json({
-      success: true,
-      batchRef,
-      tickets,
+    const { data, error } = await auth.db.rpc('create_physical_ticket_batch', {
+      p_request_id: requestId,
+      p_event_id: eventId,
+      p_event_title: String(body.eventTitle || '').slice(0, 250),
+      p_event_artist: String(body.artist || '').slice(0, 160),
+      p_event_date: String(body.eventDate || '').slice(0, 40),
+      p_event_time: String(body.eventTime || '').slice(0, 40),
+      p_event_venue: String(body.eventVenue || '').slice(0, 250),
+      p_category_id: categoryId,
+      p_category_name: String(body.categoryName || '').slice(0, 160),
+      p_quantity: quantity,
+      p_created_by: auth.user.email || 'LUMARÉEL CO.',
     });
+    if (error) {
+      console.error('[print-batch] Supabase RPC:', error.message);
+      const denied = error.code === '42501';
+      return res.status(denied ? 403 : 500).json({ success: false, error: denied ? 'Accès non autorisé.' : 'Le registre Supabase n’a pas pu créer ce lot.' });
+    }
+    if (!data?.success || !Array.isArray(data.tickets) || data.tickets.length !== quantity) {
+      return res.status(500).json({ success: false, error: 'Réponse incomplète du registre de billetterie.' });
+    }
+    return res.status(201).json(data);
   } catch (error: any) {
-    console.error('print-batch fallback error:', error);
-    return res.status(500).json({ success: false, error: error.message || 'Erreur de création du lot.' });
+    console.error('[print-batch] Unexpected error:', error);
+    return res.status(500).json({ success: false, error: 'Erreur interne pendant la création du lot.' });
   }
 }

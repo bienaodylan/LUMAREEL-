@@ -80,6 +80,8 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({
           createdBy: 'Direction LUMARÉEL CO.',
+          eventTitle,
+          artistName: artistName || '',
           durationHours: 24,
         }),
       });

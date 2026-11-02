@@ -317,19 +317,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     orders: 10000,    // 10 secondes pour les commandes du compte
   };
 
-  const DEFAULT_ADMIN: User = {
-    id: 'usr_admin_dylan',
-    email: 'bienaodylan428@gmail.com',
-    name: 'Dylan B.',
-    role: 'super_admin',
-    emailVerified: true,
-    createdAt: '2026-01-10T00:00:00Z',
-  };
+  // L'identité et les rôles proviennent exclusivement d'une session Supabase vérifiée.
+  const [currentUser, setCurrentUserState] = useState<User | null>(null);
 
-  // Utilisateur connecté persistant
-  const [currentUser, setCurrentUserState] = useState<User | null>(() =>
-    readLocal<User | null>(STORAGE_KEYS.CURRENT_USER, DEFAULT_ADMIN)
-  );
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    let active = true;
+    const syncUser = async (userId?: string) => {
+      if (!userId) { if (active) setCurrentUserState(null); return; }
+      const { data: authData } = await supabase.auth.getUser();
+      const authUser = authData.user;
+      if (!authUser || authUser.id !== userId) { if (active) setCurrentUserState(null); return; }
+      const email = (authUser.email || '').toLowerCase();
+      const isSuperAdmin = email === 'bienaodylan428@gmail.com';
+      const { data: profile } = await supabase.from('users').select('id,email,name,role,email_verified').eq('email', email).maybeSingle();
+      if (!active) return;
+      const role = isSuperAdmin ? 'super_admin' : (profile?.role || 'customer');
+      const user = {
+        id: authUser.id, email, name: profile?.name || authUser.user_metadata?.name || email.split('@')[0],
+        role, emailVerified: Boolean(authUser.email_confirmed_at) || isSuperAdmin,
+        createdAt: authUser.created_at,
+      } as User;
+      setCurrentUserState(user);
+      writeLocal(STORAGE_KEYS.CURRENT_USER, user);
+    };
+    supabase.auth.getSession().then(({ data }) => syncUser(data.session?.user.id));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      void syncUser(session?.user.id);
+    });
+    return () => { active = false; listener.subscription.unsubscribe(); };
+  }, []);
 
   const setCurrentUser = (user: User | null) => {
     setCurrentUserState(user);

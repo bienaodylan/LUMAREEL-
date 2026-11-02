@@ -1,49 +1,53 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-let client: SupabaseClient | null = null;
+function projectConfig() {
+  const url = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/\/+$/, '');
+  const key = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+  if (!url || !key) throw new Error('Configuration Supabase publique manquante.');
+  return { url, key };
+}
 
-export function adminDb(): SupabaseClient {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error('Configuration serveur Supabase manquante : SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY.');
-  if (!client) client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-  return client;
+export function publicDb(): SupabaseClient {
+  const { url, key } = projectConfig();
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+function requestDb(req: VercelRequest): { db: SupabaseClient; jwt: string } {
+  const auth = req.headers.authorization || '';
+  const jwt = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  if (!jwt) throw Object.assign(new Error('Session Supabase requise.'), { status: 401 });
+  const { url, key } = projectConfig();
+  return {
+    db: createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: `Bearer ${jwt}` } },
+    }),
+    jwt,
+  };
 }
 
 export async function requireRole(req: VercelRequest, roles: string[]) {
-  const auth = req.headers.authorization || '';
-  const jwt = auth.startsWith('Bearer ') ? auth.slice(7) : '';
-  if (!jwt) return { ok: false as const, status: 401, error: 'Session Supabase requise.' };
-  const db = adminDb();
-  const { data: authData, error: authError } = await db.auth.getUser(jwt);
-  if (authError || !authData.user?.email) return { ok: false as const, status: 401, error: 'Session invalide ou expirée.' };
-  
-  const normalizedEmail = authData.user.email.toLowerCase();
-  const isSuperAdmin = normalizedEmail === 'bienaodylan428@gmail.com';
-
-  let role = isSuperAdmin ? 'super_admin' : (authData.user.user_metadata?.role || 'customer');
-  let isVerified = Boolean(authData.user.email_confirmed_at) || isSuperAdmin;
-
+  let db: SupabaseClient;
+  let jwt: string;
   try {
-    const { data: profile, error } = await db.from('users').select('role,email_verified').eq('email', normalizedEmail).maybeSingle();
-    if (profile && !error) {
-      role = profile.role;
-      isVerified = Boolean(profile.email_verified);
-    }
-  } catch (err) {
-    console.warn('[Supabase] Table users indisponible dans le schema cache:', err);
+    ({ db, jwt } = requestDb(req));
+  } catch (error: any) {
+    return { ok: false as const, status: error.status || 500, error: error.message || 'Configuration Supabase indisponible.' };
   }
-
-  if (isSuperAdmin) {
-    role = 'super_admin';
-    isVerified = true;
+  const { data: authData, error: authError } = await db.auth.getUser(jwt);
+  if (authError || !authData.user?.email) {
+    return { ok: false as const, status: 401, error: 'Session invalide ou expirée.' };
   }
-
-  if (!isVerified || !roles.includes(role)) {
+  const { data: role, error: roleError } = await db.rpc('lumareel_current_admin_role');
+  if (roleError) {
+    console.error('[auth] role RPC:', roleError.message);
+    return { ok: false as const, status: 500, error: 'Vérification des autorisations indisponible.' };
+  }
+  if (!role || !roles.includes(String(role))) {
     return { ok: false as const, status: 403, error: 'Accès non autorisé pour ce compte.' };
   }
-  return { ok: true as const, db, user: authData.user, profile: { role, email_verified: isVerified } };
+  return { ok: true as const, db, user: authData.user, profile: { role, email_verified: true } };
 }
 
 export function methodNotAllowed(res: VercelResponse, allowed: string[]) {
