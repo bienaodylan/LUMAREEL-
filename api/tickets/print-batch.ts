@@ -36,7 +36,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       p_category_id: categoryId,
       p_category_name: String(body.categoryName || '').slice(0, 160),
       p_quantity: quantity,
-      p_actor_email: auth.user.email || '',
       p_created_by: auth.user.email || 'LUMARÉEL CO.',
     });
     if (error) {
