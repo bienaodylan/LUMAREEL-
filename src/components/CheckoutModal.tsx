@@ -248,71 +248,17 @@ export const CheckoutModal: React.FC = () => {
           }
         }
       } catch (err) {
-        console.warn('Backend unavailable, generating client fallback order', err);
+        console.warn('Serveur de billetterie injoignable', err);
       }
 
-      // Si le backend direct n'est pas actif (ex: déploiement statique), émettre les billets certifiés client-side
+      // Aucun billet n'est fabriqué dans le navigateur : sans enregistrement serveur il serait refusé
+      // à l'entrée et duplicable. Sans réponse du serveur, on s'arrête avec un message clair.
       if (!tickets || tickets.length === 0 || !order) {
-        const orderId = `ord_${Date.now()}`;
-        const orderRef = `LMR-${Math.floor(1000 + Math.random() * 9000)}`;
-        const generatedTickets: Ticket[] = [];
-
-        let tIndex = 1;
-        for (const cat of categories) {
-          const count = quantities[cat.id] || 0;
-          for (let i = 0; i < count; i++) {
-            generatedTickets.push({
-              id: `tkt_${Date.now()}_${tIndex}`,
-              orderId,
-              orderRef,
-              eventId: checkoutEvent.id,
-              eventTitle: checkoutEvent.title,
-              eventDate: checkoutEvent.date,
-              eventTime: checkoutEvent.time,
-              eventVenue: checkoutEvent.venue,
-              categoryId: cat.id,
-              categoryName: cat.name,
-              serialNumber: `LR-2026-${checkoutEvent.artist.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
-              token: `LUMAREEL:TKT:LR-2026-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-              holderName: `${customerName}${totalQuantity > 1 ? ` (${tIndex}/${totalQuantity})` : ''}`,
-              holderEmail: customerEmail,
-              status: 'valid',
-              issuedAt: new Date().toISOString(),
-            });
-            tIndex++;
-          }
-        }
-
-        tickets = generatedTickets;
-
-        const primaryCat = categories.find((c) => (quantities[c.id] || 0) > 0) || categories[0];
-        order = {
-          id: orderId,
-          reference: orderRef,
-          customerId: currentUser?.id || 'guest',
-          customerName,
-          customerEmail,
-          customerPhone,
-          eventId: checkoutEvent.id,
-          eventTitle: checkoutEvent.title,
-          eventDate: checkoutEvent.date,
-          eventVenue: checkoutEvent.venue,
-          categoryId: primaryCat.id,
-          categoryName: primaryCat.name,
-          quantity: totalQuantity,
-          unitPrice: primaryCat.price,
-          totalAmount: finalTotalAmount,
-          currency: 'FCFA',
-          paymentStatus: 'completed',
-          paymentProvider: paymentMethod,
-          paymentRef: `${paymentMethod.toUpperCase()}_${Date.now()}`,
-          createdAt: new Date().toISOString(),
-          paidAt: new Date().toISOString(),
-          tickets: generatedTickets,
-        };
+        throw new Error(
+          "Le serveur de billetterie est injoignable ou n'a pas validé le paiement : aucun billet n'a été émis. Réessayez dans un instant."
+        );
       }
 
-      // Finalisation et enregistrement
       if (order) {
         setCreatedOrder(order);
         setIssuedTickets(tickets);
@@ -323,6 +269,7 @@ export const CheckoutModal: React.FC = () => {
         refreshCustomerOrders();
       }
     } catch (err: any) {
+      setIsSimulatingGateway(false);
       showToast(err.message || 'Une erreur inattendue est survenue.', 'error');
     } finally {
       setGatewayProcessing(false);
