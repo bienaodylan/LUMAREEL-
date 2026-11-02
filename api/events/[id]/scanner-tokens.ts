@@ -7,7 +7,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const auth = await requireRole(req, ['super_admin', 'box_office']);
     if (!auth.ok) return res.status(auth.status).json({ success: false, error: auth.error });
     const eventId = String(req.query.id || '').trim();
-    const { data, error } = await auth.db.rpc('list_lumareel_scanner_tokens', { p_event_id: eventId, p_actor_email: auth.user.email || '' });
+    const { data, error } = await auth.db.rpc('list_lumareel_scanner_tokens', { p_event_id: eventId });
     if (error) {
       console.error('[scanner-tokens] Supabase RPC:', error.message);
       return res.status(500).json({ success: false, error: 'Impossible de charger les liens vigiles.' });
