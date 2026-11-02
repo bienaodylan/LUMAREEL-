@@ -217,7 +217,7 @@ const EventCardCountdown: React.FC<{
                   <Ticket className="w-4 h-4 text-[#aaa] group-hover:text-[#d4af37] transition-colors" />
                 </div>
                 <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase">
-                  {t('home.bookingsCatalog')}
+                  {t('home.bookings')}
                 </span>
               </div>
               <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
@@ -253,7 +253,7 @@ const EventCardCountdown: React.FC<{
                   <Newspaper className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
                 </div>
                 <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase">
-                  {t('home.newsEditions')}
+                  {t('home.news')}
                 </span>
               </div>
               <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
