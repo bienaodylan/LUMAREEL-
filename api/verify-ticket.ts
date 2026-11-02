@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { adminDb, methodNotAllowed } from './_lib/supabase';
+import { publicDb, methodNotAllowed } from './_lib/supabase';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
@@ -13,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!ticketCode) return res.status(400).json({ valid: false, status: 'INVALID', error: 'Jeton ou numéro de série requis.' });
     if (!scannerToken) return res.status(403).json({ valid: false, status: 'INVALID', error: 'Lien vigile requis.' });
 
-    const { data, error } = await adminDb().rpc('verify_and_check_in_physical_ticket', {
+    const { data, error } = await publicDb().rpc('verify_and_check_in_physical_ticket', {
       p_token: ticketCode,
       p_event_id: eventId,
       p_agent_name: agentName,
