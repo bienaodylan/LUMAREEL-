@@ -17,39 +17,7 @@ export const AuthModal: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSupabaseConfigured) {
-      setIsLoading(true);
-      try {
-        const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: email.trim().toLowerCase(),
-            name: name.trim() || 'Visiteur LUMARÉEL',
-            role: email.trim().toLowerCase() === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer',
-          }),
-        });
-        const data = await res.json().catch(() => null);
-        if (data?.success && data.user) {
-          setCurrentUser(data.user);
-          setIsAuthModalOpen(false);
-          showToast(`Bienvenue, ${data.user.name}. Connexion réussie !`, 'success');
-          return;
-        }
-      } catch {}
-
-      const localUser = {
-        id: `usr_${Date.now()}`,
-        email: email.trim().toLowerCase(),
-        name: name.trim() || 'Visiteur LUMARÉEL',
-        role: email.trim().toLowerCase() === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer',
-        emailVerified: true,
-        createdAt: new Date().toISOString(),
-      };
-      setCurrentUser(localUser as any);
-      setIsAuthModalOpen(false);
-      showToast(`Bienvenue, ${localUser.name}. Connexion réussie !`, 'success');
-      setIsLoading(false);
+      showToast('Service d’authentification indisponible. Réessayez lorsque Supabase sera connecté.', 'error');
       return;
     }
     if (!email || !password || password.length < 8) {
