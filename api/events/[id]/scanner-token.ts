@@ -7,14 +7,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const auth = await requireRole(req, ['super_admin', 'box_office']);
     if (!auth.ok) return res.status(auth.status).json({ success: false, error: auth.error });
     const eventId = String(req.query.id || '').trim();
-    const { data: event, error: eventError } = await auth.db.from('events')
-      .select('id,title,artist,venue,date,time').eq('id', eventId).maybeSingle();
-    if (eventError || !event) return res.status(404).json({ success: false, error: 'Concert introuvable dans Supabase.' });
-
-    const durationHours = Math.min(72, Math.max(1, Number(req.body?.durationHours) || 24));
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    const eventTitle = String(body.eventTitle || '').trim();
+    if (!eventId || !eventTitle) return res.status(400).json({ success: false, error: 'Informations du concert manquantes.' });
+    const durationHours = Math.min(72, Math.max(1, Number(body.durationHours) || 24));
     const { data, error } = await auth.db.rpc('create_lumareel_scanner_token', {
-      p_event_id: event.id, p_event_title: event.title, p_artist: event.artist || '',
-      p_venue: event.venue || '', p_event_date: event.date || '', p_event_time: event.time || '',
+      p_event_id: eventId, p_event_title: eventTitle.slice(0,250),
+      p_artist: String(body.artistName || '').slice(0,160),
+      p_venue: String(body.venue || '').slice(0,250),
+      p_event_date: String(body.date || '').slice(0,40),
+      p_event_time: String(body.time || '').slice(0,40),
+      p_actor_email: auth.user.email || '',
       p_duration_hours: durationHours,
     });
     if (error || !data?.token) {
