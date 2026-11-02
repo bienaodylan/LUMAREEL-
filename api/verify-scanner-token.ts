@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { adminDb, methodNotAllowed } from './_lib/supabase';
+import { publicDb, methodNotAllowed } from './_lib/supabase';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
@@ -8,7 +8,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const token = String(req.query.token || '').trim();
     const eventId = String(req.query.eventId || '').trim() || null;
     if (!token) return res.status(401).json({ valid: false, error: 'Jeton d’accès manquant.' });
-    const { data, error } = await adminDb().rpc('verify_lumareel_scanner_token', {
+    const { data, error } = await publicDb().rpc('verify_lumareel_scanner_token', {
       p_token: token,
       p_event_id: eventId,
     });
