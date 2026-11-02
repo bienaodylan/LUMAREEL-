@@ -66,12 +66,6 @@ const MainApp: React.FC = () => {
                   alt="LUMARÉEL CO."
                   className="h-6 sm:h-7 object-contain"
                 />
-                <div className="flex items-center gap-2 text-[11px] text-[#999]">
-                  <span aria-hidden="true" className="text-[#555]">·</span>
-                  <span>{platformSettings?.tagline || 'PARIS / ABIDJAN'}</span>
-                  <span aria-hidden="true" className="text-[#555]">·</span>
-                  <span>© {new Date().getFullYear()}</span>
-                </div>
               </div>
               <p className="text-[11px] text-[#aaa] max-w-lg font-light leading-relaxed">
                 Agence de AREEL GROUPE, spécialisée dans l’Organisation et la Promotion d’Événements Festifs.

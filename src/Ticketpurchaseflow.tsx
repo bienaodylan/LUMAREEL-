@@ -4,6 +4,7 @@ import {
   FlowCategory,
   FlowEvent,
   PAYMENT_COUNTRIES,
+  PaymentCountry,
   PaymentMethod,
   Selection,
   computeTotals,
@@ -15,7 +16,7 @@ import {
   lookupPromo,
   maxQuantity,
   methodsForCountry,
-} from '../utils/purchaseFlow';
+} from './utils/purchaseFlow';
 
 export interface PurchaseOrder {
   eventId: string;
@@ -103,9 +104,9 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
     () => computeTotals(event.categories, selection, promo?.percent || 0),
     [event.categories, selection, promo]
   );
-  const country = PAYMENT_COUNTRIES.find((c) => c.code === countryCode) || PAYMENT_COUNTRIES[0];
+  const country = PAYMENT_COUNTRIES.find((c: PaymentCountry) => c.code === countryCode) || PAYMENT_COUNTRIES[0];
   const methods = useMemo(() => methodsForCountry(countryCode), [countryCode]);
-  const method: PaymentMethod | undefined = methods.find((m) => m.id === methodId);
+  const method: PaymentMethod | undefined = methods.find((m: PaymentMethod) => m.id === methodId);
 
   const remainingMs = lockEndsAt === null ? null : lockEndsAt - now;
   const isExpired = remainingMs !== null && remainingMs <= 0 && stage !== 'success';
@@ -132,7 +133,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
   /* ----------------------------- Actions ----------------------------- */
 
   const changeQuantity = (category: FlowCategory, delta: number) => {
-    setSelection((previous) => {
+    setSelection((previous: Selection) => {
       const next = Math.min(maxQuantity(category, maxPerCategory), Math.max(0, (previous[category.id] || 0) + delta));
       return { ...previous, [category.id]: next };
     });
@@ -220,7 +221,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
     setStage('processing');
     const order: PurchaseOrder = {
       eventId: event.id,
-      lines: totals.lines.map((line) => ({
+      lines: totals.lines.map((line: { category: FlowCategory; quantity: number; amount: number }) => ({
         categoryId: line.category.id,
         categoryName: line.category.name,
         quantity: line.quantity,
@@ -327,7 +328,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
       <p className="text-xs text-neutral-500 mb-3">Maximum {maxPerCategory} billets par catégorie.</p>
 
       <ul className="divide-y divide-white/10 border-y border-white/10">
-        {event.categories.map((category) => {
+        {event.categories.map((category: FlowCategory) => {
           const stock = getStock(category);
           const quantity = selection[category.id] || 0;
           const max = maxQuantity(category, maxPerCategory);
@@ -478,7 +479,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
         <p className="text-xs text-neutral-400 mb-4">{event.venue}</p>
 
         <ul className="divide-y divide-white/10 border-y border-white/10">
-          {totals.lines.map((line) => (
+          {totals.lines.map((line: { category: FlowCategory; quantity: number; amount: number }) => (
             <li key={line.category.id} className="py-3 flex items-center justify-between gap-3 text-sm">
               <span>
                 <span className="tabular-nums">{line.quantity}</span> × {line.category.name}
@@ -552,7 +553,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
           }}
           className={`w-full min-h-12 rounded-xl bg-black border border-white/20 px-4 text-sm ${focusRing}`}
         >
-          {PAYMENT_COUNTRIES.map((c) => (
+          {PAYMENT_COUNTRIES.map((c: PaymentCountry) => (
             <option key={c.code} value={c.code}>
               {c.name}
             </option>
@@ -563,7 +564,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
       <fieldset>
         <legend className="block text-sm font-agrandir-bold mb-2">Moyen de paiement</legend>
         <div className="space-y-2">
-          {methods.map((m) => {
+          {methods.map((m: PaymentMethod) => {
             const selected = m.id === methodId;
             return (
               <label
