@@ -143,7 +143,7 @@ function mapEventToDbRow(event: ConcertEvent): any {
     genre: event.genre,
     platform_fee_percent: event.platformFeePercent || 0,
     infoline: event.infoline || '+225 01 53 508 210',
-    categories: event.categories || [],
+    categories: (event.categories || []).map(({ ticketImageFile, ...category }: any) => category),
     updated_at: new Date().toISOString(),
   };
 }
