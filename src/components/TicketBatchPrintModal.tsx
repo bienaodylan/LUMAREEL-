@@ -1,14 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { formatDateLongFrench } from '../utils/dateUtils';
-import {
-  SYSTEM_PAPER_FORMATS,
-  createProductionLayout,
-  PrintTicketItem,
-  DuplexFlip,
-  TicketOrientationMode,
-} from '../utils/pdfEngine';
-import { exportPhysicalTicketsToExcel, exportPhysicalTicketsToCsv } from '../utils/physicalTicketExport';
+import { PrintTicketItem } from '../utils/pdfEngine';
+import { exportPhysicalTicketsToExcel } from '../utils/physicalTicketExport';
 import { Printer, X, Loader2 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
@@ -91,9 +83,6 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   const [selectedEventId, setSelectedEventId] = useState(initialEventId || events[0]?.id || '');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [quantity, setQuantity] = useState(10);
-  const [selectedPaperKey, setSelectedPaperKey] = useState('A3');
-  const [duplexFlip, setDuplexFlip] = useState<DuplexFlip>('long');
-  const [orientationMode, setOrientationMode] = useState<TicketOrientationMode>('auto');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
 
@@ -114,22 +103,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   const selectedEvent = events.find((event) => event.id === selectedEventId) || events[0];
   const currentCategory = selectedEvent?.categories.find((category) => category.id === selectedCategoryId)
     || selectedEvent?.categories[0];
-  const selectedPaper = SYSTEM_PAPER_FORMATS[selectedPaperKey];
 
-  const { layout, layoutError } = useMemo(() => {
-    if (!selectedPaper || quantity < 1) return { layout: null, layoutError: '' };
-    try {
-      return {
-        layout: createProductionLayout(selectedPaper, quantity, undefined, undefined, duplexFlip, orientationMode),
-        layoutError: '',
-      };
-    } catch (error) {
-      return {
-        layout: null,
-        layoutError: error instanceof Error ? error.message : 'Disposition impossible pour ce format.',
-      };
-    }
-  }, [selectedPaper, quantity, duplexFlip, orientationMode]);
 
   useEffect(() => {
     if (initialEventId && events.some((event) => event.id === initialEventId)) {
@@ -153,7 +127,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       batchCacheRef.current = null;
       pendingRequestRef.current = null;
     }
-  }, [selectedEventId, selectedCategoryId, selectedPaperKey, isOpen]);
+  }, [selectedEventId, selectedCategoryId, isOpen]);
 
   if (!isOpen) return null;
 
@@ -211,22 +185,13 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       }));
       setGenerationProgress(90);
 
-      // 3. Export Excel avec QR codes intégrés + registre CSV pour l'imprimeur
-      const fullLayout = createProductionLayout(
-        selectedPaper,
-        generated.length,
-        undefined,
-        undefined,
-        duplexFlip,
-        orientationMode
-      );
+      // 3. Export du registre QR + numéro de série uniquement.
       const safeArtist = selectedEvent.artist.replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '');
       const fileBaseName = `LUMAREEL_${safeArtist}_${quantity}BILLETS`;
-      await exportPhysicalTicketsToExcel(generated, selectedPaper, fullLayout, fileBaseName);
-      exportPhysicalTicketsToCsv(generated, fileBaseName);
+      await exportPhysicalTicketsToExcel(generated, fileBaseName);
 
       showToast(
-        `Lot de ${quantity} billets enregistré. Fichiers Excel (QR intégrés) et CSV téléchargés.`,
+        `Lot de ${quantity} billets enregistré. Registre Excel des QR codes et numéros de série téléchargé.`,
         'success'
       );
 
@@ -312,52 +277,13 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
           )}
 
           <div className="rounded-2xl border border-white/10 bg-[#141414] p-4 text-[11px] leading-relaxed text-neutral-300">
-            L’export Excel contient les planches de verso avec les QR codes intégrés et un registre des billets.
-            Le CSV complémentaire contient les données QR nécessaires aux logiciels d’impression. Le recto n’est pas exporté.
+            Le fichier Excel contient une seule feuille « Registre » avec deux colonnes : l’image du QR code et le numéro de série correspondant. Aucun verso, aucune planche d’impression et aucune autre donnée ne sont exportés.
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">3. Format du papier</label>
-              <select value={selectedPaperKey} onChange={(event) => setSelectedPaperKey(event.target.value)} className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-2.5 text-xs text-white outline-none focus:border-[#d4af37]">
-                {Object.entries(SYSTEM_PAPER_FORMATS).map(([key, paper]) => <option key={key} value={key}>{paper.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">4. Quantité de billets</label>
-              <input type="number" min="1" max="10000" step="1" value={quantity} onChange={(event) => setQuantity(Math.min(10000, Math.max(1, Number.parseInt(event.target.value, 10) || 1)))} className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-2.5 text-xs text-white outline-none focus:border-[#d4af37]" required disabled={isGenerating} />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">5. Retournement de la feuille (recto-verso)</label>
-            <select value={duplexFlip} onChange={(event) => setDuplexFlip(event.target.value as DuplexFlip)} className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-2.5 text-xs text-white outline-none focus:border-[#d4af37]">
-              <option value="long">Retournement sur le bord long (réglage standard)</option>
-              <option value="short">Retournement sur le bord court</option>
-            </select>
-            <p className="text-[10px] text-neutral-500 mt-1.5">Le verso est généré en miroir selon ce choix, pour tomber exactement derrière chaque recto.</p>
-          </div>
-
-          <div>
-            <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">6. Sens des billets sur la feuille</label>
-            <select value={orientationMode} onChange={(event) => setOrientationMode(event.target.value as TicketOrientationMode)} className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-2.5 text-xs text-white outline-none focus:border-[#d4af37]">
-              <option value="auto">Automatique (le plus de billets par feuille)</option>
-              <option value="horizontal">Horizontal (billets à plat)</option>
-              <option value="vertical">Vertical (tous les billets tournés à 90°)</option>
-            </select>
-            <p className="text-[10px] text-neutral-500 mt-1.5">Tous les billets d'une feuille ont le même sens, alignés en colonnes et en rangées régulières.</p>
-          </div>
-
-          {layoutError && (
-            <div className="p-4 rounded-2xl border border-red-500/30 bg-red-500/10 text-[11px] text-red-300">
-              {layoutError} Choisissez un format plus grand.
-            </div>
-          )}
 
           {/* Bouton blanc unique demandé : "Préparer 10 billets" */}
           <button
             type="submit"
-            disabled={isGenerating || !layout}
+            disabled={isGenerating}
             className="w-full py-4 rounded-2xl bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-sm uppercase tracking-wider transition-all shadow-xl flex items-center justify-center gap-2 disabled:opacity-50 relative overflow-hidden cursor-pointer active:scale-[0.99]"
           >
             {isGenerating ? (
@@ -367,7 +293,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 <span className="relative z-10">Préparation en cours... {generationProgress}%</span>
               </>
             ) : (
-              <span>Exporter {quantity} billets (Excel + CSV)</span>
+              <span>Exporter {quantity} QR codes + numéros de série</span>
             )}
           </button>
         </form>
