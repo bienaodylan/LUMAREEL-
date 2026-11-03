@@ -454,11 +454,11 @@ export const CheckoutModal: React.FC = () => {
                             </span>
 
                             {/* Statuts Stock adaptés marché */}
-                            {isSoldOut ? (
+                            {isSoldOut && (
                               <span className="px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-bold uppercase tracking-wider">
                                 {t('checkout.soldOut')}
                               </span>
-                            )}}
+                            )}
                           </div>
 
                           <p className="text-xs text-[#888] line-clamp-1">
