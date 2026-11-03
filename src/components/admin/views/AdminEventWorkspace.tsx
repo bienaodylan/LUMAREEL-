@@ -23,7 +23,7 @@ import {
   ShieldAlert,
   Printer
 } from 'lucide-react';
-import { readFileAsDataURL } from '../../../utils/mediaUtils';
+import { uploadAdminImage } from '../../../utils/uploadAdminImage';
 import { ScannerLinkGenerator } from '../ScannerLinkGenerator';
 
 export type EventSubTab = 'overview' | 'details' | 'media' | 'tickets' | 'orders' | 'analytics' | 'settings';
@@ -89,52 +89,34 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
   // Direct image file upload handler for visual assets
   const handleUploadVisual = async (field: 'officialPoster' | 'artistPortrait' | 'bannerImage', file: File) => {
     try {
-      let fileUrl = '';
-      try {
-        const uploadForm = new FormData();
-        uploadForm.append('file', file);
-        const res = await fetch('/api/upload', { method: 'POST', body: uploadForm });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.url) {
-            fileUrl = data.url;
-          }
-        }
-      } catch (uploadErr) {
-        console.warn('API upload fallback', uploadErr);
-      }
-
-      if (!fileUrl) {
-        fileUrl = await readFileAsDataURL(file);
-      }
-
+      const fileUrl = await uploadAdminImage(file, `events/${event.id}`);
       const updated = { ...formData, [field]: fileUrl };
       setFormData(updated);
       setIsDirty(true);
-      // Auto-save visual directly for instant public update
       await onSaveEvent(updated);
       setIsDirty(false);
-      showToast(`Visuel ${field === 'officialPoster' ? 'Affiche officielle' : field === 'artistPortrait' ? 'Portrait artiste' : 'Bannière'} synchronisé avec succès !`, 'success');
-    } catch {
-      showToast("Erreur lors de l'import de l'image.", 'error');
+      showToast('Image téléversée et sauvegardée dans Supabase.', 'success');
+    } catch (err: any) {
+      showToast(err.message || "Échec du téléversement de l'image.", 'error');
     }
   };
 
-  // NOUVEAU : Gérer l'upload du design spécifique d'un billet de catégorie
   const handleCategoryTicketImageUpload = async (catId: string, file: File) => {
     try {
-      const fileUrl = await readFileAsDataURL(file);
-      setFormData((prev) => {
-        const updatedCategories = prev.categories.map((c) => {
-          if (c.id !== catId) return c;
-          return { ...c, ticketImageUrl: fileUrl, ticketImageFile: file };
-        });
-        return { ...prev, categories: updatedCategories };
-      });
+      const fileUrl = await uploadAdminImage(file, `events/${event.id}/tickets`);
+      const updated = {
+        ...formData,
+        categories: formData.categories.map((category) =>
+          category.id === catId ? { ...category, ticketImageUrl: fileUrl } : category
+        ),
+      };
+      setFormData(updated);
       setIsDirty(true);
-      showToast(`Design du billet importé. N'oubliez pas de sauvegarder.`, 'info');
-    } catch (error) {
-      showToast("Erreur lors de l'import de l'image du billet.", 'error');
+      await onSaveEvent(updated);
+      setIsDirty(false);
+      showToast('Design du billet téléversé et sauvegardé.', 'success');
+    } catch (err: any) {
+      showToast(err.message || "Échec de l'import du design du billet.", 'error');
     }
   };
 
