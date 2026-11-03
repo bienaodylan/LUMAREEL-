@@ -213,6 +213,7 @@ export const AdminEventsListView: React.FC<AdminEventsListViewProps> = ({
                       {/* Colonne 2 : Date & Salle */}
                       <td className="py-4 px-4">
                         <div className="text-white font-mono">{evt.date}</div>
+                        <div className="text-[#d4af37] text-[11px] font-mono">{evt.time || 'Heure à confirmer'}</div>
                         <div className="text-[#888] text-[11px] truncate">{evt.venue}</div>
                         <div className="text-[#666] text-[10px]">{evt.city}</div>
                       </td>
