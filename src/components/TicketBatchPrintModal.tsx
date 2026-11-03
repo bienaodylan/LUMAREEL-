@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { PrintTicketItem } from '../utils/pdfEngine';
 import { exportPhysicalTicketsToExcel } from '../utils/physicalTicketExport';
 import { Printer, X, Loader2 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { useApp } from '../context/AppContext';
+import { formatDateLongFrench } from '../utils/dateUtils';
 
 /** Erreur définitive : inutile de réessayer automatiquement. */
 class FatalError extends Error {}
@@ -79,7 +81,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   onClose,
   initialEventId,
 }) => {
-  const { events, showToast, saveEvent } = useApp();
+  const { events, showToast } = useApp();
   const [selectedEventId, setSelectedEventId] = useState(initialEventId || events[0]?.id || '');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [quantity, setQuantity] = useState(10);
