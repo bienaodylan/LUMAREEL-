@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { FloatingAppNavbar } from './components/FloatingAppNavbar';
@@ -11,6 +11,7 @@ import { CustomerSpace } from './components/CustomerSpace';
 import { ProfileView } from './components/ProfileView';
 import { ScannerView } from './components/ScannerView';
 import { AdminDashboard } from './components/AdminDashboard';
+import { TicketBatchPrintModal } from './components/TicketBatchPrintModal';
 import { CheckoutModal } from './components/CheckoutModal';
 import { AuthModal } from './components/AuthModal';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -173,10 +174,70 @@ const MainApp: React.FC = () => {
   );
 };
 
+/**
+ * Dernier filet de sécurité au niveau de toute l'application.
+ * Il capture aussi les erreurs qui surviennent avant le montage du tableau admin.
+ */
+const AdminEmergencyAccess: React.FC<{ error: Error }> = ({ error }) => {
+  const { events, setCurrentPage } = useApp();
+  const [printOpen, setPrintOpen] = useState(true);
+
+  return (
+    <div className="min-h-screen bg-black text-white p-5 sm:p-10 font-agrandir-regular">
+      <div className="max-w-3xl mx-auto mt-8 rounded-3xl border border-[#d4af37]/30 bg-[#101010] p-6 sm:p-8">
+        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#d4af37]">LUMARÉEL · Accès de secours</p>
+        <h1 className="mb-3 text-2xl font-bold">Console d’administration</h1>
+        <p className="mb-5 text-sm text-neutral-300">
+          Une erreur empêche le tableau de bord complet de s’afficher. Tu peux néanmoins accéder directement à l’impression des billets.
+        </p>
+        <div className="mb-5 break-words rounded-xl bg-black p-4 text-xs text-red-300">
+          {error.message || 'Erreur JavaScript sans message'}
+          {error.stack && <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap text-neutral-500">{error.stack}</pre>}
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <button type="button" onClick={() => setPrintOpen(true)} className="rounded-xl bg-[#d4af37] px-5 py-3 text-sm font-bold text-black">
+            Ouvrir l’impression des billets
+          </button>
+          <button type="button" onClick={() => window.location.reload()} className="rounded-xl border border-white/20 px-5 py-3 text-sm">
+            Recharger
+          </button>
+          <button type="button" onClick={() => setCurrentPage('home')} className="rounded-xl border border-white/20 px-5 py-3 text-sm">
+            Retour au site
+          </button>
+        </div>
+        <p className="mt-5 text-xs text-neutral-500">{events.length} événement(s) chargés dans cette session.</p>
+      </div>
+      <TicketBatchPrintModal isOpen={printOpen} onClose={() => setPrintOpen(false)} />
+    </div>
+  );
+};
+
+class AppRootErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('[LUMAREEL ROOT RENDER ERROR]', error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.error) return <AdminEmergencyAccess error={this.state.error} />;
+    return this.props.children;
+  }
+}
+
 export default function App() {
   return (
     <AppProvider>
-      <MainApp />
+      <AppRootErrorBoundary>
+        <MainApp />
+      </AppRootErrorBoundary>
     </AppProvider>
   );
 }
