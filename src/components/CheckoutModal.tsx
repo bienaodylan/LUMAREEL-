@@ -1038,22 +1038,57 @@ export const CheckoutModal: React.FC = () => {
           <div className="p-4 sm:p-5 border-t border-white/10 bg-[#080808] sm:rounded-b-3xl">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               
-              {/* Résumé Dynamique */}
-              <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
-                <div>
-                  <div className="text-[10px] text-[#888] uppercase tracking-wider">
-                    {totalQuantity} billet{totalQuantity > 1 ? 's' : ''} sélectionné{totalQuantity > 1 ? 's' : ''}
+              {/* Bloc prix agrandi avec les sélecteurs de quantité intégrés */}
+              <div className="w-full min-w-0 rounded-2xl border border-[#d4af37]/30 bg-[#111111] p-3 sm:p-4 shadow-[0_8px_28px_rgba(0,0,0,0.35)]">
+                {step === 1 && (
+                  <div className="flex gap-3 overflow-x-auto pb-3 mb-3 border-b border-white/10 scrollbar-none">
+                    {categories.map((cat) => {
+                      const currentQty = quantities[cat.id] || 0;
+                      const remaining = Math.max(0, cat.quota - cat.sold);
+                      const isSoldOut = remaining <= 0;
+                      return (
+                        <div key={cat.id} className="shrink-0 min-w-[118px] rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2">
+                          <div className="text-[10px] text-[#aaa] font-agrandir-semibold uppercase tracking-wide truncate mb-2">{cat.name}</div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[9px] text-[#777]">Quantité</span>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleQuantityChange(cat.id, -1)}
+                                disabled={currentQty === 0 || isSoldOut}
+                                aria-label={`Diminuer ${cat.name}`}
+                                className="w-6 h-6 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-xs cursor-pointer"
+                              >-</button>
+                              <span className="w-4 text-center font-mono text-xs font-bold text-white">{currentQty}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleQuantityChange(cat.id, 1)}
+                                disabled={isSoldOut || currentQty >= remaining}
+                                aria-label={`Augmenter ${cat.name}`}
+                                className="w-6 h-6 rounded-full bg-[#d4af37]/15 hover:bg-[#d4af37]/25 border border-[#d4af37]/40 text-[#d4af37] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-xs cursor-pointer"
+                              >+</button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="font-agrandir-extrabold text-lg sm:text-xl text-[#d4af37] font-mono">
-                    {finalTotalAmount.toLocaleString('fr-FR')} FCFA
-                  </div>
-                </div>
-
-                {appliedPromo && (
-                  <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
-                    -{appliedPromo.percent}%
-                  </span>
                 )}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-[10px] text-[#888] uppercase tracking-wider">
+                      {totalQuantity} billet{totalQuantity > 1 ? 's' : ''} sélectionné{totalQuantity > 1 ? 's' : ''}
+                    </div>
+                    <div className="font-agrandir-extrabold text-xl sm:text-2xl text-[#d4af37] font-mono leading-tight">
+                      {finalTotalAmount.toLocaleString('fr-FR')} FCFA
+                    </div>
+                  </div>
+                  {appliedPromo && (
+                    <span className="shrink-0 text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
+                      -{appliedPromo.percent}%
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Boutons d'Action Suivant / Retour */}
