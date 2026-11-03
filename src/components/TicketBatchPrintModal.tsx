@@ -278,6 +278,29 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
             </div>
           )}
 
+          <div className="rounded-2xl border border-[#d4af37]/30 bg-[#141414] p-4 space-y-2">
+            <label htmlFor="physical-ticket-quantity" className="block text-[11px] uppercase font-agrandir-bold text-[#d4af37]">
+              3. Nombre de QR codes à produire (1 à 1 000)
+            </label>
+            <input
+              id="physical-ticket-quantity"
+              type="number"
+              min={1}
+              max={1000}
+              step={1}
+              inputMode="numeric"
+              value={quantity}
+              onChange={(event) => {
+                const parsed = Number(event.target.value);
+                if (Number.isInteger(parsed)) setQuantity(Math.min(1000, Math.max(1, parsed)));
+              }}
+              disabled={isGenerating}
+              required
+              className="w-full bg-[#0b0b0b] border border-white/15 rounded-xl px-4 py-3 text-white text-lg font-agrandir-extrabold outline-none focus:border-[#d4af37]"
+            />
+            <p className="text-[10px] text-neutral-500">Choisissez librement le nombre exact de billets physiques à générer. La quantité et chaque QR code seront enregistrés dans le registre avant l’export Excel.</p>
+          </div>
+
           <div className="rounded-2xl border border-white/10 bg-[#141414] p-4 text-[11px] leading-relaxed text-neutral-300">
             Le fichier Excel contient une seule feuille « Registre » avec deux colonnes : l’image du QR code et le numéro de série correspondant. Aucun verso, aucune planche d’impression et aucune autre donnée ne sont exportés.
           </div>
