@@ -176,7 +176,7 @@ const EventCardCountdown: React.FC<{
                       {event.artist} EN CONCERT
                     </h3>
                     <p className="text-xs font-agrandir-regular text-neutral-300 truncate mt-1">
-                      <strong className="font-agrandir-extrabold text-white">{event.venue}</strong> · <strong className="font-agrandir-extrabold text-white">{formatDateLong(event.date, language)}</strong>
+                      <strong className="font-agrandir-extrabold text-white">{event.venue}</strong> · <strong className="font-agrandir-extrabold text-white">{formatDateLong(event.date, language)}</strong> · <strong className="font-agrandir-extrabold text-white">{event.time || 'Heure à confirmer'}</strong>
                     </p>
                   </div>
 
