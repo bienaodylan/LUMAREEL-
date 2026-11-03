@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { Order, Ticket, TicketCategory } from '../types';
 import { 
   X, ShieldCheck, Ticket as TicketIcon, CheckCircle2, Loader2, ArrowRight, 
-  Printer, Mail, Clock, ArrowLeft, Tag, Smartphone, CreditCard, Lock, Sparkles, AlertTriangle,
+  Printer, Mail, Clock, ArrowLeft, Tag, Smartphone, CreditCard, Lock, Sparkles,
   ChevronDown
 } from 'lucide-react';
 import { generatePersonalizedTicketEmail } from '../utils/emailTemplate';
@@ -52,9 +52,9 @@ export const CheckoutModal: React.FC = () => {
 
   // Étape 2 : Récapitulatif & Compte à rebours de sécurité (20 min)
   const [lockSeconds, setLockSeconds] = useState<number>(20 * 60);
-  const [customerName, setCustomerName] = useState<string>(currentUser?.name || '');
-  const [customerEmail, setCustomerEmail] = useState<string>(currentUser?.email || '');
-  const [customerPhone, setCustomerPhone] = useState<string>('+225 07 00 00 00 00');
+  const [customerName, setCustomerName] = useState<string>('');
+  const [customerEmail, setCustomerEmail] = useState<string>('');
+  const [customerPhone, setCustomerPhone] = useState<string>('');
 
   // Étape 3 : Paiement
   const [country, setCountry] = useState<CountryOption>('CI');
@@ -83,6 +83,9 @@ export const CheckoutModal: React.FC = () => {
         initial[firstAvailable.id] = 1;
       }
       setQuantities(initial);
+      setCustomerName('');
+      setCustomerEmail('');
+      setCustomerPhone('');
       setStep(1);
       setLockSeconds(20 * 60);
       setAppliedPromo(null);
@@ -90,14 +93,6 @@ export const CheckoutModal: React.FC = () => {
       setPromoError('');
     }
   }, [checkoutEvent?.id]);
-
-  // Sync user info
-  useEffect(() => {
-    if (currentUser) {
-      if (!customerName) setCustomerName(currentUser.name || '');
-      if (!customerEmail) setCustomerEmail(currentUser.email || '');
-    }
-  }, [currentUser]);
 
   // Compte à rebours de sécurité (20 min)
   useEffect(() => {
@@ -142,16 +137,6 @@ export const CheckoutModal: React.FC = () => {
     setQuantities((prev) => {
       const current = prev[catId] || 0;
       const updated = Math.max(0, current + delta);
-      // Max 8 tickets total per order to comply with security anti-scalping
-      const otherTotal = Object.entries(prev)
-        .filter(([id]) => id !== catId)
-        .reduce((sum, [, q]) => sum + q, 0);
-
-      if (delta > 0 && otherTotal + updated > 8) {
-        showToast(language === 'en' ? 'Maximum 8 tickets per transaction.' : 'Maximum 8 billets par commande.', 'error');
-        return prev;
-      }
-
       const cat = categories.find((c) => c.id === catId);
       if (cat && delta > 0) {
         const remaining = Math.max(0, cat.quota - cat.sold);
@@ -426,13 +411,10 @@ export const CheckoutModal: React.FC = () => {
                   className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl shrink-0 border border-white/10"
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase mb-0.5">
-                    {checkoutEvent.artist}
-                  </div>
-                  <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white truncate uppercase">
+                  <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white leading-snug">
                     {checkoutEvent.title}
                   </h2>
-                  <div className="text-xs text-[#888] mt-1 flex flex-wrap items-center gap-2 font-agrandir-regular">
+                  <div className="text-xs text-[#888] mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-agrandir-regular">
                     <span>{formatDateLong(checkoutEvent.date, language)}</span>
                     <span>·</span>
                     <span>{checkoutEvent.time}</span>
@@ -451,7 +433,6 @@ export const CheckoutModal: React.FC = () => {
                 {categories.map((cat: TicketCategory) => {
                   const remaining = Math.max(0, cat.quota - cat.sold);
                   const isSoldOut = remaining <= 0;
-                  const isLowStock = remaining > 0 && remaining <= 20;
                   const currentQty = quantities[cat.id] || 0;
 
                   return (
@@ -477,16 +458,7 @@ export const CheckoutModal: React.FC = () => {
                               <span className="px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-bold uppercase tracking-wider">
                                 {t('checkout.soldOut')}
                               </span>
-                            ) : isLowStock ? (
-                              <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-                                <AlertTriangle className="w-2.5 h-2.5" />
-                                <span>{t('checkout.lowStock')} ({remaining} {t('detail.remaining')})</span>
-                              </span>
-                            ) : (
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-medium uppercase tracking-wider">
-                                {t('checkout.available')}
-                              </span>
-                            )}
+                            )}}
                           </div>
 
                           <p className="text-xs text-[#888] line-clamp-1">
@@ -498,28 +470,7 @@ export const CheckoutModal: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Sélecteur de Quantité (+ / -) */}
-                        <div className="flex items-center gap-3 self-end sm:self-center">
-                          <button
-                            type="button"
-                            onClick={() => handleQuantityChange(cat.id, -1)}
-                            disabled={currentQty === 0 || isSoldOut}
-                            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center font-bold text-sm transition-colors cursor-pointer"
-                          >
-                            -
-                          </button>
-                          <span className="w-6 text-center font-mono font-bold text-sm text-white">
-                            {currentQty}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleQuantityChange(cat.id, 1)}
-                            disabled={isSoldOut || (currentQty >= remaining)}
-                            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center font-bold text-sm transition-colors cursor-pointer"
-                          >
-                            +
-                          </button>
-                        </div>
+
                       </div>
                     </div>
                   );
@@ -605,13 +556,13 @@ export const CheckoutModal: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 text-xs">
-                  <div className="flex justify-between items-center text-white">
-                    <span className="text-[#888]">Événement :</span>
-                    <strong className="font-agrandir-bold">{checkoutEvent.artist} — {checkoutEvent.title}</strong>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1.5 text-white">
+                    <span className="text-[#888] shrink-0">Événement :</span>
+                    <strong className="font-agrandir-bold text-left sm:text-right leading-snug">{checkoutEvent.title}</strong>
                   </div>
-                  <div className="flex justify-between items-center text-white">
-                    <span className="text-[#888]">Date &amp; Lieu :</span>
-                    <span>{formatDateLong(checkoutEvent.date, language)} ({checkoutEvent.venue})</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1.5 text-white">
+                    <span className="text-[#888] shrink-0">Date &amp; Lieu :</span>
+                    <span className="text-left sm:text-right leading-relaxed">{formatDateLong(checkoutEvent.date, language)} · {checkoutEvent.venue}</span>
                   </div>
 
                   <div className="border-t border-white/5 pt-2 space-y-1.5">
