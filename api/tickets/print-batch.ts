@@ -21,8 +21,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const quantity = Number(body.quantity);
 
     if (requestId.length < 8 || requestId.length > 100 || !eventId || !categoryId ||
-        !Number.isInteger(quantity) || quantity < 1 || quantity > 10000) {
-      return res.status(400).json({ success: false, error: 'Identifiant, événement, catégorie ou quantité invalide.' });
+        !Number.isInteger(quantity) || quantity < 1 || quantity > 1000) {
+      return res.status(400).json({ success: false, error: 'Identifiant, événement, catégorie ou quantité invalide (1 à 1 000).' });
     }
 
     const { data, error } = await auth.db.rpc('create_physical_ticket_batch', {
