@@ -579,12 +579,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             .select('*')
             .order('order_index', { ascending: true });
 
-          if (!error && data && data.length > 0) {
-            setArchives(data.map(mapDbRowToArchive));
-            cacheTimestamps.current.archives = Date.now();
-          } else {
-            await fetchArchivesFromBackend();
+          if (error) {
+            console.warn('[Supabase] Erreur lecture archives:', error.message);
+            setCloudSyncError(`Supabase archives: ${error.message}`);
+            throw new Error(error.message);
           }
+
+          // Supabase est la source de vérité, y compris si la liste est vide.
+          const mappedArchives = (data || []).map(mapDbRowToArchive);
+          setArchives(mappedArchives);
+          writeLocal(STORAGE_KEYS.ARCHIVES, mappedArchives);
+          cacheTimestamps.current.archives = Date.now();
+          setIsCloudDbActive(true);
         } else {
           await fetchArchivesFromBackend();
         }
@@ -634,46 +640,88 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       orderIndex: archiveData.orderIndex || 1,
     };
 
+    const previousArchives = archives;
     setArchives((prev) => [newArchive, ...prev.filter((a) => a.id !== id)]);
     cacheTimestamps.current.archives = 0;
 
-    if (isSupabaseConfigured) {
-      try {
-        const row = mapArchiveToDbRow(newArchive);
-        await supabase.from('archives').upsert(row, { onConflict: 'id' });
-        showToast('Archive enregistrée dans le Cloud.', 'success');
-      } catch (e: any) {
-        console.warn('Supabase archive save warning:', e.message);
-      }
-    }
-
     try {
-      await fetch('/api/archives', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newArchive),
-      });
-    } catch {}
+      if (isSupabaseConfigured) {
+        const row = mapArchiveToDbRow(newArchive);
+        const { data, error } = await supabase
+          .from('archives')
+          .upsert(row, { onConflict: 'id' })
+          .select('*')
+          .single();
 
-    notifyCrossTabSync();
+        if (error) throw new Error(error.message);
+        const confirmed = mapDbRowToArchive(data);
+        setArchives((prev) => {
+          const next = [confirmed, ...prev.filter((a) => a.id !== confirmed.id)];
+          writeLocal(STORAGE_KEYS.ARCHIVES, next);
+          return next;
+        });
+        setCloudSyncError(null);
+        setIsCloudDbActive(true);
+        showToast('Archive enregistrée et confirmée dans Supabase.', 'success');
+      } else {
+        const response = await fetch('/api/archives', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newArchive),
+        });
+        if (!response.ok) throw new Error(`API archives : HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.success === false) throw new Error(data.error || 'Échec de sauvegarde de l’archive.');
+        setArchives((prev) => {
+          const next = [newArchive, ...prev.filter((a) => a.id !== id)];
+          writeLocal(STORAGE_KEYS.ARCHIVES, next);
+          return next;
+        });
+        showToast('Archive enregistrée.', 'success');
+      }
+
+      cacheTimestamps.current.archives = Date.now();
+      notifyCrossTabSync();
+    } catch (err: any) {
+      setArchives(previousArchives);
+      writeLocal(STORAGE_KEYS.ARCHIVES, previousArchives);
+      cacheTimestamps.current.archives = 0;
+      showToast(`Échec de synchronisation de l’archive : ${err.message}`, 'error');
+      throw err;
+    }
   };
 
   const deleteArchive = async (id: string) => {
+    const previousArchives = archives;
     setArchives((prev) => prev.filter((a) => a.id !== id));
     cacheTimestamps.current.archives = 0;
 
-    if (isSupabaseConfigured) {
-      try {
-        await supabase.from('archives').delete().eq('id', id);
-        showToast('Archive supprimée du Cloud.', 'info');
-      } catch {}
-    }
-
     try {
-      await fetch(`/api/archives/${id}`, { method: 'DELETE' });
-    } catch {}
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.from('archives').delete().eq('id', id);
+        if (error) throw new Error(error.message);
+        setCloudSyncError(null);
+        showToast('Archive supprimée de Supabase.', 'success');
+      } else {
+        const response = await fetch(`/api/archives/${id}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error(`API archives : HTTP ${response.status}`);
+        showToast('Archive supprimée.', 'success');
+      }
 
-    notifyCrossTabSync();
+      setArchives((prev) => {
+        const next = prev.filter((a) => a.id !== id);
+        writeLocal(STORAGE_KEYS.ARCHIVES, next);
+        return next;
+      });
+      cacheTimestamps.current.archives = Date.now();
+      notifyCrossTabSync();
+    } catch (err: any) {
+      setArchives(previousArchives);
+      writeLocal(STORAGE_KEYS.ARCHIVES, previousArchives);
+      cacheTimestamps.current.archives = 0;
+      showToast(`Échec de suppression de l’archive : ${err.message}`, 'error');
+      throw err;
+    }
   };
 
   // ============================================================================
