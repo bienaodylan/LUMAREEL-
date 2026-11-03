@@ -110,7 +110,8 @@ const EventCardCountdown: React.FC<{
   const featuredRowRef = useRef<HTMLDivElement>(null);
   const scrollFeaturedRow = (direction: 'left' | 'right') => {
     if (featuredRowRef.current) {
-      const scrollAmount = direction === 'left' ? -420 : 420;
+      const cardWidth = featuredRowRef.current.firstElementChild?.getBoundingClientRect().width || 420;
+      const scrollAmount = (cardWidth + 24) * (direction === 'left' ? -1 : 1);
       featuredRowRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
@@ -147,10 +148,10 @@ const EventCardCountdown: React.FC<{
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => scrollFeaturedRow('left')} className="p-2.5 rounded-full border border-white/20 hover:border-white text-neutral-300 hover:text-white transition-colors cursor-pointer bg-white/5">
+            <button onClick={() => scrollFeaturedRow('left')} className="p-2.5 rounded-full border border-[#d4af37]/50 hover:border-[#d4af37] text-[#d4af37] hover:text-black hover:bg-[#d4af37] transition-all cursor-pointer bg-[#d4af37]/10 shadow-[0_0_16px_rgba(212,175,55,0.12)]">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={() => scrollFeaturedRow('right')} className="p-2.5 rounded-full border border-white/20 hover:border-white text-neutral-300 hover:text-white transition-colors cursor-pointer bg-white/5">
+            <button onClick={() => scrollFeaturedRow('right')} className="p-2.5 rounded-full border border-[#d4af37]/50 hover:border-[#d4af37] text-[#d4af37] hover:text-black hover:bg-[#d4af37] transition-all cursor-pointer bg-[#d4af37]/10 shadow-[0_0_16px_rgba(212,175,55,0.12)]">
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -160,7 +161,7 @@ const EventCardCountdown: React.FC<{
           {activeSlides.map((event, idx) => {
             const isActive = idx === currentSlideIndex;
             return (
-              <div key={event.id} onClick={() => handleSelectArtistSlide(idx)} className="w-[85vw] sm:w-[400px] shrink-0 cursor-pointer group snap-start transition-all duration-300 select-none">
+              <div key={event.id} onClick={() => handleSelectArtistSlide(idx)} className="w-[82vw] sm:w-[min(72vw,520px)] shrink-0 cursor-pointer group snap-start transition-all duration-300 select-none">
                 
                 {/* Image 16:9 sans aucun badge billetterie ou bouton superposé */}
                 <div className={`aspect-[16/9] w-full rounded-3xl overflow-hidden relative transition-all duration-300 bg-[#111111] ${isActive ? 'ring-2 ring-[#d4af37] ring-offset-2 ring-offset-black shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(212,175,55,0.35)] scale-[1.02]' : 'border border-white/10 hover:border-white/30 opacity-80 hover:opacity-100 hover:scale-[1.01]'}`}>
