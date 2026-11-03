@@ -410,8 +410,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             setIsCloudDbActive(true);
             setCloudSyncError(null);
           } else {
-            // Table vide : tentative de seeding initial
-            await seedInitialEventsToSupabase();
+            // La base Cloud est la source de vérité, même lorsqu'elle ne contient aucun événement.
+            setEvents([]);
+            setFeaturedEvent(null);
+            writeLocal(STORAGE_KEYS.EVENTS, []);
+            cacheTimestamps.current.events = Date.now();
+            setIsCloudDbActive(true);
+            setCloudSyncError(null);
           }
         } else {
           // Supabase non configuré pour le moment : requête l'API Express
@@ -434,19 +439,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const res = await fetch('/api/events');
       if (!res.ok) return;
       const data = await res.json();
-      if (data.success && data.events && data.events.length > 0) {
-        setEvents((prev) => {
-          const localSaved = readLocal<ConcertEvent[]>(STORAGE_KEYS.EVENTS, []);
-          if (localSaved && localSaved.length > 0) {
-            const merged = localSaved.map((localEv) => {
-              const beEv = data.events.find((b: any) => b.id === localEv.id);
-              return beEv ? { ...beEv, ...localEv } : localEv;
-            });
-            return merged;
-          }
-          return data.events;
-        });
-        const feat = data.events.find((e: ConcertEvent) => e.isFeatured) || data.events[0];
+      if (data.success && Array.isArray(data.events)) {
+        // Ne jamais fusionner avec le cache local : les données serveur font autorité.
+        const serverEvents = data.events as ConcertEvent[];
+        setEvents(serverEvents);
+        writeLocal(STORAGE_KEYS.EVENTS, serverEvents);
+        const feat = serverEvents.find((e) => e.isFeatured && e.status === 'published') || serverEvents.find((e) => e.status === 'published');
         setFeaturedEvent(feat || null);
         cacheTimestamps.current.events = Date.now();
       }
@@ -478,7 +476,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveEvent = async (updatedEvent: ConcertEvent) => {
-    // 1. Mise à jour instantanée de l'état React et persistance locale indestructible
+    // Mise à jour optimiste de l'interface, puis confirmation obligatoire par la source distante.
     setEvents((prev) => {
       const exists = prev.some((e) => e.id === updatedEvent.id);
       const next = exists
@@ -487,39 +485,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       writeLocal(STORAGE_KEYS.EVENTS, next);
       return next;
     });
-
-    if (updatedEvent.isFeatured) {
-      setFeaturedEvent(updatedEvent);
-    }
-
-    // Invalide le cache local
+    if (updatedEvent.isFeatured) setFeaturedEvent(updatedEvent);
     cacheTimestamps.current.events = 0;
 
-    // 2. Persistance dans la base Supabase Cloud (PostgreSQL)
     if (isSupabaseConfigured) {
-      try {
-        const dbRow = mapEventToDbRow(updatedEvent);
-        const { error } = await supabase.from('events').upsert(dbRow, { onConflict: 'id' });
-        if (error) {
-          console.warn('[Supabase Save Warning]', error.message);
-        } else {
-          showToast('Événement synchronisé dans la base Cloud Supabase.', 'success');
-        }
-      } catch (err: any) {
-        console.warn('[Supabase Save Event Error]', err);
-      }
-    }
+      const dbRow = mapEventToDbRow(updatedEvent);
+      const { data, error } = await supabase
+        .from('events')
+        .upsert(dbRow, { onConflict: 'id' })
+        .select('*')
+        .single();
 
-    // 3. Persistance de secours sur le backend Node.js
-    try {
-      await fetch(`/api/events/${updatedEvent.id}`, {
+      if (error) {
+        setCloudSyncError(`Supabase: ${error.message}`);
+        showToast(`Échec de synchronisation : ${error.message}`, 'error');
+        throw new Error(error.message);
+      }
+
+      const confirmedEvent = mapDbRowToEvent(data);
+      setEvents((prev) => {
+        const next = prev.some((e) => e.id === confirmedEvent.id)
+          ? prev.map((e) => (e.id === confirmedEvent.id ? confirmedEvent : e))
+          : [confirmedEvent, ...prev];
+        writeLocal(STORAGE_KEYS.EVENTS, next);
+        return next;
+      });
+      setFeaturedEvent((prev) => confirmedEvent.isFeatured ? confirmedEvent : (prev?.id === confirmedEvent.id ? null : prev));
+      setCloudSyncError(null);
+      setIsCloudDbActive(true);
+      cacheTimestamps.current.events = Date.now();
+      showToast('Événement enregistré et confirmé dans Supabase.', 'success');
+    } else {
+      const response = await fetch(`/api/events/${updatedEvent.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updatedEvent),
       });
-    } catch {}
+      if (!response.ok) {
+        const message = `API événements : HTTP ${response.status}`;
+        showToast(message, 'error');
+        throw new Error(message);
+      }
+      cacheTimestamps.current.events = 0;
+    }
 
-    // Notifie immédiatement les autres onglets ouverts (Aperçu Google AI Studio <-> Onglet Externe)
     notifyCrossTabSync();
   };
 
