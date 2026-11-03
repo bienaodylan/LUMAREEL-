@@ -21,7 +21,7 @@ import {
   Activity,
   FileCode
 } from 'lucide-react';
-import { readFileAsDataURL } from '../../../utils/mediaUtils';
+import { uploadAdminImage } from '../../../utils/uploadAdminImage';
 import { testSupabaseConnection, isSupabaseConfigured } from '../../../lib/supabaseClient';
 
 interface AdminSettingsViewProps {
@@ -65,29 +65,13 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ showToast 
   // Logo file upload handler
   const handleLogoUpload = async (file: File) => {
     try {
-      let fileUrl = '';
-      try {
-        const uploadForm = new FormData();
-        uploadForm.append('file', file);
-        const res = await fetch('/api/upload', { method: 'POST', body: uploadForm });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.url) fileUrl = data.url;
-        }
-      } catch (err) {
-        console.warn('Fallback data URL for logo upload', err);
-      }
-
-      if (!fileUrl) {
-        fileUrl = await readFileAsDataURL(file);
-      }
-
+      const fileUrl = await uploadAdminImage(file, 'platform/logo');
       const updated = { ...formData, logoUrl: fileUrl };
       setFormData(updated);
       await updatePlatformSettings(updated);
-      showToast('Nouveau logo téléversé et appliqué sur tout le site !', 'success');
-    } catch {
-      showToast("Erreur lors de l'import du logo.", 'error');
+      showToast('Logo téléversé et confirmé dans Supabase.', 'success');
+    } catch (err: any) {
+      showToast(err.message || "Erreur lors de l'import du logo.", 'error');
     }
   };
 
