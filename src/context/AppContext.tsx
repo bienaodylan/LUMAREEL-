@@ -533,27 +533,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteEvent = async (eventId: string) => {
-    setEvents((prev) => {
-      const next = prev.filter((e) => e.id !== eventId);
-      writeLocal(STORAGE_KEYS.EVENTS, next);
-      return next;
-    });
-    cacheTimestamps.current.events = 0;
-
+    const previousEvents = events;
     if (isSupabaseConfigured) {
-      try {
-        const { error } = await supabase.from('events').delete().eq('id', eventId);
-        if (error) throw new Error(error.message);
-        showToast('Événement supprimé de la base Cloud.', 'info');
-      } catch (err: any) {
-        showToast(`Erreur suppression Cloud: ${err.message}`, 'error');
-      }
+      const { error } = await supabase.from('events').delete().eq('id', eventId);
+      if (error) throw new Error(`Suppression Supabase : ${error.message}`);
+    } else {
+      const response = await fetch(`/api/events/${eventId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error(`API événements : HTTP ${response.status}`);
     }
-
-    try {
-      await fetch(`/api/events/${eventId}`, { method: 'DELETE' });
-    } catch {}
-
+    const next = previousEvents.filter((event) => event.id !== eventId);
+    setEvents(next);
+    writeLocal(STORAGE_KEYS.EVENTS, next);
+    if (featuredEvent?.id === eventId) setFeaturedEvent(next.find((event) => event.isFeatured) || next[0] || null);
+    cacheTimestamps.current.events = 0;
     notifyCrossTabSync();
   };
 
@@ -958,6 +950,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               infoline: data.infoline || '+225 01 53 508 210',
               gateToken: data.gate_token || 'VIGILE_AUTH_LMR_2026',
               githubRepoUrl: data.github_repo_url || '',
+              socialLinks: data.social_links || {},
             });
             cacheTimestamps.current.settings = Date.now();
           } else {
@@ -1009,6 +1002,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         infoline: mergedSettings.infoline,
         gate_token: mergedSettings.gateToken,
         github_repo_url: mergedSettings.githubRepoUrl,
+        social_links: mergedSettings.socialLinks || {},
         updated_at: new Date().toISOString(),
       };
       const { data, error } = await supabase.from('platform_settings')
@@ -1027,6 +1021,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         infoline: data.infoline,
         gateToken: data.gate_token,
         githubRepoUrl: data.github_repo_url,
+        socialLinks: data.social_links || {},
       };
       setPlatformSettings(confirmed);
       writeLocal(STORAGE_KEYS.SETTINGS, confirmed);
