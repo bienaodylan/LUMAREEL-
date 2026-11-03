@@ -476,60 +476,46 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveEvent = async (updatedEvent: ConcertEvent) => {
-    // Mise à jour optimiste de l'interface, puis confirmation obligatoire par la source distante.
-    setEvents((prev) => {
-      const exists = prev.some((e) => e.id === updatedEvent.id);
-      const next = exists
-        ? prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
-        : [updatedEvent, ...prev];
-      writeLocal(STORAGE_KEYS.EVENTS, next);
-      return next;
-    });
-    if (updatedEvent.isFeatured) setFeaturedEvent(updatedEvent);
-    cacheTimestamps.current.events = 0;
-
-    if (isSupabaseConfigured) {
-      const dbRow = mapEventToDbRow(updatedEvent);
-      const { data, error } = await supabase
-        .from('events')
-        .upsert(dbRow, { onConflict: 'id' })
-        .select('*')
-        .single();
-
-      if (error) {
-        setCloudSyncError(`Supabase: ${error.message}`);
-        showToast(`Échec de synchronisation : ${error.message}`, 'error');
-        throw new Error(error.message);
-      }
-
-      const confirmedEvent = mapDbRowToEvent(data);
-      setEvents((prev) => {
-        const next = prev.some((e) => e.id === confirmedEvent.id)
-          ? prev.map((e) => (e.id === confirmedEvent.id ? confirmedEvent : e))
-          : [confirmedEvent, ...prev];
+    const previousEvents = events;
+    const previousFeatured = featuredEvent;
+    try {
+      if (isSupabaseConfigured) {
+        const dbRow = mapEventToDbRow(updatedEvent);
+        const { data, error } = await supabase.from('events')
+          .upsert(dbRow, { onConflict: 'id' }).select('*').single();
+        if (error) throw new Error(error.message);
+        const confirmedEvent = mapDbRowToEvent(data);
+        const next = previousEvents.some((event) => event.id === confirmedEvent.id)
+          ? previousEvents.map((event) => event.id === confirmedEvent.id ? confirmedEvent : event)
+          : [confirmedEvent, ...previousEvents];
+        setEvents(next);
         writeLocal(STORAGE_KEYS.EVENTS, next);
-        return next;
-      });
-      setFeaturedEvent((prev) => confirmedEvent.isFeatured ? confirmedEvent : (prev?.id === confirmedEvent.id ? null : prev));
-      setCloudSyncError(null);
-      setIsCloudDbActive(true);
-      cacheTimestamps.current.events = Date.now();
-      showToast('Événement enregistré et confirmé dans Supabase.', 'success');
-    } else {
-      const response = await fetch(`/api/events/${updatedEvent.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedEvent),
-      });
-      if (!response.ok) {
-        const message = `API événements : HTTP ${response.status}`;
-        showToast(message, 'error');
-        throw new Error(message);
+        setFeaturedEvent(confirmedEvent.isFeatured ? confirmedEvent : (previousFeatured?.id === confirmedEvent.id ? next.find((event) => event.isFeatured) || null : previousFeatured));
+      } else {
+        const response = await fetch(`/api/events/${updatedEvent.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedEvent),
+        });
+        if (!response.ok) throw new Error(`API événements : HTTP ${response.status}`);
+        const next = previousEvents.some((event) => event.id === updatedEvent.id)
+          ? previousEvents.map((event) => event.id === updatedEvent.id ? updatedEvent : event)
+          : [updatedEvent, ...previousEvents];
+        setEvents(next);
+        writeLocal(STORAGE_KEYS.EVENTS, next);
+        setFeaturedEvent(updatedEvent.isFeatured ? updatedEvent : previousFeatured);
       }
-      cacheTimestamps.current.events = 0;
+      setCloudSyncError(null);
+      setIsCloudDbActive(isSupabaseConfigured);
+      cacheTimestamps.current.events = Date.now();
+      notifyCrossTabSync();
+    } catch (err: any) {
+      setEvents(previousEvents);
+      writeLocal(STORAGE_KEYS.EVENTS, previousEvents);
+      setFeaturedEvent(previousFeatured);
+      setCloudSyncError(`Événement : ${err.message}`);
+      throw err;
     }
-
-    notifyCrossTabSync();
   };
 
   const deleteEvent = async (eventId: string) => {
