@@ -46,6 +46,7 @@ const AdminDashboardContent: React.FC = () => {
   const [newEventArtist, setNewEventArtist] = useState('');
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventDate, setNewEventDate] = useState('2026-12-25');
+  const [newEventTime, setNewEventTime] = useState('18:00');
   const [newEventVenue, setNewEventVenue] = useState('Palais de la Culture Bernard Binlin-Dadié');
   const [newEventCity, setNewEventCity] = useState('Abidjan');
 
@@ -141,7 +142,7 @@ const AdminDashboardContent: React.FC = () => {
         title: newEventTitle.trim(),
         subtitle: `En concert exceptionnel · ${newEventVenue}`,
         date: newEventDate,
-        time: '18:00',
+        time: newEventTime,
         doorsOpen: '16:30',
         venue: newEventVenue,
         city: newEventCity,
@@ -352,6 +353,14 @@ const AdminDashboardContent: React.FC = () => {
                     required
                     value={newEventDate}
                     onChange={(e) => setNewEventDate(e.target.value)}
+                    className="w-full bg-[#161616] border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-mono"
+                  />
+                  <label className="block text-[10px] uppercase tracking-widest text-[#888] mb-2 mt-4">Heure du concert</label>
+                  <input
+                    type="time"
+                    required
+                    value={newEventTime}
+                    onChange={(e) => setNewEventTime(e.target.value)}
                     className="w-full bg-[#161616] border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-mono"
                   />
                 </div>
