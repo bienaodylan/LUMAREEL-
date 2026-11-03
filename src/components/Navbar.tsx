@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp, PageView } from '../context/AppContext';
-import { User as UserIcon, Shield } from 'lucide-react';
+import { User as UserIcon } from 'lucide-react';
 
 /**
  * Navbar.tsx — En-tête épuré et moderne LUMARÉEL CO.
@@ -116,18 +116,6 @@ export const Navbar: React.FC = () => {
               </span>
             )}
           </button>
-
-          {isSuperAdmin && (
-            <button
-              type="button"
-              onClick={() => setCurrentPage('admin')}
-              className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#d4af37] text-black hover:bg-[#e7c45b] transition-all cursor-pointer font-agrandir-extrabold text-[11px] uppercase tracking-wider shadow-lg"
-              aria-label="Ouvrir l'administration LUMARÉEL"
-            >
-              <Shield className="w-3.5 h-3.5" />
-              <span>Administration</span>
-            </button>
-          )}
 
           {/* Sélecteur de langue fonctionnel (Français / Anglais) */}
           <div className="flex items-center p-1 rounded-full bg-black/60 border border-white/15 backdrop-blur-md shadow-inner text-[11px] font-agrandir-bold tracking-wider">
