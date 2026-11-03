@@ -996,40 +996,53 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updatePlatformSettings = async (newSettings: Partial<PlatformSettings>) => {
-    setPlatformSettings((prev) => ({ ...prev, ...newSettings }));
-    cacheTimestamps.current.settings = 0;
-
+    const previousSettings = platformSettings;
+    const mergedSettings = { ...previousSettings, ...newSettings };
     if (isSupabaseConfigured) {
-      try {
-        const dbRow = {
-          id: 1,
-          platform_name: newSettings.platformName ?? platformSettings.platformName,
-          tagline: newSettings.tagline ?? platformSettings.tagline,
-          logo_monogram: newSettings.logoMonogram ?? platformSettings.logoMonogram,
-          logo_url: newSettings.logoUrl ?? platformSettings.logoUrl,
-          currency: newSettings.currency ?? platformSettings.currency,
-          infoline: newSettings.infoline ?? platformSettings.infoline,
-          gate_token: newSettings.gateToken ?? platformSettings.gateToken,
-          github_repo_url: newSettings.githubRepoUrl ?? platformSettings.githubRepoUrl,
-          updated_at: new Date().toISOString(),
-        };
-
-        const { error } = await supabase.from('platform_settings').upsert(dbRow, { onConflict: 'id' });
-        if (error) throw new Error(error.message);
-        showToast('Identité et paramètres sauvegardés dans le Cloud Supabase.', 'success');
-      } catch (err: any) {
-        showToast(`Erreur sauvegarde Cloud: ${err.message}`, 'error');
+      const dbRow = {
+        id: 1,
+        platform_name: mergedSettings.platformName,
+        tagline: mergedSettings.tagline,
+        logo_monogram: mergedSettings.logoMonogram,
+        logo_url: mergedSettings.logoUrl,
+        currency: mergedSettings.currency,
+        infoline: mergedSettings.infoline,
+        gate_token: mergedSettings.gateToken,
+        github_repo_url: mergedSettings.githubRepoUrl,
+        updated_at: new Date().toISOString(),
+      };
+      const { data, error } = await supabase.from('platform_settings')
+        .upsert(dbRow, { onConflict: 'id' }).select('*').single();
+      if (error) {
+        setCloudSyncError(`Paramètres Supabase : ${error.message}`);
+        throw new Error(error.message);
       }
-    }
-
-    try {
-      await fetch('/api/admin/settings', {
+      const confirmed = {
+        ...mergedSettings,
+        platformName: data.platform_name,
+        tagline: data.tagline,
+        logoMonogram: data.logo_monogram,
+        logoUrl: data.logo_url,
+        currency: data.currency,
+        infoline: data.infoline,
+        gateToken: data.gate_token,
+        githubRepoUrl: data.github_repo_url,
+      };
+      setPlatformSettings(confirmed);
+      writeLocal(STORAGE_KEYS.SETTINGS, confirmed);
+      setCloudSyncError(null);
+      setIsCloudDbActive(true);
+    } else {
+      const response = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSettings),
       });
-    } catch {}
-
+      if (!response.ok) throw new Error(`API paramètres : HTTP ${response.status}`);
+      setPlatformSettings(mergedSettings);
+      writeLocal(STORAGE_KEYS.SETTINGS, mergedSettings);
+    }
+    cacheTimestamps.current.settings = Date.now();
     notifyCrossTabSync();
   };
 
