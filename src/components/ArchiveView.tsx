@@ -9,6 +9,7 @@ import { formatDateLongFrench } from '../utils/dateUtils';
 
 export const ArchiveView: React.FC = () => {
   const { archives, setCurrentPage, language, t } = useApp();
+  const publicArchives = (archives || []).filter((item) => item.isPublished);
 
   // Active media mode per archive ('video' | 'photos')
   const [activeTab, setActiveTab] = useState<Record<string, 'video' | 'photos'>>({});
@@ -88,7 +89,7 @@ export const ArchiveView: React.FC = () => {
         {/* =========================================================================
             DISPOSITION DE LA LISTE : STYLE "HISTORIQUE YOUTUBE" VERTICAL
            ========================================================================= */}
-        {(!archives || archives.length === 0) ? (
+        {publicArchives.length === 0 ? (
           <div className="text-center py-20 rounded-3xl bg-[#0c0c0c] border border-white/10 p-8 my-6">
             <Film className="w-10 h-10 text-[#555] mx-auto mb-3" />
             <h3 className="font-agrandir-extrabold text-xl text-white uppercase mb-2">
@@ -104,7 +105,7 @@ export const ArchiveView: React.FC = () => {
                 VUE MOBILE (STYLE "HISTORIQUE YOUTUBE")
                ========================================================================= */}
             <div className="md:hidden space-y-4">
-              {archives.map((item) => {
+              {publicArchives.map((item) => {
                 const isPlaying = activePlayingId === item.id;
                 const photoList = item.photos && item.photos.length > 0 ? item.photos : [item.coverImage];
                 const safeCover = item.coverImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg';
@@ -212,7 +213,7 @@ export const ArchiveView: React.FC = () => {
                 VUE DESKTOP (GRAND ÉCRAN AVEC LECTEUR ET INFORMATIONS IMMERSIVES)
                ========================================================================= */}
             <div className="hidden md:block space-y-10 sm:space-y-12">
-              {archives.map((item, idx) => {
+              {publicArchives.map((item, idx) => {
                 const currentMode = getMediaMode(item.id);
                 const isPlaying = activePlayingId === item.id;
                 const currentPhotoIdx = activePhotoIndex[item.id] || 0;
