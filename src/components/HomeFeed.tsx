@@ -28,8 +28,9 @@ export const HomeFeed: React.FC = () => {
   } = useApp();
 
   // Carousel state
-  const featuredSlides = events.filter((e) => e.isFeatured && e.status !== 'draft');
-  const activeSlides = featuredSlides.length > 0 ? featuredSlides : events.slice(0, 3);
+  const publicEvents = events.filter((e) => e.status === 'published' || e.status === 'sold_out');
+  const featuredSlides = publicEvents.filter((e) => e.isFeatured);
+  const activeSlides = featuredSlides.length > 0 ? featuredSlides : publicEvents.slice(0, 3);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const activeSlide = activeSlides[currentSlideIndex] || activeSlides[0];
 
@@ -297,7 +298,7 @@ const EventCardCountdown: React.FC<{
           </button>
         </div>
         <div className="flex overflow-x-auto snap-x snap-mandatory gap-5 pb-5 -mx-6 px-6 md:mx-0 md:px-0 md:grid md:grid-cols-3 md:gap-6 scrollbar-none">
-          {(archives || []).slice(0, 3).map((item) => {
+          {(archives || []).filter((item) => item.isPublished).slice(0, 3).map((item) => {
             const safeCover = item.coverImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg';
             return (
               <div key={item.id} onClick={() => setCurrentPage('archive')} className="w-[82vw] md:w-auto shrink-0 snap-start group cursor-pointer flex flex-col justify-between">
