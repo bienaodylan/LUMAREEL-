@@ -319,7 +319,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Session utilisateur persistante (chargée depuis localStorage avec repli dynamique)
   const [currentUser, setCurrentUserState] = useState<User | null>(() => {
-    const saved = readLocal<User | null>(STORAGE_KEYS.CURRENT_USER, null);\n    if (!saved) return null;\n    return { ...saved, role: String(saved.email || '').toLowerCase() === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer' };
+    const saved = readLocal<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+    if (!saved) return null;
+    return { ...saved, role: String(saved.email || '').toLowerCase() === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer' };
   });
 
   useEffect(() => {
