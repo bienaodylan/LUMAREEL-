@@ -67,24 +67,10 @@ export const AuthModal: React.FC = () => {
         return;
       }
 
-      // Synchronisation optionnelle en tâche de fond avec Supabase (si configuré)
-      if (isSupabaseConfigured) {
-        try {
-          if (mode === 'register') {
-            await supabase.auth.signUp({
-              email: cleanEmail,
-              password,
-              options: { data: { name: loggedUser.name } },
-            });
-          } else {
-            await supabase.auth.signInWithPassword({
-              email: cleanEmail,
-              password,
-            });
-          }
-        } catch (sbErr) {
-          console.warn('[Supabase Sync Optionnel]', sbErr);
-        }
+      // Conserver la session renvoyée par l'API dans le client Supabase.
+      if (isSupabaseConfigured && data.session) {
+        const { error: sessionError } = await supabase.auth.setSession(data.session);
+        if (sessionError) console.warn('[Supabase Session]', sessionError.message);
       }
 
       // Mise à jour de la session utilisateur dans le contexte
