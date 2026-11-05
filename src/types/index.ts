@@ -7,6 +7,7 @@ export interface User {
   role: Role;
   emailVerified: boolean;
   createdAt: string;
+  passwordHash?: string;
 }
 
 export interface TicketCategory {

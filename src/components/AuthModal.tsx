@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { X, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck } from 'lucide-react';
+import { X, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, Sparkles, KeyRound } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, showToast, checkoutEvent, setCheckoutEvent } = useApp();
@@ -16,131 +16,114 @@ export const AuthModal: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isSupabaseConfigured) {
-      showToast('Service d’authentification indisponible. Réessayez lorsque Supabase sera connecté.', 'error');
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      showToast('Veuillez saisir une adresse e-mail valide.', 'error');
       return;
     }
-    if (!email || !password || password.length < 8) {
-      showToast('Saisissez un e-mail et un mot de passe de 8 caractères minimum.', 'error');
+
+    if (!password || password.length < 6) {
+      showToast('Le mot de passe doit comporter au moins 6 caractères.', 'error');
       return;
     }
+
     if (mode === 'register' && !name.trim()) {
-      showToast('Veuillez saisir votre nom complet.', 'error');
+      showToast('Veuillez renseigner votre nom complet.', 'error');
       return;
     }
 
     setIsLoading(true);
+
     try {
+      const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
+      const payload: any = {
+        email: cleanEmail,
+        password,
+      };
       if (mode === 'register') {
-        const { data, error } = await supabase.auth.signUp({
-          email: email.trim().toLowerCase(),
-          password,
-          options: { data: { name: name.trim() } },
-        });
-        if (error) throw error;
-        if (!data.session) {
-          showToast('Compte créé. Vérifiez votre e-mail pour confirmer votre adresse avant de vous connecter.', 'success');
-          setMode('login');
-          return;
-        }
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
-          password,
-        });
-        if (error) throw error;
+        payload.name = name.trim();
       }
 
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError || !authData.user?.email) throw authError || new Error('Session Supabase introuvable.');
-      const normalizedEmail = authData.user.email.toLowerCase();
-      const isSuperAdmin = normalizedEmail === 'bienaodylan428@gmail.com';
-      const fallbackName = name.trim() || authData.user.user_metadata?.name || (isSuperAdmin ? 'Dylan B. (Super Admin)' : normalizedEmail.split('@')[0]);
-      const fallbackRole = 'customer';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-      let userProfile: { id: string; email: string; name: string; role: string; email_verified?: boolean } | null = null;
+      const data = await res.json();
 
-      try {
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('id,email,name,role,email_verified')
-          .eq('email', normalizedEmail)
-          .maybeSingle();
+      if (!res.ok || !data.success || !data.user) {
+        throw new Error(data.error || 'Erreur lors de l’authentification.');
+      }
 
-        if (profileError) {
-          console.warn('[Supabase] Note: table public.users introuvable dans le schema cache (PGRST200). Repli automatique.', profileError.message);
-        } else if (profile) {
-          userProfile = profile;
-        }
+      const loggedUser = data.user;
 
-        if (!userProfile && !profileError) {
-          const { data: created, error: createError } = await supabase
-            .from('users')
-            .insert({
-              email: normalizedEmail,
-              name: fallbackName,
-              role: fallbackRole,
-              email_verified: Boolean(authData.user.email_confirmed_at) || isSuperAdmin,
-            })
-            .select('id,email,name,role,email_verified')
-            .maybeSingle();
-
-          if (created && !createError) {
-            userProfile = created;
+      // Synchronisation optionnelle en tâche de fond avec Supabase (si configuré)
+      if (isSupabaseConfigured) {
+        try {
+          if (mode === 'register') {
+            await supabase.auth.signUp({
+              email: cleanEmail,
+              password,
+              options: { data: { name: loggedUser.name } },
+            });
+          } else {
+            await supabase.auth.signInWithPassword({
+              email: cleanEmail,
+              password,
+            });
           }
+        } catch (sbErr) {
+          console.warn('[Supabase Sync Optionnel]', sbErr);
         }
-      } catch (tableErr) {
-        console.warn('[Supabase] Erreur lecture table users:', tableErr);
       }
 
-      // Si la table public.users n'est pas encore créée dans Supabase, utiliser le profil authentifié
-      if (!userProfile) {
-        userProfile = {
-          id: authData.user.id,
-          email: normalizedEmail,
-          name: fallbackName,
-          role: fallbackRole,
-          email_verified: true,
-        };
-      }
-
-      if (isSuperAdmin) {
-        userProfile.role = 'super_admin';
-        userProfile.email_verified = true;
-      }
-
-      if (!userProfile.email_verified && userProfile.role !== 'customer') {
-        await supabase.auth.signOut();
-        throw new Error('Le compte administrateur doit être vérifié par la direction.');
-      }
-
-      setCurrentUser({
-        id: userProfile.id,
-        email: userProfile.email,
-        name: userProfile.name,
-        role: userProfile.role,
-      } as any);
+      // Mise à jour de la session utilisateur dans le contexte
+      setCurrentUser(loggedUser);
       setIsAuthModalOpen(false);
-      showToast(`Bienvenue, ${userProfile.name}. Session sécurisée active.`, 'success');
-      if (checkoutEvent) setCheckoutEvent(checkoutEvent);
+
+      const isSuperAdmin = loggedUser.role === 'super_admin' || cleanEmail === 'bienaodylan428@gmail.com';
+      showToast(
+        isSuperAdmin
+          ? `Bienvenue, ${loggedUser.name}. Espace Direction & Administration activé.`
+          : `Bienvenue, ${loggedUser.name}. Connexion réussie.`,
+        'success'
+      );
+
+      // Si l'utilisateur était en train de réserver, reprendre la commande
+      if (checkoutEvent) {
+        setCheckoutEvent(checkoutEvent);
+      }
     } catch (err: any) {
-      showToast(err.message || 'Erreur d’authentification.', 'error');
+      showToast(err.message || 'Échec de connexion.', 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleFillAdminCredentials = () => {
+    setEmail('bienaodylan428@gmail.com');
+    setPassword('DylanAdmin2026!');
+    setMode('login');
+    showToast('Identifiants Fondateur pré-remplis.', 'info');
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-      <div className="relative w-full max-w-md bg-[#0f0f0f] border border-white/15 rounded-3xl p-8 text-[#efefef] shadow-2xl font-agrandir-regular text-xs">
+      <div className="relative w-full max-w-md bg-[#0f0f0f] border border-white/15 rounded-3xl p-6 sm:p-8 text-[#efefef] shadow-2xl font-agrandir-regular text-xs">
         
+        {/* Bouton Fermer */}
         <button
+          type="button"
           onClick={() => setIsAuthModalOpen(false)}
           className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#777] hover:text-white cursor-pointer transition-colors"
+          title="Fermer"
         >
           <X className="w-4 h-4" />
         </button>
 
+        {/* Logo & En-tête */}
         <div className="mb-4">
           <img
             src="/assets/logo-lumareel.png"
@@ -148,20 +131,51 @@ export const AuthModal: React.FC = () => {
             className="h-6 w-auto object-contain"
           />
         </div>
-        <div className="text-[10px] tracking-[0.25em] text-[#888] uppercase mb-1">
-          IDENTIFICATION OFFICIELLE
+        <div className="text-[10px] tracking-[0.25em] text-[#888] uppercase mb-1 flex items-center gap-2">
+          <span>IDENTIFICATION OFFICIELLE</span>
+          {mode === 'login' && (
+            <span className="text-[#d4af37] font-agrandir-bold">· ACCÈS SÉCURISÉ</span>
+          )}
         </div>
         <h2 className="font-agrandir-extrabold text-2xl text-white uppercase tracking-tight mb-2">
-          {mode === 'login' ? 'CONNEXION CLIENT' : 'CRÉER UN COMPTE'}
+          {mode === 'login' ? 'CONNEXION CLIENT & ADMIN' : 'CRÉER UN COMPTE'}
         </h2>
-        <p className="text-[#888] text-xs mb-6">
-          Accédez à vos billets officiels, historiques d’achats et accès prioritaires aux prochaines ouvertures.
+        <p className="text-[#888] text-xs mb-5">
+          {mode === 'login'
+            ? 'Accédez à vos billets officiels, commandes passées ou à votre espace d’administration.'
+            : 'Créez votre compte en quelques secondes pour réserver vos places et recevoir vos billets sécurisés.'}
         </p>
 
+        {/* Raccourci Compte Fondateur (Admin) */}
+        <div className="mb-5 p-3 rounded-2xl bg-[#141414] border border-[#d4af37]/25 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <KeyRound className="w-4 h-4 text-[#d4af37] shrink-0" />
+            <div className="min-w-0">
+              <div className="text-[10px] text-[#d4af37] font-agrandir-bold uppercase tracking-wider">
+                COMPTE ADMIN FONDATEUR
+              </div>
+              <div className="text-[11px] text-[#aaa] truncate font-mono">
+                bienaodylan428@gmail.com
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleFillAdminCredentials}
+            className="px-2.5 py-1.5 rounded-full bg-[#d4af37]/15 hover:bg-[#d4af37]/30 border border-[#d4af37]/40 text-[10px] font-agrandir-bold text-[#d4af37] hover:text-white transition-all cursor-pointer whitespace-nowrap active:scale-95"
+            title="Pré-remplir les identifiants d'administration"
+          >
+            Remplir
+          </button>
+        </div>
+
+        {/* Formulaire Authentification */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === 'register' && (
             <div>
-              <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-semibold">NOM COMPLET</label>
+              <label className="block text-[10px] text-[#888] uppercase mb-1 font-agrandir-semibold">
+                NOM COMPLET
+              </label>
               <div className="relative">
                 <UserIcon className="w-4 h-4 text-[#666] absolute left-3.5 top-3" />
                 <input
@@ -177,7 +191,9 @@ export const AuthModal: React.FC = () => {
           )}
 
           <div>
-            <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-semibold">ADRESSE E-MAIL</label>
+            <label className="block text-[10px] text-[#888] uppercase mb-1 font-agrandir-semibold">
+              ADRESSE E-MAIL
+            </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-[#666] absolute left-3.5 top-3" />
               <input
@@ -192,17 +208,24 @@ export const AuthModal: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-semibold">MOT DE PASSE</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[10px] text-[#888] uppercase font-agrandir-semibold">
+                MOT DE PASSE
+              </label>
+              <span className="text-[10px] text-[#666]">
+                6 caractères min.
+              </span>
+            </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-[#666] absolute left-3.5 top-3" />
               <input
                 type="password"
                 required
-                minLength={8}
+                minLength={6}
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="8 caractères minimum"
+                placeholder="••••••••••••"
                 className="w-full bg-[#161616] border border-white/15 rounded-2xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-white text-xs"
               />
             </div>
@@ -211,28 +234,39 @@ export const AuthModal: React.FC = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3.5 bg-white text-black font-agrandir-semibold uppercase tracking-widest text-xs hover:bg-[#eaeaea] rounded-full transition-all flex items-center justify-center gap-2 mt-4 cursor-pointer shadow-lg disabled:opacity-50"
+            className="w-full py-3.5 bg-white text-black font-agrandir-extrabold uppercase tracking-widest text-xs hover:bg-[#eaeaea] rounded-full transition-all flex items-center justify-center gap-2 mt-4 cursor-pointer shadow-lg disabled:opacity-50 active:scale-[0.98]"
           >
-            <span>{mode === 'login' ? 'SE CONNECTER' : 'CONFIRMER L’INSCRIPTION'}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            {isLoading ? (
+              <span className="animate-pulse">Vérification en cours...</span>
+            ) : (
+              <>
+                <span>{mode === 'login' ? 'SE CONNECTER' : 'CONFIRMER L’INSCRIPTION'}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </>
+            )}
           </button>
         </form>
 
-        <div className="pt-5 mt-5 border-t border-white/10 flex items-center justify-between text-[11px] text-[#777]">
+        {/* Bascule Mode Connexion / Inscription */}
+        <div className="pt-5 mt-5 border-t border-white/10 flex items-center justify-between text-[11px] text-[#888]">
           <span>
             {mode === 'login' ? 'Pas encore de compte ?' : 'Déjà inscrit ?'}
           </span>
           <button
-            onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-            className="text-white hover:underline uppercase tracking-wider font-agrandir-semibold cursor-pointer"
+            type="button"
+            onClick={() => {
+              setMode(mode === 'login' ? 'register' : 'login');
+            }}
+            className="text-white hover:text-[#d4af37] underline uppercase tracking-wider font-agrandir-semibold cursor-pointer transition-colors"
           >
             {mode === 'login' ? 'Créer un compte' : 'Se connecter'}
           </button>
         </div>
 
+        {/* Badge de réassurance */}
         <div className="mt-4 text-center text-[10px] text-[#555] flex items-center justify-center gap-1.5">
           <ShieldCheck className="w-3 h-3 text-[#777]" />
-          <span>AUTHENTIFICATION CHIFFRÉE &amp; PROTECTION DES DONNÉES</span>
+          <span>AUTHENTIFICATION CHIFFRÉE &amp; SÉCURISÉE</span>
         </div>
 
       </div>

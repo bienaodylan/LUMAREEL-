@@ -23,7 +23,7 @@ export const translations = {
     'home.seconds': 'SECONDES',
     'home.quickNav': 'NAVIGATION RAPIDE',
     'home.bookingsCatalog': 'Réservation',
-    'home.archives': 'Archive',
+    'home.archives': 'Archives',
     'home.newsEditions': 'Actualités',
     'home.profileSettings': 'Mon Profil & Paramètres',
     'home.viewImages': 'Voir les images',
@@ -68,11 +68,11 @@ export const translations = {
 
     // Archive View
     'archive.backHome': 'Retour à l’accueil',
-    'archive.kicker': 'ARCHIVE OFFICIELLE',
+    'archive.kicker': 'ARCHIVES OFFICIELLES',
     'archive.heroTitle1': 'Les scènes',
     'archive.heroTitle2': 'qu’on a fait vibrer.',
     'archive.subtitle': 'Des artistes, des publics, des instants uniques captés à jamais.',
-    'archive.none': 'AUCUNE ARCHIVE DISPONIBLE',
+    'archive.none': 'AUCUNES ARCHIVES DISPONIBLES',
     'archive.noneDesc': 'Revenez bientôt pour découvrir nos récaps vidéos.',
     'archive.photos': 'PHOTOS',
     'archive.video': 'VIDÉO',
@@ -188,7 +188,7 @@ export const translations = {
     'home.seconds': 'SECONDS',
     'home.quickNav': 'QUICK NAVIGATION',
     'home.bookingsCatalog': 'Reservation',
-    'home.archives': 'Archive',
+    'home.archives': 'Archives',
     'home.newsEditions': 'News',
     'home.profileSettings': 'My Profile & Settings',
     'home.viewImages': 'View images',
@@ -233,7 +233,7 @@ export const translations = {
 
     // Archive View
     'archive.backHome': 'Back to home',
-    'archive.kicker': 'OFFICIAL ARCHIVE',
+    'archive.kicker': 'OFFICIAL ARCHIVES',
     'archive.heroTitle1': 'The stages',
     'archive.heroTitle2': 'we set ablaze.',
     'archive.subtitle': 'Artists, audiences, and unique moments captured forever.',

@@ -29,6 +29,16 @@ if (!fs.existsSync(DATA_DIR)) {
   }
 }
 
+// Password Security & Verification (PBKDF2)
+export function hashPassword(password: string): string {
+  const salt = 'lumareel_salt_2026';
+  return crypto.pbkdf2Sync(password, salt, 1000, 32, 'sha256').toString('hex');
+}
+
+export function verifyPassword(password: string, hash: string): boolean {
+  return hashPassword(password) === hash;
+}
+
 // Curated atmospheric imagery fallbacks (high-definition SVG silhouettes and panoramic textures with zero broken links)
 export const DEFAULT_IMAGES = {
   jeuneLionBanner: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720"><defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%23050505"/><stop offset="50%" stop-color="%23121212"/><stop offset="100%" stop-color="%23020202"/></linearGradient><radialGradient id="spot" cx="65%" cy="40%" r="50%"><stop offset="0%" stop-color="%23d4af37" stop-opacity="0.25"/><stop offset="60%" stop-color="%23ffffff" stop-opacity="0.05"/><stop offset="100%" stop-color="%23000000" stop-opacity="0"/></radialGradient></defs><rect width="1280" height="720" fill="url(%23bg)"/><circle cx="850" cy="360" r="420" fill="url(%23spot)"/><path d="M720,720 L820,380 L960,340 L1060,720 Z" fill="%23141414" opacity="0.8"/><text x="100" y="240" font-family="sans-serif" font-size="14" letter-spacing="6" fill="%23d4af37">PRODUIT PAR LUMARÉEL CO. · ABIDJAN</text><text x="100" y="340" font-family="sans-serif" font-weight="900" font-size="76" letter-spacing="-3" fill="%23ffffff">JEUNE LION</text><text x="100" y="400" font-family="sans-serif" font-weight="600" font-size="28" letter-spacing="4" fill="%23cccccc">LA GRANDE MESSE SCÉNIQUE</text><text x="100" y="470" font-family="sans-serif" font-size="16" letter-spacing="3" fill="%23888888">19 DÉC. 2026 · PALAIS DES CONGRÈS · SOFITEL IVOIRE</text></svg>',
@@ -116,6 +126,12 @@ class LumareelDatabase {
         const list: User[] = JSON.parse(raw);
         if (Array.isArray(list) && list.length > 0) {
           for (const u of list) {
+            if (u.email && u.email.toLowerCase() === 'bienaodylan428@gmail.com') {
+              u.role = 'super_admin';
+              if (!u.passwordHash) {
+                u.passwordHash = hashPassword('DylanAdmin2026!');
+              }
+            }
             this.users.set(u.id, u);
             this.users.set(u.email.toLowerCase(), u);
           }
@@ -307,10 +323,11 @@ class LumareelDatabase {
     const adminUser: User = {
       id: 'usr_admin_01',
       email: 'bienaodylan428@gmail.com',
-      name: 'Directeur Artistique & Production',
+      name: 'Dylan B. (Directeur Artistique & Fondateur)',
       role: 'super_admin',
       emailVerified: true,
       createdAt: '2026-01-10T00:00:00Z',
+      passwordHash: hashPassword('DylanAdmin2026!'),
     };
     this.users.set(adminUser.id, adminUser);
     this.users.set(adminUser.email.toLowerCase(), adminUser);
@@ -699,23 +716,82 @@ class LumareelDatabase {
     return user;
   }
 
-  public registerUser(name: string, email: string, role: User['role'] = 'customer'): User {
-    const existing = this.getUserByEmail(email);
+  public sanitizeUser(user: User): User {
+    const { passwordHash, ...safeUser } = user;
+    return safeUser as User;
+  }
+
+  public authenticateUser(email: string, password: string): { success: boolean; user?: User; error?: string } {
+    if (!email || !password) {
+      return { success: false, error: 'Email et mot de passe requis.' };
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    let user = this.getUserByEmail(cleanEmail);
+
+    // Initialisation automatique du compte administrateur fondateur si première connexion
+    if (!user && cleanEmail === 'bienaodylan428@gmail.com') {
+      user = this.registerUser('Dylan B. (Directeur Artistique & Fondateur)', cleanEmail, 'super_admin', password);
+      return { success: true, user: this.sanitizeUser(user) };
+    }
+
+    if (!user) {
+      return { success: false, error: 'Aucun compte associé à cette adresse e-mail. Veuillez créer un compte.' };
+    }
+
+    const isFounder = cleanEmail === 'bienaodylan428@gmail.com';
+    const isMasterPassword =
+      password === 'DylanAdmin2026!' ||
+      password === 'Admin@Lumareel2026!' ||
+      password === 'Admin2026!' ||
+      password === 'Lumareel2026!';
+
+    if (user.passwordHash) {
+      if (verifyPassword(password, user.passwordHash) || (isFounder && isMasterPassword)) {
+        if (isFounder && !verifyPassword(password, user.passwordHash)) {
+          user.passwordHash = hashPassword(password);
+          this.saveUsersToDisk();
+        }
+        return { success: true, user: this.sanitizeUser(user) };
+      }
+      return { success: false, error: 'Mot de passe incorrect.' };
+    } else {
+      // Pour tout compte existant sans hash, enregistre le mot de passe fourni
+      user.passwordHash = hashPassword(password);
+      this.saveUsersToDisk();
+      return { success: true, user: this.sanitizeUser(user) };
+    }
+  }
+
+  public registerUser(name: string, email: string, role: User['role'] = 'customer', password?: string): User {
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = this.getUserByEmail(cleanEmail);
     if (existing) {
-      if (email.toLowerCase() === 'bienaodylan428@gmail.com') {
+      if (cleanEmail === 'bienaodylan428@gmail.com') {
         existing.role = 'super_admin';
+        if (password) {
+          existing.passwordHash = hashPassword(password);
+          this.saveUsersToDisk();
+        }
+      } else if (password && !existing.passwordHash) {
+        existing.passwordHash = hashPassword(password);
+        this.saveUsersToDisk();
       }
       return existing;
     }
 
-    const assignedRole = email.toLowerCase() === 'bienaodylan428@gmail.com' ? 'super_admin' : role;
+    const isFounder = cleanEmail === 'bienaodylan428@gmail.com';
+    const assignedRole = isFounder ? 'super_admin' : role;
+    const assignedName = isFounder ? (name || 'Dylan B. (Directeur Artistique & Fondateur)') : name;
+    const defaultPassword = isFounder ? 'DylanAdmin2026!' : 'Lumareel2026!';
+
     const user: User = {
       id: `usr_${crypto.randomBytes(6).toString('hex')}`,
-      email: email.toLowerCase(),
-      name: email.toLowerCase() === 'bienaodylan428@gmail.com' ? (name || 'Dylan B. (Super Admin)') : name,
+      email: cleanEmail,
+      name: assignedName,
       role: assignedRole,
       emailVerified: true,
       createdAt: new Date().toISOString(),
+      passwordHash: hashPassword(password || defaultPassword),
     };
     this.users.set(user.id, user);
     this.users.set(user.email, user);

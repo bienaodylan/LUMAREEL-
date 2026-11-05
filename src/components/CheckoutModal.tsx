@@ -337,13 +337,13 @@ export const CheckoutModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-black border border-white/15 sm:rounded-3xl shadow-2xl text-white min-h-screen sm:min-h-0 my-0 sm:my-8 flex flex-col justify-between font-agrandir-regular">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-md overflow-hidden">
+      <div className="relative w-full max-w-2xl bg-black border-0 sm:border border-white/15 sm:rounded-3xl shadow-2xl text-white h-[100dvh] sm:h-auto sm:max-h-[90vh] my-0 sm:my-6 flex flex-col font-agrandir-regular overflow-hidden">
         
         {/* ========================================================================= */}
         {/* TOP HEADER & STEPPER PROGRESS BAR */}
         {/* ========================================================================= */}
-        <div className="p-5 sm:p-6 border-b border-white/10 bg-[#080808] sm:rounded-t-3xl">
+        <div className="shrink-0 p-4 sm:p-5 border-b border-white/10 bg-[#080808] sm:rounded-t-3xl z-20">
           <div className="flex items-center justify-between gap-4 mb-4">
             <button
               type="button"
@@ -416,7 +416,7 @@ export const CheckoutModal: React.FC = () => {
         {/* ========================================================================= */}
         {/* CORPS PRINCIPAL DU TUNNEL EN 4 ÉTAPES */}
         {/* ========================================================================= */}
-        <div className="p-5 sm:p-6 flex-1">
+        <div className="p-4 sm:p-6 flex-1 overflow-y-auto overscroll-contain min-h-0 focus:outline-none">
 
           {/* ===================================================================== */}
           {/* ÉTAPE 1 : SÉLECTION DES BILLETS */}
@@ -1161,80 +1161,116 @@ export const CheckoutModal: React.FC = () => {
         {/* ========================================================================= */}
         {/* BARRE DYNAMIQUE DE RÉSUMÉ & NAVIGATION ENTRE LES ÉTAPES */}
         {/* ========================================================================= */}
+        {/* ========================================================================= */}
+        {/* BARRE DYNAMIQUE DE RÉSUMÉ & NAVIGATION (FIXE EN BAS DE L'ÉCRAN) */}
+        {/* ========================================================================= */}
         {step < 4 && (
-          <div className="p-4 sm:p-5 border-t border-white/10 bg-[#080808] sm:rounded-b-3xl">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-              
-              {/* Résumé Dynamique */}
-              <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
-                <div>
-                  <div className="text-[10px] text-[#888] uppercase tracking-wider">
-                    {totalQuantity} billet{totalQuantity > 1 ? 's' : ''} sélectionné{totalQuantity > 1 ? 's' : ''}
-                  </div>
-                  <div className="font-agrandir-extrabold text-lg sm:text-xl text-[#d4af37] font-mono">
-                    {finalTotalAmount.toLocaleString('fr-FR')} FCFA
-                  </div>
-                </div>
+          <div className="shrink-0 z-30 border-t border-white/15 bg-[#0a0a0a]/98 backdrop-blur-xl p-4 sm:p-5 sm:rounded-b-3xl shadow-[0_-12px_30px_rgba(0,0,0,0.85)] pb-[max(1rem,env(safe-area-inset-bottom))]">
+            {/* LIGNE 1 : TOTAL & NOMBRE DE BILLETS SÉLECTIONNÉS */}
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <div className="flex items-baseline gap-2">
+                <span className="text-xs sm:text-sm font-agrandir-bold tracking-wider uppercase text-[#d4af37]">
+                  Total :
+                </span>
+                <span className="font-agrandir-extrabold text-lg sm:text-2xl text-white font-mono tracking-tight">
+                  {finalTotalAmount.toLocaleString('fr-FR')} F CFA
+                </span>
               </div>
 
-              {/* Boutons d'Action Suivant / Retour */}
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                {step > 1 && (
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1 rounded-full text-xs font-mono font-bold tracking-wide transition-all ${
+                  totalQuantity > 0
+                    ? 'bg-white/15 text-white border border-white/20'
+                    : 'bg-white/5 text-[#777] border border-white/5'
+                }`}>
+                  {String(totalQuantity).padStart(2, '0')} billet{totalQuantity > 1 ? 's' : ''}
+                </span>
+
+                {step === 1 && totalQuantity > 0 && (
                   <button
                     type="button"
-                    onClick={() => setStep((prev) => (prev - 1) as CheckoutStep)}
-                    className="flex-1 sm:flex-initial px-5 py-3 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-semibold uppercase tracking-wider text-[#aaa] hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                    onClick={() => setQuantities({})}
+                    className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-[#aaa] hover:text-white flex items-center justify-center transition-colors cursor-pointer active:scale-90"
+                    title="Effacer la sélection de billets"
+                    aria-label="Effacer la sélection"
                   >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    <span>{t('checkout.back')}</span>
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
+              </div>
+            </div>
 
-                {step === 1 && (
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <button
-                      type="button"
-                      onClick={handleClose}
-                      className="flex-1 sm:flex-initial px-5 py-3 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-semibold uppercase tracking-wider text-[#aaa] hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
-                    >
-                      <ArrowLeft className="w-3.5 h-3.5" />
-                      <span>{t('checkout.back')}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleProceedToSummary}
-                      disabled={totalQuantity === 0}
-                      className="flex-1 sm:flex-initial px-8 py-3.5 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-lg active:scale-95"
-                    >
-                      <span>{t('checkout.continue')}</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
+            {/* LIGNE 2 : BOUTONS D'ACTION SUIVANT / RETOUR */}
+            <div className="flex items-center gap-2.5 sm:gap-3 w-full">
+              {step === 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="px-4 sm:px-5 py-3.5 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-bold uppercase tracking-wider text-[#ccc] hover:text-white transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shrink-0"
+                    title="Retourner à la page du concert"
+                  >
+                    <ArrowLeft className="w-4 h-4 text-[#d4af37]" />
+                    <span className="hidden sm:inline">Retour</span>
+                  </button>
 
-                {step === 2 && (
+                  <button
+                    type="button"
+                    onClick={handleProceedToSummary}
+                    disabled={totalQuantity === 0}
+                    className="flex-1 py-3.5 sm:py-4 px-6 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs sm:text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shadow-xl active:scale-[0.98]"
+                  >
+                    <span>Continuer</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+
+              {step === 2 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="px-4 sm:px-5 py-3.5 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-bold uppercase tracking-wider text-[#ccc] hover:text-white transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shrink-0"
+                    title="Modifier les billets"
+                  >
+                    <ArrowLeft className="w-4 h-4 text-[#d4af37]" />
+                    <span className="hidden sm:inline">{t('checkout.back')}</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleProceedToPayment}
-                    className="flex-1 sm:flex-initial px-8 py-3.5 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                    className="flex-1 py-3.5 sm:py-4 px-6 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs sm:text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xl active:scale-[0.98]"
                   >
                     <span>{t('checkout.proceedToPayment')}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
-                )}
+                </>
+              )}
 
-                {step === 3 && (
+              {step === 3 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="px-4 sm:px-5 py-3.5 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-bold uppercase tracking-wider text-[#ccc] hover:text-white transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shrink-0"
+                    title="Modifier mes coordonnées"
+                  >
+                    <ArrowLeft className="w-4 h-4 text-[#d4af37]" />
+                    <span className="hidden sm:inline">{t('checkout.back')}</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleTriggerPayment}
-                    className="flex-1 sm:flex-initial px-8 py-3.5 rounded-full bg-[#d4af37] hover:bg-[#c49f27] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#d4af37]/20"
+                    className="flex-1 py-3.5 sm:py-4 px-6 rounded-full bg-[#d4af37] hover:bg-[#c49f27] text-black font-agrandir-extrabold text-xs sm:text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xl shadow-[#d4af37]/25 active:scale-[0.98]"
                   >
-                    <Lock className="w-3.5 h-3.5" />
+                    <Lock className="w-4 h-4" />
                     <span>Payer {finalTotalAmount.toLocaleString('fr-FR')} FCFA</span>
                   </button>
-                )}
-              </div>
-
+                </>
+              )}
             </div>
           </div>
         )}
