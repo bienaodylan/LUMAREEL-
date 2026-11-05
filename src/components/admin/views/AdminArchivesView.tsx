@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ArchiveProduction } from '../../../types';
 import { Plus, Edit3, Trash2, Film, Play, Upload, Image as ImageIcon, CheckCircle2, X } from 'lucide-react';
-import { convertToYouTubeEmbed, readFileAsDataURL } from '../../../utils/mediaUtils';
+import { convertToYouTubeEmbed } from '../../../utils/mediaUtils';
+import { uploadAdminImage } from '../../../utils/uploadAdminImage';
 
 interface AdminArchivesViewProps {
   archives: ArchiveProduction[];
@@ -61,29 +62,11 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
   const handleCoverUpload = async (file: File) => {
     try {
       setUploadingCover(true);
-      let fileUrl = '';
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await fetch('/api/upload', { method: 'POST', body: formData });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.url) {
-            fileUrl = data.url;
-          }
-        }
-      } catch (uploadErr) {
-        console.warn('Upload fallback to dataUrl', uploadErr);
-      }
-
-      if (!fileUrl) {
-        fileUrl = await readFileAsDataURL(file);
-      }
-
+      const fileUrl = await uploadAdminImage(file, 'archives/covers');
       setEditingArchive((prev) => ({ ...prev, coverImage: fileUrl }));
-      showToast('Couverture importée et synchronisée.', 'success');
-    } catch {
-      showToast("Erreur lors de l'import de la couverture.", 'error');
+      showToast('Couverture téléversée. Enregistrez l’archive pour publier la modification.', 'info');
+    } catch (err: any) {
+      showToast(err.message || "Erreur lors de l'import de la couverture.", 'error');
     } finally {
       setUploadingCover(false);
     }
@@ -93,15 +76,16 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
     if (!files || files.length === 0) return;
     try {
       setUploadingGallery(true);
-      const promises = Array.from(files).map((f) => readFileAsDataURL(f));
-      const newPhotos = await Promise.all(promises);
+      const newPhotos = await Promise.all(
+        Array.from(files).map((file) => uploadAdminImage(file, 'archives/gallery'))
+      );
       setEditingArchive((prev) => ({
         ...prev,
         photos: [...(prev?.photos || []), ...newPhotos],
       }));
-      showToast(`${newPhotos.length} photo(s) ajoutée(s) à la galerie.`, 'success');
-    } catch {
-      showToast('Erreur lors de l’import des photos.', 'error');
+      showToast(`${newPhotos.length} photo(s) téléversée(s). Enregistrez l’archive pour publier les modifications.`, 'info');
+    } catch (err: any) {
+      showToast(err.message || 'Erreur lors de l’import des photos.', 'error');
     } finally {
       setUploadingGallery(false);
     }

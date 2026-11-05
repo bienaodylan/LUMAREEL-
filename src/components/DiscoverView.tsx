@@ -98,7 +98,7 @@ export const DiscoverView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#FFFFFF] pt-28 sm:pt-32 pb-24">
+    <div className="min-h-screen bg-transparent text-[#FFFFFF] pt-28 sm:pt-32 pb-24">
       
       {/* Top Header & Search Pills Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 mb-8 sm:mb-12">
@@ -130,17 +130,6 @@ export const DiscoverView: React.FC = () => {
 
           {/* Quick Selects with rounded-full */}
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
-            {/* Genre */}
-            <select
-              value={selectedGenre}
-              onChange={(e) => setSelectedGenre(e.target.value)}
-              className="bg-[#181818] border border-white/10 rounded-full px-4 py-2 text-xs text-white font-agrandir-regular uppercase cursor-pointer"
-            >
-              <option value="all">TOUS LES GENRES</option>
-              {genres.filter(g => g !== 'all').map(g => (
-                <option key={g} value={g}>{g.toUpperCase()}</option>
-              ))}
-            </select>
 
             {/* City */}
             <select

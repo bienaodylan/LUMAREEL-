@@ -80,6 +80,8 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({
           createdBy: 'Direction LUMARÉEL CO.',
+          eventTitle,
+          artistName: artistName || '',
           durationHours: 24,
         }),
       });
@@ -153,7 +155,7 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
             Accès Scanner pour Contrôleurs
           </h3>
           <p className="text-xs text-[#888] font-agrandir-regular max-w-xl">
-            Générez un lien d’accès instantané cryptographique à envoyer directement sur WhatsApp à votre équipe de sécurité. Le lien autorise l'ouverture de la caméra et le contrôle des billets pendant 24h.
+            Générez un lien d’accès sécurisé à envoyer directement sur WhatsApp à votre équipe de contrôle. Le lien autorise l'ouverture de la caméra et la vérification des billets pendant 24h.
           </p>
         </div>
 
@@ -277,7 +279,7 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
             Aucun lien actif généré pour ce concert pour le moment.
           </div>
           <div className="text-[11px] text-[#666]">
-            Cliquez sur le bouton ci-dessus pour générer une URL sécurisée avec un jeton cryptographique valable 24h.
+            Cliquez sur le bouton ci-dessus pour générer une URL sécurisée valable 24h.
           </div>
         </div>
       )}
@@ -286,7 +288,7 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
       {existingTokens.length > 1 && (
         <div className="pt-4 border-t border-white/10 space-y-2">
           <div className="text-[10px] font-agrandir-bold tracking-widest text-[#666] uppercase">
-            HISTORIQUE DES JETONS CRÉÉS POUR CET ÉVÉNEMENT ({existingTokens.length})
+            HISTORIQUE DES LIENS CRÉÉS POUR CET ÉVÉNEMENT ({existingTokens.length})
           </div>
           <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
             {existingTokens.slice(1, 4).map((t) => (

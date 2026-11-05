@@ -1,26 +1,33 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { adminDb, methodNotAllowed } from './_lib/supabase';
+import { publicDb, methodNotAllowed } from './_lib/supabase.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
   try {
-    const { token, ticketId, eventId, gateAgentId, scannerToken } = req.body || {};
-    const code = String(ticketId || token || '').trim();
-    if (!code) return res.status(400).json({ valid: false, error: 'Code billet requis.' });
-    if (!scannerToken) return res.status(401).json({ valid: false, error: 'Jeton de contrôle requis.' });
-    const db = adminDb();
-    const { data: gate, error: gateError } = await db.from('scanner_tokens').select('token,event_id,created_by,expires_at,is_revoked').eq('token', scannerToken).eq('is_revoked', false).gt('expires_at', new Date().toISOString()).maybeSingle();
-    if (gateError || !gate) return res.status(403).json({ valid: false, error: 'Accès contrôleur invalide ou expiré.' });
-    const effectiveEventId = eventId || gate.event_id;
-    if (gate.event_id !== effectiveEventId) return res.status(403).json({ valid: false, error: 'Ce contrôleur n’est pas autorisé pour cet événement.' });
-    const { data, error } = await db.rpc('verify_and_check_in_ticket', {
-      p_token: code, p_event_id: effectiveEventId, p_agent_name: String(gateAgentId || gate.created_by || 'Agent de contrôle')
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    const ticketCode = String(body.ticketId || body.token || body.id || body.qrData || '').trim();
+    const scannerToken = String(body.scannerToken || '').trim();
+    const eventId = String(body.eventId || '').trim() || null;
+    const agentName = String(body.gateAgentId || body.gateAgentName || 'Agent de contrôle').slice(0, 100);
+    if (!ticketCode) return res.status(400).json({ valid: false, status: 'INVALID', error: 'Jeton ou numéro de série requis.' });
+    if (!scannerToken) return res.status(403).json({ valid: false, status: 'INVALID', error: 'Lien vigile requis.' });
+
+    const { data, error } = await publicDb().rpc('verify_and_check_in_physical_ticket', {
+      p_token: ticketCode,
+      p_event_id: eventId,
+      p_agent_name: agentName,
+      p_scanner_token: scannerToken,
     });
-    if (error) throw error;
-    const status = data?.status === 'SUCCESS' ? 200 : data?.status === 'ALREADY_USED' || data?.status === 'CANCELLED' || data?.status === 'WRONG_EVENT' ? 403 : 404;
-    return res.status(status).json(data);
-  } catch (error: any) {
-    console.error('verify-ticket:', error);
-    return res.status(500).json({ valid: false, error: error.message || 'Erreur de contrôle.' });
+    if (error) {
+      console.error('[verify-ticket] Supabase RPC:', error.message);
+      return res.status(500).json({ valid: false, status: 'INVALID', error: 'Registre de billetterie indisponible.' });
+    }
+    const status = String(data?.status || 'INVALID');
+    const httpStatus = status === 'SUCCESS' ? 200 : status === 'ALREADY_USED' || status === 'CANCELLED' || status === 'WRONG_EVENT' ? 403 : 404;
+    return res.status(httpStatus).json(data);
+  } catch (error) {
+    console.error('[verify-ticket] Unexpected error:', error);
+    return res.status(500).json({ valid: false, status: 'INVALID', error: 'Erreur inattendue du serveur.' });
   }
 }

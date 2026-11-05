@@ -13,7 +13,7 @@ import { AdminSettingsView } from './admin/views/AdminSettingsView';
 import { TicketBatchPrintModal } from './TicketBatchPrintModal';
 import { Plus, X } from 'lucide-react';
 
-export const AdminDashboard: React.FC = () => {
+const AdminDashboardContent: React.FC = () => {
   const { 
     events, 
     refreshEvents, 
@@ -46,6 +46,7 @@ export const AdminDashboard: React.FC = () => {
   const [newEventArtist, setNewEventArtist] = useState('');
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventDate, setNewEventDate] = useState('2026-12-25');
+  const [newEventTime, setNewEventTime] = useState('18:00');
   const [newEventVenue, setNewEventVenue] = useState('Palais de la Culture Bernard Binlin-Dadié');
   const [newEventCity, setNewEventCity] = useState('Abidjan');
 
@@ -141,7 +142,7 @@ export const AdminDashboard: React.FC = () => {
         title: newEventTitle.trim(),
         subtitle: `En concert exceptionnel · ${newEventVenue}`,
         date: newEventDate,
-        time: '18:00',
+        time: newEventTime,
         doorsOpen: '16:30',
         venue: newEventVenue,
         city: newEventCity,
@@ -177,7 +178,7 @@ export const AdminDashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex select-none font-agrandir-regular">
+    <div className="min-h-screen bg-black text-white flex select-none font-agrandir-regular relative">
       
       {/* 1. Persistent Sidebar (Inspirée de Shopify) */}
       <AdminSidebar
@@ -354,6 +355,14 @@ export const AdminDashboard: React.FC = () => {
                     onChange={(e) => setNewEventDate(e.target.value)}
                     className="w-full bg-[#161616] border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-mono"
                   />
+                  <label className="block text-[10px] uppercase tracking-widest text-[#888] mb-2 mt-4">Heure du concert</label>
+                  <input
+                    type="time"
+                    required
+                    value={newEventTime}
+                    onChange={(e) => setNewEventTime(e.target.value)}
+                    className="w-full bg-[#161616] border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-mono"
+                  />
                 </div>
 
                 <div>
@@ -417,3 +426,88 @@ export const AdminDashboard: React.FC = () => {
     </div>
   );
 };
+
+
+/**
+ * Secours de la console : si une vue de gestion plante au rendu,
+ * l'administrateur conserve un accès direct au générateur de billets.
+ */
+const AdminDashboardRecovery: React.FC<{ error: Error }> = ({ error }) => {
+  const { events, setCurrentPage } = useApp();
+  const [printOpen, setPrintOpen] = useState(true);
+
+  return (
+    <div className="min-h-screen bg-black text-white p-6 sm:p-10 font-agrandir-regular">
+      <div className="max-w-3xl mx-auto border border-amber-500/30 bg-[#101010] rounded-3xl p-6 sm:p-8">
+        <div className="text-[#d4af37] text-xs font-bold uppercase tracking-widest mb-3">
+          Console LUMARÉEL — mode de récupération
+        </div>
+        <h1 className="text-2xl font-bold mb-3">Accès impression disponible</h1>
+        <p className="text-sm text-neutral-300 mb-5">
+          Une erreur empêche le chargement complet du tableau de bord. Le générateur de billets reste accessible ci-dessous.
+        </p>
+        <div className="text-xs text-neutral-500 bg-black rounded-xl p-3 mb-5 break-words">
+          {error.message || 'Erreur de rendu inconnue'}
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => setPrintOpen(true)}
+            className="px-5 py-3 rounded-xl bg-[#d4af37] text-black font-bold text-sm"
+          >
+            Ouvrir l'impression des billets
+          </button>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="px-5 py-3 rounded-xl border border-white/20 text-white text-sm"
+          >
+            Recharger la console
+          </button>
+          <button
+            type="button"
+            onClick={() => setCurrentPage('home')}
+            className="px-5 py-3 rounded-xl border border-white/20 text-white text-sm"
+          >
+            Retour au site
+          </button>
+        </div>
+        <p className="text-xs text-neutral-500 mt-5">
+          {events.length} événement(s) actuellement disponibles dans cette session.
+        </p>
+      </div>
+      <TicketBatchPrintModal
+        isOpen={printOpen}
+        onClose={() => setPrintOpen(false)}
+      />
+    </div>
+  );
+};
+
+class AdminDashboardErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('[LUMAREEL ADMIN RENDER ERROR]', error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.error) {
+      return <AdminDashboardRecovery error={this.state.error} />;
+    }
+    return this.props.children;
+  }
+}
+
+export const AdminDashboard: React.FC = () => (
+  <AdminDashboardErrorBoundary>
+    <AdminDashboardContent />
+  </AdminDashboardErrorBoundary>
+);

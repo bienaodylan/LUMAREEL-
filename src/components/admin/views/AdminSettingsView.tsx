@@ -21,7 +21,7 @@ import {
   Activity,
   FileCode
 } from 'lucide-react';
-import { readFileAsDataURL } from '../../../utils/mediaUtils';
+import { uploadAdminImage } from '../../../utils/uploadAdminImage';
 import { testSupabaseConnection, isSupabaseConfigured } from '../../../lib/supabaseClient';
 
 interface AdminSettingsViewProps {
@@ -40,6 +40,13 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ showToast 
     infoline: platformSettings.infoline || '+225 01 53 508 210',
     gateToken: platformSettings.gateToken || 'VIGILE_AUTH_LMR_2026',
     githubRepoUrl: platformSettings.githubRepoUrl || '',
+    socialLinks: {
+      tiktok: platformSettings.socialLinks?.tiktok || '',
+      instagram: platformSettings.socialLinks?.instagram || '',
+      snapchat: platformSettings.socialLinks?.snapchat || '',
+      youtube: platformSettings.socialLinks?.youtube || '',
+      facebook: platformSettings.socialLinks?.facebook || '',
+    },
   });
 
   const [supabaseInputUrl, setSupabaseInputUrl] = useState(platformSettings.supabaseUrl || '');
@@ -58,29 +65,13 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ showToast 
   // Logo file upload handler
   const handleLogoUpload = async (file: File) => {
     try {
-      let fileUrl = '';
-      try {
-        const uploadForm = new FormData();
-        uploadForm.append('file', file);
-        const res = await fetch('/api/upload', { method: 'POST', body: uploadForm });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.url) fileUrl = data.url;
-        }
-      } catch (err) {
-        console.warn('Fallback data URL for logo upload', err);
-      }
-
-      if (!fileUrl) {
-        fileUrl = await readFileAsDataURL(file);
-      }
-
+      const fileUrl = await uploadAdminImage(file, 'platform/logo');
       const updated = { ...formData, logoUrl: fileUrl };
       setFormData(updated);
       await updatePlatformSettings(updated);
-      showToast('Nouveau logo téléversé et appliqué sur tout le site !', 'success');
-    } catch {
-      showToast("Erreur lors de l'import du logo.", 'error');
+      showToast('Logo téléversé et confirmé dans Supabase.', 'success');
+    } catch (err: any) {
+      showToast(err.message || "Erreur lors de l'import du logo.", 'error');
     }
   };
 
@@ -342,6 +333,112 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ showToast 
                 onChange={(e) => setFormData((prev) => ({ ...prev, logoMonogram: e.target.value.toUpperCase() }))}
                 className="w-full bg-[#141414] border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-extrabold uppercase font-mono tracking-wider"
               />
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* SECTION 1.5 : RÉSEAUX SOCIAUX OFFICIELS (FOOTER) */}
+        {/* ========================================================================= */}
+        <div className="bg-[#0c0c0c] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="flex items-center gap-2.5 text-xs font-agrandir-extrabold text-white uppercase">
+              <Globe className="w-4 h-4 text-[#d4af37]" />
+              <span>RÉSEAUX SOCIAUX OFFICIELS (PIED DE PAGE)</span>
+            </div>
+            <span className="text-[10px] font-agrandir-semibold text-[#d4af37] px-2.5 py-1 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/30 uppercase">
+              5 Réseaux Connectés
+            </span>
+          </div>
+
+          <p className="text-xs text-[#888] leading-relaxed">
+            Collez ici les liens officiels de vos réseaux sociaux. Ils s'affichent automatiquement dans le pied de page dans l'ordre exact demandé : <strong>1. TikTok, 2. Instagram, 3. Snapchat, 4. YouTube, 5. Facebook</strong>.
+          </p>
+
+          <div className="space-y-4">
+            {/* 1. TikTok */}
+            <div className="flex items-center gap-4 bg-[#141414] p-3 rounded-2xl border border-white/10">
+              <img src="/assets/aistudio/tt_icon_76a5ff4c.png" alt="TikTok" className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shrink-0 shadow-sm" />
+              <div className="flex-1">
+                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-wider text-[#d4af37] mb-1">
+                  1. TikTok (Logo 1)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://www.tiktok.com/@lumareel"
+                  value={formData.socialLinks.tiktok}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, socialLinks: { ...prev.socialLinks, tiktok: e.target.value } }))}
+                  className="w-full bg-[#0a0a0a] border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white font-mono"
+                />
+              </div>
+            </div>
+
+            {/* 2. Instagram */}
+            <div className="flex items-center gap-4 bg-[#141414] p-3 rounded-2xl border border-white/10">
+              <img src="/assets/aistudio/ig_icon_-_Copie_d6d567d1.png" alt="Instagram" className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shrink-0 shadow-sm" />
+              <div className="flex-1">
+                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-wider text-[#d4af37] mb-1">
+                  2. Instagram (Logo 2)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://www.instagram.com/lumareel"
+                  value={formData.socialLinks.instagram}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, socialLinks: { ...prev.socialLinks, instagram: e.target.value } }))}
+                  className="w-full bg-[#0a0a0a] border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white font-mono"
+                />
+              </div>
+            </div>
+
+            {/* 3. Snapchat */}
+            <div className="flex items-center gap-4 bg-[#141414] p-3 rounded-2xl border border-white/10">
+              <img src="/assets/aistudio/sc_icon_709e5263.png" alt="Snapchat" className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shrink-0 shadow-sm" />
+              <div className="flex-1">
+                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-wider text-[#d4af37] mb-1">
+                  3. Snapchat (Logo 3)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://www.snapchat.com/add/lumareel"
+                  value={formData.socialLinks.snapchat}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, socialLinks: { ...prev.socialLinks, snapchat: e.target.value } }))}
+                  className="w-full bg-[#0a0a0a] border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white font-mono"
+                />
+              </div>
+            </div>
+
+            {/* 4. YouTube */}
+            <div className="flex items-center gap-4 bg-[#141414] p-3 rounded-2xl border border-white/10">
+              <img src="/assets/aistudio/yt_icon_539fd1be.png" alt="YouTube" className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shrink-0 shadow-sm" />
+              <div className="flex-1">
+                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-wider text-[#d4af37] mb-1">
+                  4. YouTube (Logo 4)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://www.youtube.com/@lumareel"
+                  value={formData.socialLinks.youtube}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, socialLinks: { ...prev.socialLinks, youtube: e.target.value } }))}
+                  className="w-full bg-[#0a0a0a] border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white font-mono"
+                />
+              </div>
+            </div>
+
+            {/* 5. Facebook */}
+            <div className="flex items-center gap-4 bg-[#141414] p-3 rounded-2xl border border-white/10">
+              <img src="/assets/aistudio/fb_icon_343fb35c.png" alt="Facebook" className="w-9 h-9 rounded-full bg-white p-0.5 object-contain shrink-0 shadow-sm" />
+              <div className="flex-1">
+                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-wider text-[#d4af37] mb-1">
+                  5. Facebook (Logo 5)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://www.facebook.com/lumareel"
+                  value={formData.socialLinks.facebook}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, socialLinks: { ...prev.socialLinks, facebook: e.target.value } }))}
+                  className="w-full bg-[#0a0a0a] border border-white/15 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white font-mono"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -629,8 +726,53 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ showToast 
             </button>
           </div>
 
-          <div className="text-[11px] text-[#777] font-mono leading-relaxed bg-[#101010] p-3.5 rounded-xl border border-white/5">
-            Variables requises sur Vercel : <span className="text-emerald-400">VITE_SUPABASE_URL</span> et <span className="text-emerald-400">VITE_SUPABASE_ANON_KEY</span>. Le script SQL complet avec procédures stockées anti-collision est disponible dans <code className="text-[#d4af37]">src/lib/supabase-schema.sql</code>.
+          <div className="text-[11px] text-[#777] font-mono leading-relaxed bg-[#101010] p-4 rounded-xl border border-white/5 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-white font-agrandir-bold text-xs uppercase flex items-center gap-1.5">
+                <Database className="w-3.5 h-3.5 text-[#d4af37]" />
+                <span>Script DDL — Table public.users &amp; Cache PostgREST</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const sql = `-- LUMARÉEL CO. : Table public.users & Rechargement du cache de schéma
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+CREATE TABLE IF NOT EXISTS public.users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('super_admin', 'box_office', 'gate_agent', 'customer')),
+    email_verified BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Activation des politiques RLS permissives pour la billetterie
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Lecture publique users" ON public.users FOR SELECT USING (true);
+CREATE POLICY IF NOT EXISTS "Insertion libre users" ON public.users FOR INSERT WITH CHECK (true);
+CREATE POLICY IF NOT EXISTS "Mise à jour users" ON public.users FOR UPDATE USING (true);
+
+-- Super administrateur garanti
+INSERT INTO public.users (email, name, role, email_verified)
+VALUES ('bienaodylan428@gmail.com', 'Dylan B. (Super Admin)', 'super_admin', true)
+ON CONFLICT (email) DO UPDATE SET role = 'super_admin', email_verified = true;
+
+-- Notification impérative pour recharger le cache PostgREST Supabase
+NOTIFY pgrst, 'reload schema';`;
+                  navigator.clipboard.writeText(sql);
+                  showToast('Script SQL copié dans le presse-papier ! Collez-le dans le SQL Editor de Supabase.', 'success');
+                }}
+                className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[#d4af37] text-[10px] font-agrandir-bold uppercase transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <Copy className="w-3 h-3" />
+                <span>Copier le SQL</span>
+              </button>
+            </div>
+            <p className="text-[10px] text-[#888]">
+              Résout l’erreur <code className="text-[#d4af37]">Could not find the table 'users' in the schema cache</code>. Exécutez ce script dans l'éditeur SQL de votre projet Supabase (<span className="text-white font-mono">kupznytxykaesfqnngtb</span>) pour créer la table et recharger le cache d’API instantanément.
+            </p>
           </div>
         </div>
 

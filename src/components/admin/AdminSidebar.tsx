@@ -104,30 +104,19 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       >
         {/* Brand Header */}
         <div>
-          <div className="p-5 border-b border-white/10 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {platformSettings.logoUrl ? (
-                <img
-                  src={platformSettings.logoUrl}
-                  alt={platformSettings.platformName}
-                  className="w-9 h-9 rounded-xl object-cover border border-[#d4af37]/40 shadow-[0_0_15px_rgba(212,175,55,0.2)] bg-black"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-xl bg-white/5 border border-[#d4af37]/40 flex items-center justify-center font-agrandir-extrabold text-sm text-[#d4af37] shadow-[0_0_15px_rgba(212,175,55,0.2)]">
-                  {platformSettings.logoMonogram || 'LR'}
-                </div>
-              )}
-              <div className="flex flex-col">
-                <span className="font-agrandir-extrabold text-sm tracking-wider uppercase text-white truncate max-w-[130px]">
-                  {platformSettings.platformName || 'LUMARÉEL'} {platformSettings.tagline || 'CO.'}
-                </span>
-                <span className="text-[9px] font-agrandir-semibold tracking-[0.2em] text-[#d4af37] uppercase">
-                  CONSOLE DE GESTION
-                </span>
-              </div>
+          <div className="p-5 border-b border-white/10 flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-1.5 min-w-0">
+              <img
+                src="/assets/logo-lumareel.png"
+                alt={platformSettings.platformName || 'LUMARÉEL CO.'}
+                className="h-7 w-auto object-contain"
+              />
+              <span className="text-[9px] font-agrandir-semibold tracking-[0.2em] text-[#d4af37] uppercase">
+                CONSOLE DE GESTION
+              </span>
             </div>
 
-            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-agrandir-semibold text-emerald-400">
+            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-agrandir-semibold text-emerald-400 shrink-0">
               LIVE
             </span>
           </div>

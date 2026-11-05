@@ -5,8 +5,9 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!api/|assets/|uploads/).*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "installCommand": "npm install"
 }

@@ -20,6 +20,17 @@ async function startServer() {
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+  // CORS configuration for cross-environment sync
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   // Ensure public/uploads directory exists
   const uploadsDir = path.join(__dirname, 'public', 'uploads');
   if (!fs.existsSync(uploadsDir)) {
@@ -327,15 +338,23 @@ async function startServer() {
     }
   });
 
-  // 4. Authentication
+  // 4. Authentication (Authentification sécurisée & Inscription)
   app.post('/api/auth/login', (req: Request, res: Response) => {
     try {
-      const { email, name, role } = req.body;
+      const { email, password } = req.body;
       if (!email) {
-        return res.status(400).json({ success: false, error: 'Email requis.' });
+        return res.status(400).json({ success: false, error: 'Veuillez saisir votre adresse e-mail.' });
       }
-      const user = db.registerUser(name || 'Visiteur LUMARÉEL', email, role || 'customer');
-      res.json({ success: true, user });
+      if (!password) {
+        return res.status(400).json({ success: false, error: 'Veuillez saisir votre mot de passe.' });
+      }
+
+      const result = db.authenticateUser(email, password);
+      if (!result.success || !result.user) {
+        return res.status(401).json({ success: false, error: result.error || 'Identifiants invalides.' });
+      }
+
+      res.json({ success: true, user: result.user });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
@@ -343,12 +362,43 @@ async function startServer() {
 
   app.post('/api/auth/register', (req: Request, res: Response) => {
     try {
-      const { email, name, role } = req.body;
+      const { email, name, password, role } = req.body;
       if (!email || !name) {
-        return res.status(400).json({ success: false, error: 'Nom et email requis.' });
+        return res.status(400).json({ success: false, error: 'Nom complet et adresse e-mail requis.' });
       }
-      const user = db.registerUser(name, email, role || 'customer');
-      res.json({ success: true, user });
+      if (!password || password.length < 6) {
+        return res.status(400).json({ success: false, error: 'Le mot de passe doit comporter au moins 6 caractères.' });
+      }
+
+      const cleanEmail = email.trim().toLowerCase();
+      const existing = db.getUserByEmail(cleanEmail);
+
+      // Si le compte existe déjà et n'est pas le compte fondateur
+      if (existing && cleanEmail !== 'bienaodylan428@gmail.com') {
+        return res.status(409).json({
+          success: false,
+          error: 'Un compte existe déjà avec cette adresse e-mail. Veuillez vous connecter.',
+        });
+      }
+
+      const user = db.registerUser(name, cleanEmail, role || 'customer', password);
+      res.json({ success: true, user: db.sanitizeUser(user) });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/auth/me', (req: Request, res: Response) => {
+    try {
+      const email = req.query.email as string;
+      if (!email) {
+        return res.status(400).json({ success: false, error: 'Paramètre email manquant.' });
+      }
+      const user = db.getUserByEmail(email.trim().toLowerCase());
+      if (!user) {
+        return res.status(404).json({ success: false, error: 'Utilisateur introuvable.' });
+      }
+      res.json({ success: true, user: db.sanitizeUser(user) });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }

@@ -23,7 +23,7 @@ import {
   ShieldAlert,
   Printer
 } from 'lucide-react';
-import { readFileAsDataURL } from '../../../utils/mediaUtils';
+import { uploadAdminImage } from '../../../utils/uploadAdminImage';
 import { ScannerLinkGenerator } from '../ScannerLinkGenerator';
 
 export type EventSubTab = 'overview' | 'details' | 'media' | 'tickets' | 'orders' | 'analytics' | 'settings';
@@ -89,52 +89,34 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
   // Direct image file upload handler for visual assets
   const handleUploadVisual = async (field: 'officialPoster' | 'artistPortrait' | 'bannerImage', file: File) => {
     try {
-      let fileUrl = '';
-      try {
-        const uploadForm = new FormData();
-        uploadForm.append('file', file);
-        const res = await fetch('/api/upload', { method: 'POST', body: uploadForm });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.url) {
-            fileUrl = data.url;
-          }
-        }
-      } catch (uploadErr) {
-        console.warn('API upload fallback', uploadErr);
-      }
-
-      if (!fileUrl) {
-        fileUrl = await readFileAsDataURL(file);
-      }
-
+      const fileUrl = await uploadAdminImage(file, `events/${event.id}`);
       const updated = { ...formData, [field]: fileUrl };
       setFormData(updated);
       setIsDirty(true);
-      // Auto-save visual directly for instant public update
       await onSaveEvent(updated);
       setIsDirty(false);
-      showToast(`Visuel ${field === 'officialPoster' ? 'Affiche officielle' : field === 'artistPortrait' ? 'Portrait artiste' : 'Bannière'} synchronisé avec succès !`, 'success');
-    } catch {
-      showToast("Erreur lors de l'import de l'image.", 'error');
+      showToast('Image téléversée et sauvegardée dans Supabase.', 'success');
+    } catch (err: any) {
+      showToast(err.message || "Échec du téléversement de l'image.", 'error');
     }
   };
 
-  // NOUVEAU : Gérer l'upload du design spécifique d'un billet de catégorie
   const handleCategoryTicketImageUpload = async (catId: string, file: File) => {
     try {
-      const fileUrl = await readFileAsDataURL(file);
-      setFormData((prev) => {
-        const updatedCategories = prev.categories.map((c) => {
-          if (c.id !== catId) return c;
-          return { ...c, ticketImageUrl: fileUrl, ticketImageFile: file };
-        });
-        return { ...prev, categories: updatedCategories };
-      });
+      const fileUrl = await uploadAdminImage(file, `events/${event.id}/tickets`);
+      const updated = {
+        ...formData,
+        categories: formData.categories.map((category) =>
+          category.id === catId ? { ...category, ticketImageUrl: fileUrl } : category
+        ),
+      };
+      setFormData(updated);
       setIsDirty(true);
-      showToast(`Design du billet importé. N'oubliez pas de sauvegarder.`, 'info');
-    } catch (error) {
-      showToast("Erreur lors de l'import de l'image du billet.", 'error');
+      await onSaveEvent(updated);
+      setIsDirty(false);
+      showToast('Design du billet téléversé et sauvegardé.', 'success');
+    } catch (err: any) {
+      showToast(err.message || "Échec de l'import du design du billet.", 'error');
     }
   };
 
@@ -675,7 +657,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                   Demande d'impression des billets physiques
                 </h3>
                 <p className="text-xs text-neutral-400 mt-1 max-w-xl leading-relaxed">
-                  Générez les planches d'impression thermique officielles (format sécurisé Recto / Verso avec filigrane anti-fraude, talon détachable et QR code unitaire cryptographique) pour guichets et vigiles.
+                  Générez les planches d'impression officielles (format sécurisé Recto / Verso avec filigrane, talon détachable et QR code certifié) pour les guichets et vigiles.
                 </p>
               </div>
             </div>
@@ -787,17 +769,35 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-agrandir-semibold uppercase text-[#888] mb-1">
-                      Description &amp; Avantages de la place
-                    </label>
-                    <input
-                      type="text"
-                      value={cat.description}
-                      onChange={(e) => handleCategoryChange(cat.id, 'description', e.target.value)}
-                      placeholder="Ex: Accès loge VIP, boisson comprise, place assise..."
-                      className="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-2 text-xs text-neutral-300 focus:outline-none focus:border-white font-agrandir-regular"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-agrandir-semibold uppercase text-[#888] mb-1">
+                        Description de la place (facultatif)
+                      </label>
+                      <input
+                        type="text"
+                        value={cat.description || ''}
+                        onChange={(e) => handleCategoryChange(cat.id, 'description', e.target.value)}
+                        placeholder="Ex: Emplacement privilégié, vue panoramique..."
+                        className="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-2 text-xs text-neutral-300 focus:outline-none focus:border-white font-agrandir-regular"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-agrandir-semibold uppercase text-[#888] mb-1">
+                        Avantages inclus (séparés par des virgules)
+                      </label>
+                      <input
+                        type="text"
+                        value={(cat.perks || []).join(', ')}
+                        onChange={(e) => {
+                          const perksList = e.target.value.split(',').map((p) => p.trim()).filter(Boolean);
+                          handleCategoryChange(cat.id, 'perks', perksList);
+                        }}
+                        placeholder="Ex: Entrée prioritaire, Coupe de champagne, Badge collector"
+                        className="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-2 text-xs text-neutral-300 focus:outline-none focus:border-white font-agrandir-regular"
+                      />
+                    </div>
                   </div>
 
                   {/* NOUVEAU : ZONE D'IMPORT DU DESIGN DU BILLET PAR CATÉGORIE */}

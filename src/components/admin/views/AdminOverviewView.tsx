@@ -34,15 +34,15 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
 }) => {
   // Calculations based strictly on actual data
   const totalRevenue = events.reduce((acc, evt) => {
-    return acc + evt.categories.reduce((catAcc, cat) => catAcc + (cat.sold * cat.price), 0);
+    return acc + (evt.categories || []).reduce((catAcc, cat) => catAcc + (cat.sold * cat.price), 0);
   }, 0);
 
   const totalTicketsSold = events.reduce((acc, evt) => {
-    return acc + evt.categories.reduce((catAcc, cat) => catAcc + cat.sold, 0);
+    return acc + (evt.categories || []).reduce((catAcc, cat) => catAcc + cat.sold, 0);
   }, 0);
 
   const totalQuota = events.reduce((acc, evt) => {
-    return acc + evt.categories.reduce((catAcc, cat) => catAcc + cat.quota, 0);
+    return acc + (evt.categories || []).reduce((catAcc, cat) => catAcc + cat.quota, 0);
   }, 0);
 
   const globalFillRate = totalQuota > 0 ? Math.round((totalTicketsSold / totalQuota) * 100) : 0;
@@ -52,7 +52,7 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
   // Alerts: Categories with > 80% fill rate or < 100 remaining
   const quotaAlerts: Array<{ event: ConcertEvent; categoryName: string; remaining: number; fillPercent: number }> = [];
   events.forEach((evt) => {
-    evt.categories.forEach((cat) => {
+    (evt.categories || []).forEach((cat) => {
       const remaining = Math.max(0, cat.quota - cat.sold);
       const fill = cat.quota > 0 ? Math.round((cat.sold / cat.quota) * 100) : 0;
       if (fill >= 80 || remaining < 150) {
@@ -192,9 +192,9 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
 
         <div className="space-y-5">
           {events.map((evt) => {
-            const evtRevenue = evt.categories.reduce((acc, c) => acc + c.sold * c.price, 0);
-            const evtSold = evt.categories.reduce((acc, c) => acc + c.sold, 0);
-            const evtQuota = evt.categories.reduce((acc, c) => acc + c.quota, 0);
+            const evtRevenue = (evt.categories || []).reduce((acc, c) => acc + c.sold * c.price, 0);
+            const evtSold = (evt.categories || []).reduce((acc, c) => acc + c.sold, 0);
+            const evtQuota = (evt.categories || []).reduce((acc, c) => acc + c.quota, 0);
             const evtRate = evtQuota > 0 ? Math.round((evtSold / evtQuota) * 100) : 0;
             const revenueShare = totalRevenue > 0 ? Math.round((evtRevenue / totalRevenue) * 100) : 0;
 

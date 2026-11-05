@@ -5,9 +5,10 @@ import {
   User,
   Bell,
   Globe,
-  Coins,
   LogOut,
   Shield,
+  ArrowLeft,
+  X,
 } from 'lucide-react';
 
 /**
@@ -33,7 +34,30 @@ export const ProfileView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white font-agrandir-regular select-none pb-36 pt-8 sm:pt-12 max-w-2xl mx-auto">
+    <div className="min-h-screen bg-transparent text-white font-agrandir-regular select-none pb-36 pt-6 sm:pt-10 max-w-2xl mx-auto px-4 sm:px-0">
+      
+      {/* Barre de retour supérieure */}
+      <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10">
+        <button
+          type="button"
+          onClick={() => setCurrentPage('home')}
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
+          title="Retourner à l'accueil"
+        >
+          <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
+          <span>RETOUR</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCurrentPage('home')}
+          className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
+          title="Fermer et revenir à l'accueil"
+          aria-label="Fermer"
+        >
+          <X className="w-4 h-4 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-transform duration-200" />
+        </button>
+      </div>
       
       {/* INFORMATIONS COMPTE ACTIF */}
       <div className="px-6 py-6 border-b border-white/10 flex items-center justify-between">
@@ -129,26 +153,6 @@ export const ProfileView: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="text-xs text-[#d4af37] font-agrandir-bold">
               {language === 'fr' ? 'Français' : 'English'}
-            </span>
-            <ChevronRight className="w-4 h-4 text-neutral-500" />
-          </div>
-        </button>
-
-        {/* Devise */}
-        <button
-          type="button"
-          onClick={() => showToast('Devise officielle : Francs CFA (FCFA).', 'info')}
-          className="flex justify-between items-center w-full py-4 px-6 hover:bg-white/5 active:bg-white/10 cursor-pointer transition-colors text-left"
-        >
-          <div className="flex items-center gap-3.5">
-            <Coins className="w-5 h-5 text-white stroke-[1.8]" />
-            <span className="text-sm font-agrandir-regular text-white">
-              {t('profile.currency')}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-neutral-400 font-agrandir-regular">
-              Francs CFA (FCFA)
             </span>
             <ChevronRight className="w-4 h-4 text-neutral-500" />
           </div>

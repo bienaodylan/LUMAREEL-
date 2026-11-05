@@ -74,7 +74,7 @@ const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   platformName: 'LUMARÉEL',
   tagline: 'CO.',
   logoMonogram: 'LR',
-  logoUrl: '',
+  logoUrl: '/assets/logo-lumareel.png',
   currency: 'FCFA',
   infoline: '+225 01 53 508 210',
   gateToken: 'VIGILE_AUTH_LMR_2026',
@@ -143,7 +143,7 @@ function mapEventToDbRow(event: ConcertEvent): any {
     genre: event.genre,
     platform_fee_percent: event.platformFeePercent || 0,
     infoline: event.infoline || '+225 01 53 508 210',
-    categories: event.categories || [],
+    categories: (event.categories || []).map(({ ticketImageFile, ...category }: any) => category),
     updated_at: new Date().toISOString(),
   };
 }
@@ -211,6 +211,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ORDERS: 'lumareel_persisted_orders_v5',
     ARCHIVES: 'lumareel_persisted_archives_v5',
     SETTINGS: 'lumareel_persisted_settings_v5',
+    CURRENT_USER: 'lumareel_persisted_user_v5',
   };
 
   const readLocal = <T,>(key: string, fallback: T): T => {
@@ -316,15 +317,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     orders: 10000,    // 10 secondes pour les commandes du compte
   };
 
-  // Utilisateur connecté par défaut (Super Administrateur)
-  const [currentUser, setCurrentUser] = useState<User | null>({
-    id: 'usr_admin_dylan',
-    email: 'bienaodylan428@gmail.com',
-    name: 'Dylan B.',
-    role: 'super_admin',
-    emailVerified: true,
-    createdAt: '2026-01-10T00:00:00Z',
+  // Session utilisateur persistante (chargée depuis localStorage avec repli dynamique)
+  const [currentUser, setCurrentUserState] = useState<User | null>(() => {
+    const saved = readLocal<User | null>(STORAGE_KEYS.CURRENT_USER, null);
+    if (!saved) return null;
+    return { ...saved, role: String(saved.email || '').toLowerCase() === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer' };
   });
+
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    let active = true;
+    const syncUser = async (userId?: string) => {
+      if (!userId) return; // Ne pas effacer la session locale si Supabase est inactif
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const authUser = authData.user;
+        if (!authUser || authUser.id !== userId) return;
+        const email = (authUser.email || '').toLowerCase();
+        const isSuperAdmin = email === 'bienaodylan428@gmail.com';
+        const { data: profile } = await supabase.from('users').select('id,email,name,role,email_verified').eq('email', email).maybeSingle();
+        if (!active) return;
+        const role = isSuperAdmin ? 'super_admin' : (profile?.role || 'customer');
+        const user = {
+          id: authUser.id,
+          email,
+          name: profile?.name || authUser.user_metadata?.name || (isSuperAdmin ? 'Dylan B. (Directeur Artistique & Fondateur)' : email.split('@')[0]),
+          role,
+          emailVerified: Boolean(authUser.email_confirmed_at) || isSuperAdmin,
+          createdAt: authUser.created_at,
+        } as User;
+        setCurrentUserState(user);
+        writeLocal(STORAGE_KEYS.CURRENT_USER, user);
+      } catch (err) {
+        console.warn('[Auth Sync]', err);
+      }
+    };
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user?.id) void syncUser(data.session.user.id);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.id) void syncUser(session.user.id);
+    });
+    return () => { active = false; listener.subscription.unsubscribe(); };
+  }, []);
+
+  const setCurrentUser = (user: User | null) => {
+    setCurrentUserState(user);
+    if (user) {
+      writeLocal(STORAGE_KEYS.CURRENT_USER, user);
+    } else {
+      try {
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        if (isSupabaseConfigured) {
+          supabase.auth.signOut().catch(() => {});
+        }
+      } catch {}
+    }
+  };
 
   const enterPlatform = () => {
     setHasEnteredPlatform(true);
@@ -376,8 +425,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             setIsCloudDbActive(true);
             setCloudSyncError(null);
           } else {
-            // Table vide : tentative de seeding initial
-            await seedInitialEventsToSupabase();
+            // La base Cloud est la source de vérité, même lorsqu'elle ne contient aucun événement.
+            setEvents([]);
+            setFeaturedEvent(null);
+            writeLocal(STORAGE_KEYS.EVENTS, []);
+            cacheTimestamps.current.events = Date.now();
+            setIsCloudDbActive(true);
+            setCloudSyncError(null);
           }
         } else {
           // Supabase non configuré pour le moment : requête l'API Express
@@ -400,19 +454,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const res = await fetch('/api/events');
       if (!res.ok) return;
       const data = await res.json();
-      if (data.success && data.events && data.events.length > 0) {
-        setEvents((prev) => {
-          const localSaved = readLocal<ConcertEvent[]>(STORAGE_KEYS.EVENTS, []);
-          if (localSaved && localSaved.length > 0) {
-            const merged = localSaved.map((localEv) => {
-              const beEv = data.events.find((b: any) => b.id === localEv.id);
-              return beEv ? { ...beEv, ...localEv } : localEv;
-            });
-            return merged;
-          }
-          return data.events;
-        });
-        const feat = data.events.find((e: ConcertEvent) => e.isFeatured) || data.events[0];
+      if (data.success && Array.isArray(data.events)) {
+        // Ne jamais fusionner avec le cache local : les données serveur font autorité.
+        const serverEvents = data.events as ConcertEvent[];
+        setEvents(serverEvents);
+        writeLocal(STORAGE_KEYS.EVENTS, serverEvents);
+        const feat = serverEvents.find((e) => e.isFeatured && e.status === 'published') || serverEvents.find((e) => e.status === 'published');
         setFeaturedEvent(feat || null);
         cacheTimestamps.current.events = Date.now();
       }
@@ -444,73 +491,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const saveEvent = async (updatedEvent: ConcertEvent) => {
-    // 1. Mise à jour instantanée de l'état React et persistance locale indestructible
-    setEvents((prev) => {
-      const exists = prev.some((e) => e.id === updatedEvent.id);
-      const next = exists
-        ? prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
-        : [updatedEvent, ...prev];
-      writeLocal(STORAGE_KEYS.EVENTS, next);
-      return next;
-    });
-
-    if (updatedEvent.isFeatured) {
-      setFeaturedEvent(updatedEvent);
-    }
-
-    // Invalide le cache local
-    cacheTimestamps.current.events = 0;
-
-    // 2. Persistance dans la base Supabase Cloud (PostgreSQL)
-    if (isSupabaseConfigured) {
-      try {
-        const dbRow = mapEventToDbRow(updatedEvent);
-        const { error } = await supabase.from('events').upsert(dbRow, { onConflict: 'id' });
-        if (error) {
-          console.warn('[Supabase Save Warning]', error.message);
-        } else {
-          showToast('Événement synchronisé dans la base Cloud Supabase.', 'success');
-        }
-      } catch (err: any) {
-        console.warn('[Supabase Save Event Error]', err);
-      }
-    }
-
-    // 3. Persistance de secours sur le backend Node.js
+    const previousEvents = events;
+    const previousFeatured = featuredEvent;
     try {
-      await fetch(`/api/events/${updatedEvent.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updatedEvent),
-      });
-    } catch {}
-
-    // Notifie immédiatement les autres onglets ouverts (Aperçu Google AI Studio <-> Onglet Externe)
-    notifyCrossTabSync();
+      if (isSupabaseConfigured) {
+        const dbRow = mapEventToDbRow(updatedEvent);
+        const { data, error } = await supabase.from('events')
+          .upsert(dbRow, { onConflict: 'id' }).select('*').single();
+        if (error) throw new Error(error.message);
+        const confirmedEvent = mapDbRowToEvent(data);
+        const next = previousEvents.some((event) => event.id === confirmedEvent.id)
+          ? previousEvents.map((event) => event.id === confirmedEvent.id ? confirmedEvent : event)
+          : [confirmedEvent, ...previousEvents];
+        setEvents(next);
+        writeLocal(STORAGE_KEYS.EVENTS, next);
+        setFeaturedEvent(confirmedEvent.isFeatured ? confirmedEvent : (previousFeatured?.id === confirmedEvent.id ? next.find((event) => event.isFeatured) || null : previousFeatured));
+      } else {
+        const response = await fetch(`/api/events/${updatedEvent.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedEvent),
+        });
+        if (!response.ok) throw new Error(`API événements : HTTP ${response.status}`);
+        const next = previousEvents.some((event) => event.id === updatedEvent.id)
+          ? previousEvents.map((event) => event.id === updatedEvent.id ? updatedEvent : event)
+          : [updatedEvent, ...previousEvents];
+        setEvents(next);
+        writeLocal(STORAGE_KEYS.EVENTS, next);
+        setFeaturedEvent(updatedEvent.isFeatured ? updatedEvent : previousFeatured);
+      }
+      setCloudSyncError(null);
+      setIsCloudDbActive(isSupabaseConfigured);
+      cacheTimestamps.current.events = Date.now();
+      notifyCrossTabSync();
+    } catch (err: any) {
+      setEvents(previousEvents);
+      writeLocal(STORAGE_KEYS.EVENTS, previousEvents);
+      setFeaturedEvent(previousFeatured);
+      setCloudSyncError(`Événement : ${err.message}`);
+      throw err;
+    }
   };
 
   const deleteEvent = async (eventId: string) => {
-    setEvents((prev) => {
-      const next = prev.filter((e) => e.id !== eventId);
-      writeLocal(STORAGE_KEYS.EVENTS, next);
-      return next;
-    });
-    cacheTimestamps.current.events = 0;
-
+    const previousEvents = events;
     if (isSupabaseConfigured) {
-      try {
-        const { error } = await supabase.from('events').delete().eq('id', eventId);
-        if (error) throw new Error(error.message);
-        showToast('Événement supprimé de la base Cloud.', 'info');
-      } catch (err: any) {
-        showToast(`Erreur suppression Cloud: ${err.message}`, 'error');
-      }
+      const { error } = await supabase.from('events').delete().eq('id', eventId);
+      if (error) throw new Error(`Suppression Supabase : ${error.message}`);
+    } else {
+      const response = await fetch(`/api/events/${eventId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error(`API événements : HTTP ${response.status}`);
     }
-
-    try {
-      await fetch(`/api/events/${eventId}`, { method: 'DELETE' });
-    } catch {}
-
+    const next = previousEvents.filter((event) => event.id !== eventId);
+    setEvents(next);
+    writeLocal(STORAGE_KEYS.EVENTS, next);
+    if (featuredEvent?.id === eventId) setFeaturedEvent(next.find((event) => event.isFeatured) || next[0] || null);
+    cacheTimestamps.current.events = 0;
     notifyCrossTabSync();
   };
 
@@ -536,12 +572,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             .select('*')
             .order('order_index', { ascending: true });
 
-          if (!error && data && data.length > 0) {
-            setArchives(data.map(mapDbRowToArchive));
-            cacheTimestamps.current.archives = Date.now();
-          } else {
-            await fetchArchivesFromBackend();
+          if (error) {
+            console.warn('[Supabase] Erreur lecture archives:', error.message);
+            setCloudSyncError(`Supabase archives: ${error.message}`);
+            throw new Error(error.message);
           }
+
+          // Supabase est la source de vérité, y compris si la liste est vide.
+          const mappedArchives = (data || []).map(mapDbRowToArchive);
+          setArchives(mappedArchives);
+          writeLocal(STORAGE_KEYS.ARCHIVES, mappedArchives);
+          cacheTimestamps.current.archives = Date.now();
+          setIsCloudDbActive(true);
         } else {
           await fetchArchivesFromBackend();
         }
@@ -591,46 +633,88 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       orderIndex: archiveData.orderIndex || 1,
     };
 
+    const previousArchives = archives;
     setArchives((prev) => [newArchive, ...prev.filter((a) => a.id !== id)]);
     cacheTimestamps.current.archives = 0;
 
-    if (isSupabaseConfigured) {
-      try {
-        const row = mapArchiveToDbRow(newArchive);
-        await supabase.from('archives').upsert(row, { onConflict: 'id' });
-        showToast('Archive enregistrée dans le Cloud.', 'success');
-      } catch (e: any) {
-        console.warn('Supabase archive save warning:', e.message);
-      }
-    }
-
     try {
-      await fetch('/api/archives', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newArchive),
-      });
-    } catch {}
+      if (isSupabaseConfigured) {
+        const row = mapArchiveToDbRow(newArchive);
+        const { data, error } = await supabase
+          .from('archives')
+          .upsert(row, { onConflict: 'id' })
+          .select('*')
+          .single();
 
-    notifyCrossTabSync();
+        if (error) throw new Error(error.message);
+        const confirmed = mapDbRowToArchive(data);
+        setArchives((prev) => {
+          const next = [confirmed, ...prev.filter((a) => a.id !== confirmed.id)];
+          writeLocal(STORAGE_KEYS.ARCHIVES, next);
+          return next;
+        });
+        setCloudSyncError(null);
+        setIsCloudDbActive(true);
+        showToast('Archive enregistrée et confirmée dans Supabase.', 'success');
+      } else {
+        const response = await fetch('/api/archives', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newArchive),
+        });
+        if (!response.ok) throw new Error(`API archives : HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.success === false) throw new Error(data.error || 'Échec de sauvegarde de l’archive.');
+        setArchives((prev) => {
+          const next = [newArchive, ...prev.filter((a) => a.id !== id)];
+          writeLocal(STORAGE_KEYS.ARCHIVES, next);
+          return next;
+        });
+        showToast('Archive enregistrée.', 'success');
+      }
+
+      cacheTimestamps.current.archives = Date.now();
+      notifyCrossTabSync();
+    } catch (err: any) {
+      setArchives(previousArchives);
+      writeLocal(STORAGE_KEYS.ARCHIVES, previousArchives);
+      cacheTimestamps.current.archives = 0;
+      showToast(`Échec de synchronisation de l’archive : ${err.message}`, 'error');
+      throw err;
+    }
   };
 
   const deleteArchive = async (id: string) => {
+    const previousArchives = archives;
     setArchives((prev) => prev.filter((a) => a.id !== id));
     cacheTimestamps.current.archives = 0;
 
-    if (isSupabaseConfigured) {
-      try {
-        await supabase.from('archives').delete().eq('id', id);
-        showToast('Archive supprimée du Cloud.', 'info');
-      } catch {}
-    }
-
     try {
-      await fetch(`/api/archives/${id}`, { method: 'DELETE' });
-    } catch {}
+      if (isSupabaseConfigured) {
+        const { error } = await supabase.from('archives').delete().eq('id', id);
+        if (error) throw new Error(error.message);
+        setCloudSyncError(null);
+        showToast('Archive supprimée de Supabase.', 'success');
+      } else {
+        const response = await fetch(`/api/archives/${id}`, { method: 'DELETE' });
+        if (!response.ok) throw new Error(`API archives : HTTP ${response.status}`);
+        showToast('Archive supprimée.', 'success');
+      }
 
-    notifyCrossTabSync();
+      setArchives((prev) => {
+        const next = prev.filter((a) => a.id !== id);
+        writeLocal(STORAGE_KEYS.ARCHIVES, next);
+        return next;
+      });
+      cacheTimestamps.current.archives = Date.now();
+      notifyCrossTabSync();
+    } catch (err: any) {
+      setArchives(previousArchives);
+      writeLocal(STORAGE_KEYS.ARCHIVES, previousArchives);
+      cacheTimestamps.current.archives = 0;
+      showToast(`Échec de suppression de l’archive : ${err.message}`, 'error');
+      throw err;
+    }
   };
 
   // ============================================================================
@@ -867,6 +951,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               infoline: data.infoline || '+225 01 53 508 210',
               gateToken: data.gate_token || 'VIGILE_AUTH_LMR_2026',
               githubRepoUrl: data.github_repo_url || '',
+              socialLinks: data.social_links || {},
             });
             cacheTimestamps.current.settings = Date.now();
           } else {
@@ -905,40 +990,55 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updatePlatformSettings = async (newSettings: Partial<PlatformSettings>) => {
-    setPlatformSettings((prev) => ({ ...prev, ...newSettings }));
-    cacheTimestamps.current.settings = 0;
-
+    const previousSettings = platformSettings;
+    const mergedSettings = { ...previousSettings, ...newSettings };
     if (isSupabaseConfigured) {
-      try {
-        const dbRow = {
-          id: 1,
-          platform_name: newSettings.platformName ?? platformSettings.platformName,
-          tagline: newSettings.tagline ?? platformSettings.tagline,
-          logo_monogram: newSettings.logoMonogram ?? platformSettings.logoMonogram,
-          logo_url: newSettings.logoUrl ?? platformSettings.logoUrl,
-          currency: newSettings.currency ?? platformSettings.currency,
-          infoline: newSettings.infoline ?? platformSettings.infoline,
-          gate_token: newSettings.gateToken ?? platformSettings.gateToken,
-          github_repo_url: newSettings.githubRepoUrl ?? platformSettings.githubRepoUrl,
-          updated_at: new Date().toISOString(),
-        };
-
-        const { error } = await supabase.from('platform_settings').upsert(dbRow, { onConflict: 'id' });
-        if (error) throw new Error(error.message);
-        showToast('Identité et paramètres sauvegardés dans le Cloud Supabase.', 'success');
-      } catch (err: any) {
-        showToast(`Erreur sauvegarde Cloud: ${err.message}`, 'error');
+      const dbRow = {
+        id: 1,
+        platform_name: mergedSettings.platformName,
+        tagline: mergedSettings.tagline,
+        logo_monogram: mergedSettings.logoMonogram,
+        logo_url: mergedSettings.logoUrl,
+        currency: mergedSettings.currency,
+        infoline: mergedSettings.infoline,
+        gate_token: mergedSettings.gateToken,
+        github_repo_url: mergedSettings.githubRepoUrl,
+        social_links: mergedSettings.socialLinks || {},
+        updated_at: new Date().toISOString(),
+      };
+      const { data, error } = await supabase.from('platform_settings')
+        .upsert(dbRow, { onConflict: 'id' }).select('*').single();
+      if (error) {
+        setCloudSyncError(`Paramètres Supabase : ${error.message}`);
+        throw new Error(error.message);
       }
-    }
-
-    try {
-      await fetch('/api/admin/settings', {
+      const confirmed = {
+        ...mergedSettings,
+        platformName: data.platform_name,
+        tagline: data.tagline,
+        logoMonogram: data.logo_monogram,
+        logoUrl: data.logo_url,
+        currency: data.currency,
+        infoline: data.infoline,
+        gateToken: data.gate_token,
+        githubRepoUrl: data.github_repo_url,
+        socialLinks: data.social_links || {},
+      };
+      setPlatformSettings(confirmed);
+      writeLocal(STORAGE_KEYS.SETTINGS, confirmed);
+      setCloudSyncError(null);
+      setIsCloudDbActive(true);
+    } else {
+      const response = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSettings),
       });
-    } catch {}
-
+      if (!response.ok) throw new Error(`API paramètres : HTTP ${response.status}`);
+      setPlatformSettings(mergedSettings);
+      writeLocal(STORAGE_KEYS.SETTINGS, mergedSettings);
+    }
+    cacheTimestamps.current.settings = Date.now();
     notifyCrossTabSync();
   };
 

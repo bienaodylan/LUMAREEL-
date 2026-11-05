@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
-import { ArrowLeft, Calendar, MapPin, ShieldCheck, Ticket, Check } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, Calendar, MapPin, ShieldCheck, Ticket, Check, X } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
 
 export const ConcertDetailView: React.FC = () => {
@@ -16,13 +16,13 @@ export const ConcertDetailView: React.FC = () => {
 
   if (!event) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
+      <div className="w-full max-w-4xl mx-auto px-4 py-20 text-center">
         <p className="text-sm font-agrandir-regular text-[#888]">Événement non trouvé.</p>
         <button
-          onClick={() => setCurrentPage('discover')}
-          className="mt-4 px-4 py-2 text-xs font-agrandir-semibold border border-[#333] text-white"
+          onClick={() => setCurrentPage('home')}
+          className="mt-4 px-4 py-2 text-xs font-agrandir-semibold border border-[#333] text-white rounded-xl hover:border-white transition-colors"
         >
-          Retour au catalogue
+          Retour à l'accueil
         </button>
       </div>
     );
@@ -41,16 +41,30 @@ export const ConcertDetailView: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-24 sm:pt-28 pb-20 select-none font-agrandir-regular">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-20 sm:pt-24 pb-20 select-none font-agrandir-regular">
       
-      {/* Back button with rounded capsule */}
-      <button
-        onClick={() => setCurrentPage('discover')}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-agrandir-regular tracking-widest text-[#aaa] hover:text-white hover:border-white/30 transition-all mb-8 uppercase cursor-pointer backdrop-blur-sm"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" />
-        <span>{t('detail.backToCatalog')}</span>
-      </button>
+      {/* Barre de retour supérieure avec flèche et croix de fermeture */}
+      <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8 pb-3 border-b border-white/10">
+        <button
+          type="button"
+          onClick={() => setCurrentPage('home')}
+          className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
+          title="Retourner aux concerts"
+        >
+          <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
+          <span>RETOUR</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCurrentPage('home')}
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
+          title="Fermer et revenir à l'accueil"
+          aria-label="Fermer"
+        >
+          <X className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-transform duration-200" />
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
         
@@ -76,11 +90,8 @@ export const ConcertDetailView: React.FC = () => {
         <div className="lg:col-span-7 flex flex-col justify-between">
           
           <div>
-            {/* Header info pills */}
+            {/* Header info pills sans catégorie musicale */}
             <div className="flex flex-wrap items-center gap-2.5 text-xs font-agrandir-regular tracking-wider uppercase mb-3">
-              <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-white font-agrandir-semibold text-[11px]">
-                {event.genre}
-              </span>
               <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#aaa] text-[11px]">
                 {event.city}, {event.country}
               </span>
@@ -132,7 +143,7 @@ export const ConcertDetailView: React.FC = () => {
               <div className="space-y-3.5">
                 {event.categories.map((cat) => {
                   const isSelected = selectedCategoryId === cat.id;
-                  const catRemaining = cat.quota - cat.sold;
+                  const catRemaining = Math.max(0, cat.quota - cat.sold);
                   const isSoldOut = catRemaining <= 0;
 
                   return (
@@ -182,9 +193,6 @@ export const ConcertDetailView: React.FC = () => {
                             <span>{perk}</span>
                           </span>
                         ))}
-                        <span className="ml-auto px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-agrandir-semibold text-[#888] uppercase">
-                          {isSoldOut ? t('upcoming.soldOut') : `${catRemaining} ${t('detail.remaining')}`}
-                        </span>
                       </div>
                     </div>
                   );
@@ -192,44 +200,45 @@ export const ConcertDetailView: React.FC = () => {
               </div>
             </div>
 
-            {/* STEP 2: SELECT QUANTITY */}
-            <div className="mb-8 p-5 sm:p-6 bg-[#0c0c0c] border border-white/10 rounded-2xl sm:rounded-3xl shadow-lg">
-              <div className="flex items-center justify-between text-xs font-agrandir-regular tracking-wider text-[#aaa] uppercase mb-4">
-                <span className="font-agrandir-semibold text-white">{t('detail.step2')}</span>
-                <span className="text-[11px] text-[#777]">{t('detail.maxLimit')}</span>
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                {/* Stepper */}
+            {/* SÉLECTEUR DE QUANTITÉ ET TOTAL — SECTION UNIQUE */}
+            <div className="mb-8 p-6 sm:p-8 bg-[#0e0e0e] border border-white/15 rounded-3xl space-y-6 shadow-2xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs font-agrandir-semibold tracking-wider text-white uppercase mb-1">
+                    {t('detail.step2')}
+                  </div>
+                  <div className="text-[11px] text-[#777]">
+                    Sélectionnez le nombre de billets
+                  </div>
+                </div>
                 <div className="flex items-center border border-white/20 bg-[#161616] rounded-full overflow-hidden shadow-inner w-fit">
                   <button
+                    type="button"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={quantity <= 1}
-                    className="w-11 h-11 text-white font-agrandir-semibold text-lg hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
+                    aria-label="Diminuer la quantité"
+                    className="w-12 h-12 text-white font-agrandir-semibold text-lg hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
                   >
                     -
                   </button>
-                  <span className="w-12 text-center font-agrandir-extrabold text-white text-base">
+                  <span className="w-14 text-center font-agrandir-extrabold text-white text-base tabular-nums">
                     {quantity}
                   </span>
                   <button
-                    onClick={() => setQuantity(Math.min(Math.min(8, remaining), quantity + 1))}
-                    disabled={quantity >= Math.min(8, remaining)}
-                    className="w-11 h-11 text-white font-agrandir-semibold text-lg hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
+                    type="button"
+                    onClick={() => setQuantity(Math.min(remaining, quantity + 1))}
+                    disabled={quantity >= remaining}
+                    aria-label="Augmenter la quantité"
+                    className="w-12 h-12 text-white font-agrandir-semibold text-lg hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
                   >
                     +
                   </button>
                 </div>
-
-                <div className="text-xs font-agrandir-regular text-[#999]">
-                  {quantity > 1 ? `${quantity} ${t('detail.multipleTickets')}` : t('detail.singleTicket')}
-                </div>
               </div>
-            </div>
 
-            {/* TOTAL CALCULATION & PURCHASE ACTION */}
-            <div className="p-6 sm:p-8 bg-[#0e0e0e] border border-white/15 rounded-3xl space-y-5 shadow-2xl">
-              <div className="flex items-baseline justify-between font-agrandir-regular">
+              <div className="h-px bg-white/10" />
+
+              <div className="flex items-center justify-between gap-4">
                 <span className="text-xs text-[#888] tracking-widest uppercase font-agrandir-semibold">{t('detail.totalPrice')}</span>
                 <div className="text-right">
                   <div className="text-3xl sm:text-4xl font-agrandir-extrabold text-white">
@@ -241,7 +250,6 @@ export const ConcertDetailView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Purchase button */}
               <button
                 onClick={handleProceedToPurchase}
                 disabled={remaining <= 0 || event.status !== 'published'}
@@ -261,6 +269,18 @@ export const ConcertDetailView: React.FC = () => {
                 <ShieldCheck className="w-4 h-4 text-[#888]" />
                 <span>{t('detail.secureBadge')}</span>
               </div>
+            </div>
+
+            {/* Bouton de retour en bas de page pour navigation fluide */}
+            <div className="pt-4 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => setCurrentPage('home')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-agrandir-semibold tracking-wider text-neutral-300 hover:text-white transition-all uppercase cursor-pointer active:scale-95"
+              >
+                <ArrowLeft className="w-4 h-4 text-[#d4af37]" />
+                <span>Retourner à la programmation</span>
+              </button>
             </div>
 
           </div>

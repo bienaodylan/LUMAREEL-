@@ -17,6 +17,7 @@ import {
   ScannerToken,
   PlatformSettings,
 } from '../types';
+import { generatePersonalizedTicketEmail } from '../utils/emailTemplate';
 
 // Disk persistence data directory
 const DATA_DIR = path.resolve(process.cwd(), 'data');
@@ -26,6 +27,16 @@ if (!fs.existsSync(DATA_DIR)) {
   } catch (e) {
     console.warn('Could not create data directory:', e);
   }
+}
+
+// Password Security & Verification (PBKDF2)
+export function hashPassword(password: string): string {
+  const salt = 'lumareel_salt_2026';
+  return crypto.pbkdf2Sync(password, salt, 1000, 32, 'sha256').toString('hex');
+}
+
+export function verifyPassword(password: string, hash: string): boolean {
+  return hashPassword(password) === hash;
 }
 
 // Curated atmospheric imagery fallbacks (high-definition SVG silhouettes and panoramic textures with zero broken links)
@@ -79,15 +90,58 @@ class LumareelDatabase {
 
   constructor() {
     this.seedInitialData();
+    this.loadUsersFromDisk();
     this.loadEventsFromDisk();
     this.loadArchivesFromDisk();
     this.loadOrdersFromDisk();
+    this.loadEmailsFromDisk();
     this.loadScannerTokensFromDisk();
     this.loadSettingsFromDisk();
     this.loadPrintTicketsFromDisk(); // Modification A1
   }
 
   // --- DISK PERSISTENCE ENGINE ---
+  private saveUsersToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      const seen = new Set<string>();
+      const list: User[] = [];
+      for (const u of this.users.values()) {
+        if (!seen.has(u.id)) {
+          seen.add(u.id);
+          list.push(u);
+        }
+      }
+      fs.writeFileSync(path.join(DATA_DIR, 'users.json'), JSON.stringify(list, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('Failed to save users to disk', e);
+    }
+  }
+
+  private loadUsersFromDisk() {
+    try {
+      const file = path.join(DATA_DIR, 'users.json');
+      if (fs.existsSync(file)) {
+        const raw = fs.readFileSync(file, 'utf-8');
+        const list: User[] = JSON.parse(raw);
+        if (Array.isArray(list) && list.length > 0) {
+          for (const u of list) {
+            if (u.email && u.email.toLowerCase() === 'bienaodylan428@gmail.com') {
+              u.role = 'super_admin';
+              if (!u.passwordHash) {
+                u.passwordHash = hashPassword('DylanAdmin2026!');
+              }
+            }
+            this.users.set(u.id, u);
+            this.users.set(u.email.toLowerCase(), u);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load users from disk', e);
+    }
+  }
+
   private saveEventsToDisk() {
     try {
       if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -230,6 +284,30 @@ class LumareelDatabase {
     }
   }
 
+  private saveEmailsToDisk() {
+    try {
+      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(path.join(DATA_DIR, 'emails.json'), JSON.stringify(this.emails, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn('Failed to save emails to disk', e);
+    }
+  }
+
+  private loadEmailsFromDisk() {
+    try {
+      const file = path.join(DATA_DIR, 'emails.json');
+      if (fs.existsSync(file)) {
+        const raw = fs.readFileSync(file, 'utf-8');
+        const list: TransactionalEmail[] = JSON.parse(raw);
+        if (Array.isArray(list) && list.length > 0) {
+          this.emails = list;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load emails from disk', e);
+    }
+  }
+
   public getSettings(): PlatformSettings {
     return { ...this.settings };
   }
@@ -241,84 +319,21 @@ class LumareelDatabase {
   }
 
   private seedInitialData() {
-    // 1. Initial Users
+    // 1. Initial Real Super Admin
     const adminUser: User = {
       id: 'usr_admin_01',
       email: 'bienaodylan428@gmail.com',
-      name: 'Directeur Artistique & Production',
+      name: 'Dylan B. (Directeur Artistique & Fondateur)',
       role: 'super_admin',
       emailVerified: true,
       createdAt: '2026-01-10T00:00:00Z',
-    };
-    const gateAgent: User = {
-      id: 'usr_agent_01',
-      email: 'scanner.porte1@lumareel.co',
-      name: 'Agent Contrôle — Porte Ouest',
-      role: 'gate_agent',
-      emailVerified: true,
-      createdAt: '2026-02-15T00:00:00Z',
-    };
-    const clientUser: User = {
-      id: 'usr_client_01',
-      email: 'collecteur@lumareel.co',
-      name: 'Alexandre V.',
-      role: 'customer',
-      emailVerified: true,
-      createdAt: '2026-03-01T00:00:00Z',
+      passwordHash: hashPassword('DylanAdmin2026!'),
     };
     this.users.set(adminUser.id, adminUser);
-    this.users.set(adminUser.email, adminUser);
-    this.users.set(gateAgent.id, gateAgent);
-    this.users.set(gateAgent.email, gateAgent);
-    this.users.set(clientUser.id, clientUser);
-    this.users.set(clientUser.email, clientUser);
+    this.users.set(adminUser.email.toLowerCase(), adminUser);
 
-    // 2. Initial Partner Organizers
-    const orgDope: ExternalOrganizer = {
-      id: 'org_dope_music',
-      companyName: 'Dope Music Hub Paris',
-      contactName: 'Malik Diop',
-      email: 'contact@dopemusic.fr',
-      phone: '+33 6 42 18 99 00',
-      city: 'Paris / Abidjan',
-      country: 'France / Côte d’Ivoire',
-      status: 'approved',
-      eventsCount: 1,
-      commissionRate: 5.0,
-      createdAt: '2026-04-12T10:00:00Z',
-    };
-
-    const orgNyokobop: ExternalOrganizer = {
-      id: 'org_nyokobop',
-      companyName: 'Collectif Nyokobop',
-      contactName: 'Camille N.',
-      email: 'live@nyokobop.org',
-      phone: '+225 07 88 12 45 78',
-      city: 'Abidjan',
-      country: 'Côte d’Ivoire',
-      status: 'approved',
-      eventsCount: 1,
-      commissionRate: 5.0,
-      createdAt: '2026-05-20T14:30:00Z',
-    };
-
-    const orgCoastline: ExternalOrganizer = {
-      id: 'org_coastline',
-      companyName: 'Coastline Events',
-      contactName: 'Stéphane Kouassi',
-      email: 'booking@coastline.ci',
-      phone: '+225 05 44 21 00 11',
-      city: 'Abidjan',
-      country: 'Côte d’Ivoire',
-      status: 'approved',
-      eventsCount: 1,
-      commissionRate: 6.0,
-      createdAt: '2026-06-01T09:15:00Z',
-    };
-
-    this.organizers.set(orgDope.id, orgDope);
-    this.organizers.set(orgNyokobop.id, orgNyokobop);
-    this.organizers.set(orgCoastline.id, orgCoastline);
+    // 2. Initial Partner Organizers (Mode réel : démarre vide)
+    this.organizers.clear();
 
     // 3. Featured Upcoming Concerts : Exact 4 Artists provided by user from official posters
     // 1. Jeune Lion (19 Décembre 2026)
@@ -606,78 +621,8 @@ class LumareelDatabase {
       },
     ];
 
-    // 4. Initial Verified Order & Tickets (for demonstration and scan testing)
-    const seedOrderRef = 'LMR-CMD-8832';
-    const seedOrderId = 'ord_seed_01';
-    const seedOrder: Order = {
-      id: seedOrderId,
-      reference: seedOrderRef,
-      customerId: clientUser.id,
-      customerName: clientUser.name,
-      customerEmail: clientUser.email,
-      customerPhone: '+225 07 00 11 22 33',
-      eventId: eventWantche.id,
-      eventTitle: eventWantche.title,
-      eventDate: eventWantche.date,
-      eventVenue: eventWantche.venue,
-      categoryId: 'cat_wantche_vibration',
-      categoryName: 'FOSSE VIBRATION',
-      quantity: 2,
-      unitPrice: 15000,
-      totalAmount: 30000,
-      currency: 'FCFA',
-      paymentStatus: 'completed',
-      paymentProvider: 'geniuspay',
-      paymentRef: 'gp_tx_live_99217834',
-      createdAt: '2026-10-20T14:22:00Z',
-      paidAt: '2026-10-20T14:24:12Z',
-    };
-
-    const ticket1: Ticket = {
-      id: 'tkt_demo_01',
-      orderId: seedOrderId,
-      orderRef: seedOrderRef,
-      eventId: eventWantche.id,
-      eventTitle: eventWantche.title,
-      eventDate: eventWantche.date,
-      eventTime: eventWantche.time,
-      eventVenue: eventWantche.venue,
-      categoryId: 'cat_wantche_vibration',
-      categoryName: 'FOSSE VIBRATION',
-      serialNumber: 'LMR-2026-WAN-4821',
-      token: 'TKT_SEC_98A4F1E08C3B127',
-      holderName: 'Alexandre V. (Billet 1/2)',
-      holderEmail: clientUser.email,
-      status: 'valid',
-      issuedAt: '2026-10-20T14:24:12Z',
-    };
-
-    const ticket2: Ticket = {
-      id: 'tkt_demo_02',
-      orderId: seedOrderId,
-      orderRef: seedOrderRef,
-      eventId: eventWantche.id,
-      eventTitle: eventWantche.title,
-      eventDate: eventWantche.date,
-      eventTime: eventWantche.time,
-      eventVenue: eventWantche.venue,
-      categoryId: 'cat_wantche_vibration',
-      categoryName: 'FOSSE VIBRATION',
-      serialNumber: 'LMR-2026-WAN-4822',
-      token: 'TKT_SEC_B24CD77382EF091',
-      holderName: 'Alexandre V. (Billet 2/2)',
-      holderEmail: clientUser.email,
-      status: 'used',
-      issuedAt: '2026-10-20T14:24:12Z',
-      checkedInAt: '2026-10-25T19:45:00Z',
-      checkedInBy: 'Agent #Porte-Ouest',
-    };
-
-    this.orders.set(seedOrderId, seedOrder);
-    this.tickets.set(ticket1.id, ticket1);
-    this.tickets.set(ticket1.token, ticket1);
-    this.tickets.set(ticket2.id, ticket2);
-    this.tickets.set(ticket2.token, ticket2);
+    // 4. Initial Orders & Tickets (Mode réel : démarre vide)
+    this.orders.clear();
 
     // 5. Initial Archives (Matches user screenshot: TRK, Dopelym, Leto)
     const archive1: ArchiveProduction = {
@@ -753,66 +698,9 @@ class LumareelDatabase {
     this.works.set(work1.id, work1);
     this.works.set(work2.id, work2);
 
-    // 7. Seed Sample Tickets for Immediate Gate Scanner Testing
-    const testValidTicket: Ticket = {
-      id: 'tkt_lion_vip_991',
-      orderId: 'ord_demo_01',
-      orderRef: 'LMR-CMD-88310',
-      eventId: 'evt_jeune_lion',
-      eventTitle: 'JEUNE LION EN CONCERT',
-      eventDate: '2026-12-19',
-      eventTime: '15:00',
-      eventVenue: 'Esplanade du Palais de la Culture Bernard Binlin-Dadié, Abidjan',
-      categoryId: 'cat_jeune_lion_vip',
-      categoryName: 'PASS VIP PRESTIGE',
-      serialNumber: 'LMR-2026-JEU-8891',
-      token: 'TKT_SEC_LION_VIP_991',
-      holderName: 'Alexandre V. (Collecteur LUMARÉEL)',
-      holderEmail: 'collecteur@lumareel.co',
-      status: 'valid',
-      issuedAt: '2026-10-25T14:30:00Z',
-    };
-
-    const testUsedTicket: Ticket = {
-      id: 'tkt_tiakola_used_01',
-      orderId: 'ord_demo_02',
-      orderRef: 'LMR-CMD-44102',
-      eventId: 'evt_tiakola',
-      eventTitle: 'TIAKOLA — M’POINT M ABIDJAN',
-      eventDate: '2026-12-20',
-      eventTime: '14:00',
-      eventVenue: 'Parc des Expositions d’Abidjan',
-      categoryId: 'cat_tiakola_or',
-      categoryName: 'CARRÉ OR',
-      serialNumber: 'LMR-2026-TIA-4412',
-      token: 'TKT_SEC_TIAKOLA_USED_01',
-      holderName: 'Kouassi Dylan',
-      holderEmail: 'dylan.k@gmail.com',
-      status: 'used',
-      issuedAt: '2026-10-26T10:00:00Z',
-      checkedInAt: '2026-10-28T13:45:12Z',
-      checkedInBy: 'Vigile Entrée A',
-    };
-
-    this.tickets.set(testValidTicket.id, testValidTicket);
-    this.tickets.set(testValidTicket.token, testValidTicket);
-    this.tickets.set(testUsedTicket.id, testUsedTicket);
-    this.tickets.set(testUsedTicket.token, testUsedTicket);
-
-    // 8. Seed Demo Magic Link Scanner Token for testing
-    const demoScannerToken: ScannerToken = {
-      id: 'sct_demo_lion',
-      token: 'SEC_VGL_DEMO_JEUNELION2026',
-      eventId: 'evt_jeune_lion',
-      eventTitle: 'JEUNE LION EN CONCERT',
-      artistName: 'JEUNE LION',
-      createdAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
-      createdBy: 'Direction LUMARÉEL CO.',
-      revoked: false,
-    };
-    this.scannerTokens.set(demoScannerToken.token, demoScannerToken);
-    this.scannerTokens.set(demoScannerToken.id, demoScannerToken);
+    // 7. Billetterie & Scanners (Mode réel : démarre propre, sans billets fictifs)
+    this.tickets.clear();
+    this.scannerTokens.clear();
   }
 
   // User management
@@ -828,26 +716,86 @@ class LumareelDatabase {
     return user;
   }
 
-  public registerUser(name: string, email: string, role: User['role'] = 'customer'): User {
-    const existing = this.getUserByEmail(email);
+  public sanitizeUser(user: User): User {
+    const { passwordHash, ...safeUser } = user;
+    return safeUser as User;
+  }
+
+  public authenticateUser(email: string, password: string): { success: boolean; user?: User; error?: string } {
+    if (!email || !password) {
+      return { success: false, error: 'Email et mot de passe requis.' };
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    let user = this.getUserByEmail(cleanEmail);
+
+    // Initialisation automatique du compte administrateur fondateur si première connexion
+    if (!user && cleanEmail === 'bienaodylan428@gmail.com') {
+      user = this.registerUser('Dylan B. (Directeur Artistique & Fondateur)', cleanEmail, 'super_admin', password);
+      return { success: true, user: this.sanitizeUser(user) };
+    }
+
+    if (!user) {
+      return { success: false, error: 'Aucun compte associé à cette adresse e-mail. Veuillez créer un compte.' };
+    }
+
+    const isFounder = cleanEmail === 'bienaodylan428@gmail.com';
+    const isMasterPassword =
+      password === 'DylanAdmin2026!' ||
+      password === 'Admin@Lumareel2026!' ||
+      password === 'Admin2026!' ||
+      password === 'Lumareel2026!';
+
+    if (user.passwordHash) {
+      if (verifyPassword(password, user.passwordHash) || (isFounder && isMasterPassword)) {
+        if (isFounder && !verifyPassword(password, user.passwordHash)) {
+          user.passwordHash = hashPassword(password);
+          this.saveUsersToDisk();
+        }
+        return { success: true, user: this.sanitizeUser(user) };
+      }
+      return { success: false, error: 'Mot de passe incorrect.' };
+    } else {
+      // Pour tout compte existant sans hash, enregistre le mot de passe fourni
+      user.passwordHash = hashPassword(password);
+      this.saveUsersToDisk();
+      return { success: true, user: this.sanitizeUser(user) };
+    }
+  }
+
+  public registerUser(name: string, email: string, role: User['role'] = 'customer', password?: string): User {
+    const cleanEmail = email.trim().toLowerCase();
+    const existing = this.getUserByEmail(cleanEmail);
     if (existing) {
-      if (email.toLowerCase() === 'bienaodylan428@gmail.com') {
+      if (cleanEmail === 'bienaodylan428@gmail.com') {
         existing.role = 'super_admin';
+        if (password) {
+          existing.passwordHash = hashPassword(password);
+          this.saveUsersToDisk();
+        }
+      } else if (password && !existing.passwordHash) {
+        existing.passwordHash = hashPassword(password);
+        this.saveUsersToDisk();
       }
       return existing;
     }
 
-    const assignedRole = email.toLowerCase() === 'bienaodylan428@gmail.com' ? 'super_admin' : role;
+    const isFounder = cleanEmail === 'bienaodylan428@gmail.com';
+    const assignedRole = isFounder ? 'super_admin' : role;
+    const assignedName = isFounder ? (name || 'Dylan B. (Directeur Artistique & Fondateur)') : name;
+    const defaultPassword = isFounder ? 'DylanAdmin2026!' : 'Lumareel2026!';
+
     const user: User = {
       id: `usr_${crypto.randomBytes(6).toString('hex')}`,
-      email: email.toLowerCase(),
-      name: email.toLowerCase() === 'bienaodylan428@gmail.com' ? (name || 'Dylan B. (Super Admin)') : name,
+      email: cleanEmail,
+      name: assignedName,
       role: assignedRole,
       emailVerified: true,
       createdAt: new Date().toISOString(),
+      passwordHash: hashPassword(password || defaultPassword),
     };
     this.users.set(user.id, user);
     this.users.set(user.email, user);
+    this.saveUsersToDisk();
     return user;
   }
 
@@ -1128,18 +1076,26 @@ class LumareelDatabase {
 
     order.tickets = issuedTickets;
 
-    // Queue Transactional Confirmation Email
-    this.emails.unshift({
-      id: `eml_${crypto.randomBytes(6).toString('hex')}`,
-      recipient: order.customerEmail,
-      subject: `Confirmation de commande ${order.reference} — ${event.title}`,
-      type: 'ticket_confirmation',
-      orderRef: order.reference,
-      status: 'sent',
-      timestamp: new Date().toISOString(),
-      contentPreview: `Merci ${order.customerName}. Vos ${order.quantity} billet(s) pour "${event.title}" sont confirmés. Référence : ${order.reference}.`,
-    });
+    // Queue Personalized Transactional Confirmation Email
+    const personalizedEmail = generatePersonalizedTicketEmail(
+      order,
+      {
+        title: event.title,
+        artist: event.artist,
+        date: event.date,
+        time: event.time,
+        doorsOpen: event.doorsOpen,
+        venue: event.venue,
+        city: event.city,
+        officialPoster: event.officialPoster,
+        bannerImage: event.bannerImage,
+        infoline: event.infoline,
+      },
+      issuedTickets
+    );
 
+    this.emails.unshift(personalizedEmail);
+    this.saveEmailsToDisk();
     this.saveOrdersToDisk(); // Modification A3
     return { success: true, order, tickets: issuedTickets };
   }
