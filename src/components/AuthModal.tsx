@@ -59,7 +59,7 @@ export const AuthModal: React.FC = () => {
         const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
         if (error) {
           if (/email not confirmed/i.test(error.message)) throw new Error('Confirmez votre adresse e-mail avant de vous connecter.');
-          throw new Error('E-mail ou mot de passe incorrect.');
+          throw new Error(error.message || 'Connexion Supabase refusée.');
         }
         if (!data.user) throw new Error('Connexion impossible.');
         const user = { id: data.user.id, email: data.user.email || cleanEmail, name: String(data.user.user_metadata?.name || cleanEmail.split('@')[0]), role: cleanEmail === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer', emailVerified: Boolean(data.user.email_confirmed_at), createdAt: data.user.created_at };
