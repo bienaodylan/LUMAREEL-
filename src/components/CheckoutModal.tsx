@@ -3,8 +3,8 @@ import { useApp } from '../context/AppContext';
 import { Order, Ticket, TicketCategory } from '../types';
 import { 
   X, ShieldCheck, Ticket as TicketIcon, CheckCircle2, Loader2, ArrowRight, 
-  Printer, Mail, Clock, ArrowLeft, Tag, Smartphone, CreditCard, Lock, Sparkles,
-  ChevronDown
+  Printer, Mail, Clock, ArrowLeft, Tag, Smartphone, CreditCard, Lock, Sparkles, AlertTriangle,
+  ChevronDown, ChevronUp, Package, TrendingUp, Check
 } from 'lucide-react';
 import { generatePersonalizedTicketEmail } from '../utils/emailTemplate';
 import { formatDateLong } from '../utils/dateUtils';
@@ -13,18 +13,20 @@ type CheckoutStep = 1 | 2 | 3 | 4;
 type PaymentOption = 'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'djamo' | 'card';
 type CountryOption = 'CI' | 'SN' | 'ML' | 'BF' | 'INT';
 
-interface PromoDiscount {
-  code: string;
-  percent: number;
-}
-
-const PROMO_CODES: Record<string, number> = {
-  AREEL20: 20,
-  LUMAREEL10: 10,
-  VIP2026: 15,
-  FESTIF: 10,
-  PROMO: 10,
-};
+export const COUNTRY_DIAL_CODES = [
+  { code: '+225', label: '🇨🇮 Côte d’Ivoire (+225)' },
+  { code: '+221', label: '🇸🇳 Sénégal (+221)' },
+  { code: '+223', label: '🇲🇱 Mali (+223)' },
+  { code: '+226', label: '🇧🇫 Burkina Faso (+226)' },
+  { code: '+229', label: '🇧🇯 Bénin (+229)' },
+  { code: '+228', label: '🇹🇬 Togo (+228)' },
+  { code: '+237', label: '🇨🇲 Cameroun (+237)' },
+  { code: '+224', label: '🇬🇳 Guinée (+224)' },
+  { code: '+241', label: '🇬🇦 Gabon (+241)' },
+  { code: '+242', label: '🇨🇬 Congo (+242)' },
+  { code: '+33', label: '🇫🇷 France (+33)' },
+  { code: '+1', label: '🇺🇸 États-Unis (+1)' },
+];
 
 export const CheckoutModal: React.FC = () => {
   const { 
@@ -44,22 +46,26 @@ export const CheckoutModal: React.FC = () => {
   const [step, setStep] = useState<CheckoutStep>(1);
 
   // Étape 1 : Sélection des billets
-  // Quantité par catégorie id
+  // Toutes les catégories démarrent à 0 : aucun ticket n'est pré-sélectionné automatiquement
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  const [promoInput, setPromoInput] = useState<string>('');
-  const [appliedPromo, setAppliedPromo] = useState<PromoDiscount | null>(null);
-  const [promoError, setPromoError] = useState<string>('');
+  const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
+
+  const toggleDetails = (catId: string) => {
+    setExpandedDetails((prev) => ({ ...prev, [catId]: !prev[catId] }));
+  };
 
   // Étape 2 : Récapitulatif & Compte à rebours de sécurité (20 min)
   const [lockSeconds, setLockSeconds] = useState<number>(20 * 60);
-  const [customerName, setCustomerName] = useState<string>('');
-  const [customerEmail, setCustomerEmail] = useState<string>('');
-  const [customerPhone, setCustomerPhone] = useState<string>('');
+  const [customerName, setCustomerName] = useState<string>(currentUser?.name || '');
+  const [customerEmail, setCustomerEmail] = useState<string>(currentUser?.email || '');
+  const [customerDialCode, setCustomerDialCode] = useState<string>('+225');
+  const [customerPhoneNumber, setCustomerPhoneNumber] = useState<string>('07 00 00 00 00');
 
   // Étape 3 : Paiement
   const [country, setCountry] = useState<CountryOption>('CI');
   const [paymentMethod, setPaymentMethod] = useState<PaymentOption>('wave');
-  const [paymentPhone, setPaymentPhone] = useState<string>('+225 07 ');
+  const [paymentDialCode, setPaymentDialCode] = useState<string>('+225');
+  const [paymentPhoneNumber, setPaymentPhoneNumber] = useState<string>('07 00 00 00 00');
   const [cardNumber, setCardNumber] = useState<string>('4000 1234 5678 9010');
   const [cardExp, setCardExp] = useState<string>('12/28');
   const [cardCvv, setCardCvv] = useState<string>('888');
@@ -73,26 +79,26 @@ export const CheckoutModal: React.FC = () => {
   const [issuedTickets, setIssuedTickets] = useState<Ticket[]>([]);
   const [showEmailPreview, setShowEmailPreview] = useState<boolean>(false);
 
-  // Sync default quantity when opening checkout
+  // Initialisation : Tous les compteurs à 0 (l'utilisateur choisit lui-même avec le bouton +)
   useEffect(() => {
     if (checkoutEvent && checkoutEvent.categories.length > 0) {
       const initial: Record<string, number> = {};
-      // Default: 1 ticket for the first available category
-      const firstAvailable = checkoutEvent.categories.find((c) => (c.quota - c.sold) > 0) || checkoutEvent.categories[0];
-      if (firstAvailable) {
-        initial[firstAvailable.id] = 1;
-      }
+      checkoutEvent.categories.forEach((c) => {
+        initial[c.id] = 0;
+      });
       setQuantities(initial);
-      setCustomerName('');
-      setCustomerEmail('');
-      setCustomerPhone('');
       setStep(1);
       setLockSeconds(20 * 60);
-      setAppliedPromo(null);
-      setPromoInput('');
-      setPromoError('');
     }
   }, [checkoutEvent?.id]);
+
+  // Sync user info
+  useEffect(() => {
+    if (currentUser) {
+      if (!customerName) setCustomerName(currentUser.name || '');
+      if (!customerEmail) setCustomerEmail(currentUser.email || '');
+    }
+  }, [currentUser]);
 
   // Compte à rebours de sécurité (20 min)
   useEffect(() => {
@@ -111,7 +117,7 @@ export const CheckoutModal: React.FC = () => {
 
   if (!checkoutEvent) return null;
 
-  // Calculs financiers
+  // Calculs financiers (aucun code promotionnel)
   const categories = checkoutEvent.categories || [];
   
   const totalQuantity = Object.values(quantities).reduce((acc, q) => acc + (q || 0), 0);
@@ -121,11 +127,7 @@ export const CheckoutModal: React.FC = () => {
     return sum + (cat.price * q);
   }, 0);
 
-  const discountAmount = appliedPromo 
-    ? Math.round(rawTotalAmount * (appliedPromo.percent / 100))
-    : 0;
-
-  const finalTotalAmount = Math.max(0, rawTotalAmount - discountAmount);
+  const finalTotalAmount = rawTotalAmount;
 
   const formatCountdown = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -137,6 +139,16 @@ export const CheckoutModal: React.FC = () => {
     setQuantities((prev) => {
       const current = prev[catId] || 0;
       const updated = Math.max(0, current + delta);
+      // Max 8 tickets total per order to comply with security anti-scalping
+      const otherTotal = Object.entries(prev)
+        .filter(([id]) => id !== catId)
+        .reduce((sum, [, q]) => sum + q, 0);
+
+      if (delta > 0 && otherTotal + updated > 8) {
+        showToast(language === 'en' ? 'Maximum 8 tickets per transaction.' : 'Maximum 8 billets par commande.', 'error');
+        return prev;
+      }
+
       const cat = categories.find((c) => c.id === catId);
       if (cat && delta > 0) {
         const remaining = Math.max(0, cat.quota - cat.sold);
@@ -148,28 +160,6 @@ export const CheckoutModal: React.FC = () => {
 
       return { ...prev, [catId]: updated };
     });
-  };
-
-  const handleApplyPromo = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPromoError('');
-    const codeClean = promoInput.trim().toUpperCase();
-    if (!codeClean) return;
-
-    if (PROMO_CODES[codeClean]) {
-      const percent = PROMO_CODES[codeClean];
-      setAppliedPromo({ code: codeClean, percent });
-      showToast(language === 'en' ? `Promo code applied: -${percent}%!` : `Code promo validé : -${percent}% de réduction !`, 'success');
-    } else {
-      setPromoError(language === 'en' ? 'Invalid or expired promo code.' : 'Code promotionnel invalide ou expiré.');
-      setAppliedPromo(null);
-    }
-  };
-
-  const handleRemovePromo = () => {
-    setAppliedPromo(null);
-    setPromoInput('');
-    setPromoError('');
   };
 
   const handleProceedToSummary = () => {
@@ -201,6 +191,7 @@ export const CheckoutModal: React.FC = () => {
     try {
       let order: Order | null = null;
       let tickets: Ticket[] = [];
+      const customerFullPhone = `${customerDialCode} ${customerPhoneNumber}`.trim();
 
       // Essai de confirmation API côté serveur
       try {
@@ -212,7 +203,7 @@ export const CheckoutModal: React.FC = () => {
             customerId: currentUser?.id || 'guest',
             customerName,
             customerEmail,
-            customerPhone,
+            customerPhone: customerFullPhone,
             eventId: checkoutEvent.id,
             categoryId: primaryCat.id,
             quantity: totalQuantity,
@@ -277,7 +268,7 @@ export const CheckoutModal: React.FC = () => {
           customerId: currentUser?.id || 'guest',
           customerName,
           customerEmail,
-          customerPhone,
+          customerPhone: customerFullPhone,
           eventId: checkoutEvent.id,
           eventTitle: checkoutEvent.title,
           eventDate: checkoutEvent.date,
@@ -323,6 +314,23 @@ export const CheckoutModal: React.FC = () => {
     setIsSimulatingGateway(false);
   };
 
+  const handleStepBack = () => {
+    if (step === 1) {
+      handleClose();
+    } else if (step === 2) {
+      setStep(1);
+    } else if (step === 3) {
+      setStep(2);
+    } else if (step === 4) {
+      if (isSimulatingGateway) {
+        setIsSimulatingGateway(false);
+        setStep(3);
+      } else {
+        handleClose();
+      }
+    }
+  };
+
   const handleGoToCustomerTickets = () => {
     handleClose();
     setCurrentPage('client_space');
@@ -337,6 +345,16 @@ export const CheckoutModal: React.FC = () => {
         {/* ========================================================================= */}
         <div className="p-5 sm:p-6 border-b border-white/10 bg-[#080808] sm:rounded-t-3xl">
           <div className="flex items-center justify-between gap-4 mb-4">
+            <button
+              type="button"
+              onClick={handleStepBack}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
+              title={step === 1 ? 'Retourner au concert' : 'Étape précédente'}
+            >
+              <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
+              <span>RETOUR</span>
+            </button>
+
             <div className="flex items-center gap-2.5">
               <img
                 src="/assets/logo-lumareel.png"
@@ -346,9 +364,11 @@ export const CheckoutModal: React.FC = () => {
             </div>
 
             <button
+              type="button"
               onClick={handleClose}
-              className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#888] hover:text-white hover:border-white/30 transition-all cursor-pointer"
+              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-neutral-300 hover:text-white hover:border-white transition-all cursor-pointer active:scale-95 shadow-md"
               aria-label="Fermer"
+              title="Fermer la billetterie"
             >
               <X className="w-4 h-4" />
             </button>
@@ -403,6 +423,21 @@ export const CheckoutModal: React.FC = () => {
           {/* ===================================================================== */}
           {step === 1 && (
             <div className="space-y-6">
+              {/* Bouton de retour vers la programmation */}
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-xs font-agrandir-bold tracking-wider text-neutral-200 hover:text-white transition-all uppercase cursor-pointer active:scale-95 group"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37] group-hover:-translate-x-1 transition-transform" />
+                  <span>RETOUR AU CONCERT</span>
+                </button>
+                <span className="text-[11px] font-agrandir-semibold text-[#888] uppercase tracking-wider font-mono">
+                  Étape 1 sur 4
+                </span>
+              </div>
+
               {/* Event Mini-Hero Card */}
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-[#0c0c0c] border border-white/10">
                 <img
@@ -411,10 +446,13 @@ export const CheckoutModal: React.FC = () => {
                   className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl shrink-0 border border-white/10"
                 />
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white leading-snug">
+                  <div className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase mb-0.5">
+                    {checkoutEvent.artist}
+                  </div>
+                  <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white truncate uppercase">
                     {checkoutEvent.title}
                   </h2>
-                  <div className="text-xs text-[#888] mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-agrandir-regular">
+                  <div className="text-xs text-[#888] mt-1 flex flex-wrap items-center gap-2 font-agrandir-regular">
                     <span>{formatDateLong(checkoutEvent.date, language)}</span>
                     <span>·</span>
                     <span>{checkoutEvent.time}</span>
@@ -434,99 +472,172 @@ export const CheckoutModal: React.FC = () => {
                   const remaining = Math.max(0, cat.quota - cat.sold);
                   const isSoldOut = remaining <= 0;
                   const currentQty = quantities[cat.id] || 0;
+                  const isExpanded = !!expandedDetails[cat.id];
+                  
+                  // Ligne 3 : gérée depuis l'administration. Si vide, elle ne s'affiche pas
+                  const hasDetails = Boolean(
+                    (cat.description && cat.description.trim() !== '') || 
+                    (cat.perks && cat.perks.length > 0)
+                  );
+
+                  // Calculs statistiques réels
+                  const fillPercent = cat.quota > 0 ? Math.round((cat.sold / cat.quota) * 100) : 0;
+                  const isExclusiveCapacity = cat.quota <= 50;
+
+                  // Badges personnalisés LUMARÉEL basés sur les statistiques réelles
+                  const renderStatBadge = () => {
+                    if (isSoldOut) {
+                      return (
+                        <span className="px-3 py-1 rounded-full bg-[#181818] text-[#888] border border-white/10 text-[10px] font-agrandir-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                          <span className="w-1.5 h-1.5 rounded-full bg-neutral-500" />
+                          <span>Guichet fermé · Épuisé</span>
+                        </span>
+                      );
+                    }
+
+                    // Statistique 1 : Moins de 10 places ou moins de 10% du quota restant => Risque de rupture
+                    if (remaining <= 10 || (cat.quota > 0 && remaining / cat.quota <= 0.1)) {
+                      return (
+                        <span className="px-3 py-1 rounded-full bg-rose-950/60 border border-rose-500/40 text-rose-300 text-[10px] font-agrandir-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm backdrop-blur-md">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+                          <span>Risque de rupture · {remaining} restant{remaining > 1 ? 's' : ''}</span>
+                        </span>
+                      );
+                    }
+
+                    // Statistique 2 : Taux de remplissage élevé (>= 60% vendus) => Forte demande
+                    if (fillPercent >= 60) {
+                      return (
+                        <span className="px-3 py-1 rounded-full bg-amber-950/50 border border-amber-500/40 text-amber-300 text-[10px] font-agrandir-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm backdrop-blur-md">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                          <span>Forte demande · {fillPercent}% réservé</span>
+                        </span>
+                      );
+                    }
+
+                    // Statistique 3 : Jauge exclusive (<= 50 places totales allouées) => Places limitées
+                    if (isExclusiveCapacity) {
+                      return (
+                        <span className="px-3 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#d4af37] text-[10px] font-agrandir-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm backdrop-blur-md">
+                          <Sparkles className="w-3 h-3 text-[#d4af37]" />
+                          <span>Places limitées · Jauge {cat.quota}</span>
+                        </span>
+                      );
+                    }
+
+                    // Disponibilité standard
+                    return (
+                      <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-neutral-400 text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span>Disponible</span>
+                      </span>
+                    );
+                  };
 
                   return (
                     <div
                       key={cat.id}
-                      className={`p-4 rounded-2xl border transition-all ${
+                      className={`p-4 sm:p-5 rounded-2xl sm:rounded-3xl border transition-all duration-300 ${
                         currentQty > 0
-                          ? 'bg-[#121212] border-white/30 shadow-lg'
+                          ? 'bg-[#121212] border-white/40 ring-1 ring-white/20 shadow-xl'
                           : isSoldOut
-                          ? 'bg-[#090909] border-white/5 opacity-60'
-                          : 'bg-[#0c0c0c] border-white/10 hover:border-white/20'
+                          ? 'bg-[#080808] border-white/5 opacity-50'
+                          : 'bg-[#0d0d0d] border-white/10 hover:border-white/25 shadow-md'
                       }`}
                     >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-agrandir-bold text-white text-sm uppercase">
-                              {cat.name}
-                            </span>
+                      {/* LIGNE 1 : NOM DU BILLET (Gauche) & BADGE STATISTIQUE (Droite) */}
+                      <div className="flex items-center justify-between gap-3 mb-3">
+                        <h3 className="font-agrandir-extrabold text-sm sm:text-base text-white tracking-wide uppercase truncate">
+                          {cat.name}
+                        </h3>
+                        <div className="shrink-0">
+                          {renderStatBadge()}
+                        </div>
+                      </div>
 
-                            {/* Statuts Stock adaptés marché */}
-                            {isSoldOut && (
-                              <span className="px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-bold uppercase tracking-wider">
-                                {t('checkout.soldOut')}
-                              </span>
-                            )}
-                          </div>
-
-                          <p className="text-xs text-[#888] line-clamp-1">
-                            {cat.description || `${cat.perks?.join(' · ') || 'Accès certifié avec placement garanti.'}`}
-                          </p>
-
-                          <div className="text-sm font-agrandir-extrabold text-[#d4af37] mt-1 font-mono">
-                            {cat.price.toLocaleString('fr-FR')} FCFA
-                          </div>
+                      {/* LIGNE 2 : PRIX DU BILLET (Gauche) & SÉLECTEUR STEPPER PILULE (Droite) */}
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="font-agrandir-extrabold text-base sm:text-xl text-white font-mono tracking-tight">
+                          {cat.price.toLocaleString('fr-FR')} F CFA
                         </div>
 
-
+                        {/* Stepper capsule pilule */}
+                        <div className="flex items-center bg-[#171717] border border-white/15 rounded-full px-1.5 py-1 shadow-inner gap-2 sm:gap-3 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleQuantityChange(cat.id, -1)}
+                            disabled={currentQty === 0 || isSoldOut}
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 text-white disabled:opacity-20 disabled:hover:bg-white/10 disabled:cursor-not-allowed flex items-center justify-center font-bold text-sm sm:text-base transition-all cursor-pointer"
+                            aria-label={`Diminuer la quantité pour ${cat.name}`}
+                          >
+                            −
+                          </button>
+                          <span className="w-6 sm:w-7 text-center font-agrandir-extrabold font-mono text-sm sm:text-base text-white select-none">
+                            {currentQty}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleQuantityChange(cat.id, 1)}
+                            disabled={isSoldOut || (currentQty >= remaining)}
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 text-white disabled:opacity-20 disabled:hover:bg-white/10 disabled:cursor-not-allowed flex items-center justify-center font-bold text-sm sm:text-base transition-all cursor-pointer"
+                            aria-label={`Augmenter la quantité pour ${cat.name}`}
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
+
+                      {/* LIGNE 3 : CONDITIONNELLE - UNIQUEMENT SI GÉRÉE DANS L'ADMINISTRATION */}
+                      {hasDetails && (
+                        <div className="mt-3 pt-2.5 border-t border-white/5">
+                          <button
+                            type="button"
+                            onClick={() => toggleDetails(cat.id)}
+                            className="w-full flex items-center justify-between text-left text-xs font-agrandir-semibold text-[#d4af37] hover:text-white transition-colors cursor-pointer group"
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <span>Détails &amp; Avantages</span>
+                              {isExpanded ? (
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              ) : (
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              )}
+                            </span>
+                            {cat.perks && cat.perks.length > 0 && (
+                              <span className="text-[10px] text-[#888] font-normal">
+                                {cat.perks.length} avantage{cat.perks.length > 1 ? 's' : ''} inclus
+                              </span>
+                            )}
+                          </button>
+
+                          {/* Panneau déroulant des détails et avantages */}
+                          {isExpanded && (
+                            <div className="mt-2.5 p-3.5 rounded-xl bg-black/60 border border-white/10 text-xs text-neutral-300 space-y-2 animate-fadeIn">
+                              {cat.description && (
+                                <p className="text-[#aaa] leading-relaxed font-agrandir-regular">
+                                  {cat.description}
+                                </p>
+                              )}
+                              {cat.perks && cat.perks.length > 0 && (
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                  {cat.perks.map((perk, pIdx) => (
+                                    <span
+                                      key={pIdx}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-[#ddd]"
+                                    >
+                                      <Check className="w-3 h-3 text-[#d4af37]" />
+                                      <span>{perk}</span>
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
-              </div>
-
-              {/* Champ Code Promo */}
-              <div className="p-4 rounded-2xl bg-[#0c0c0c] border border-white/10">
-                <form onSubmit={handleApplyPromo} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-agrandir-bold tracking-wider text-[#aaa] uppercase flex items-center gap-1.5">
-                      <Tag className="w-3 h-3 text-[#d4af37]" />
-                      <span>Code promotionnel</span>
-                    </label>
-                    {appliedPromo && (
-                      <button
-                        type="button"
-                        onClick={handleRemovePromo}
-                        className="text-[10px] text-red-400 hover:underline cursor-pointer"
-                      >
-                        Retirer le code
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={promoInput}
-                      onChange={(e) => setPromoInput(e.target.value)}
-                      placeholder={t('checkout.promoPlaceholder')}
-                      disabled={Boolean(appliedPromo)}
-                      className="flex-1 bg-[#141414] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-[#555] uppercase font-mono tracking-wider focus:outline-none focus:border-white disabled:opacity-50"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!promoInput.trim() || Boolean(appliedPromo)}
-                      className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-agrandir-bold uppercase tracking-wider transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      {t('checkout.applyPromo')}
-                    </button>
-                  </div>
-
-                  {appliedPromo && (
-                    <div className="text-[11px] text-emerald-400 flex items-center gap-1 font-agrandir-semibold pt-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Code <strong>{appliedPromo.code}</strong> appliqué (-{appliedPromo.percent}% de réduction)</span>
-                    </div>
-                  )}
-
-                  {promoError && (
-                    <div className="text-[11px] text-red-400 pt-1 font-agrandir-regular">
-                      {promoError}
-                    </div>
-                  )}
-                </form>
               </div>
             </div>
           )}
@@ -536,6 +647,21 @@ export const CheckoutModal: React.FC = () => {
           {/* ===================================================================== */}
           {step === 2 && (
             <div className="space-y-6">
+              {/* Bouton de retour vers l'étape 1 */}
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-xs font-agrandir-bold tracking-wider text-neutral-200 hover:text-white transition-all uppercase cursor-pointer active:scale-95 group"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37] group-hover:-translate-x-1 transition-transform" />
+                  <span>RETOUR AU CHOIX DES BILLETS</span>
+                </button>
+                <span className="text-[11px] font-agrandir-semibold text-[#888] uppercase tracking-wider font-mono">
+                  Étape 2 sur 4
+                </span>
+              </div>
+
               {/* Bannière Compte à Rebours de Sécurité (20 min) */}
               <div className="p-4 rounded-2xl bg-[#d4af37]/10 border border-[#d4af37]/30 flex items-center gap-3 text-xs text-[#d4af37] shadow-lg">
                 <Clock className="w-5 h-5 shrink-0 animate-pulse" />
@@ -556,13 +682,13 @@ export const CheckoutModal: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 text-xs">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1.5 text-white">
-                    <span className="text-[#888] shrink-0">Événement :</span>
-                    <strong className="font-agrandir-bold text-left sm:text-right leading-snug">{checkoutEvent.title}</strong>
+                  <div className="flex justify-between items-center text-white">
+                    <span className="text-[#888]">Événement :</span>
+                    <strong className="font-agrandir-bold">{checkoutEvent.artist} — {checkoutEvent.title}</strong>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1.5 text-white">
-                    <span className="text-[#888] shrink-0">Date &amp; Lieu :</span>
-                    <span className="text-left sm:text-right leading-relaxed">{formatDateLong(checkoutEvent.date, language)} · {checkoutEvent.venue}</span>
+                  <div className="flex justify-between items-center text-white">
+                    <span className="text-[#888]">Date &amp; Lieu :</span>
+                    <span>{formatDateLong(checkoutEvent.date, language)} ({checkoutEvent.venue})</span>
                   </div>
 
                   <div className="border-t border-white/5 pt-2 space-y-1.5">
@@ -579,13 +705,6 @@ export const CheckoutModal: React.FC = () => {
                         );
                       })}
                   </div>
-
-                  {appliedPromo && (
-                    <div className="flex justify-between items-center text-emerald-400 font-agrandir-semibold pt-1 border-t border-white/5">
-                      <span>Remise promo ({appliedPromo.code}) :</span>
-                      <span className="font-mono">-{discountAmount.toLocaleString('fr-FR')} FCFA</span>
-                    </div>
-                  )}
 
                   <div className="flex justify-between items-center text-white pt-2 border-t border-white/10 text-sm">
                     <strong className="font-agrandir-extrabold uppercase">Total TTC :</strong>
@@ -633,14 +752,27 @@ export const CheckoutModal: React.FC = () => {
                       <label className="block text-[10px] uppercase text-[#888] mb-1 font-agrandir-semibold">
                         {t('checkout.phone')} *
                       </label>
-                      <input
-                        type="tel"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="+225 07 00 00 00 00"
-                        required
-                        className="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-[#555] focus:outline-none focus:border-white font-mono"
-                      />
+                      <div className="flex gap-2">
+                        <select
+                          value={customerDialCode}
+                          onChange={(e) => setCustomerDialCode(e.target.value)}
+                          className="bg-[#141414] border border-white/10 rounded-xl px-2.5 py-2.5 text-xs text-white focus:outline-none focus:border-white font-mono cursor-pointer shrink-0"
+                        >
+                          {COUNTRY_DIAL_CODES.map((item) => (
+                            <option key={item.code} value={item.code}>
+                              {item.label}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="tel"
+                          value={customerPhoneNumber}
+                          onChange={(e) => setCustomerPhoneNumber(e.target.value)}
+                          placeholder="07 00 00 00 00"
+                          required
+                          className="flex-1 min-w-0 bg-[#141414] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder-[#555] focus:outline-none focus:border-white font-mono"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -653,6 +785,21 @@ export const CheckoutModal: React.FC = () => {
           {/* ===================================================================== */}
           {step === 3 && (
             <div className="space-y-5">
+              {/* Bouton de retour vers le récapitulatif */}
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-xs font-agrandir-bold tracking-wider text-neutral-200 hover:text-white transition-all uppercase cursor-pointer active:scale-95 group"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37] group-hover:-translate-x-1 transition-transform" />
+                  <span>RETOUR AU RÉCAPITULATIF</span>
+                </button>
+                <span className="text-[11px] font-agrandir-semibold text-[#888] uppercase tracking-wider font-mono">
+                  Étape 3 sur 4
+                </span>
+              </div>
+
               {/* TIROIR : SÉLECTEUR D'IDENTIFICATION */}
               <div className="rounded-2xl bg-[#0c0c0c] border border-white/10 overflow-hidden shadow-lg">
                 <button
@@ -708,8 +855,11 @@ export const CheckoutModal: React.FC = () => {
                             type="button"
                             onClick={() => {
                               setCountry(c.id as CountryOption);
-                              if (c.id === 'CI') setPaymentPhone('+225 07 ');
-                              if (c.id === 'SN') setPaymentPhone('+221 77 ');
+                              if (c.id === 'CI') setPaymentDialCode('+225');
+                              if (c.id === 'SN') setPaymentDialCode('+221');
+                              if (c.id === 'ML') setPaymentDialCode('+223');
+                              if (c.id === 'BF') setPaymentDialCode('+226');
+                              if (c.id === 'INT') setPaymentDialCode('+33');
                             }}
                             className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
                               country === c.id
@@ -761,22 +911,35 @@ export const CheckoutModal: React.FC = () => {
                 )}
               </div>
 
-              {/* Champ Unique : Numéro */}
+              {/* Champ Unique : Numéro avec liste déroulante des indicatifs */}
               <div className="p-5 rounded-2xl bg-[#0c0c0c] border border-white/10 space-y-3 shadow-lg">
                 {paymentMethod !== 'card' && paymentMethod !== 'djamo' ? (
                   <div>
                     <label className="block text-xs uppercase text-white font-agrandir-bold tracking-wider mb-2">
                       Numéro
                     </label>
-                    <div className="relative">
-                      <Smartphone className="w-4 h-4 text-[#888] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="tel"
-                        value={paymentPhone}
-                        onChange={(e) => setPaymentPhone(e.target.value)}
-                        placeholder="+225 07 00 00 00 00"
-                        className="w-full bg-[#141414] border border-white/15 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-white"
-                      />
+                    <div className="flex gap-2">
+                      <select
+                        value={paymentDialCode}
+                        onChange={(e) => setPaymentDialCode(e.target.value)}
+                        className="bg-[#141414] border border-white/15 rounded-xl px-2.5 py-3 text-xs sm:text-sm text-white font-mono focus:outline-none focus:border-white cursor-pointer shrink-0"
+                      >
+                        {COUNTRY_DIAL_CODES.map((item) => (
+                          <option key={item.code} value={item.code}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="relative flex-1 min-w-0">
+                        <Smartphone className="w-4 h-4 text-[#888] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="tel"
+                          value={paymentPhoneNumber}
+                          onChange={(e) => setPaymentPhoneNumber(e.target.value)}
+                          placeholder="07 00 00 00 00"
+                          className="w-full bg-[#141414] border border-white/15 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-white"
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -827,11 +990,11 @@ export const CheckoutModal: React.FC = () => {
           )}
 
           {/* ===================================================================== */}
-          {/* ÉTAPE 4 : CONFIRMATION & SIMULATION PASSERELLE TIERCE */}
+          {/* ÉTAPE 4 : CONFIRMATION DU PAIEMENT */}
           {/* ===================================================================== */}
           {step === 4 && (
             <div>
-              {/* CAS A : SIMULATION DE L'INTERFACE TIERCE (ex: WAVE ou ORANGE MONEY) */}
+              {/* INTERFACE DE CONFIRMATION DU PAIEMENT (WAVE / MOBILE MONEY) */}
               {isSimulatingGateway && (
                 <div className="py-4 space-y-6 text-center animate-fadeIn">
                   <div className="p-6 rounded-3xl bg-[#0f172a] border border-[#1DC3F2]/40 text-white max-w-md mx-auto shadow-2xl relative overflow-hidden">
@@ -842,7 +1005,7 @@ export const CheckoutModal: React.FC = () => {
                     </div>
 
                     <div className="text-[10px] uppercase tracking-widest text-[#1DC3F2] font-agrandir-bold mb-1">
-                      {paymentMethod.toUpperCase()} GATEWAY · CI
+                      PAIEMENT SÉCURISÉ · {paymentMethod.toUpperCase()}
                     </div>
 
                     <h3 className="font-agrandir-extrabold text-xl uppercase tracking-tight text-white mb-2">
@@ -864,7 +1027,7 @@ export const CheckoutModal: React.FC = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#888]">Compte débité :</span>
-                        <span className="text-white font-mono">{paymentPhone || customerPhone}</span>
+                        <span className="text-white font-mono">{paymentDialCode} {paymentPhoneNumber}</span>
                       </div>
                     </div>
 
@@ -889,6 +1052,18 @@ export const CheckoutModal: React.FC = () => {
                           <span>{t('checkout.simulateApproval')}</span>
                         </>
                       )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSimulatingGateway(false);
+                        setStep(3);
+                      }}
+                      className="w-full mt-3 py-3 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-semibold uppercase tracking-wider text-[#aaa] hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Retour au choix de paiement</span>
                     </button>
                   </div>
                 </div>
@@ -970,9 +1145,10 @@ export const CheckoutModal: React.FC = () => {
 
                     <button
                       onClick={handleClose}
-                      className="w-full sm:w-auto px-6 py-3.5 border border-white/20 text-[#aaa] hover:text-white rounded-full transition-colors text-xs font-agrandir-regular uppercase tracking-widest cursor-pointer"
+                      className="w-full sm:w-auto px-6 py-3.5 border border-white/20 hover:border-white text-[#aaa] hover:text-white rounded-full transition-colors text-xs font-agrandir-bold uppercase tracking-widest cursor-pointer flex items-center justify-center gap-2 active:scale-95"
                     >
-                      FERMER
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>RETOUR À L'ACCUEIL</span>
                     </button>
                   </div>
                 </div>
@@ -989,56 +1165,15 @@ export const CheckoutModal: React.FC = () => {
           <div className="p-4 sm:p-5 border-t border-white/10 bg-[#080808] sm:rounded-b-3xl">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               
-              {/* Bloc prix agrandi avec les sélecteurs de quantité intégrés */}
-              <div className="w-full min-w-0 rounded-2xl border border-[#d4af37]/30 bg-[#111111] p-3 sm:p-4 shadow-[0_8px_28px_rgba(0,0,0,0.35)]">
-                {step === 1 && (
-                  <div className="flex gap-3 overflow-x-auto pb-3 mb-3 border-b border-white/10 scrollbar-none">
-                    {categories.map((cat) => {
-                      const currentQty = quantities[cat.id] || 0;
-                      const remaining = Math.max(0, cat.quota - cat.sold);
-                      const isSoldOut = remaining <= 0;
-                      return (
-                        <div key={cat.id} className="shrink-0 min-w-[118px] rounded-xl bg-white/[0.04] border border-white/10 px-3 py-2">
-                          <div className="text-[10px] text-[#aaa] font-agrandir-semibold uppercase tracking-wide truncate mb-2">{cat.name}</div>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[9px] text-[#777]">Quantité</span>
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => handleQuantityChange(cat.id, -1)}
-                                disabled={currentQty === 0 || isSoldOut}
-                                aria-label={`Diminuer ${cat.name}`}
-                                className="w-6 h-6 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-white disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-xs cursor-pointer"
-                              >-</button>
-                              <span className="w-4 text-center font-mono text-xs font-bold text-white">{currentQty}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleQuantityChange(cat.id, 1)}
-                                disabled={isSoldOut || currentQty >= remaining}
-                                aria-label={`Augmenter ${cat.name}`}
-                                className="w-6 h-6 rounded-full bg-[#d4af37]/15 hover:bg-[#d4af37]/25 border border-[#d4af37]/40 text-[#d4af37] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center text-xs cursor-pointer"
-                              >+</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+              {/* Résumé Dynamique */}
+              <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
+                <div>
+                  <div className="text-[10px] text-[#888] uppercase tracking-wider">
+                    {totalQuantity} billet{totalQuantity > 1 ? 's' : ''} sélectionné{totalQuantity > 1 ? 's' : ''}
                   </div>
-                )}
-                <div className="flex items-center justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="text-[10px] text-[#888] uppercase tracking-wider">
-                      {totalQuantity} billet{totalQuantity > 1 ? 's' : ''} sélectionné{totalQuantity > 1 ? 's' : ''}
-                    </div>
-                    <div className="font-agrandir-extrabold text-xl sm:text-2xl text-[#d4af37] font-mono leading-tight">
-                      {finalTotalAmount.toLocaleString('fr-FR')} FCFA
-                    </div>
+                  <div className="font-agrandir-extrabold text-lg sm:text-xl text-[#d4af37] font-mono">
+                    {finalTotalAmount.toLocaleString('fr-FR')} FCFA
                   </div>
-                  {appliedPromo && (
-                    <span className="shrink-0 text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
-                      -{appliedPromo.percent}%
-                    </span>
-                  )}
                 </div>
               </div>
 
@@ -1056,15 +1191,25 @@ export const CheckoutModal: React.FC = () => {
                 )}
 
                 {step === 1 && (
-                  <button
-                    type="button"
-                    onClick={handleProceedToSummary}
-                    disabled={totalQuantity === 0}
-                    className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-lg"
-                  >
-                    <span>{t('checkout.continue')}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={handleClose}
+                      className="flex-1 sm:flex-initial px-5 py-3 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-semibold uppercase tracking-wider text-[#aaa] hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>{t('checkout.back')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleProceedToSummary}
+                      disabled={totalQuantity === 0}
+                      className="flex-1 sm:flex-initial px-8 py-3.5 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-lg active:scale-95"
+                    >
+                      <span>{t('checkout.continue')}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
 
                 {step === 2 && (

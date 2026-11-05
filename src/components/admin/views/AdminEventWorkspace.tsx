@@ -657,7 +657,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                   Demande d'impression des billets physiques
                 </h3>
                 <p className="text-xs text-neutral-400 mt-1 max-w-xl leading-relaxed">
-                  Générez les planches d'impression thermique officielles (format sécurisé Recto / Verso avec filigrane anti-fraude, talon détachable et QR code unitaire cryptographique) pour guichets et vigiles.
+                  Générez les planches d'impression officielles (format sécurisé Recto / Verso avec filigrane, talon détachable et QR code certifié) pour les guichets et vigiles.
                 </p>
               </div>
             </div>
@@ -769,17 +769,35 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] font-agrandir-semibold uppercase text-[#888] mb-1">
-                      Description &amp; Avantages de la place
-                    </label>
-                    <input
-                      type="text"
-                      value={cat.description}
-                      onChange={(e) => handleCategoryChange(cat.id, 'description', e.target.value)}
-                      placeholder="Ex: Accès loge VIP, boisson comprise, place assise..."
-                      className="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-2 text-xs text-neutral-300 focus:outline-none focus:border-white font-agrandir-regular"
-                    />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-[10px] font-agrandir-semibold uppercase text-[#888] mb-1">
+                        Description de la place (facultatif)
+                      </label>
+                      <input
+                        type="text"
+                        value={cat.description || ''}
+                        onChange={(e) => handleCategoryChange(cat.id, 'description', e.target.value)}
+                        placeholder="Ex: Emplacement privilégié, vue panoramique..."
+                        className="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-2 text-xs text-neutral-300 focus:outline-none focus:border-white font-agrandir-regular"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-agrandir-semibold uppercase text-[#888] mb-1">
+                        Avantages inclus (séparés par des virgules)
+                      </label>
+                      <input
+                        type="text"
+                        value={(cat.perks || []).join(', ')}
+                        onChange={(e) => {
+                          const perksList = e.target.value.split(',').map((p) => p.trim()).filter(Boolean);
+                          handleCategoryChange(cat.id, 'perks', perksList);
+                        }}
+                        placeholder="Ex: Entrée prioritaire, Coupe de champagne, Badge collector"
+                        className="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-2 text-xs text-neutral-300 focus:outline-none focus:border-white font-agrandir-regular"
+                      />
+                    </div>
                   </div>
 
                   {/* NOUVEAU : ZONE D'IMPORT DU DESIGN DU BILLET PAR CATÉGORIE */}

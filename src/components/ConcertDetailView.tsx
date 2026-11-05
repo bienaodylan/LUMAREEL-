@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
-import { ArrowLeft, Calendar, MapPin, ShieldCheck, Ticket, Check } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, Calendar, MapPin, ShieldCheck, Ticket, Check, X } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
 
 export const ConcertDetailView: React.FC = () => {
@@ -16,13 +16,13 @@ export const ConcertDetailView: React.FC = () => {
 
   if (!event) {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
+      <div className="w-full max-w-4xl mx-auto px-4 py-20 text-center">
         <p className="text-sm font-agrandir-regular text-[#888]">Événement non trouvé.</p>
         <button
-          onClick={() => setCurrentPage('discover')}
-          className="mt-4 px-4 py-2 text-xs font-agrandir-semibold border border-[#333] text-white"
+          onClick={() => setCurrentPage('home')}
+          className="mt-4 px-4 py-2 text-xs font-agrandir-semibold border border-[#333] text-white rounded-xl hover:border-white transition-colors"
         >
-          Retour au catalogue
+          Retour à l'accueil
         </button>
       </div>
     );
@@ -41,16 +41,30 @@ export const ConcertDetailView: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-24 sm:pt-28 pb-20 select-none font-agrandir-regular">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-20 sm:pt-24 pb-20 select-none font-agrandir-regular">
       
-      {/* Back button with rounded capsule */}
-      <button
-        onClick={() => setCurrentPage('discover')}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-agrandir-regular tracking-widest text-[#aaa] hover:text-white hover:border-white/30 transition-all mb-8 uppercase cursor-pointer backdrop-blur-sm"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" />
-        <span>{t('detail.backToCatalog')}</span>
-      </button>
+      {/* Barre de retour supérieure avec flèche et croix de fermeture */}
+      <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8 pb-3 border-b border-white/10">
+        <button
+          type="button"
+          onClick={() => setCurrentPage('home')}
+          className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
+          title="Retourner aux concerts"
+        >
+          <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
+          <span>RETOUR</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCurrentPage('home')}
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
+          title="Fermer et revenir à l'accueil"
+          aria-label="Fermer"
+        >
+          <X className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-transform duration-200" />
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
         
@@ -255,6 +269,18 @@ export const ConcertDetailView: React.FC = () => {
                 <ShieldCheck className="w-4 h-4 text-[#888]" />
                 <span>{t('detail.secureBadge')}</span>
               </div>
+            </div>
+
+            {/* Bouton de retour en bas de page pour navigation fluide */}
+            <div className="pt-4 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={() => setCurrentPage('home')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-agrandir-semibold tracking-wider text-neutral-300 hover:text-white transition-all uppercase cursor-pointer active:scale-95"
+              >
+                <ArrowLeft className="w-4 h-4 text-[#d4af37]" />
+                <span>Retourner à la programmation</span>
+              </button>
             </div>
 
           </div>

@@ -205,10 +205,10 @@ export const OrganizersView: React.FC = () => {
             <div className="p-8 bg-[#0c0c0c] border border-[#1f1f1f] space-y-4">
               <ShieldCheck className="w-8 h-8 text-[#d4af37]" />
               <h3 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight">
-                PROTOCOLE ANTI-DOUBLE SCAN
+                CONTRÔLE STRICT ANTI-DOUBLON
               </h3>
               <p className="font-agrandir-regular text-xs text-[#888] leading-relaxed">
-                Chaque billet vendu est généré avec un jeton cryptographique serveur unique. Impossible de dupliquer ou de revendre le même QR code : le scan est atomique et verrouillé instantanément.
+                Chaque billet vendu possède un QR code officiel certifié. Dès qu'un billet est scanné à l'entrée, il est immédiatement validé et ne peut plus être réutilisé.
               </p>
             </div>
 

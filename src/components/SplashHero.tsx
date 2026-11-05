@@ -281,7 +281,7 @@ export const SplashHero: React.FC = () => {
                 Fondée par le groupe ARÉEL, LUMARÉEL CO. est une agence de direction artistique et de production exécutive de concerts basée entre Abidjan et Paris.
               </p>
               <p className="text-xs font-agrandir-regular text-[#888] leading-relaxed">
-                Notre mission est d'offrir des expériences scéniques brutes, massives et immersives, propulsées par une ingénierie de billetterie cryptographique inviolable (anti-doublon, vérification temps réel en porte d'accès).
+                Notre mission est d'offrir des expériences scéniques intenses et immersives, avec une billetterie certifiée anti-fraude et un contrôle fluide aux portes d'accès.
               </p>
             </div>
 

@@ -22,7 +22,9 @@ import {
   Clock,
   Check,
   Share2,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft,
+  X
 } from 'lucide-react';
 
 import { formatDateLongFrench } from '../utils/dateUtils';
@@ -105,8 +107,31 @@ export const CustomerSpace: React.FC = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-32 select-none font-agrandir-regular">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-32 select-none font-agrandir-regular">
       
+      {/* Barre de retour supérieure */}
+      <div className="flex items-center justify-between gap-3 mb-6 pb-3 border-b border-white/10">
+        <button
+          type="button"
+          onClick={() => setCurrentPage('home')}
+          className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
+          title="Retourner à l'accueil"
+        >
+          <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
+          <span>RETOUR</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setCurrentPage('home')}
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
+          title="Fermer et revenir à l'accueil"
+          aria-label="Fermer"
+        >
+          <X className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-transform duration-200" />
+        </button>
+      </div>
+
       {/* 1. Page Header — "MES COMMANDES" */}
       <div className="mb-6 border-b border-white/10 pb-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -343,7 +368,7 @@ export const CustomerSpace: React.FC = () => {
               </h2>
             </div>
             <p className="text-xs text-[#888] leading-relaxed">
-              Cédez en toute sécurité un billet nominatif à un proche. Le QR code d'origine sera instantanément invalidé et un nouveau billet cryptographique sera réémis au nom du nouveau titulaire.
+              Transférez en toute sécurité un billet à un proche. L'ancien QR code sera immédiatement désactivé et un nouveau billet officiel sera généré au nom du nouveau titulaire.
             </p>
           </div>
 

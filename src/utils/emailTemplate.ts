@@ -339,13 +339,13 @@ export function generatePersonalizedTicketEmail(
           <strong style="color: #fff; text-transform: uppercase; display: block; margin-bottom: 4px;">CONSIGNES D'ACCÈS AU CONCERT</strong>
           • Présentez chaque QR code sur votre téléphone avec une luminosité maximale ou imprimé au format A4.<br>
           • Une pièce d’identité peut être requise lors du contrôle d'accès.<br>
-          • Chaque billet comporte une signature cryptographique à usage unique inviolable.
+          • Chaque billet comporte un QR code officiel certifié à usage unique.
         </div>
       </div>
     </div>
 
     <div class="footer">
-      LUMARÉEL CO. — Billetterie certifiée pour concerts et créations scéniques d’exception.<br>
+      LUMARÉEL CO. — Agence de AREEL GROUPE, spécialisée dans l’Organisation et la Promotion d’Événements Festifs.<br>
       Abidjan, Côte d'Ivoire · Infoline : ${event.infoline || '+225 01 53 508 210'} · conciergerie@lumareel.co
     </div>
   </div>

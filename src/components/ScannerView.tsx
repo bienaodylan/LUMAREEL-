@@ -328,7 +328,7 @@ export const ScannerView: React.FC = () => {
           serialNumber: responseData.ticket?.serialNumber || responseData.serialNumber || ticketCode,
           ticketCode: ticketCode.trim(),
           agentName,
-          reason: 'Billet conforme & signature cryptographique valide.',
+          reason: 'Billet conforme & accès autorisé.',
         };
         setActivityLog((prev) => [newEntry, ...prev]);
 
@@ -385,7 +385,7 @@ export const ScannerView: React.FC = () => {
           serialNumber: ticketCode,
           ticketCode: ticketCode.trim(),
           agentName,
-          reason: 'Absence d’enregistrement cryptographique dans la base centrale LUMARÉEL.',
+          reason: 'Billet non reconnu dans la base officielle LUMARÉEL.',
         };
         setActivityLog((prev) => [newEntry, ...prev]);
       }
@@ -630,7 +630,7 @@ export const ScannerView: React.FC = () => {
               Vérification de l'accès sécurisé...
             </h2>
             <p className="text-xs text-[#888] leading-relaxed">
-              Validation cryptographique du jeton d'accès vigile auprès du serveur central LUMARÉEL CO.
+              Vérification de l'autorisation d'accès auprès du serveur officiel LUMARÉEL CO.
             </p>
           </div>
         </div>
@@ -1138,7 +1138,7 @@ export const ScannerView: React.FC = () => {
 
         <div className="text-center pt-2">
           <p className="text-[10px] text-neutral-600">
-            LUMARÉEL CO. · Système de contrôle d'accès cryptographique inviolable
+            LUMARÉEL CO. · Système de contrôle d'accès officiel certifié
           </p>
         </div>
       </div>

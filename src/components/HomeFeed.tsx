@@ -28,9 +28,8 @@ export const HomeFeed: React.FC = () => {
   } = useApp();
 
   // Carousel state
-  const publicEvents = events.filter((e) => e.status === 'published' || e.status === 'sold_out');
-  const featuredSlides = publicEvents.filter((e) => e.isFeatured);
-  const activeSlides = featuredSlides.length > 0 ? featuredSlides : publicEvents.slice(0, 3);
+  const featuredSlides = events.filter((e) => e.isFeatured && e.status !== 'draft');
+  const activeSlides = featuredSlides.length > 0 ? featuredSlides : events.slice(0, 3);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const activeSlide = activeSlides[currentSlideIndex] || activeSlides[0];
 
@@ -111,8 +110,7 @@ const EventCardCountdown: React.FC<{
   const featuredRowRef = useRef<HTMLDivElement>(null);
   const scrollFeaturedRow = (direction: 'left' | 'right') => {
     if (featuredRowRef.current) {
-      const cardWidth = featuredRowRef.current.firstElementChild?.getBoundingClientRect().width || 420;
-      const scrollAmount = (cardWidth + 24) * (direction === 'left' ? -1 : 1);
+      const scrollAmount = direction === 'left' ? -420 : 420;
       featuredRowRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
@@ -141,7 +139,7 @@ const EventCardCountdown: React.FC<{
       {/* =========================================================================
           1. SECTION PRINCIPALE : PROGRAMMATION OFFICIELLE
          ========================================================================= */}
-      <section className="relative z-30 max-w-7xl mx-auto px-6 sm:px-12 pt-20 sm:pt-28">
+      <section className="relative z-30 w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-16 sm:pt-24">
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
           <div className="min-w-0 pr-4">
             <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white tracking-tight uppercase whitespace-nowrap overflow-hidden text-ellipsis">
@@ -149,23 +147,23 @@ const EventCardCountdown: React.FC<{
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => scrollFeaturedRow('left')} className="p-2.5 rounded-full border border-[#d4af37]/50 hover:border-[#d4af37] text-[#d4af37] hover:text-black hover:bg-[#d4af37] transition-all cursor-pointer bg-[#d4af37]/10 shadow-[0_0_16px_rgba(212,175,55,0.12)]">
+            <button onClick={() => scrollFeaturedRow('left')} className="p-2.5 rounded-full border border-white/20 hover:border-white text-neutral-300 hover:text-white transition-colors cursor-pointer bg-white/5">
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <button onClick={() => scrollFeaturedRow('right')} className="p-2.5 rounded-full border border-[#d4af37]/50 hover:border-[#d4af37] text-[#d4af37] hover:text-black hover:bg-[#d4af37] transition-all cursor-pointer bg-[#d4af37]/10 shadow-[0_0_16px_rgba(212,175,55,0.12)]">
+            <button onClick={() => scrollFeaturedRow('right')} className="p-2.5 rounded-full border border-white/20 hover:border-white text-neutral-300 hover:text-white transition-colors cursor-pointer bg-white/5">
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        <div ref={featuredRowRef} className="flex items-start gap-6 overflow-x-auto pb-6 scrollbar-none snap-x snap-mandatory pt-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+        <div ref={featuredRowRef} className="flex items-start gap-4 sm:gap-6 overflow-x-auto pb-6 scrollbar-none snap-x snap-mandatory pt-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {activeSlides.map((event, idx) => {
             const isActive = idx === currentSlideIndex;
             return (
-              <div key={event.id} onClick={() => handleSelectArtistSlide(idx)} className="w-[82vw] sm:w-[min(72vw,520px)] shrink-0 cursor-pointer group snap-start transition-all duration-300 select-none">
+              <div key={event.id} onClick={() => handleSelectArtistSlide(idx)} className="w-[76vw] sm:w-[380px] md:w-[420px] shrink-0 cursor-pointer group snap-start transition-all duration-300 select-none">
                 
                 {/* Image 16:9 sans aucun badge billetterie ou bouton superposé */}
-                <div className={`aspect-[16/9] w-full rounded-3xl overflow-hidden relative transition-all duration-300 bg-[#111111] ${isActive ? 'ring-2 ring-[#d4af37] ring-offset-2 ring-offset-black shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(212,175,55,0.35)] scale-[1.02]' : 'border border-white/10 hover:border-white/30 opacity-80 hover:opacity-100 hover:scale-[1.01]'}`}>
+                <div className={`aspect-[16/9] w-full rounded-2xl sm:rounded-3xl overflow-hidden relative transition-all duration-300 bg-[#111111] ${isActive ? 'ring-2 ring-[#d4af37] ring-offset-2 ring-offset-black shadow-[0_10px_30px_rgba(0,0,0,0.8),0_0_20px_rgba(212,175,55,0.35)] scale-[1.01]' : 'border border-white/10 hover:border-white/30 opacity-80 hover:opacity-100 hover:scale-[1.01]'}`}>
                   <img src={event.officialPoster || event.bannerImage} alt={event.title} referrerPolicy="no-referrer" className="w-full h-full object-cover filter brightness-[0.95] group-hover:brightness-105 group-hover:scale-105 transition-all duration-500 ease-out" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
                 </div>
@@ -177,7 +175,7 @@ const EventCardCountdown: React.FC<{
                       {event.artist} EN CONCERT
                     </h3>
                     <p className="text-xs font-agrandir-regular text-neutral-300 truncate mt-1">
-                      <strong className="font-agrandir-extrabold text-white">{event.venue}</strong> · <strong className="font-agrandir-extrabold text-white">{formatDateLong(event.date, language)}</strong> · <strong className="font-agrandir-extrabold text-white">{event.time || 'Heure à confirmer'}</strong>
+                      <strong className="font-agrandir-extrabold text-white">{event.venue}</strong> · <strong className="font-agrandir-extrabold text-white">{formatDateLong(event.date, language)}</strong>
                     </p>
                   </div>
 
@@ -205,11 +203,11 @@ const EventCardCountdown: React.FC<{
       {/* =========================================================================
           2. SECTION : BLOC DE NAVIGATION RAPIDE
          ========================================================================= */}
-      <section className="max-w-7xl mx-auto px-6 sm:px-12 pt-6 sm:pt-10 relative z-20">
+      <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-6 sm:pt-10 relative z-20">
         <div className="rounded-[24px] bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/10 p-2 shadow-2xl">
           <div className="flex flex-col">
 
-            {/* Menu 1 : Commandes */}
+            {/* Menu 1 : Réservation / Commandes */}
             <button 
               onClick={() => setCurrentPage('client_space')} 
               className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
@@ -286,8 +284,8 @@ const EventCardCountdown: React.FC<{
       {/* =========================================================================
           3. SECTION : ARCHIVES
          ========================================================================= */}
-      <section className="max-w-7xl mx-auto px-6 sm:px-12 pt-16 sm:pt-20">
-        <div className="mb-8 pb-4 border-b border-white/10 flex items-center justify-between">
+      <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-14 sm:pt-20">
+        <div className="mb-6 pb-4 border-b border-white/10 flex items-center justify-between">
           <div>
             <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight uppercase">
               {t('home.archives')}
@@ -297,11 +295,11 @@ const EventCardCountdown: React.FC<{
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-5 pb-5 -mx-6 px-6 md:mx-0 md:px-0 md:grid md:grid-cols-3 md:gap-6 scrollbar-none">
-          {(archives || []).filter((item) => item.isPublished).slice(0, 3).map((item) => {
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 sm:gap-5 pb-5 scrollbar-none md:grid md:grid-cols-3 md:gap-6">
+          {(archives || []).slice(0, 3).map((item) => {
             const safeCover = item.coverImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg';
             return (
-              <div key={item.id} onClick={() => setCurrentPage('archive')} className="w-[82vw] md:w-auto shrink-0 snap-start group cursor-pointer flex flex-col justify-between">
+              <div key={item.id} onClick={() => setCurrentPage('archive')} className="w-[76vw] sm:w-[320px] md:w-auto shrink-0 snap-start group cursor-pointer flex flex-col justify-between">
                 <div className="aspect-[16/9] w-full rounded-2xl sm:rounded-3xl overflow-hidden relative bg-[#111111] border border-white/15 group-hover:border-white/40 transition-all duration-300 shadow-xl group-hover:scale-[1.02]">
                   <img src={safeCover} alt={item.title} referrerPolicy="no-referrer" className="w-full h-full object-cover object-center filter brightness-[0.88] group-hover:brightness-100 group-hover:scale-105 transition-all duration-500" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
@@ -339,8 +337,8 @@ const EventCardCountdown: React.FC<{
           4. SECTION : ACTUALITÉS
          ========================================================================= */}
       {news && news.length > 0 && (
-        <section className="max-w-7xl mx-auto px-6 sm:px-12 pt-16 sm:pt-20">
-          <div className="mb-8 pb-4 border-b border-white/10 flex items-center justify-between">
+        <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-14 sm:pt-20">
+          <div className="mb-6 pb-4 border-b border-white/10 flex items-center justify-between">
             <div>
               <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight uppercase">
                 {t('nav.news')}
@@ -350,9 +348,9 @@ const EventCardCountdown: React.FC<{
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          <div className="flex overflow-x-auto snap-x snap-mandatory gap-5 pb-5 -mx-6 px-6 md:mx-0 md:px-0 md:grid md:grid-cols-3 md:gap-6 scrollbar-none">
+          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 sm:gap-5 pb-5 scrollbar-none md:grid md:grid-cols-3 md:gap-6">
             {news.slice(0, 3).map((article: any) => (
-              <article key={article.id} onClick={() => setCurrentPage('news')} className="w-[82vw] md:w-auto shrink-0 snap-start bg-[#0b0b0b] border border-white/10 rounded-3xl p-6 hover:border-white/30 transition-all cursor-pointer flex flex-col justify-between shadow-xl">
+              <article key={article.id} onClick={() => setCurrentPage('news')} className="w-[76vw] sm:w-[320px] md:w-auto shrink-0 snap-start bg-[#0b0b0b] border border-white/10 rounded-3xl p-6 hover:border-white/30 transition-all cursor-pointer flex flex-col justify-between shadow-xl">
                 <div>
                   <div className="flex items-center justify-between text-[10px] font-agrandir-regular tracking-wider uppercase text-[#777] mb-3">
                     <span className="text-[#d4af37] font-agrandir-semibold">{article.category}</span>

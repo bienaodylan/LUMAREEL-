@@ -24,7 +24,7 @@ export const PartnersView: React.FC = () => {
     {
       category: 'INFRASTRUCTURE & TÉLÉCOM',
       items: [
-        { name: 'GENIUSPAY CI', role: 'Passerelle de paiement sécurisée et mobile money régional' },
+        { name: 'GENIUSPAY CI', role: 'Solution de paiement sécurisée et Mobile Money régional' },
         { name: 'ORANGE CÔTE D’IVOIRE', role: 'Connectivité haut débit dédiée aux terminaux de contrôle' },
         { name: 'SOFITEL HÔTEL IVOIRE', role: 'Palais des Congrès — Scène de prestige Abidjan' },
       ],

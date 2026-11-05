@@ -22,9 +22,9 @@ export const translations = {
     'home.minutes': 'MINUTES',
     'home.seconds': 'SECONDES',
     'home.quickNav': 'NAVIGATION RAPIDE',
-    'home.bookingsCatalog': 'Mes commandes',
-    'home.archives': 'Archives',
-    'home.newsEditions': 'Actualité',
+    'home.bookingsCatalog': 'Réservation',
+    'home.archives': 'Archive',
+    'home.newsEditions': 'Actualités',
     'home.profileSettings': 'Mon Profil & Paramètres',
     'home.viewImages': 'Voir les images',
     'home.readRelease': 'LIRE LE COMMUNIQUÉ',
@@ -154,7 +154,7 @@ export const translations = {
     'checkout.merchant': 'Marchand :',
     'checkout.merchantName': 'LUMARÉEL CO. · AREEL GROUPE',
     'checkout.simulationInstruction': 'Veuillez valider le débit sur votre application ou par notification mobile.',
-    'checkout.simulateApproval': 'Simuler la confirmation du paiement',
+    'checkout.simulateApproval': 'Confirmer et valider le paiement',
     'checkout.orderSuccess': 'PAIEMENT CONFIRMÉ & BILLETS ÉMIS',
     'checkout.ticketsReady': 'Vos billets certifiés sont disponibles',
     'checkout.viewEmail': 'Consulter mon e-mail de confirmation',
@@ -163,7 +163,7 @@ export const translations = {
 
     // Footer
     'footer.description': 'Agence de AREEL GROUPE, spécialisée dans l’Organisation et la Promotion d’Événements Festifs.',
-    'footer.security': 'BILLETTERIE SÉCURISÉE · PROTOCOLE CRYPTOGRAPHIQUE',
+    'footer.security': 'BILLETTERIE OFFICIELLE SÉCURISÉE',
   },
 
   en: {
@@ -187,8 +187,8 @@ export const translations = {
     'home.minutes': 'MINUTES',
     'home.seconds': 'SECONDS',
     'home.quickNav': 'QUICK NAVIGATION',
-    'home.bookingsCatalog': 'My Orders',
-    'home.archives': 'Archives',
+    'home.bookingsCatalog': 'Reservation',
+    'home.archives': 'Archive',
     'home.newsEditions': 'News',
     'home.profileSettings': 'My Profile & Settings',
     'home.viewImages': 'View images',
@@ -319,7 +319,7 @@ export const translations = {
     'checkout.merchant': 'Merchant:',
     'checkout.merchantName': 'LUMARÉEL CO. · AREEL GROUPE',
     'checkout.simulationInstruction': 'Please authorize the payment on your mobile app or via push prompt.',
-    'checkout.simulateApproval': 'Simulate Payment Approval',
+    'checkout.simulateApproval': 'Confirm and Validate Payment',
     'checkout.orderSuccess': 'PAYMENT CONFIRMED & TICKETS ISSUED',
     'checkout.ticketsReady': 'Your certified tickets are ready',
     'checkout.viewEmail': 'View my confirmation email',
@@ -328,7 +328,7 @@ export const translations = {
 
     // Footer
     'footer.description': 'Agency of AREEL GROUPE, specializing in Festive Event Organization and Promotion.',
-    'footer.security': 'SECURE TICKETING · CRYPTOGRAPHIC PROTOCOL',
+    'footer.security': 'OFFICIAL SECURE TICKETING',
   }
 };
 

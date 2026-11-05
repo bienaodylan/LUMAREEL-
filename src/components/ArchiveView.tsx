@@ -113,15 +113,15 @@ export const ArchiveView: React.FC = () => {
                 return (
                   <div
                     key={item.id}
-                    className="p-3 bg-[#0d0d0d] border border-white/10 rounded-2xl flex flex-col space-y-2.5 shadow-lg"
+                    className="p-4 bg-[#0d0d0d] border border-white/10 rounded-[28px] flex flex-col space-y-3 shadow-xl"
                   >
                     {/* Lecteur Vidéo Intégré sur mobile si en cours de lecture */}
                     {isPlaying && item.youtubeEmbedUrl ? (
-                      <div className="aspect-[16/9] w-full rounded-xl overflow-hidden relative bg-black border border-white/15">
+                      <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden relative bg-black border border-white/15">
                         <iframe
                           src={item.youtubeEmbedUrl}
                           title={item.title}
-                          className="w-full h-full border-0"
+                          className="w-full h-full border-0 rounded-2xl"
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen
                         />
@@ -138,7 +138,7 @@ export const ArchiveView: React.FC = () => {
                         {/* Miniature 16:9 avec durée et barre rouge */}
                         <div
                           onClick={() => handlePlayVideo(item)}
-                          className="w-36 aspect-[16/9] rounded-xl overflow-hidden relative bg-black shrink-0 cursor-pointer border border-white/10 group"
+                          className="w-36 aspect-[16/9] rounded-2xl overflow-hidden relative bg-black shrink-0 cursor-pointer border border-white/10 group"
                         >
                           <img
                             src={safeCover}
@@ -189,7 +189,7 @@ export const ArchiveView: React.FC = () => {
                     <div className="flex items-center gap-2 pt-2 border-t border-white/5">
                       <button
                         onClick={() => handleOpenModal(item, 'photos', 0)}
-                        className="flex-1 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-[#d4af37] text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 border border-[#d4af37]/30 transition-colors cursor-pointer"
+                        className="flex-1 py-2 rounded-full bg-white/5 hover:bg-white/10 text-[#d4af37] text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 border border-[#d4af37]/30 transition-colors cursor-pointer"
                       >
                         <ImageIcon className="w-3.5 h-3.5 text-[#d4af37]" />
                         <span>Voir les images ({photoList.length})</span>
@@ -197,7 +197,7 @@ export const ArchiveView: React.FC = () => {
 
                       <button
                         onClick={() => handlePlayVideo(item)}
-                        className="px-3 py-1.5 rounded-xl bg-white text-black text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center gap-1 hover:bg-neutral-200 transition-colors cursor-pointer"
+                        className="px-4 py-2 rounded-full bg-white text-black text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center gap-1 hover:bg-neutral-200 transition-colors cursor-pointer"
                       >
                         <Play className="w-3 h-3 fill-current" />
                         <span>Lire</span>
@@ -223,14 +223,14 @@ export const ArchiveView: React.FC = () => {
                 return (
                   <div
                     key={item.id}
-                    className="p-6 sm:p-8 rounded-3xl bg-[#0c0c0c]/90 border border-white/10 hover:border-white/20 transition-all shadow-2xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-start group"
+                    className="p-6 sm:p-8 rounded-[32px] sm:rounded-[36px] bg-[#0c0c0c]/90 border border-white/10 hover:border-white/20 transition-all shadow-2xl grid grid-cols-1 lg:grid-cols-12 gap-8 items-start group"
                   >
                   
                   {/* ----------------- GAUCHE : BLOC MÉDIA (CADRE 16:9) ----------------- */}
                   <div className="lg:col-span-7 flex flex-col space-y-4">
                     
                     {/* Cadre 16:9 immersif avec bords arrondis */}
-                    <div className="aspect-[16/9] w-full rounded-2xl sm:rounded-3xl overflow-hidden relative bg-[#111111] border border-white/15 shadow-2xl">
+                    <div className="aspect-[16/9] w-full rounded-3xl sm:rounded-[32px] overflow-hidden relative bg-[#111111] border border-white/15 shadow-2xl">
                       
                       {/* MODE 1 : LECTEUR VIDÉO */}
                       {currentMode === 'video' && (
@@ -241,7 +241,7 @@ export const ArchiveView: React.FC = () => {
                               <iframe
                                 src={item.youtubeEmbedUrl}
                                 title={item.title}
-                                className="w-full h-full border-0 rounded-2xl sm:rounded-3xl"
+                                className="w-full h-full border-0 rounded-3xl sm:rounded-[32px]"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowFullScreen
                               />
@@ -470,7 +470,7 @@ export const ArchiveView: React.FC = () => {
       {modalItem && (
         <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 sm:p-8 animate-fadeIn">
           
-          <div className="relative w-full max-w-5xl bg-[#111] border border-white/20 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+          <div className="relative w-full max-w-5xl bg-[#111] border border-white/20 rounded-[32px] sm:rounded-[36px] overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
             
             {/* Modal Header */}
             <div className="p-4 sm:p-6 border-b border-white/10 flex items-center justify-between">
@@ -495,11 +495,11 @@ export const ArchiveView: React.FC = () => {
             {/* Modal Content */}
             <div className="p-4 sm:p-6 flex-1 flex flex-col justify-center items-center overflow-y-auto">
               {modalItem.mode === 'video' ? (
-                <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden bg-black shadow-2xl">
+                <div className="aspect-[16/9] w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-black shadow-2xl">
                   <iframe
                     src={modalItem.archive.youtubeEmbedUrl || `https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?autoplay=1&rel=0`}
                     title={modalItem.archive.title}
-                    className="w-full h-full border-0"
+                    className="w-full h-full border-0 rounded-2xl sm:rounded-3xl"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
@@ -509,7 +509,7 @@ export const ArchiveView: React.FC = () => {
                   <img
                     src={(modalItem.archive.photos && modalItem.archive.photos[modalItem.photoIndex || 0]) || modalItem.archive.coverImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg'}
                     alt={modalItem.archive.title}
-                    className="max-h-[60vh] w-auto object-contain rounded-2xl border border-white/10"
+                    className="max-h-[60vh] w-auto object-contain rounded-2xl sm:rounded-3xl border border-white/10"
                   />
                   <div className="text-xs text-[#888] font-mono mt-3">
                     Photo {(modalItem.photoIndex || 0) + 1} sur {(modalItem.archive.photos || []).length}

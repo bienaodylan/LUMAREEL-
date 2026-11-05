@@ -506,7 +506,7 @@ function createFallbackTicketCanvas(ticket: PrintTicketItem): string {
 
   ctx.fillStyle = '#666666';
   ctx.font = '22px sans-serif';
-  ctx.fillText('BILLETTERIE CERTIFIÉE · PROTOCOLE CRYPTOGRAPHIQUE SÉCURISÉ', 70, 450);
+  ctx.fillText('BILLETTERIE OFFICIELLE CERTIFIÉE · ACCÈS SÉCURISÉ', 70, 450);
 
   return canvas.toDataURL('image/png');
 }

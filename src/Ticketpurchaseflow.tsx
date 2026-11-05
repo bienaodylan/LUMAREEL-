@@ -388,53 +388,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
           );
         })}
       </ul>
-
-      <div className="mt-6">
-        <label htmlFor="promo-code" className="block text-sm font-agrandir-bold mb-2">
-          Code promo
-        </label>
-        {promo ? (
-          <div className="flex items-center justify-between rounded-xl border border-[#d4af37]/40 px-4 min-h-12">
-            <span className="text-sm">
-              <span className="font-agrandir-bold">{promo.code}</span> : −{promo.percent} %
-            </span>
-            <button type="button" onClick={removePromo} className={`text-xs text-neutral-400 underline min-h-11 px-2 ${focusRing}`}>
-              Retirer
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <input
-              id="promo-code"
-              value={promoInput}
-              onChange={(e) => setPromoInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  void applyPromo();
-                }
-              }}
-              autoCapitalize="characters"
-              autoComplete="off"
-              placeholder="Saisissez votre code"
-              className={`flex-1 min-w-0 min-h-12 rounded-xl bg-transparent border border-white/20 px-4 text-sm placeholder:text-neutral-600 ${focusRing}`}
-            />
-            <button
-              type="button"
-              onClick={() => void applyPromo()}
-              disabled={isCheckingPromo || !promoInput.trim()}
-              className={`px-5 min-h-12 rounded-xl border border-white/30 text-sm font-agrandir-bold disabled:opacity-40 ${focusRing}`}
-            >
-              {isCheckingPromo ? <Loader2 className="w-4 h-4 animate-spin" aria-label="Vérification" /> : 'Appliquer'}
-            </button>
-          </div>
-        )}
-        {promoMessage && (
-          <p className={`mt-2 text-xs ${promoMessage.ok ? 'text-emerald-400' : 'text-red-400'}`} role="status">
-            {promoMessage.text}
-          </p>
-        )}
-      </div>
     </div>
   );
 
@@ -490,18 +443,6 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
         </ul>
 
         <dl className="mt-3 space-y-1.5 text-sm">
-          {totals.discount > 0 && (
-            <>
-              <div className="flex justify-between text-neutral-400">
-                <dt>Sous-total</dt>
-                <dd className="tabular-nums">{money(totals.subtotal)}</dd>
-              </div>
-              <div className="flex justify-between text-emerald-400">
-                <dt>Code {promo?.code}</dt>
-                <dd className="tabular-nums">−{money(totals.discount)}</dd>
-              </div>
-            </>
-          )}
           <div className="flex justify-between font-agrandir-extrabold text-lg pt-1">
             <dt>Total</dt>
             <dd className="tabular-nums">{money(totals.total)}</dd>
@@ -616,11 +557,17 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
             Numéro {method?.name}
           </label>
           <div className="flex gap-2">
-            {country.dialCode && (
-              <span className="min-h-12 px-3 rounded-xl border border-white/20 flex items-center text-sm text-neutral-300">
-                {country.dialCode}
-              </span>
-            )}
+            <select
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+              className={`min-h-12 px-3 rounded-xl border border-white/20 bg-black text-sm text-neutral-200 cursor-pointer ${focusRing}`}
+            >
+              {PAYMENT_COUNTRIES.filter((c) => c.dialCode).map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} ({c.dialCode})
+                </option>
+              ))}
+            </select>
             <input
               id="pay-phone"
               value={phone}
@@ -764,12 +711,17 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
   const barAction = step === 1 ? goToRecap : step === 2 ? goToPayment : goToProvider;
   const barDisabled = step === 1 && totals.count === 0;
 
-  const canGoBack = (step === 2 || step === 3) && !isExpired;
+  const canGoBack = !isExpired && (step === 2 || step === 3 || (step === 1 && !!onClose));
   const goBack = () => {
     setShowErrors(false);
     setNotice('');
-    if (step === 2) backToTickets();
-    else if (step === 3) setStep(2);
+    if (step === 1) {
+      if (onClose) onClose();
+    } else if (step === 2) {
+      backToTickets();
+    } else if (step === 3) {
+      setStep(2);
+    }
   };
 
   return (
@@ -780,9 +732,9 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
             <button
               type="button"
               onClick={goBack}
-              className={`flex items-center gap-1 -ml-2 px-2 min-h-11 text-sm text-neutral-300 ${focusRing}`}
+              className={`flex items-center gap-1.5 -ml-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 min-h-10 text-xs font-agrandir-bold tracking-wider text-neutral-200 hover:text-white uppercase transition-all ${focusRing}`}
             >
-              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+              <ChevronLeft className="w-4 h-4 text-[#d4af37]" aria-hidden="true" />
               Retour
             </button>
           ) : (
