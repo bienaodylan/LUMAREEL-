@@ -51,13 +51,21 @@ export const AuthModal: React.FC = () => {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const rawResponse = await res.text();
+      let data: any;
+      try { data = JSON.parse(rawResponse); } catch { throw new Error(`Réponse serveur invalide (HTTP ${res.status}). Vérifiez les routes API Vercel.`); }
 
       if (!res.ok || !data.success || !data.user) {
         throw new Error(data.error || 'Erreur lors de l’authentification.');
       }
 
       const loggedUser = data.user;
+      if (mode === 'register' && data.requiresEmailConfirmation) {
+        showToast('Compte créé. Consultez votre e-mail pour confirmer votre inscription avant de vous connecter.', 'success');
+        setMode('login');
+        setPassword('');
+        return;
+      }
 
       // Synchronisation optionnelle en tâche de fond avec Supabase (si configuré)
       if (isSupabaseConfigured) {
