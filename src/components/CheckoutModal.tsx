@@ -707,7 +707,7 @@ export const CheckoutModal: React.FC = () => {
                   </div>
 
                   <div className="flex justify-between items-center text-white pt-2 border-t border-white/10 text-sm">
-                    <strong className="font-agrandir-extrabold uppercase">Total TTC :</strong>
+                    <strong className="font-agrandir-extrabold uppercase">Total</strong>
                     <strong className="font-mono text-[#d4af37] text-base">{finalTotalAmount.toLocaleString('fr-FR')} FCFA</strong>
                   </div>
                 </div>
@@ -837,11 +837,7 @@ export const CheckoutModal: React.FC = () => {
                 {/* Tiroir déroulant */}
                 {isIdentityDrawerOpen && (
                   <div className="p-4 border-t border-white/10 bg-[#080808] space-y-4">
-                    {/* Territoire */}
                     <div>
-                      <div className="text-[9px] font-agrandir-bold tracking-widest text-[#888] uppercase mb-2">
-                        Territoire
-                      </div>
                       <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                         {[
                           { id: 'CI', flag: '🇨🇮', label: 'Côte d’Ivoire' },
