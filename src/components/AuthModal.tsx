@@ -11,8 +11,23 @@ export const AuthModal: React.FC = () => {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   if (!isAuthModalOpen) return null;
+
+
+  const handlePasswordReset = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) { showToast('Saisissez votre e-mail ci-dessus.', 'error'); return; }
+    if (!isSupabaseConfigured) { showToast('Service de connexion indisponible.', 'error'); return; }
+    setIsResettingPassword(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, { redirectTo: window.location.origin + '/' });
+      if (error) throw error;
+      showToast('Si ce compte existe, un e-mail de réinitialisation a été envoyé. Vérifiez vos spams.', 'success');
+    } catch (err: any) { showToast(err.message || 'Impossible d’envoyer le lien.', 'error'); }
+    finally { setIsResettingPassword(false); }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
