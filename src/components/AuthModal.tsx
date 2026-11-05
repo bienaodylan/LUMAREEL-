@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { X, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, Sparkles, KeyRound } from 'lucide-react';
+import { X, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, showToast, checkoutEvent, setCheckoutEvent } = useApp();
@@ -36,71 +36,45 @@ export const AuthModal: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
-      const payload: any = {
-        email: cleanEmail,
-        password,
-      };
+      // Auth Supabase natif : pas de proxy API fragile entre le navigateur et Auth.
+      if (!isSupabaseConfigured) throw new Error('Authentification indisponible : configurez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY.');
+
       if (mode === 'register') {
-        payload.name = name.trim();
+        const { data, error } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+          options: { data: { name: name.trim() } },
+        });
+        if (error) throw new Error(error.message);
+        if (!data.user) throw new Error('Supabase n’a pas créé le compte.');
+        if (!data.session) {
+          showToast('Compte créé. Vérifiez votre e-mail pour confirmer l’inscription, puis connectez-vous.', 'success');
+          setMode('login');
+          setPassword('');
+          return;
+        }
+        const user = { id: data.user.id, email: data.user.email || cleanEmail, name: name.trim(), role: cleanEmail === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer', emailVerified: Boolean(data.user.email_confirmed_at), createdAt: data.user.created_at };
+        setCurrentUser(user as any);
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+        if (error) {
+          if (/email not confirmed/i.test(error.message)) throw new Error('Confirmez votre adresse e-mail avant de vous connecter.');
+          throw new Error('E-mail ou mot de passe incorrect.');
+        }
+        if (!data.user) throw new Error('Connexion impossible.');
+        const user = { id: data.user.id, email: data.user.email || cleanEmail, name: String(data.user.user_metadata?.name || cleanEmail.split('@')[0]), role: cleanEmail === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer', emailVerified: Boolean(data.user.email_confirmed_at), createdAt: data.user.created_at };
+        setCurrentUser(user as any);
       }
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const rawResponse = await res.text();
-      let data: any;
-      try { data = JSON.parse(rawResponse); } catch { throw new Error(`Réponse serveur invalide (HTTP ${res.status}). Vérifiez les routes API Vercel.`); }
-
-      if (!res.ok || !data.success || !data.user) {
-        throw new Error(data.error || 'Erreur lors de l’authentification.');
-      }
-
-      const loggedUser = data.user;
-      if (mode === 'register' && data.requiresEmailConfirmation) {
-        showToast('Compte créé. Consultez votre e-mail pour confirmer votre inscription avant de vous connecter.', 'success');
-        setMode('login');
-        setPassword('');
-        return;
-      }
-
-      // Conserver la session renvoyée par l'API dans le client Supabase.
-      if (isSupabaseConfigured && data.session) {
-        const { error: sessionError } = await supabase.auth.setSession(data.session);
-        if (sessionError) console.warn('[Supabase Session]', sessionError.message);
-      }
-
-      // Mise à jour de la session utilisateur dans le contexte
-      setCurrentUser(loggedUser);
       setIsAuthModalOpen(false);
-
-      const isSuperAdmin = loggedUser.role === 'super_admin' || cleanEmail === 'bienaodylan428@gmail.com';
-      showToast(
-        isSuperAdmin
-          ? `Bienvenue, ${loggedUser.name}. Espace Direction & Administration activé.`
-          : `Bienvenue, ${loggedUser.name}. Connexion réussie.`,
-        'success'
-      );
-
-      // Si l'utilisateur était en train de réserver, reprendre la commande
-      if (checkoutEvent) {
-        setCheckoutEvent(checkoutEvent);
-      }
+      const isSuperAdmin = cleanEmail === 'bienaodylan428@gmail.com';
+      showToast(isSuperAdmin ? 'Bienvenue. Espace Direction & Administration activé.' : 'Connexion réussie.', 'success');
+      if (checkoutEvent) setCheckoutEvent(checkoutEvent);
     } catch (err: any) {
       showToast(err.message || 'Échec de connexion.', 'error');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleFillAdminCredentials = () => {
-    setEmail('bienaodylan428@gmail.com');
-    setPassword('DylanAdmin2026!');
-    setMode('login');
-    showToast('Identifiants Fondateur pré-remplis.', 'info');
   };
 
   return (
@@ -139,29 +113,6 @@ export const AuthModal: React.FC = () => {
             ? 'Accédez à vos billets officiels, commandes passées ou à votre espace d’administration.'
             : 'Créez votre compte en quelques secondes pour réserver vos places et recevoir vos billets sécurisés.'}
         </p>
-
-        {/* Raccourci Compte Fondateur (Admin) */}
-        <div className="mb-5 p-3 rounded-2xl bg-[#141414] border border-[#d4af37]/25 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <KeyRound className="w-4 h-4 text-[#d4af37] shrink-0" />
-            <div className="min-w-0">
-              <div className="text-[10px] text-[#d4af37] font-agrandir-bold uppercase tracking-wider">
-                COMPTE ADMIN FONDATEUR
-              </div>
-              <div className="text-[11px] text-[#aaa] truncate font-mono">
-                bienaodylan428@gmail.com
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleFillAdminCredentials}
-            className="px-2.5 py-1.5 rounded-full bg-[#d4af37]/15 hover:bg-[#d4af37]/30 border border-[#d4af37]/40 text-[10px] font-agrandir-bold text-[#d4af37] hover:text-white transition-all cursor-pointer whitespace-nowrap active:scale-95"
-            title="Pré-remplir les identifiants d'administration"
-          >
-            Remplir
-          </button>
-        </div>
 
         {/* Formulaire Authentification */}
         <form onSubmit={handleSubmit} className="space-y-4">
