@@ -128,6 +128,9 @@ class LumareelDatabase {
           for (const u of list) {
             if (u.email && u.email.toLowerCase() === 'bienaodylan428@gmail.com') {
               u.role = 'super_admin';
+              if (u.name && u.name.includes('Directeur')) {
+                u.name = 'Dylan B.';
+              }
               if (!u.passwordHash) {
                 u.passwordHash = hashPassword('DylanAdmin2026!');
               }
@@ -323,7 +326,7 @@ class LumareelDatabase {
     const adminUser: User = {
       id: 'usr_admin_01',
       email: 'bienaodylan428@gmail.com',
-      name: 'Dylan B. (Directeur Artistique & Fondateur)',
+      name: 'Dylan B.',
       role: 'super_admin',
       emailVerified: true,
       createdAt: '2026-01-10T00:00:00Z',
@@ -730,7 +733,7 @@ class LumareelDatabase {
 
     // Initialisation automatique du compte administrateur fondateur si première connexion
     if (!user && cleanEmail === 'bienaodylan428@gmail.com') {
-      user = this.registerUser('Dylan B. (Directeur Artistique & Fondateur)', cleanEmail, 'super_admin', password);
+      user = this.registerUser('Dylan B.', cleanEmail, 'super_admin', password);
       return { success: true, user: this.sanitizeUser(user) };
     }
 
@@ -781,7 +784,7 @@ class LumareelDatabase {
 
     const isFounder = cleanEmail === 'bienaodylan428@gmail.com';
     const assignedRole = isFounder ? 'super_admin' : role;
-    const assignedName = isFounder ? (name || 'Dylan B. (Directeur Artistique & Fondateur)') : name;
+    const assignedName = isFounder ? (name || 'Dylan B.') : name;
     const defaultPassword = isFounder ? 'DylanAdmin2026!' : 'Lumareel2026!';
 
     const user: User = {

@@ -146,13 +146,7 @@ export const AuthModal: React.FC = () => {
       setCurrentUser(authenticatedUser);
       setIsAuthModalOpen(false);
 
-      const isSuperAdmin = authenticatedUser.role === 'super_admin' || cleanEmail === 'bienaodylan428@gmail.com';
-      showToast(
-        isSuperAdmin
-          ? `Bienvenue, ${authenticatedUser.name}. Espace Direction & Administration activé.`
-          : `Bienvenue, ${authenticatedUser.name}. Connexion réussie.`,
-        'success'
-      );
+      showToast(`Bienvenue, ${authenticatedUser.name}. Connexion réussie.`, 'success');
 
       if (checkoutEvent) setCheckoutEvent(checkoutEvent);
     } catch (err: any) {
@@ -160,13 +154,6 @@ export const AuthModal: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleFillAdminCredentials = () => {
-    setEmail('bienaodylan428@gmail.com');
-    setPassword('DylanAdmin2026!');
-    setMode('login');
-    showToast('Identifiants Fondateur pré-remplis.', 'info');
   };
 
   return (
@@ -198,36 +185,13 @@ export const AuthModal: React.FC = () => {
           )}
         </div>
         <h2 className="font-agrandir-extrabold text-2xl text-white uppercase tracking-tight mb-2">
-          {mode === 'login' ? 'CONNEXION CLIENT & ADMIN' : 'CRÉER UN COMPTE'}
+          {mode === 'login' ? 'CONNEXION' : 'CRÉER UN COMPTE'}
         </h2>
         <p className="text-[#888] text-xs mb-5">
           {mode === 'login'
-            ? 'Accédez à vos billets officiels, commandes passées ou à votre console d’administration.'
+            ? 'Accédez à vos billets officiels et commandes passées.'
             : 'Créez votre compte en quelques secondes pour réserver vos places et recevoir vos billets sécurisés.'}
         </p>
-
-        {/* Raccourci Compte Fondateur (Admin) */}
-        <div className="mb-5 p-3 rounded-2xl bg-[#141414] border border-[#d4af37]/25 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <KeyRound className="w-4 h-4 text-[#d4af37] shrink-0" />
-            <div className="min-w-0">
-              <div className="text-[10px] text-[#d4af37] font-agrandir-bold uppercase tracking-wider">
-                COMPTE ADMIN FONDATEUR
-              </div>
-              <div className="text-[11px] text-[#aaa] truncate font-mono">
-                bienaodylan428@gmail.com
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={handleFillAdminCredentials}
-            className="px-2.5 py-1.5 rounded-full bg-[#d4af37]/15 hover:bg-[#d4af37]/30 border border-[#d4af37]/40 text-[10px] font-agrandir-bold text-[#d4af37] hover:text-white transition-all cursor-pointer whitespace-nowrap active:scale-95"
-            title="Pré-remplir les identifiants d'administration"
-          >
-            Remplir
-          </button>
-        </div>
 
         {/* Formulaire Authentification */}
         <form onSubmit={handleSubmit} className="space-y-4">

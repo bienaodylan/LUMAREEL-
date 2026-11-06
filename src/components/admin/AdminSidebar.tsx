@@ -221,12 +221,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             </div>
             <ChevronRight className="w-3.5 h-3.5 text-[#666]" />
           </button>
-
-          {/* Admin Identity pill */}
-          <div className="flex items-center justify-between px-2 pt-2 text-[10px] text-[#666]">
-            <span>SUPER ADMIN</span>
-            <span className="text-[#888]">v2.4 PRO</span>
-          </div>
         </div>
       </aside>
     </>

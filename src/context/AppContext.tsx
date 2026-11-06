@@ -344,7 +344,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const user = {
           id: authUser.id,
           email,
-          name: profile?.name || authUser.user_metadata?.name || (isSuperAdmin ? 'Dylan B. (Directeur Artistique & Fondateur)' : email.split('@')[0]),
+          name: profile?.name || authUser.user_metadata?.name || (isSuperAdmin ? 'Dylan B.' : email.split('@')[0]),
           role,
           emailVerified: Boolean(authUser.email_confirmed_at) || isSuperAdmin,
           createdAt: authUser.created_at,

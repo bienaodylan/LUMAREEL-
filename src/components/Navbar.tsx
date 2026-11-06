@@ -110,18 +110,6 @@ export const Navbar: React.FC = () => {
             <span className="text-xs font-agrandir-semibold tracking-wide">
               {currentUser?.name || t('nav.profile')}
             </span>
-            {isSuperAdmin && (
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentPage('admin');
-                }}
-                className="text-[9px] font-agrandir-extrabold text-black bg-[#d4af37] hover:bg-[#e6c158] px-2 py-0.5 rounded-full uppercase tracking-wider transition-all cursor-pointer shadow-sm hover:scale-105"
-                title="Accéder au panneau d'administration"
-              >
-                Admin
-              </span>
-            )}
           </button>
 
           {/* Sélecteur de langue fonctionnel (Français / Anglais) */}

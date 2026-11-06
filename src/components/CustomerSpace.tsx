@@ -553,10 +553,33 @@ export const CustomerSpace: React.FC = () => {
               Présentez cet écran avec luminosité maximale au portillon d'accès.
             </p>
 
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <a
+                href={modalQrCodeUrl}
+                download={`QR_${selectedTicketForQr.serialNumber}.png`}
+                className="flex-1 py-2.5 px-3 bg-neutral-100 hover:bg-neutral-200 text-black border border-neutral-300 font-agrandir-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                title="Enregistrer l'image du QR Code"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Enregistrer QR</span>
+              </a>
+
+              <a
+                href={`/api/customer/tickets/${selectedTicketForQr.token}/print`}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 py-2.5 px-3 bg-neutral-100 hover:bg-neutral-200 text-black border border-neutral-300 font-agrandir-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                title="Ouvrir le billet au format imprimable A4"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Imprimer</span>
+              </a>
+            </div>
+
             <button
               type="button"
               onClick={() => setSelectedTicketForQr(null)}
-              className="w-full py-3 bg-black text-white font-agrandir-semibold text-xs rounded-full uppercase tracking-wider hover:bg-neutral-800 transition-colors cursor-pointer"
+              className="w-full py-2.5 bg-black text-white font-agrandir-semibold text-xs rounded-full uppercase tracking-wider hover:bg-neutral-800 transition-colors cursor-pointer"
             >
               FERMER
             </button>
