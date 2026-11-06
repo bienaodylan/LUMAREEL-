@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { uploadAdminImage } from '../../../utils/uploadAdminImage';
 import { testSupabaseConnection, isSupabaseConfigured } from '../../../lib/supabaseClient';
+import fullSupabaseSchema from '../../../lib/supabase-schema.sql?raw';
 
 interface AdminSettingsViewProps {
   showToast: (msg: string, type?: 'info' | 'success' | 'error') => void;
@@ -726,53 +727,68 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ showToast 
             </button>
           </div>
 
-          <div className="text-[11px] text-[#777] font-mono leading-relaxed bg-[#101010] p-4 rounded-xl border border-white/5 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-white font-agrandir-bold text-xs uppercase flex items-center gap-1.5">
-                <Database className="w-3.5 h-3.5 text-[#d4af37]" />
-                <span>Script DDL — Table public.users &amp; Cache PostgREST</span>
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  const sql = `-- LUMARÉEL CO. : Table public.users & Rechargement du cache de schéma
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+          <div className="text-[11px] text-[#777] font-mono leading-relaxed bg-[#101010] p-5 rounded-2xl border border-white/10 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
+              <div>
+                <span className="text-white font-agrandir-bold text-xs uppercase flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span>Script SQL Complet — Toutes les 13 Tables Supabase</span>
+                </span>
+                <p className="text-[10px] text-[#888] font-agrandir-regular mt-0.5">
+                  Crée l'intégralité des tables, index B-Tree, triggers d'authentification, fonctions de scan et politiques RLS en une seule exécution.
+                </p>
+              </div>
 
-CREATE TABLE IF NOT EXISTS public.users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email TEXT NOT NULL UNIQUE,
-    name TEXT NOT NULL,
-    role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('super_admin', 'box_office', 'gate_agent', 'customer')),
-    email_verified BOOLEAN DEFAULT false,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Activation des politiques RLS permissives pour la billetterie
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "Lecture publique users" ON public.users FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "Insertion libre users" ON public.users FOR INSERT WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "Mise à jour users" ON public.users FOR UPDATE USING (true);
-
--- Super administrateur garanti
-INSERT INTO public.users (email, name, role, email_verified)
-VALUES ('bienaodylan428@gmail.com', 'Dylan B. (Super Admin)', 'super_admin', true)
-ON CONFLICT (email) DO UPDATE SET role = 'super_admin', email_verified = true;
-
--- Notification impérative pour recharger le cache PostgREST Supabase
-NOTIFY pgrst, 'reload schema';`;
-                  navigator.clipboard.writeText(sql);
-                  showToast('Script SQL copié dans le presse-papier ! Collez-le dans le SQL Editor de Supabase.', 'success');
-                }}
-                className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-[#d4af37] text-[10px] font-agrandir-bold uppercase transition-colors flex items-center gap-1 cursor-pointer"
-              >
-                <Copy className="w-3 h-3" />
-                <span>Copier le SQL</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(fullSupabaseSchema);
+                    showToast('Script SQL Complet (13 tables) copié ! Collez-le dans l’éditeur SQL Supabase.', 'success');
+                  }}
+                  className="px-3.5 py-1.5 rounded-lg bg-[#d4af37] hover:bg-[#c49f27] text-black text-[11px] font-agrandir-extrabold uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copier le Script Complet (13 Tables)</span>
+                </button>
+              </div>
             </div>
-            <p className="text-[10px] text-[#888]">
-              Résout l’erreur <code className="text-[#d4af37]">Could not find the table 'users' in the schema cache</code>. Exécutez ce script dans l'éditeur SQL de votre projet Supabase (<span className="text-white font-mono">kupznytxykaesfqnngtb</span>) pour créer la table et recharger le cache d’API instantanément.
-            </p>
+
+            {/* Grille des tables incluses */}
+            <div>
+              <div className="text-[10px] font-agrandir-bold text-neutral-300 uppercase tracking-wider mb-2">
+                Tables &amp; Modules générés par le script :
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 text-[10px]">
+                {[
+                  { name: 'public.users', desc: 'Profils & Rôles Auth' },
+                  { name: 'public.events', desc: 'Concerts & Jauges' },
+                  { name: 'public.orders', desc: 'Commandes Billetterie' },
+                  { name: 'public.tickets', desc: 'Billets QR & Jetons' },
+                  { name: 'public.archives', desc: 'Vidéos & Mémoire' },
+                  { name: 'public.news_articles', desc: 'Actualités & Presse' },
+                  { name: 'public.external_organizers', desc: 'Partenaires' },
+                  { name: 'public.platform_settings', desc: 'Config & Identité' },
+                  { name: 'public.scanner_tokens', desc: 'Liens Magiques Vigiles' },
+                  { name: 'public.physical_ticket_batches', desc: 'Lots Guichets' },
+                  { name: 'public.physical_ticket_serial_counters', desc: 'Numérotation' },
+                  { name: 'public.physical_ticket_scan_logs', desc: 'Journal Scans' },
+                  { name: 'public.transactional_emails', desc: 'Historique E-mails' },
+                ].map((t) => (
+                  <div key={t.name} className="p-2 rounded-xl bg-black/60 border border-white/5 flex flex-col justify-between">
+                    <span className="font-bold text-emerald-400">{t.name}</span>
+                    <span className="text-[#666] text-[9px] font-agrandir-regular">{t.desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-black border border-white/5 text-[10px] text-[#888] space-y-1">
+              <div className="text-white font-agrandir-semibold">Comment l'exécuter dans Supabase :</div>
+              <div>1. Ouvrez votre tableau de bord Supabase (<a href="https://supabase.com/dashboard" target="_blank" rel="noreferrer" className="text-[#d4af37] underline">supabase.com/dashboard</a>).</div>
+              <div>2. Dans le menu de gauche, cliquez sur <strong>SQL Editor</strong> (icône &lt;/&gt;).</div>
+              <div>3. Cliquez sur <strong>New Query</strong>, collez le script copié et cliquez sur <strong>Run</strong> (vert).</div>
+            </div>
           </div>
         </div>
 

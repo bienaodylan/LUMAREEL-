@@ -1,18 +1,27 @@
 -- ============================================================================
--- SCHÉMA SQL HAUTE PERFORMANCE & SCALABILITÉ — LUMARÉEL CO.
--- Base de données : PostgreSQL 15+ sur Supabase (PgBouncer / Supavisor)
--- Objectif : 10 000+ utilisateurs simultanés & vérification de scan < 50ms (sur 100 000+ billets)
+-- LUMARÉEL CO. — SCHÉMA SQL COMPLET & TABLES SUPABASE CLOUD (POSTGRESQL 15+)
+-- Ce fichier regroupe TOUTES les tables requises pour le fonctionnement complet :
+-- 1. users (profils synchronisés avec Supabase Auth)
+-- 2. events (concerts officiels & partenaires)
+-- 3. orders (commandes de billetterie & paiements)
+-- 4. tickets (billets individuels QR sécurisés)
+-- 5. archives (mémoire d'essai & vidéos live)
+-- 6. news_articles (actualités de la programmation)
+-- 7. external_organizers (organisateurs partenaires)
+-- 8. platform_settings (configuration globale plateforme)
+-- 9. scanner_tokens (liens magiques vigiles)
+-- 10. physical_ticket_batches (lots de billets physiques pour guichet)
+-- 11. physical_ticket_serial_counters (compteurs de numéros de série annuels)
+-- 12. physical_ticket_scan_logs (journal d'audit des scans en direct)
+-- 13. transactional_emails (journal des e-mails envoyés)
 -- ============================================================================
 
--- 0. Extensions recommandées
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- ============================================================================
--- 1. TABLE : USERS (Profils synchronisés avec Supabase Auth)
--- ============================================================================
+-- 1. USERS
 CREATE TABLE IF NOT EXISTS public.users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT NOT NULL UNIQUE,
     name TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('super_admin', 'box_office', 'gate_agent', 'customer')),
@@ -21,9 +30,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ============================================================================
--- 2. TABLE : EVENTS (Concerts & Événements)
--- ============================================================================
+-- 2. EVENTS
 CREATE TABLE IF NOT EXISTS public.events (
     id TEXT PRIMARY KEY,
     slug TEXT NOT NULL UNIQUE,
@@ -55,9 +62,7 @@ CREATE TABLE IF NOT EXISTS public.events (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ============================================================================
--- 3. TABLE : ORDERS (Commandes & Transactions Billetterie)
--- ============================================================================
+-- 3. ORDERS
 CREATE TABLE IF NOT EXISTS public.orders (
     id TEXT PRIMARY KEY,
     reference TEXT NOT NULL UNIQUE,
@@ -82,9 +87,7 @@ CREATE TABLE IF NOT EXISTS public.orders (
     paid_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ============================================================================
--- 4. TABLE : TICKETS (Billets cryptographiques individuels)
--- ============================================================================
+-- 4. TICKETS
 CREATE TABLE IF NOT EXISTS public.tickets (
     id TEXT PRIMARY KEY,
     order_id TEXT NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
@@ -106,9 +109,7 @@ CREATE TABLE IF NOT EXISTS public.tickets (
     checked_in_by TEXT
 );
 
--- ============================================================================
--- 5. TABLE : ARCHIVES (Mémoire d'essai & Productions Réalisées)
--- ============================================================================
+-- 5. ARCHIVES
 CREATE TABLE IF NOT EXISTS public.archives (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
@@ -130,11 +131,43 @@ CREATE TABLE IF NOT EXISTS public.archives (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ============================================================================
--- 6. TABLE : PLATFORM_SETTINGS (Configuration Globale & Identité Visuelle)
--- ============================================================================
+-- 6. NEWS_ARTICLES
+CREATE TABLE IF NOT EXISTS public.news_articles (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    summary TEXT NOT NULL,
+    content TEXT NOT NULL,
+    cover_image TEXT NOT NULL,
+    published_at TIMESTAMPTZ DEFAULT NOW(),
+    author TEXT NOT NULL DEFAULT 'Direction LUMARÉEL',
+    category TEXT NOT NULL DEFAULT 'Annonce Officielle',
+    is_published BOOLEAN DEFAULT true,
+    tags TEXT[] DEFAULT '{}',
+    read_time TEXT DEFAULT '3 min',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 7. EXTERNAL_ORGANIZERS
+CREATE TABLE IF NOT EXISTS public.external_organizers (
+    id TEXT PRIMARY KEY,
+    company_name TEXT NOT NULL,
+    contact_name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    phone TEXT NOT NULL,
+    city TEXT NOT NULL,
+    country TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'active', 'suspended')),
+    commission_rate NUMERIC(4,2) DEFAULT 10.00,
+    notes TEXT DEFAULT '',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 8. PLATFORM_SETTINGS
 CREATE TABLE IF NOT EXISTS public.platform_settings (
-    id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1), -- Singleton garanti
+    id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
     platform_name TEXT NOT NULL DEFAULT 'LUMARÉEL',
     tagline TEXT NOT NULL DEFAULT 'CO.',
     logo_monogram TEXT NOT NULL DEFAULT 'LR',
@@ -146,9 +179,7 @@ CREATE TABLE IF NOT EXISTS public.platform_settings (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ============================================================================
--- 7. TABLE : SCANNER_TOKENS (Liens Magiques Vigiles sécurisés)
--- ============================================================================
+-- 9. SCANNER_TOKENS
 CREATE TABLE IF NOT EXISTS public.scanner_tokens (
     token TEXT PRIMARY KEY,
     event_id TEXT NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
@@ -158,48 +189,111 @@ CREATE TABLE IF NOT EXISTS public.scanner_tokens (
     is_revoked BOOLEAN DEFAULT false
 );
 
--- ============================================================================
--- 8. INDEXATION B-TREE CRITIQUE HAUTE VITESSE (< 50 MILLISECONDES)
--- ============================================================================
+-- 10. PHYSICAL TICKETS
+CREATE TABLE IF NOT EXISTS public.physical_ticket_batches (
+    id TEXT PRIMARY KEY,
+    reference TEXT NOT NULL UNIQUE,
+    event_id TEXT NOT NULL REFERENCES public.events(id) ON DELETE RESTRICT,
+    category_id TEXT NOT NULL,
+    category_name TEXT NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity BETWEEN 1 AND 10000),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by TEXT NOT NULL DEFAULT 'LUMARÉEL CO.'
+);
 
--- B-TREE 1 : Recherche ultra-rapide par Token QR lors du scan (Index Unique)
--- Complexité : O(log N) -> < 2ms d'accès même avec 500 000 billets
-CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_token_btree 
-ON public.tickets USING btree (token);
+CREATE TABLE IF NOT EXISTS public.physical_ticket_serial_counters (
+    serial_year INTEGER PRIMARY KEY,
+    last_value BIGINT NOT NULL DEFAULT 0 CHECK (last_value >= 0)
+);
 
--- B-TREE 2 : Recherche par Numéro de Série unique (recherche manuelle vigile)
-CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_serial_btree 
-ON public.tickets USING btree (serial_number);
+CREATE TABLE IF NOT EXISTS public.physical_ticket_scan_logs (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    ticket_id TEXT,
+    token_or_serial TEXT NOT NULL,
+    event_id TEXT,
+    agent_name TEXT NOT NULL,
+    result TEXT NOT NULL CHECK (result IN ('SUCCESS','ALREADY_USED','INVALID','CANCELLED','WRONG_EVENT')),
+    message TEXT NOT NULL,
+    scanned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    ticket_serial TEXT,
+    ticket_holder TEXT
+);
 
--- B-TREE 3 : Index composite événement + statut (pour jauges en temps réel)
-CREATE INDEX IF NOT EXISTS idx_tickets_event_status_btree 
-ON public.tickets USING btree (event_id, status);
+-- 11. TRANSACTIONAL_EMAILS
+CREATE TABLE IF NOT EXISTS public.transactional_emails (
+    id TEXT PRIMARY KEY,
+    recipient TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'order_confirmation',
+    status TEXT NOT NULL DEFAULT 'sent',
+    order_id TEXT,
+    sent_at TIMESTAMPTZ DEFAULT NOW(),
+    metadata JSONB DEFAULT '{}'::jsonb
+);
 
--- B-TREE 4 : Index B-Tree pour l'espace client "Mes billets" par email
-CREATE INDEX IF NOT EXISTS idx_tickets_holder_email_btree 
-ON public.tickets USING btree (holder_email);
+-- INDEXES
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_token_btree ON public.tickets USING btree (token);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_serial_btree ON public.tickets USING btree (serial_number);
+CREATE INDEX IF NOT EXISTS idx_tickets_event_status_btree ON public.tickets USING btree (event_id, status);
+CREATE INDEX IF NOT EXISTS idx_tickets_holder_email_btree ON public.tickets USING btree (holder_email);
+CREATE INDEX IF NOT EXISTS idx_orders_customer_email_btree ON public.orders USING btree (customer_email, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_events_published_date_btree ON public.events USING btree (date) WHERE status = 'published';
+CREATE INDEX IF NOT EXISTS idx_news_published_at_btree ON public.news_articles USING btree (published_at DESC) WHERE is_published = true;
+CREATE INDEX IF NOT EXISTS idx_scanner_tokens_active_btree ON public.scanner_tokens USING btree (token, event_id) WHERE is_revoked = false;
 
--- B-TREE 5 : Commandes clients triées par date
-CREATE INDEX IF NOT EXISTS idx_orders_customer_email_btree 
-ON public.orders USING btree (customer_email, created_at DESC);
+-- ROLE RPC FUNCTION
+CREATE OR REPLACE FUNCTION public.lumareel_current_admin_role()
+RETURNS TEXT
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_user_email TEXT;
+    v_role TEXT;
+BEGIN
+    SELECT LOWER(email) INTO v_user_email FROM auth.users WHERE id = auth.uid();
+    IF v_user_email = 'bienaodylan428@gmail.com' THEN
+        RETURN 'super_admin';
+    END IF;
+    SELECT role INTO v_role FROM public.users WHERE id = auth.uid() OR LOWER(email) = v_user_email LIMIT 1;
+    RETURN COALESCE(v_role, 'customer');
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.lumareel_current_admin_role() TO authenticated, anon;
 
--- B-TREE 6 : Événements publiés triés par date (optimise la page d'accueil)
-CREATE INDEX IF NOT EXISTS idx_events_published_date_btree 
-ON public.events USING btree (date) 
-WHERE status = 'published';
+-- AUTH SYNC TRIGGER
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO public.users (id, email, name, role, email_verified, created_at, updated_at)
+    VALUES (
+        NEW.id,
+        LOWER(NEW.email),
+        COALESCE(NEW.raw_user_meta_data->>'name', SPLIT_PART(NEW.email, '@', 1)),
+        CASE WHEN LOWER(NEW.email) = 'bienaodylan428@gmail.com' THEN 'super_admin' ELSE 'customer' END,
+        COALESCE(NEW.email_confirmed_at IS NOT NULL, FALSE),
+        NOW(),
+        NOW()
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email,
+        name = COALESCE(EXCLUDED.name, public.users.name),
+        role = CASE WHEN LOWER(EXCLUDED.email) = 'bienaodylan428@gmail.com' THEN 'super_admin' ELSE public.users.role END,
+        email_verified = EXCLUDED.email_verified,
+        updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- B-TREE 7 : Validation instantanée du Jeton Vigile (Lien Magique)
-CREATE INDEX IF NOT EXISTS idx_scanner_tokens_active_btree 
-ON public.scanner_tokens USING btree (token, event_id) 
-WHERE is_revoked = false;
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+    AFTER INSERT OR UPDATE ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- ============================================================================
--- 9. PROCÉDURE STOCKÉE ATOMIQUE : VÉRIFICATION & SCAN ANTI-RACE CONDITION
--- ============================================================================
--- Grâce à 'FOR UPDATE', si 2 vigiles scannent le même billet à la même milliseconde,
--- la première transaction verrouille la ligne et la valide, tandis que la seconde
--- reçoit instantanément 'ALREADY_USED'.
-CREATE OR REPLACE FUNCTION verify_and_check_in_ticket(
+-- ATOMIC SCAN FUNCTION
+CREATE OR REPLACE FUNCTION public.verify_and_check_in_ticket(
     p_token TEXT,
     p_event_id TEXT,
     p_agent_name TEXT
@@ -212,166 +306,93 @@ DECLARE
     v_ticket RECORD;
     v_now TIMESTAMPTZ := NOW();
 BEGIN
-    -- 1. Verrouillage exclusif de la ligne (ACID Row-Level Lock)
     SELECT * INTO v_ticket 
     FROM public.tickets 
     WHERE (token = p_token OR serial_number = p_token)
     FOR UPDATE;
 
-    -- 2. Si le billet n'existe pas
     IF NOT FOUND THEN
-        RETURN jsonb_build_object(
-            'status', 'INVALID',
-            'valid', false,
-            'message', 'Billet introuvable ou faux code QR.'
-        );
+        RETURN jsonb_build_object('status', 'INVALID', 'valid', false, 'message', 'Billet introuvable ou faux code QR.');
     END IF;
 
-    -- 3. Si le billet ne correspond pas à l'événement du vigile
     IF p_event_id IS NOT NULL AND v_ticket.event_id <> p_event_id THEN
-        RETURN jsonb_build_object(
-            'status', 'WRONG_EVENT',
-            'valid', false,
-            'message', 'Ce billet est pour un autre concert.',
-            'eventTitle', v_ticket.event_title
-        );
+        RETURN jsonb_build_object('status', 'WRONG_EVENT', 'valid', false, 'message', 'Ce billet est pour un autre concert.', 'eventTitle', v_ticket.event_title);
     END IF;
 
-    -- 4. Si le billet a déjà été validé
     IF v_ticket.status = 'used' THEN
-        RETURN jsonb_build_object(
-            'status', 'ALREADY_USED',
-            'valid', false,
-            'message', 'BILLET DÉJÀ UTILISÉ. REFUS D’ACCÈS.',
-            'holderName', v_ticket.holder_name,
-            'categoryName', v_ticket.category_name,
-            'eventTitle', v_ticket.event_title,
-            'serialNumber', v_ticket.serial_number,
-            'scannedAt', v_ticket.checked_in_at,
-            'checkedInBy', v_ticket.checked_in_by
-        );
+        RETURN jsonb_build_object('status', 'ALREADY_USED', 'valid', false, 'message', 'BILLET DÉJÀ UTILISÉ. REFUS D’ACCÈS.', 'holderName', v_ticket.holder_name, 'categoryName', v_ticket.category_name, 'eventTitle', v_ticket.event_title, 'serialNumber', v_ticket.serial_number, 'scannedAt', v_ticket.checked_in_at, 'checkedInBy', v_ticket.checked_in_by);
     END IF;
 
-    -- 5. Si le billet est annulé
     IF v_ticket.status = 'cancelled' THEN
-        RETURN jsonb_build_object(
-            'status', 'CANCELLED',
-            'valid', false,
-            'message', 'Ce billet a été annulé ou remboursé.'
-        );
+        RETURN jsonb_build_object('status', 'CANCELLED', 'valid', false, 'message', 'Ce billet a été annulé ou remboursé.');
     END IF;
 
-    -- 6. Validation atomique de l'entrée
     UPDATE public.tickets 
-    SET 
-        status = 'used',
-        checked_in_at = v_now,
-        checked_in_by = p_agent_name
+    SET status = 'used', checked_in_at = v_now, checked_in_by = p_agent_name
     WHERE id = v_ticket.id;
 
-    RETURN jsonb_build_object(
-        'status', 'SUCCESS',
-        'valid', true,
-        'message', 'ACCÈS AUTORISÉ',
-        'holderName', v_ticket.holder_name,
-        'categoryName', v_ticket.category_name,
-        'eventTitle', v_ticket.event_title,
-        'serialNumber', v_ticket.serial_number,
-        'scannedAt', v_now
-    );
+    RETURN jsonb_build_object('status', 'SUCCESS', 'valid', true, 'message', 'ACCÈS AUTORISÉ', 'holderName', v_ticket.holder_name, 'categoryName', v_ticket.category_name, 'eventTitle', v_ticket.event_title, 'serialNumber', v_ticket.serial_number, 'scannedAt', v_now);
 END;
 $$;
+GRANT EXECUTE ON FUNCTION public.verify_and_check_in_ticket(TEXT, TEXT, TEXT) TO authenticated, anon;
 
--- ============================================================================
--- 10. POLITIQUES DE SÉCURITÉ ROW LEVEL SECURITY (RLS)
--- ============================================================================
+-- RLS PERMISSIVE POLICIES
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.archives ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.news_articles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.external_organizers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scanner_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.physical_ticket_batches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.physical_ticket_serial_counters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.physical_ticket_scan_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.transactional_emails ENABLE ROW LEVEL SECURITY;
 
--- Lecture publique des événements publiés
-CREATE POLICY "Public Events Read Access" 
-ON public.events FOR SELECT 
-USING (true);
+CREATE POLICY "Public Read Events" ON public.events FOR SELECT USING (true);
+CREATE POLICY "Public Read Archives" ON public.archives FOR SELECT USING (true);
+CREATE POLICY "Public Read News" ON public.news_articles FOR SELECT USING (true);
+CREATE POLICY "Public Read Settings" ON public.platform_settings FOR SELECT USING (true);
+CREATE POLICY "Public Read Users" ON public.users FOR SELECT USING (true);
+CREATE POLICY "Public Insert Users" ON public.users FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update Users" ON public.users FOR UPDATE USING (true);
+CREATE POLICY "Public Insert Orders" ON public.orders FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Read Orders" ON public.orders FOR SELECT USING (true);
+CREATE POLICY "Public Read Tickets" ON public.tickets FOR SELECT USING (true);
+CREATE POLICY "Public Insert Tickets" ON public.tickets FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Update Tickets" ON public.tickets FOR UPDATE USING (true);
+CREATE POLICY "Public Insert Organizers" ON public.external_organizers FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Read Organizers" ON public.external_organizers FOR SELECT USING (true);
+CREATE POLICY "Public Read Scanner Tokens" ON public.scanner_tokens FOR SELECT USING (true);
+CREATE POLICY "Public Insert Scanner Tokens" ON public.scanner_tokens FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public Manage Events Admin" ON public.events FOR ALL USING (true);
+CREATE POLICY "Public Manage Archives Admin" ON public.archives FOR ALL USING (true);
+CREATE POLICY "Public Manage News Admin" ON public.news_articles FOR ALL USING (true);
+CREATE POLICY "Public Manage Settings Admin" ON public.platform_settings FOR ALL USING (true);
 
--- Modifications événements réservées à l'admin
-CREATE POLICY "Admin Events All Access" 
-ON public.events FOR ALL 
-USING (true) WITH CHECK (true);
+-- REALTIME PUBLICATION
+DO $$
+BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.events;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.tickets;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.orders;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.archives;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.news_articles;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.platform_settings;
+EXCEPTION WHEN OTHERS THEN
+    NULL;
+END;
+$$;
 
--- Lecture publique des archives
-CREATE POLICY "Public Archives Read Access" 
-ON public.archives FOR SELECT 
-USING (true);
+-- SUPER ADMIN SEED
+INSERT INTO public.users (email, name, role, email_verified)
+VALUES ('bienaodylan428@gmail.com', 'Dylan B. (Directeur Artistique & Fondateur)', 'super_admin', true)
+ON CONFLICT (email) DO UPDATE SET role = 'super_admin', email_verified = true;
 
-CREATE POLICY "Admin Archives All Access" 
-ON public.archives FOR ALL 
-USING (true) WITH CHECK (true);
-
--- Settings accessibles en lecture
-CREATE POLICY "Public Settings Read" 
-ON public.platform_settings FOR SELECT 
-USING (true);
-
-CREATE POLICY "Admin Settings Update" 
-ON public.platform_settings FOR ALL 
-USING (true) WITH CHECK (true);
-
--- Billets : Création lors du checkout & lecture par email titulaire
-CREATE POLICY "Tickets Insertion" 
-ON public.tickets FOR INSERT 
-WITH CHECK (true);
-
-CREATE POLICY "Tickets Select" 
-ON public.tickets FOR SELECT 
-USING (true);
-
-CREATE POLICY "Tickets Update" 
-ON public.tickets FOR UPDATE 
-USING (true);
-
--- Commandes
-CREATE POLICY "Orders Insertion" 
-ON public.orders FOR INSERT 
-WITH CHECK (true);
-
-CREATE POLICY "Orders Select" 
-ON public.orders FOR SELECT 
-USING (true);
-
--- Scanner Tokens
-CREATE POLICY "Scanner Tokens Read" 
-ON public.scanner_tokens FOR SELECT 
-USING (true);
-
-CREATE POLICY "Scanner Tokens Insert" 
-ON public.scanner_tokens FOR INSERT 
-WITH CHECK (true);
-
--- Insertion initiale des paramètres de plateforme par défaut
-INSERT INTO public.platform_settings (id, platform_name, tagline, logo_monogram, logo_url, currency, infoline, gate_token)
-VALUES (1, 'LUMARÉEL', 'CO.', 'LR', '', 'XOF (FCFA)', '+225 01 53 508 210', 'VIGILE_AUTH_LMR_2026')
+INSERT INTO public.platform_settings (id, platform_name, tagline, logo_monogram, currency, infoline, gate_token)
+VALUES (1, 'LUMARÉEL', 'CO.', 'LR', 'XOF (FCFA)', '+225 01 53 508 210', 'VIGILE_AUTH_LMR_2026')
 ON CONFLICT (id) DO NOTHING;
 
-
--- ============================================================================
--- 11. STOCKAGE DES DESIGNS (Supabase Storage) — visuels recto des billets
--- ============================================================================
--- Sans ce bucket, l'import d'un design de billet échoue ("Bucket not found").
--- Les fichiers y restent après actualisation et après chaque redéploiement.
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('designs', 'designs', true)
-ON CONFLICT (id) DO NOTHING;
-
-DROP POLICY IF EXISTS "Designs lecture publique" ON storage.objects;
-CREATE POLICY "Designs lecture publique"
-ON storage.objects FOR SELECT
-USING (bucket_id = 'designs');
-
-DROP POLICY IF EXISTS "Designs envoi" ON storage.objects;
-CREATE POLICY "Designs envoi"
-ON storage.objects FOR INSERT
-WITH CHECK (bucket_id = 'designs');
+NOTIFY pgrst, 'reload schema';

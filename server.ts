@@ -895,6 +895,59 @@ async function startServer() {
     }
   });
 
+  // 13. Synchronisation et Push Git / GitHub Automatisé
+  app.post('/api/admin/git-sync', async (req: Request, res: Response) => {
+    try {
+      const { remoteUrl, token, commitMessage } = req.body;
+      const { execSync } = await import('child_process');
+
+      // Configuration environnement Git
+      execSync('git config --global --add safe.directory /app/applet', { encoding: 'utf-8' });
+      execSync('git config user.name "Dylan B. (LUMARÉEL CO.)"', { encoding: 'utf-8' });
+      execSync('git config user.email "bienaodylan428@gmail.com"', { encoding: 'utf-8' });
+
+      // Stage des fichiers modifiés
+      execSync('git add .', { encoding: 'utf-8' });
+
+      let commitOutput = '';
+      try {
+        const msg = (commitMessage || 'Mise à jour LUMARÉEL CO. : billetterie officielle et assets').replace(/"/g, '\\"');
+        commitOutput = execSync(`git commit -m "${msg}"`, { encoding: 'utf-8' });
+      } catch (commitErr: any) {
+        commitOutput = commitErr.stdout || 'Arbre de travail déjà à jour.';
+      }
+
+      let pushOutput = '';
+      if (remoteUrl) {
+        let authUrl = remoteUrl.trim();
+        if (token && authUrl.startsWith('https://')) {
+          authUrl = authUrl.replace('https://', `https://${token.trim()}@`);
+        }
+        try {
+          execSync(`git remote set-url origin "${authUrl}"`, { encoding: 'utf-8' });
+        } catch {
+          execSync(`git remote add origin "${authUrl}"`, { encoding: 'utf-8' });
+        }
+        pushOutput = execSync('git push -u origin HEAD:main --force', { encoding: 'utf-8' });
+      }
+
+      res.json({
+        success: true,
+        message: remoteUrl
+          ? 'Modifications poussées avec succès sur GitHub ! Vercel lance le redéploiement.'
+          : 'Fichiers enregistrés et commités localement avec succès.',
+        stdout: `${commitOutput}\n${pushOutput}`.trim(),
+      });
+    } catch (error: any) {
+      console.error('[git-sync error]', error);
+      res.status(500).json({
+        success: false,
+        error: error.message || 'Erreur lors de la synchronisation Git.',
+        stderr: error.stderr || error.stdout || '',
+      });
+    }
+  });
+
   // Mount Vite or static build
   if (!isProduction) {
     const { createServer: createViteServer } = await import('vite');
