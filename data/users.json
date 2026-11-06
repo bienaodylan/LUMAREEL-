@@ -1,0 +1,11 @@
+[
+  {
+    "id": "usr_admin_01",
+    "email": "bienaodylan428@gmail.com",
+    "name": "Dylan B. (Directeur Artistique & Fondateur)",
+    "role": "super_admin",
+    "emailVerified": true,
+    "createdAt": "2026-01-10T00:00:00Z",
+    "passwordHash": "5760fb76638579017fb5f03d424432e27f0dce693a2481fba1eb0417272fa69b"
+  }
+]
