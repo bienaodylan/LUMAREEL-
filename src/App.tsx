@@ -15,11 +15,15 @@ import { TicketBatchPrintModal } from './components/TicketBatchPrintModal';
 import { CheckoutModal } from './components/CheckoutModal';
 import { AuthModal } from './components/AuthModal';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Shield } from 'lucide-react';
 
 const MainApp: React.FC = () => {
-  const { currentPage, toast, setCurrentPage, platformSettings } = useApp();
+  const { currentPage, toast, setCurrentPage, platformSettings, currentUser, setIsAuthModalOpen, showToast } = useApp();
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
+  const isSuperAdmin =
+    currentUser?.email?.toLowerCase() === 'bienaodylan428@gmail.com' ||
+    currentUser?.role === 'super_admin';
 
   return (
     <div className="min-h-screen w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative overflow-x-hidden">
@@ -144,6 +148,26 @@ const MainApp: React.FC = () => {
 
               <div className="text-[10px] text-[#777] font-mono tracking-widest uppercase">
                 BILLETTERIE OFFICIELLE CERTIFIÉE · PLACEMENT GARANTI
+              </div>
+
+              {/* Accès discret Administration & Paramètres pour le Fondateur */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (isSuperAdmin) {
+                      setCurrentPage('admin');
+                    } else {
+                      setIsAuthModalOpen(true);
+                      showToast('Connectez-vous avec votre compte fondateur pour ouvrir l’administration.', 'info');
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#d4af37]/40 text-[11px] font-agrandir-semibold text-[#888] hover:text-[#d4af37] transition-all cursor-pointer shadow-sm group"
+                  title="Accéder au panneau d'administration et aux paramètres"
+                >
+                  <Shield className="w-3.5 h-3.5 text-[#d4af37] group-hover:scale-110 transition-transform" />
+                  <span>Administration &amp; Paramètres</span>
+                </button>
               </div>
             </div>
           </div>

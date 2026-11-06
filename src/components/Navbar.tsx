@@ -111,7 +111,14 @@ export const Navbar: React.FC = () => {
               {currentUser?.name || t('nav.profile')}
             </span>
             {isSuperAdmin && (
-              <span className="text-[9px] font-agrandir-extrabold text-[#d4af37] px-1.5 py-0.2 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/40 uppercase tracking-widest">
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentPage('admin');
+                }}
+                className="text-[9px] font-agrandir-extrabold text-black bg-[#d4af37] hover:bg-[#e6c158] px-2 py-0.5 rounded-full uppercase tracking-wider transition-all cursor-pointer shadow-sm hover:scale-105"
+                title="Accéder au panneau d'administration"
+              >
                 Admin
               </span>
             )}

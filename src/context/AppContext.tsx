@@ -199,6 +199,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (params.get('token') || params.get('page') === 'gate_scanner' || window.location.pathname.includes('scanner')) {
         return 'gate_scanner';
       }
+      if (params.get('page') === 'admin' || params.get('admin') === 'true' || params.get('admin') === '1' || window.location.pathname.includes('admin')) {
+        return 'admin';
+      }
     }
     return 'home';
   });
