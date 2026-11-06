@@ -112,6 +112,18 @@ export const Navbar: React.FC = () => {
             </span>
           </button>
 
+          {/* Bouton Administrateur épuré sur Desktop si connecté avec le mail Dylan */}
+          {isSuperAdmin && (
+            <button
+              type="button"
+              onClick={() => setCurrentPage('admin')}
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-black text-xs font-agrandir-bold hover:bg-neutral-200 transition-all cursor-pointer shadow-md"
+              title="Accéder à l'espace administrateur"
+            >
+              <span>Administrateur</span>
+            </button>
+          )}
+
           {/* Sélecteur de langue fonctionnel (Français / Anglais) */}
           <div className="flex items-center p-1 rounded-full bg-black/60 border border-white/15 backdrop-blur-md shadow-inner text-[11px] font-agrandir-bold tracking-wider">
             <button

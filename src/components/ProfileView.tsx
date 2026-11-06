@@ -74,6 +74,18 @@ export const ProfileView: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {isSuperAdmin && (
+          <button
+            type="button"
+            onClick={() => setCurrentPage('admin')}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-agrandir-bold transition-all cursor-pointer shadow-md active:scale-95"
+            title="Accéder à l'espace administrateur"
+          >
+            <span>Administrateur</span>
+            <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       {/* GROUPE 1 : ESPACE COMPTE */}
@@ -98,6 +110,22 @@ export const ProfileView: React.FC = () => {
           </div>
           <ChevronRight className="w-4 h-4 text-neutral-500" />
         </button>
+
+        {isSuperAdmin && (
+          <button
+            type="button"
+            onClick={() => setCurrentPage('admin')}
+            className="flex justify-between items-center w-full py-4 px-6 hover:bg-white/5 active:bg-white/10 cursor-pointer transition-colors text-left border-t border-white/5"
+          >
+            <div className="flex items-center gap-3.5">
+              <Shield className="w-5 h-5 text-white stroke-[1.8]" />
+              <span className="text-sm font-agrandir-regular text-white">
+                Administrateur
+              </span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-neutral-500" />
+          </button>
+        )}
       </div>
 
       {/* GROUPE 2 : PRÉFÉRENCES */}
