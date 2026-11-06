@@ -78,7 +78,14 @@ const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   currency: 'FCFA',
   infoline: '+225 01 53 508 210',
   gateToken: 'VIGILE_AUTH_LMR_2026',
-  githubRepoUrl: '',
+  githubRepoUrl: 'https://github.com/bienaodylan/LUMAREEL-',
+  socialLinks: {
+    tiktok: 'https://www.tiktok.com/@lumareelco',
+    instagram: 'https://www.instagram.com/lumareelco/',
+    snapchat: 'https://www.snapchat.com/add/lumareelco',
+    youtube: '',
+    facebook: 'https://www.facebook.com/share/19oZK7vQvR/?mibextid=wwXIfr',
+  },
 };
 
 // ============================================================================
@@ -995,52 +1002,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const updatePlatformSettings = async (newSettings: Partial<PlatformSettings>) => {
     const previousSettings = platformSettings;
     const mergedSettings = { ...previousSettings, ...newSettings };
-    if (isSupabaseConfigured) {
-      const dbRow = {
-        id: 1,
-        platform_name: mergedSettings.platformName,
-        tagline: mergedSettings.tagline,
-        logo_monogram: mergedSettings.logoMonogram,
-        logo_url: mergedSettings.logoUrl,
-        currency: mergedSettings.currency,
-        infoline: mergedSettings.infoline,
-        gate_token: mergedSettings.gateToken,
-        github_repo_url: mergedSettings.githubRepoUrl,
-        social_links: mergedSettings.socialLinks || {},
-        updated_at: new Date().toISOString(),
-      };
-      const { data, error } = await supabase.from('platform_settings')
-        .upsert(dbRow, { onConflict: 'id' }).select('*').single();
-      if (error) {
-        setCloudSyncError(`Paramètres Supabase : ${error.message}`);
-        throw new Error(error.message);
-      }
-      const confirmed = {
-        ...mergedSettings,
-        platformName: data.platform_name,
-        tagline: data.tagline,
-        logoMonogram: data.logo_monogram,
-        logoUrl: data.logo_url,
-        currency: data.currency,
-        infoline: data.infoline,
-        gateToken: data.gate_token,
-        githubRepoUrl: data.github_repo_url,
-        socialLinks: data.social_links || {},
-      };
-      setPlatformSettings(confirmed);
-      writeLocal(STORAGE_KEYS.SETTINGS, confirmed);
-      setCloudSyncError(null);
-      setIsCloudDbActive(true);
-    } else {
-      const response = await fetch('/api/admin/settings', {
+
+    // 1. Sauvegarde locale et mémoire immédiate
+    setPlatformSettings(mergedSettings);
+    writeLocal(STORAGE_KEYS.SETTINGS, mergedSettings);
+
+    // 2. Sauvegarde sur le serveur Node.js et disque data/settings.json
+    try {
+      await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSettings),
+        body: JSON.stringify(mergedSettings),
       });
-      if (!response.ok) throw new Error(`API paramètres : HTTP ${response.status}`);
-      setPlatformSettings(mergedSettings);
-      writeLocal(STORAGE_KEYS.SETTINGS, mergedSettings);
+    } catch (serverErr) {
+      console.warn('[Settings Disk Save Warning]', serverErr);
     }
+
+    // 3. Synchronisation optionnelle avec la base de données Supabase
+    if (isSupabaseConfigured) {
+      try {
+        const dbRow: any = {
+          id: 1,
+          platform_name: mergedSettings.platformName,
+          tagline: mergedSettings.tagline,
+          logo_monogram: mergedSettings.logoMonogram,
+          logo_url: mergedSettings.logoUrl,
+          currency: mergedSettings.currency,
+          infoline: mergedSettings.infoline,
+          gate_token: mergedSettings.gateToken,
+          github_repo_url: mergedSettings.githubRepoUrl,
+          updated_at: new Date().toISOString(),
+        };
+        await supabase.from('platform_settings').upsert(dbRow, { onConflict: 'id' });
+        setCloudSyncError(null);
+        setIsCloudDbActive(true);
+      } catch (sbErr) {
+        console.warn('[Settings Supabase Sync Notice]', sbErr);
+      }
+    }
+
     cacheTimestamps.current.settings = Date.now();
     notifyCrossTabSync();
   };

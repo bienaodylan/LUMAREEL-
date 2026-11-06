@@ -82,7 +82,7 @@ const MainApp: React.FC = () => {
               <div className="flex items-center gap-4">
                 {/* 1. TikTok */}
                 <a
-                  href={platformSettings?.socialLinks?.tiktok || '#'}
+                  href={platformSettings?.socialLinks?.tiktok || 'https://www.tiktok.com/@lumareelco'}
                   target="_blank"
                   rel="noopener noreferrer"
                   title="TikTok LUMARÉEL"
@@ -95,7 +95,7 @@ const MainApp: React.FC = () => {
 
                 {/* 2. Instagram */}
                 <a
-                  href={platformSettings?.socialLinks?.instagram || '#'}
+                  href={platformSettings?.socialLinks?.instagram || 'https://www.instagram.com/lumareelco/'}
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Instagram LUMARÉEL"
@@ -108,7 +108,7 @@ const MainApp: React.FC = () => {
 
                 {/* 3. Snapchat (Logo fantôme officiel) */}
                 <a
-                  href={platformSettings?.socialLinks?.snapchat || '#'}
+                  href={platformSettings?.socialLinks?.snapchat || 'https://www.snapchat.com/add/lumareelco'}
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Snapchat LUMARÉEL"
@@ -134,7 +134,7 @@ const MainApp: React.FC = () => {
 
                 {/* 5. Facebook */}
                 <a
-                  href={platformSettings?.socialLinks?.facebook || '#'}
+                  href={platformSettings?.socialLinks?.facebook || 'https://www.facebook.com/share/19oZK7vQvR/?mibextid=wwXIfr'}
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Facebook LUMARÉEL"

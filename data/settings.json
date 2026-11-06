@@ -8,5 +8,12 @@
   "gateToken": "VIGILE_AUTH_LMR_2026",
   "githubRepoUrl": "https://github.com/bienaodylan/LUMAREEL-",
   "supabaseUrl": "https://kupznytxykaesfqnngtb.supabase.co",
-  "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1cHpueXR4eWthZXNmcW5uZ3RiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNjE1MTEsImV4cCI6MjEwODkzNzUxMX0.xDUs9eDtrGe6-coE9t8y2NXZYpaBB3X7wOL1YyzeLTI"
+  "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1cHpueXR4eWthZXNmcW5uZ3RiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNjE1MTEsImV4cCI6MjEwODkzNzUxMX0.xDUs9eDtrGe6-coE9t8y2NXZYpaBB3X7wOL1YyzeLTI",
+  "socialLinks": {
+    "tiktok": "https://www.tiktok.com/@lumareelco",
+    "instagram": "https://www.instagram.com/lumareelco/",
+    "snapchat": "https://www.snapchat.com/add/lumareelco",
+    "youtube": "",
+    "facebook": "https://www.facebook.com/share/19oZK7vQvR/?mibextid=wwXIfr"
+  }
 }
