@@ -129,13 +129,13 @@ CREATE TABLE IF NOT EXISTS public.archives (
     city TEXT NOT NULL,
     country TEXT NOT NULL,
     venue TEXT NOT NULL,
-    artists TEXT[] DEFAULT '{}',
+    artists TEXT[] NOT NULL DEFAULT '{}'::text[],
     cover_image TEXT NOT NULL,
     description TEXT DEFAULT '',
     youtube_url TEXT DEFAULT '',
     youtube_embed_url TEXT DEFAULT '',
     duration TEXT DEFAULT 'Live HD',
-    photos TEXT[] DEFAULT '{}',
+    photos TEXT[] NOT NULL DEFAULT '{}'::text[],
     is_published BOOLEAN DEFAULT true,
     order_index INTEGER DEFAULT 1,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -156,11 +156,25 @@ CREATE TABLE IF NOT EXISTS public.news_articles (
     author TEXT NOT NULL DEFAULT 'Direction LUMARÉEL',
     category TEXT NOT NULL DEFAULT 'Annonce Officielle',
     is_published BOOLEAN DEFAULT true,
-    tags TEXT[] DEFAULT '{}',
+    tags TEXT[] NOT NULL DEFAULT '{}'::text[],
     read_time TEXT DEFAULT '3 min',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Sécurisation rétroactive des colonnes si les tables existaient déjà
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'archives' AND column_name = 'artists') THEN
+        ALTER TABLE public.archives ADD COLUMN artists TEXT[] NOT NULL DEFAULT '{}'::text[];
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'archives' AND column_name = 'photos') THEN
+        ALTER TABLE public.archives ADD COLUMN photos TEXT[] NOT NULL DEFAULT '{}'::text[];
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'news_articles' AND column_name = 'tags') THEN
+        ALTER TABLE public.news_articles ADD COLUMN tags TEXT[] NOT NULL DEFAULT '{}'::text[];
+    END IF;
+END $$;
 
 -- ============================================================================
 -- 7. TABLE : EXTERNAL_ORGANIZERS (Organisateurs Partenaires)
