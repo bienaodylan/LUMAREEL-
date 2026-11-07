@@ -404,6 +404,47 @@ async function startServer() {
     }
   });
 
+  // Suppression de son propre compte par un utilisateur connecté
+  app.delete('/api/auth/account', (req: Request, res: Response) => {
+    try {
+      const email = (req.body?.email || req.query?.email) as string;
+      if (!email) {
+        return res.status(400).json({ success: false, error: 'Adresse e-mail requise pour supprimer le compte.' });
+      }
+      const result = db.deleteUser(email);
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+      res.json({ success: true, message: 'Votre compte a été supprimé avec succès.' });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Administration : Liste des comptes utilisateurs enregistrés
+  app.get('/api/admin/users', (_req: Request, res: Response) => {
+    try {
+      const users = db.getAllUsers().map((u) => db.sanitizeUser(u));
+      res.json({ success: true, users });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Administration : Suppression d'un compte utilisateur
+  app.delete('/api/admin/users/:id', (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const result = db.deleteUser(id);
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+      res.json({ success: true, message: 'Utilisateur supprimé.' });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // 5. Checkout & Ticketing Orders
   app.post('/api/orders/checkout', (req: Request, res: Response) => {
     try {

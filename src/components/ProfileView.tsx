@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   ChevronRight,
@@ -9,7 +9,10 @@ import {
   Shield,
   ArrowLeft,
   X,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 
 /**
  * ProfileView.tsx — Espace Compte & Préférences de l'application LUMARÉEL.
@@ -18,6 +21,9 @@ import {
 export const ProfileView: React.FC = () => {
   const { currentUser, setCurrentUser, setCurrentPage, setIsAuthModalOpen, showToast, language, setLanguage, t } = useApp();
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
   const isSuperAdmin =
     currentUser?.email?.toLowerCase() === 'bienaodylan428@gmail.com' ||
     currentUser?.role === 'super_admin';
@@ -25,6 +31,39 @@ export const ProfileView: React.FC = () => {
   const handleLogout = () => {
     setCurrentUser(null);
     showToast(language === 'en' ? 'You have been logged out.' : 'Vous avez été déconnecté.', 'info');
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!currentUser?.email) return;
+    try {
+      setIsDeletingAccount(true);
+      const res = await fetch('/api/auth/account', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: currentUser.email }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Erreur lors de la suppression du compte.');
+      }
+
+      if (isSupabaseConfigured) {
+        try {
+          await supabase.auth.signOut();
+        } catch {
+          // ignore
+        }
+      }
+
+      setCurrentUser(null);
+      setShowDeleteConfirm(false);
+      showToast('Votre compte a été supprimé avec succès.', 'success');
+      setCurrentPage('home');
+    } catch (err: any) {
+      showToast(err.message || 'Impossible de supprimer le compte.', 'error');
+    } finally {
+      setIsDeletingAccount(false);
+    }
   };
 
   const handleToggleLanguage = () => {
@@ -177,19 +216,52 @@ export const ProfileView: React.FC = () => {
         </div>
 
         {currentUser ? (
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex justify-between items-center w-full py-4 px-6 hover:bg-white/5 active:bg-white/10 cursor-pointer transition-colors text-left text-rose-400"
-          >
-            <div className="flex items-center gap-3.5">
-              <LogOut className="w-5 h-5 text-rose-400 stroke-[1.8]" />
-              <span className="text-sm font-agrandir-regular text-rose-400">
-                {t('profile.logout')}
-              </span>
+          <>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex justify-between items-center w-full py-4 px-6 hover:bg-white/5 active:bg-white/10 cursor-pointer transition-colors text-left text-neutral-300 hover:text-white"
+            >
+              <div className="flex items-center gap-3.5">
+                <LogOut className="w-5 h-5 text-neutral-400 stroke-[1.8]" />
+                <span className="text-sm font-agrandir-regular">
+                  {t('profile.logout')}
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-neutral-500" />
+            </button>
+
+            {/* Zone de Danger : Suppression du compte */}
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <div className="px-6 pb-2 text-[10px] font-agrandir-bold tracking-widest text-rose-500/80 uppercase">
+                Zone sensible
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentUser.email?.toLowerCase() === 'bienaodylan428@gmail.com') {
+                    showToast('Le compte fondateur est protégé contre la suppression.', 'info');
+                    return;
+                  }
+                  setShowDeleteConfirm(true);
+                }}
+                className="flex justify-between items-center w-full py-4 px-6 hover:bg-rose-500/10 active:bg-rose-500/20 cursor-pointer transition-colors text-left text-rose-400 group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <Trash2 className="w-5 h-5 text-rose-400 stroke-[1.8] group-hover:scale-110 transition-transform" />
+                  <div>
+                    <span className="text-sm font-agrandir-bold text-rose-400">
+                      Supprimer mon compte
+                    </span>
+                    <p className="text-[11px] text-rose-400/60 font-agrandir-regular">
+                      Supprime définitivement votre compte et vos données
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-rose-400/50" />
+              </button>
             </div>
-            <ChevronRight className="w-4 h-4 text-rose-400/50" />
-          </button>
+          </>
         ) : (
           <button
             type="button"
@@ -206,6 +278,57 @@ export const ProfileView: React.FC = () => {
           </button>
         )}
       </div>
+
+      {/* MODAL DE CONFIRMATION DE SUPPRESSION DE COMPTE */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#121212] border border-rose-500/30 rounded-3xl p-6 sm:p-7 max-w-md w-full space-y-4 shadow-2xl text-left">
+            <div className="flex items-center gap-3 text-rose-400">
+              <div className="w-10 h-10 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-rose-400" />
+              </div>
+              <div>
+                <h3 className="font-agrandir-extrabold text-base text-white uppercase tracking-tight">
+                  Supprimer votre compte ?
+                </h3>
+                <p className="text-[11px] text-rose-400/80 font-mono">
+                  {currentUser?.email}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-neutral-300 leading-relaxed font-agrandir-regular">
+              Êtes-vous sûr de vouloir supprimer définitivement votre compte LUMARÉEL ? Cette action est irréversible et supprimera l'ensemble de votre profil.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeletingAccount}
+                className="px-4 py-2.5 rounded-full border border-white/15 hover:border-white text-xs font-agrandir-semibold text-neutral-300 hover:text-white transition-colors cursor-pointer"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={isDeletingAccount}
+                className="px-5 py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-agrandir-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95 disabled:opacity-50 flex items-center gap-2"
+              >
+                {isDeletingAccount ? (
+                  <span>Suppression...</span>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Confirmer la suppression</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -802,6 +802,48 @@ class LumareelDatabase {
     return user;
   }
 
+  public getAllUsers(): User[] {
+    const list: User[] = [];
+    const seen = new Set<string>();
+    for (const u of this.users.values()) {
+      if (!seen.has(u.id)) {
+        seen.add(u.id);
+        list.push(u);
+      }
+    }
+    return list;
+  }
+
+  public deleteUser(idOrEmail: string): { success: boolean; error?: string } {
+    if (!idOrEmail) {
+      return { success: false, error: 'Identifiant ou e-mail manquant.' };
+    }
+    const clean = idOrEmail.trim().toLowerCase();
+    let targetUser: User | undefined = this.users.get(clean);
+    if (!targetUser) {
+      for (const u of this.users.values()) {
+        if (u.id === idOrEmail || u.email.toLowerCase() === clean) {
+          targetUser = u;
+          break;
+        }
+      }
+    }
+
+    if (!targetUser) {
+      return { success: false, error: 'Utilisateur introuvable.' };
+    }
+
+    // Protection absolue du compte fondateur
+    if (targetUser.email.toLowerCase() === 'bienaodylan428@gmail.com') {
+      return { success: false, error: 'Le compte fondateur ne peut pas être supprimé.' };
+    }
+
+    this.users.delete(targetUser.id);
+    this.users.delete(targetUser.email.toLowerCase());
+    this.saveUsersToDisk();
+    return { success: true };
+  }
+
   // Events
   public getAllEvents(): ConcertEvent[] {
     const list: ConcertEvent[] = [];

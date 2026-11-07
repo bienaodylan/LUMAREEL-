@@ -21,14 +21,14 @@ export interface CountryOptionItem {
 }
 
 export const COUNTRIES_CATALOG: CountryOptionItem[] = [
-  { id: 'CI', name: 'Côte d’Ivoire', flag: '🇨🇮', dialCode: '+225' },
-  { id: 'SN', name: 'Sénégal', flag: '🇸🇳', dialCode: '+221' },
-  { id: 'ML', name: 'Mali', flag: '🇲🇱', dialCode: '+223' },
-  { id: 'BF', name: 'Burkina Faso', flag: '🇧🇫', dialCode: '+226' },
-  { id: 'INT', name: 'Bénin', flag: '🇧🇯', dialCode: '+229' },
-  { id: 'INT', name: 'Togo', flag: '🇹🇬', dialCode: '+228' },
-  { id: 'INT', name: 'Cameroun', flag: '🇨🇲', dialCode: '+237' },
+  { id: 'CI', name: 'Cote d\'Ivoire', flag: '🇨🇮', dialCode: '+225' },
   { id: 'INT', name: 'Guinée', flag: '🇬🇳', dialCode: '+224' },
+  { id: 'ML', name: 'Mali', flag: '🇲🇱', dialCode: '+223' },
+  { id: 'INT', name: 'Benin', flag: '🇧🇯', dialCode: '+229' },
+  { id: 'INT', name: 'Togo', flag: '🇹🇬', dialCode: '+228' },
+  { id: 'SN', name: 'Sénégal', flag: '🇸🇳', dialCode: '+221' },
+  { id: 'BF', name: 'Burkina Faso', flag: '🇧🇫', dialCode: '+226' },
+  { id: 'INT', name: 'Cameroun', flag: '🇨🇲', dialCode: '+237' },
   { id: 'INT', name: 'Gabon', flag: '🇬🇦', dialCode: '+241' },
   { id: 'INT', name: 'Congo', flag: '🇨🇬', dialCode: '+242' },
   { id: 'INT', name: 'RDC', flag: '🇨🇩', dialCode: '+243' },
@@ -108,6 +108,7 @@ export const CheckoutModal: React.FC = () => {
   const [cardExp, setCardExp] = useState<string>('');
   const [cardCvv, setCardCvv] = useState<string>('');
   const [isIdentityDrawerOpen, setIsIdentityDrawerOpen] = useState<boolean>(false);
+  const [isPaymentCountryDropdownOpen, setIsPaymentCountryDropdownOpen] = useState<boolean>(true);
 
   // Tiroir des pays & indicatifs téléphoniques
   const [isCountryDrawerOpen, setIsCountryDrawerOpen] = useState<boolean>(false);
@@ -900,55 +901,117 @@ export const CheckoutModal: React.FC = () => {
           {/* ===================================================================== */}
           {/* ÉTAPE 3 : PAIEMENT (2 SECTIONS DISTINCTES SUR LA MÊME PAGE) */}
           {/* ===================================================================== */}
+          {/* ===================================================================== */}
+          {/* ÉTAPE 3 : PAIEMENT (DISPOSITION INSPIRÉE DE LA MAQUETTE OFFICIELLE) */}
+          {/* ===================================================================== */}
           {step === 3 && (
-            <div className="space-y-6">
-              {/* Bouton de retour vers le récapitulatif */}
-              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+            <div className="space-y-5 animate-fadeIn">
+              {/* Poignée supérieure de tiroir / drag handle */}
+              <div className="w-12 h-1 bg-neutral-600/70 rounded-full mx-auto" />
+
+              {/* Barre de navigation supérieure : ← Retour (gauche) & Prix Total en rouge (droite) */}
+              <div className="flex items-center justify-between pb-2 border-b border-white/10">
                 <button
                   type="button"
                   onClick={() => setStep(2)}
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-xs font-agrandir-bold tracking-wider text-neutral-200 hover:text-white transition-all uppercase cursor-pointer active:scale-95 group"
+                  className="inline-flex items-center gap-2 text-base sm:text-lg font-agrandir-bold text-white hover:text-neutral-300 transition-colors cursor-pointer group"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37] group-hover:-translate-x-1 transition-transform" />
-                  <span>RETOUR AU RÉCAPITULATIF</span>
+                  <ArrowLeft className="w-5 h-5 text-white group-hover:-translate-x-1 transition-transform" />
+                  <span>Retour</span>
                 </button>
-                <span className="text-[11px] font-agrandir-semibold text-[#888] uppercase tracking-wider font-mono">
-                  Étape 3 sur 4
-                </span>
+
+                <div className="font-agrandir-extrabold text-lg sm:text-xl font-mono text-[#dc2626] tracking-tight">
+                  {finalTotalAmount.toLocaleString('fr-FR')} F CFA
+                </div>
               </div>
 
-              {/* ----------------------------------------------------------------- */}
-              {/* SECTION 1 : MOYEN DE PAIEMENT */}
-              {/* ----------------------------------------------------------------- */}
-              <div className="p-5 sm:p-6 rounded-3xl bg-[#0c0c0c] border border-white/10 space-y-4 shadow-xl">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-sm shadow-inner">
-                      💳
+              {/* SÉLECTEUR DE PAYS (Menu déroulant attaché avec recherche) */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-agrandir-bold text-neutral-300">
+                  Pays <span className="text-[#dc2626]">*</span>
+                </label>
+
+                {/* Case de sélection avec drapeau, nom et chevron */}
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentCountryDropdownOpen((prev) => !prev)}
+                  className="w-full p-3.5 sm:p-4 bg-[#141414] hover:bg-[#191919] border border-white/20 rounded-2xl flex items-center justify-between transition-all cursor-pointer text-left shadow-sm group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xl shrink-0">
+                      {COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode)?.flag || '🇨🇮'}
+                    </span>
+                    <span className="font-agrandir-bold text-sm text-white truncate">
+                      {COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode)?.name || 'Cote d\'Ivoire'}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`w-5 h-5 text-neutral-400 group-hover:text-white transition-transform ${
+                      isPaymentCountryDropdownOpen ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {/* Tiroir déroulant attaché directement sous le sélecteur */}
+                {isPaymentCountryDropdownOpen && (
+                  <div className="mt-2 p-3 sm:p-3.5 rounded-2xl bg-[#121212] border border-white/15 shadow-2xl space-y-2.5 animate-fadeIn">
+                    {/* Champ de recherche avec loupe et coins arrondis */}
+                    <div className="relative">
+                      <Search className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={countrySearchQuery}
+                        onChange={(e) => setCountrySearchQuery(e.target.value)}
+                        placeholder="Rechercher un pays..."
+                        className="w-full bg-[#0a0a0a] border border-white/15 rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white font-agrandir-regular"
+                      />
                     </div>
-                    <div>
-                      <h4 className="text-xs font-agrandir-extrabold text-white uppercase tracking-wider">
-                        1. Moyen de paiement
-                      </h4>
-                      <p className="text-[11px] text-[#777] font-agrandir-regular">
-                        Choisissez votre opérateur mobile money ou carte bancaire
-                      </p>
+
+                    {/* Liste des pays scrollable */}
+                    <div className="max-h-52 overflow-y-auto divide-y divide-white/5 pr-1 space-y-0.5">
+                      {filteredCountries.map((c) => {
+                        const isCurrent = c.dialCode === paymentDialCode;
+                        return (
+                          <button
+                            key={`${c.name}-${c.dialCode}`}
+                            type="button"
+                            onClick={() => {
+                              setPaymentDialCode(c.dialCode);
+                              setCountry(c.id);
+                              setIsPaymentCountryDropdownOpen(false);
+                            }}
+                            className={`w-full py-2.5 px-3 rounded-xl flex items-center justify-between text-left transition-colors cursor-pointer ${
+                              isCurrent
+                                ? 'bg-white/10 text-white font-agrandir-bold'
+                                : 'hover:bg-white/5 text-neutral-300'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="text-lg shrink-0">{c.flag}</span>
+                              <span className="text-xs sm:text-sm truncate">{c.name}</span>
+                            </div>
+                            {isCurrent && <Check className="w-4 h-4 text-[#dc2626] shrink-0" />}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-                  <span className="text-[10px] text-[#d4af37] font-agrandir-semibold uppercase tracking-wider bg-[#d4af37]/10 px-2.5 py-1 rounded-full border border-[#d4af37]/30">
-                    Sécurisé
-                  </span>
-                </div>
+                )}
+              </div>
 
-                {/* Grille de sélection des moyens de paiement */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {/* SÉLECTION DU MOYEN DE PAIEMENT */}
+              <div className="space-y-1.5 pt-1">
+                <label className="block text-xs font-agrandir-bold text-neutral-300">
+                  Moyen de paiement <span className="text-[#dc2626]">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: 'wave', label: 'Wave', desc: 'Sénégal & Côte d’Ivoire', icon: '🌊', color: 'border-[#1DC3F2]/40 bg-[#1b263b]/30 hover:border-[#1DC3F2]' },
-                    { id: 'orange_money', label: 'Orange Money', desc: 'Afrique de l’Ouest', icon: '🟠', color: 'border-[#FF7900]/40 bg-[#2a1b12]/30 hover:border-[#FF7900]' },
-                    { id: 'mtn_momo', label: 'MTN MoMo', desc: 'CI, Bénin, Cameroun...', icon: '🟡', color: 'border-[#FFCC00]/40 bg-[#2a2812]/30 hover:border-[#FFCC00]' },
-                    { id: 'djamo', label: 'Djamo', desc: 'Visa & Portefeuille', icon: '🟣', color: 'border-[#6366F1]/40 bg-[#1e1b38]/30 hover:border-[#6366F1]' },
-                    { id: 'moov_money', label: 'Moov Money', desc: 'Flooz & Moov', icon: '🔵', color: 'border-[#004F9F]/40 bg-[#1b2238]/30 hover:border-[#004F9F]' },
-                    { id: 'card', label: 'Carte Bancaire', desc: 'Visa / Mastercard', icon: '💳', color: 'border-white/40 bg-white/10 hover:border-white' },
+                    { id: 'wave', label: 'Wave', icon: '🌊' },
+                    { id: 'orange_money', label: 'Orange Money', icon: '🟠' },
+                    { id: 'mtn_momo', label: 'MTN MoMo', icon: '🟡' },
+                    { id: 'djamo', label: 'Djamo', icon: '🟣' },
+                    { id: 'moov_money', label: 'Moov', icon: '🔵' },
+                    { id: 'card', label: 'Carte', icon: '💳' },
                   ].map((op) => {
                     const isSelected = paymentMethod === op.id;
                     return (
@@ -956,164 +1019,112 @@ export const CheckoutModal: React.FC = () => {
                         key={op.id}
                         type="button"
                         onClick={() => setPaymentMethod(op.id as PaymentOption)}
-                        className={`p-3 sm:p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative ${
-                          isSelected 
-                            ? 'border-[#d4af37] ring-1 ring-[#d4af37]/50 shadow-[0_0_20px_rgba(212,175,55,0.2)] bg-[#181818]' 
-                            : 'bg-[#121212] border-white/10 hover:border-white/25 text-[#999]'
+                        className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? 'border-white bg-white/15 text-white font-agrandir-bold shadow-md'
+                            : 'bg-[#141414] border-white/10 text-neutral-400 hover:text-white hover:border-white/20'
                         }`}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xl">{op.icon}</span>
-                          {isSelected && <Check className="w-4 h-4 text-[#d4af37]" />}
-                        </div>
-                        <div className={`font-agrandir-bold text-xs uppercase ${isSelected ? 'text-white' : 'text-neutral-300'}`}>
-                          {op.label}
-                        </div>
-                        <div className="text-[10px] text-[#777] font-agrandir-regular truncate mt-0.5">
-                          {op.desc}
-                        </div>
+                        <div className="text-base mb-0.5">{op.icon}</div>
+                        <div className="text-[11px] truncate uppercase">{op.label}</div>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* ----------------------------------------------------------------- */}
-              {/* SECTION 2 : SÉLECTEUR D'IDENTIFICATION & NUMÉRO */}
-              {/* ----------------------------------------------------------------- */}
-              <div className="p-5 sm:p-6 rounded-3xl bg-[#0c0c0c] border border-white/10 space-y-4 shadow-xl">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-sm shadow-inner">
-                      🌍
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-agrandir-extrabold text-white uppercase tracking-wider">
-                        2. Sélecteur d'identification
-                      </h4>
-                      <p className="text-[11px] text-[#777] font-agrandir-regular">
-                        Identifiez votre pays et saisissez votre numéro personnel
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Le Sélecteur d'identification en menu déroulant */}
-                <div>
-                  <label className="block text-[10px] uppercase text-[#888] mb-1.5 font-agrandir-semibold">
-                    Pays d'identification (Menu déroulant)
+              {/* SAISIE DU NUMÉRO OU CARTE BANCAIRE */}
+              {paymentMethod !== 'card' ? (
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-agrandir-bold text-neutral-300">
+                    Numéro de téléphone ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : 'Mobile Money'}) <span className="text-[#dc2626]">*</span>
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCountryDrawerTarget('payment');
-                      setCountrySearchQuery('');
-                      setIsCountryDrawerOpen(true);
-                    }}
-                    className="w-full p-3.5 bg-[#141414] hover:bg-[#1a1a1a] active:scale-[0.99] border border-white/15 hover:border-white/30 rounded-2xl flex items-center justify-between transition-all cursor-pointer text-left shadow-md group"
-                    title="Ouvrir la liste complète des pays"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-2xl shrink-0">
-                        {COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode)?.flag || '🇨🇮'}
-                      </span>
-                      <div className="min-w-0">
-                        <div className="font-agrandir-bold text-xs text-white uppercase truncate group-hover:text-[#d4af37] transition-colors">
-                          {COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode)?.name || 'Côte d’Ivoire'}
-                        </div>
-                        <div className="text-[10px] text-[#888] font-mono mt-0.5">
-                          Indicatif téléphonique : <strong className="text-[#d4af37] font-bold">{paymentDialCode}</strong>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-neutral-400 shrink-0 ml-2">
-                      <span className="text-[10px] font-agrandir-semibold uppercase text-[#d4af37] bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
-                        Choisir le pays
-                      </span>
-                      <ChevronDown className="w-4 h-4 text-[#d4af37] group-hover:translate-y-0.5 transition-transform" />
-                    </div>
-                  </button>
-                </div>
-
-                {/* Saisie du numéro d'identification juste en dessous */}
-                {paymentMethod !== 'card' ? (
-                  <div>
-                    <label className="block text-[10px] uppercase text-[#888] mb-1.5 font-agrandir-semibold">
-                      Numéro de téléphone ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : 'Mobile Money'}) *
-                    </label>
-                    <div className="flex gap-2">
-                      {/* Case indicatif : UNIQUEMENT l'indicatif sans le nom du pays */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setCountryDrawerTarget('payment');
-                          setCountrySearchQuery('');
-                          setIsCountryDrawerOpen(true);
-                        }}
-                        className="bg-[#141414] hover:bg-[#1a1a1a] active:scale-95 border border-white/15 hover:border-white/30 rounded-2xl px-3.5 py-3 text-xs sm:text-sm text-white font-mono flex items-center gap-1.5 cursor-pointer transition-all shrink-0 shadow-sm"
-                        title="Sélectionner le pays / indicatif"
-                      >
-                        <span className="font-mono font-bold text-white text-xs sm:text-sm">{paymentDialCode}</span>
-                        <ChevronDown className="w-3.5 h-3.5 text-[#888]" />
-                      </button>
-                      <div className="relative flex-1 min-w-0">
-                        <Smartphone className="w-4 h-4 text-[#888] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="tel"
-                          value={paymentPhoneNumber}
-                          onChange={(e) => setPaymentPhoneNumber(e.target.value)}
-                          placeholder="Ex : 07 00 00 00 00"
-                          required
-                          className="w-full bg-[#141414] border border-white/15 rounded-2xl pl-10 pr-4 py-3 text-sm text-white font-mono placeholder-[#555] focus:outline-none focus:border-white"
-                        />
-                      </div>
-                    </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsPaymentCountryDropdownOpen(true)}
+                      className="bg-[#141414] hover:bg-[#191919] border border-white/20 rounded-2xl px-4 py-3.5 text-xs sm:text-sm text-white font-mono font-bold flex items-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                      <span>{paymentDialCode}</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
+                    </button>
+                    <input
+                      type="tel"
+                      value={paymentPhoneNumber}
+                      onChange={(e) => setPaymentPhoneNumber(e.target.value)}
+                      placeholder="Ex : 07 00 00 00 00"
+                      className="flex-1 bg-[#141414] border border-white/20 rounded-2xl px-4 py-3.5 text-sm text-white font-mono placeholder-neutral-600 focus:outline-none focus:border-white"
+                    />
                   </div>
-                ) : (
-                  <div className="space-y-3">
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-agrandir-bold text-neutral-300 mb-1">
+                      Numéro de carte bancaire <span className="text-[#dc2626]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(e.target.value)}
+                      placeholder="Ex : 4000 1234 5678 9010"
+                      className="w-full bg-[#141414] border border-white/20 rounded-2xl px-4 py-3 text-sm text-white font-mono placeholder-neutral-600 focus:outline-none focus:border-white"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[10px] uppercase text-[#888] mb-1.5 font-agrandir-semibold">
-                        Numéro de carte bancaire *
+                      <label className="block text-xs font-agrandir-bold text-neutral-300 mb-1">
+                        Expiration (MM/AA) <span className="text-[#dc2626]">*</span>
                       </label>
                       <input
                         type="text"
-                        value={cardNumber}
-                        onChange={(e) => setCardNumber(e.target.value)}
-                        placeholder="Ex : 4000 1234 5678 9010"
-                        className="w-full bg-[#141414] border border-white/15 rounded-2xl px-4 py-3 text-sm text-white font-mono placeholder-[#555] focus:outline-none focus:border-white"
+                        value={cardExp}
+                        onChange={(e) => setCardExp(e.target.value)}
+                        placeholder="MM/AA"
+                        maxLength={5}
+                        className="w-full bg-[#141414] border border-white/20 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-neutral-600 focus:outline-none focus:border-white"
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[10px] uppercase text-[#888] mb-1 font-agrandir-semibold">
-                          Expiration (MM/AA) *
-                        </label>
-                        <input
-                          type="text"
-                          value={cardExp}
-                          onChange={(e) => setCardExp(e.target.value)}
-                          placeholder="MM/AA"
-                          maxLength={5}
-                          className="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-[#555] focus:outline-none focus:border-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] uppercase text-[#888] mb-1 font-agrandir-semibold">
-                          CVV (3 chiffres) *
-                        </label>
-                        <input
-                          type="password"
-                          value={cardCvv}
-                          onChange={(e) => setCardCvv(e.target.value)}
-                          maxLength={4}
-                          placeholder="•••"
-                          className="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-[#555] focus:outline-none focus:border-white"
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-xs font-agrandir-bold text-neutral-300 mb-1">
+                        CVV <span className="text-[#dc2626]">*</span>
+                      </label>
+                      <input
+                        type="password"
+                        value={cardCvv}
+                        onChange={(e) => setCardCvv(e.target.value)}
+                        maxLength={4}
+                        placeholder="•••"
+                        className="w-full bg-[#141414] border border-white/20 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-neutral-600 focus:outline-none focus:border-white"
+                      />
                     </div>
                   </div>
-                )}
+                </div>
+              )}
+
+              {/* RÉCAPITULATIF FINANCIER (Exactement comme dans la capture : Sous-total & Total) */}
+              <div className="p-4 rounded-2xl bg-[#141414] border border-white/10 space-y-2.5">
+                <div className="flex justify-between items-center text-xs text-neutral-300">
+                  <span>Sous-total</span>
+                  <span className="font-mono text-white font-bold">{finalTotalAmount.toLocaleString('fr-FR')} F CFA</span>
+                </div>
+                <div className="border-t border-white/10" />
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-agrandir-bold text-white">Total</span>
+                  <span className="font-mono font-agrandir-extrabold text-[#dc2626] text-base">{finalTotalAmount.toLocaleString('fr-FR')} F CFA</span>
+                </div>
               </div>
+
+              {/* BOUTON D'ACTION PRINCIPAL : Payer avec Wave (Rouge éclatant, arrondi, grand format) */}
+              <button
+                type="button"
+                onClick={handleTriggerPayment}
+                className="w-full py-4 rounded-2xl bg-[#dc2626] hover:bg-[#b91c1c] active:scale-[0.99] text-white font-agrandir-extrabold text-base transition-all cursor-pointer shadow-xl flex items-center justify-center gap-2"
+              >
+                <span>
+                  Payer avec {paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : paymentMethod === 'moov_money' ? 'Moov' : 'Carte'}
+                </span>
+              </button>
             </div>
           )}
 
@@ -1292,7 +1303,7 @@ export const CheckoutModal: React.FC = () => {
         {/* ========================================================================= */}
         {/* BARRE DYNAMIQUE DE RÉSUMÉ & NAVIGATION (FIXE EN BAS DE L'ÉCRAN) */}
         {/* ========================================================================= */}
-        {step < 4 && (
+        {step < 3 && (
           <div className="shrink-0 z-30 border-t border-white/15 bg-[#0a0a0a]/98 backdrop-blur-xl p-4 sm:p-5 sm:rounded-b-3xl shadow-[0_-12px_30px_rgba(0,0,0,0.85)] pb-[max(1rem,env(safe-area-inset-bottom))]">
             {/* LIGNE 1 : TOTAL & NOMBRE DE BILLETS SÉLECTIONNÉS */}
             <div className="flex items-center justify-between gap-3 mb-3">
@@ -1373,29 +1384,6 @@ export const CheckoutModal: React.FC = () => {
                   >
                     <span>{t('checkout.proceedToPayment')}</span>
                     <ArrowRight className="w-4 h-4" />
-                  </button>
-                </>
-              )}
-
-              {step === 3 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setStep(2)}
-                    className="px-4 sm:px-5 py-3.5 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-bold uppercase tracking-wider text-[#ccc] hover:text-white transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shrink-0"
-                    title="Modifier mes coordonnées"
-                  >
-                    <ArrowLeft className="w-4 h-4 text-[#d4af37]" />
-                    <span className="hidden sm:inline">{t('checkout.back')}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleTriggerPayment}
-                    className="flex-1 py-3.5 sm:py-4 px-6 rounded-full bg-[#d4af37] hover:bg-[#c49f27] text-black font-agrandir-extrabold text-xs sm:text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xl shadow-[#d4af37]/25 active:scale-[0.98]"
-                  >
-                    <Lock className="w-4 h-4" />
-                    <span>Payer {finalTotalAmount.toLocaleString('fr-FR')} FCFA</span>
                   </button>
                 </>
               )}
