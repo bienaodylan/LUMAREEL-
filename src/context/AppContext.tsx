@@ -327,18 +327,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     orders: 10000,    // 10 secondes pour les commandes du compte
   };
 
-  // Session utilisateur persistante (chargée depuis localStorage avec repli dynamique)
-  const [currentUser, setCurrentUserState] = useState<User | null>(() => {
-    const saved = readLocal<User | null>(STORAGE_KEYS.CURRENT_USER, null);
-    if (!saved) return null;
-    return { ...saved, role: String(saved.email || '').toLowerCase() === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer' };
-  });
+  // L'identité doit provenir exclusivement d'une session Supabase vérifiée.
+  // Le cache local ne doit jamais suffire à authentifier ni à accorder un rôle.
+  const [currentUser, setCurrentUserState] = useState<User | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     let active = true;
     const syncUser = async (userId?: string) => {
-      if (!userId) return; // Ne pas effacer la session locale si Supabase est inactif
+      if (!userId) { setCurrentUserState(null); try { localStorage.removeItem(STORAGE_KEYS.CURRENT_USER); } catch {} return; }
       try {
         const { data: authData } = await supabase.auth.getUser();
         const authUser = authData.user;
