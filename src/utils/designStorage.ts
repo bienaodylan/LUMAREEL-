@@ -13,8 +13,8 @@ let client: SupabaseClient | null = null;
 
 function getClient(): SupabaseClient | null {
   if (client) return client;
-  const url = (import.meta.env.VITE_SUPABASE_URL || '').trim();
-  const key = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+  const url = (import.meta.env.VITE_SUPABASE_URL || 'https://kupznytxykaesfqnngtb.supabase.co').trim();
+  const key = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1cHpueXR4eWthZXNmcW5uZ3RiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNjE1MTEsImV4cCI6MjEwODkzNzUxMX0.xDUs9eDtrGe6-coE9t8y2NXZYpaBB3X7wOL1YyzeLTI').trim();
   if (!url || !key || !url.startsWith('https://') || url.includes('your-project-id')) {
     return null;
   }

@@ -920,7 +920,7 @@ export const CheckoutModal: React.FC = () => {
                   <span>Retour</span>
                 </button>
 
-                <div className="font-agrandir-extrabold text-lg sm:text-xl font-mono text-[#dc2626] tracking-tight">
+                <div className="font-agrandir-extrabold text-lg sm:text-xl font-mono text-[#d4af37] tracking-tight">
                   {finalTotalAmount.toLocaleString('fr-FR')} F CFA
                 </div>
               </div>
@@ -928,7 +928,7 @@ export const CheckoutModal: React.FC = () => {
               {/* SÉLECTEUR DE PAYS (Menu déroulant attaché avec recherche) */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-agrandir-bold text-neutral-300">
-                  Pays <span className="text-[#dc2626]">*</span>
+                  Pays <span className="text-[#d4af37]">*</span>
                 </label>
 
                 {/* Case de sélection avec drapeau, nom et chevron */}
@@ -990,7 +990,7 @@ export const CheckoutModal: React.FC = () => {
                               <span className="text-lg shrink-0">{c.flag}</span>
                               <span className="text-xs sm:text-sm truncate">{c.name}</span>
                             </div>
-                            {isCurrent && <Check className="w-4 h-4 text-[#dc2626] shrink-0" />}
+                            {isCurrent && <Check className="w-4 h-4 text-[#d4af37] shrink-0" />}
                           </button>
                         );
                       })}
@@ -1002,7 +1002,7 @@ export const CheckoutModal: React.FC = () => {
               {/* SÉLECTION DU MOYEN DE PAIEMENT */}
               <div className="space-y-1.5 pt-1">
                 <label className="block text-xs font-agrandir-bold text-neutral-300">
-                  Moyen de paiement <span className="text-[#dc2626]">*</span>
+                  Moyen de paiement <span className="text-[#d4af37]">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
@@ -1037,7 +1037,7 @@ export const CheckoutModal: React.FC = () => {
               {paymentMethod !== 'card' ? (
                 <div className="space-y-1.5">
                   <label className="block text-xs font-agrandir-bold text-neutral-300">
-                    Numéro de téléphone ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : 'Mobile Money'}) <span className="text-[#dc2626]">*</span>
+                    Numéro de téléphone ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : 'Mobile Money'}) <span className="text-[#d4af37]">*</span>
                   </label>
                   <div className="flex gap-2">
                     <button
@@ -1061,7 +1061,7 @@ export const CheckoutModal: React.FC = () => {
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-agrandir-bold text-neutral-300 mb-1">
-                      Numéro de carte bancaire <span className="text-[#dc2626]">*</span>
+                      Numéro de carte bancaire <span className="text-[#d4af37]">*</span>
                     </label>
                     <input
                       type="text"
@@ -1074,7 +1074,7 @@ export const CheckoutModal: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-agrandir-bold text-neutral-300 mb-1">
-                        Expiration (MM/AA) <span className="text-[#dc2626]">*</span>
+                        Expiration (MM/AA) <span className="text-[#d4af37]">*</span>
                       </label>
                       <input
                         type="text"
@@ -1087,7 +1087,7 @@ export const CheckoutModal: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-xs font-agrandir-bold text-neutral-300 mb-1">
-                        CVV <span className="text-[#dc2626]">*</span>
+                        CVV <span className="text-[#d4af37]">*</span>
                       </label>
                       <input
                         type="password"
@@ -1111,15 +1111,15 @@ export const CheckoutModal: React.FC = () => {
                 <div className="border-t border-white/10" />
                 <div className="flex justify-between items-center text-sm">
                   <span className="font-agrandir-bold text-white">Total</span>
-                  <span className="font-mono font-agrandir-extrabold text-[#dc2626] text-base">{finalTotalAmount.toLocaleString('fr-FR')} F CFA</span>
+                  <span className="font-mono font-agrandir-extrabold text-[#d4af37] text-base">{finalTotalAmount.toLocaleString('fr-FR')} F CFA</span>
                 </div>
               </div>
 
-              {/* BOUTON D'ACTION PRINCIPAL : Payer avec Wave (Rouge éclatant, arrondi, grand format) */}
+              {/* BOUTON D'ACTION PRINCIPAL : Payer avec Wave (Doré luxueux, arrondi, grand format) */}
               <button
                 type="button"
                 onClick={handleTriggerPayment}
-                className="w-full py-4 rounded-2xl bg-[#dc2626] hover:bg-[#b91c1c] active:scale-[0.99] text-white font-agrandir-extrabold text-base transition-all cursor-pointer shadow-xl flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl bg-[#d4af37] hover:bg-[#c49f27] active:scale-[0.99] text-black font-agrandir-extrabold text-base transition-all cursor-pointer shadow-xl shadow-[#d4af37]/20 flex items-center justify-center gap-2"
               >
                 <span>
                   Payer avec {paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : paymentMethod === 'moov_money' ? 'Moov' : 'Carte'}

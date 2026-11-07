@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { 
   Shield, 
@@ -15,8 +15,6 @@ import {
   Terminal, 
   AlertCircle,
   Sparkles,
-  Users,
-  Trash2,
 } from 'lucide-react';
 import { uploadAdminImage } from '../../../utils/uploadAdminImage';
 
@@ -26,45 +24,6 @@ interface AdminSettingsViewProps {
 
 export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ showToast }) => {
   const { platformSettings, updatePlatformSettings, events, archives } = useApp();
-
-  const [usersList, setUsersList] = useState<any[]>([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setIsLoadingUsers(true);
-        const res = await fetch('/api/admin/users');
-        const data = await res.json();
-        if (data.success && Array.isArray(data.users)) {
-          setUsersList(data.users);
-        }
-      } catch (err) {
-        console.warn('Impossible de charger les utilisateurs:', err);
-      } finally {
-        setIsLoadingUsers(false);
-      }
-    };
-    fetchUsers();
-  }, []);
-
-  const handleDeleteUser = async (userId: string, email: string) => {
-    if (email.toLowerCase() === 'bienaodylan428@gmail.com') {
-      showToast('Le compte fondateur est protégé contre la suppression.', 'error');
-      return;
-    }
-    try {
-      const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Erreur lors de la suppression.');
-      }
-      setUsersList((prev) => prev.filter((u) => u.id !== userId));
-      showToast(`Le compte ${email} a été supprimé.`, 'success');
-    } catch (e: any) {
-      showToast(e.message || 'Impossible de supprimer.', 'error');
-    }
-  };
 
   const [formData, setFormData] = useState({
     platformName: platformSettings.platformName || 'LUMARÉEL',
@@ -619,86 +578,6 @@ export const AdminSettingsView: React.FC<AdminSettingsViewProps> = ({ showToast 
                 Ce jeton fixe sert d'accès direct de secours pour l'équipe de sécurité au cas où un lien magique n'a pas été généré au préalable.
               </p>
             </div>
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* SECTION 4 : COMPTES UTILISATEURS & SUPPRESSION */}
-        {/* ========================================================================= */}
-        <div className="bg-[#0c0c0c] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-5 shadow-xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-3">
-            <div className="flex items-center gap-2.5 text-xs font-agrandir-extrabold text-white uppercase">
-              <Users className="w-4 h-4 text-[#d4af37]" />
-              <span>COMPTES UTILISATEURS &amp; GESTION DES ACCÈS</span>
-            </div>
-            <span className="text-[10px] font-agrandir-semibold text-[#aaa] bg-white/5 border border-white/10 px-2.5 py-1 rounded-full uppercase">
-              {usersList.length} compte{usersList.length > 1 ? 's' : ''}
-            </span>
-          </div>
-
-          <p className="text-xs text-[#888] font-agrandir-regular">
-            Consultez tous les comptes inscrits sur LUMARÉEL et supprimez les comptes indésirables en un clic.
-          </p>
-
-          <div className="space-y-2.5 pt-1">
-            {isLoadingUsers ? (
-              <div className="p-4 rounded-2xl bg-[#141414] text-center text-xs text-[#888] animate-pulse">
-                Chargement des comptes utilisateurs...
-              </div>
-            ) : usersList.length === 0 ? (
-              <div className="p-4 rounded-2xl bg-[#141414] text-center text-xs text-[#888]">
-                Aucun utilisateur supplémentaire enregistré.
-              </div>
-            ) : (
-              usersList.map((u) => {
-                const isFounder = u.email?.toLowerCase() === 'bienaodylan428@gmail.com';
-                return (
-                  <div
-                    key={u.id}
-                    className="p-3.5 sm:p-4 rounded-2xl bg-[#141414] border border-white/10 flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center font-agrandir-extrabold text-xs text-white shrink-0">
-                        {u.name ? u.name.slice(0, 2).toUpperCase() : 'LR'}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-agrandir-bold text-xs text-white truncate">
-                            {u.name || 'Utilisateur'}
-                          </span>
-                          {isFounder && (
-                            <span className="text-[9px] font-agrandir-bold text-[#d4af37] bg-[#d4af37]/10 border border-[#d4af37]/30 px-2 py-0.5 rounded-full uppercase">
-                              Fondateur
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-[#777] font-mono truncate">
-                          {u.email}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 flex items-center gap-2">
-                      {isFounder ? (
-                        <span className="text-[10px] text-[#666] font-agrandir-regular italic px-2">
-                          Protégé
-                        </span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteUser(u.id, u.email)}
-                          className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/20 text-rose-400 hover:text-rose-300 text-xs font-agrandir-bold transition-colors cursor-pointer flex items-center gap-1.5"
-                          title="Supprimer définitivement ce compte"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span className="hidden sm:inline">Supprimer</span>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            )}
           </div>
         </div>
 

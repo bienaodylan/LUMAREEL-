@@ -20,10 +20,13 @@ export function sanitizeSupabaseUrl(url: string): string {
   return url.trim().replace(/\/rest\/v1\/?$/i, '').replace(/\/+$/, '');
 }
 
-// Récupération des variables d'environnement Vite / Vercel
-const rawSupabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+// Récupération des variables d'environnement Vite / Vercel (avec identifiants officiels LUMARÉEL)
+const DEFAULT_SUPABASE_URL = 'https://kupznytxykaesfqnngtb.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1cHpueXR4eWthZXNmcW5uZ3RiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNjE1MTEsImV4cCI6MjEwODkzNzUxMX0.xDUs9eDtrGe6-coE9t8y2NXZYpaBB3X7wOL1YyzeLTI';
+
+const rawSupabaseUrl = (import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL).trim();
 const supabaseUrl = sanitizeSupabaseUrl(rawSupabaseUrl);
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY).trim();
 
 // Vérification de validité (évite les URLs d'exemple ou manquantes)
 export let isSupabaseConfigured = Boolean(
