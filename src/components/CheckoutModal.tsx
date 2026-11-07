@@ -39,6 +39,26 @@ export const COUNTRIES_CATALOG: CountryOptionItem[] = [
   { id: 'INT', name: 'Autre pays / International', flag: '🌍', dialCode: '+' },
 ];
 
+export const isValidRealEmail = (emailStr: string): boolean => {
+  const email = emailStr.trim().toLowerCase();
+  if (!email || email.length < 5 || email.length > 254) return false;
+  const regex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  if (!regex.test(email)) return false;
+  const parts = email.split('@');
+  if (parts.length !== 2) return false;
+  const domainParts = parts[1].split('.');
+  if (domainParts.length < 2) return false;
+  const tld = domainParts[domainParts.length - 1];
+  if (!tld || tld.length < 2) return false;
+  if (['test@test.com', 'a@a.com', 'test@example.com', 'fake@fake.com', 'mail@mail.com'].includes(email)) return false;
+  return true;
+};
+
+export const isValidPhoneNumber = (phoneStr: string): boolean => {
+  const digits = phoneStr.replace(/[^0-9]/g, '');
+  return digits.length >= 8 && digits.length <= 15;
+};
+
 export const COUNTRY_DIAL_CODES = COUNTRIES_CATALOG.map((c) => ({
   code: c.dialCode,
   label: `${c.flag} ${c.name} (${c.dialCode})`,
@@ -75,16 +95,18 @@ export const CheckoutModal: React.FC = () => {
   const [customerName, setCustomerName] = useState<string>(currentUser?.name || '');
   const [customerEmail, setCustomerEmail] = useState<string>(currentUser?.email || '');
   const [customerDialCode, setCustomerDialCode] = useState<string>('+225');
-  const [customerPhoneNumber, setCustomerPhoneNumber] = useState<string>('07 00 00 00 00');
+  // Aucun numéro fictif par défaut : les utilisateurs saisissent eux-mêmes leur numéro
+  const [customerPhoneNumber, setCustomerPhoneNumber] = useState<string>('');
 
   // Étape 3 : Paiement
   const [country, setCountry] = useState<CountryOption>('CI');
   const [paymentMethod, setPaymentMethod] = useState<PaymentOption>('wave');
   const [paymentDialCode, setPaymentDialCode] = useState<string>('+225');
-  const [paymentPhoneNumber, setPaymentPhoneNumber] = useState<string>('07 00 00 00 00');
-  const [cardNumber, setCardNumber] = useState<string>('4000 1234 5678 9010');
-  const [cardExp, setCardExp] = useState<string>('12/28');
-  const [cardCvv, setCardCvv] = useState<string>('888');
+  // Aucun numéro fictif par défaut
+  const [paymentPhoneNumber, setPaymentPhoneNumber] = useState<string>('');
+  const [cardNumber, setCardNumber] = useState<string>('');
+  const [cardExp, setCardExp] = useState<string>('');
+  const [cardCvv, setCardCvv] = useState<string>('');
   const [isIdentityDrawerOpen, setIsIdentityDrawerOpen] = useState<boolean>(false);
 
   // Tiroir des pays & indicatifs téléphoniques
@@ -212,14 +234,65 @@ export const CheckoutModal: React.FC = () => {
   };
 
   const handleProceedToPayment = () => {
-    if (!customerName.trim() || !customerEmail.trim()) {
-      showToast(language === 'en' ? 'Please enter your name and email address.' : 'Veuillez renseigner votre nom et adresse e-mail.', 'error');
+    if (!customerName.trim()) {
+      showToast('Veuillez renseigner votre nom complet.', 'error');
       return;
     }
+    const cleanEmail = customerEmail.trim();
+    if (!cleanEmail) {
+      showToast('L\'adresse e-mail est obligatoire pour recevoir vos billets.', 'error');
+      return;
+    }
+    if (!isValidRealEmail(cleanEmail)) {
+      showToast('Veuillez saisir une adresse e-mail réelle et valide (ex : nom@domaine.com).', 'error');
+      return;
+    }
+    const cleanPhone = customerPhoneNumber.trim();
+    if (!cleanPhone) {
+      showToast('Le numéro de téléphone est obligatoire.', 'error');
+      return;
+    }
+    if (!isValidPhoneNumber(cleanPhone)) {
+      showToast('Veuillez saisir un numéro de téléphone valide (au moins 8 chiffres).', 'error');
+      return;
+    }
+
+    // Synchronisation automatique vers le champ de paiement s'il est vide
+    if (!paymentPhoneNumber.trim()) {
+      setPaymentPhoneNumber(cleanPhone);
+      setPaymentDialCode(customerDialCode);
+    }
+
     setStep(3);
   };
 
   const handleTriggerPayment = () => {
+    if (paymentMethod !== 'card') {
+      const pPhone = paymentPhoneNumber.trim();
+      if (!pPhone) {
+        showToast('Veuillez saisir votre numéro pour le paiement mobile money.', 'error');
+        return;
+      }
+      if (!isValidPhoneNumber(pPhone)) {
+        showToast('Veuillez saisir un numéro de téléphone valide pour le paiement.', 'error');
+        return;
+      }
+    } else {
+      const cleanCard = cardNumber.replace(/\s+/g, '');
+      if (!cleanCard || cleanCard.length < 15) {
+        showToast('Veuillez saisir un numéro de carte bancaire valide (au moins 15 chiffres).', 'error');
+        return;
+      }
+      if (!cardExp.trim() || !cardExp.includes('/')) {
+        showToast('Veuillez renseigner la date d\'expiration de votre carte (MM/AA).', 'error');
+        return;
+      }
+      if (!cardCvv.trim() || cardCvv.length < 3) {
+        showToast('Veuillez renseigner le code CVV à 3 chiffres.', 'error');
+        return;
+      }
+    }
+
     // Étape 4 : simulation redirection vers passerelle tierce (Wave / Mobile Money)
     setIsSimulatingGateway(true);
     setStep(4);
@@ -825,10 +898,10 @@ export const CheckoutModal: React.FC = () => {
           )}
 
           {/* ===================================================================== */}
-          {/* ÉTAPE 3 : PAIEMENT */}
+          {/* ÉTAPE 3 : PAIEMENT (2 SECTIONS DISTINCTES SUR LA MÊME PAGE) */}
           {/* ===================================================================== */}
           {step === 3 && (
-            <div className="space-y-5">
+            <div className="space-y-6">
               {/* Bouton de retour vers le récapitulatif */}
               <div className="flex items-center justify-between pb-3 border-b border-white/10">
                 <button
@@ -844,56 +917,132 @@ export const CheckoutModal: React.FC = () => {
                 </span>
               </div>
 
-              {/* TIROIR : SÉLECTEUR D'IDENTIFICATION */}
-              <div className="rounded-2xl bg-[#0c0c0c] border border-white/10 overflow-hidden shadow-lg">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCountryDrawerTarget('payment');
-                    setCountrySearchQuery('');
-                    setIsCountryDrawerOpen(true);
-                  }}
-                  className="w-full p-4 flex items-center justify-between hover:bg-white/5 active:bg-white/10 transition-colors cursor-pointer text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-lg shrink-0">
-                      {paymentMethod === 'wave' ? '🌊' : paymentMethod === 'orange_money' ? '🟠' : paymentMethod === 'mtn_momo' ? '🟡' : paymentMethod === 'djamo' ? '🟣' : paymentMethod === 'moov_money' ? '🔵' : '💳'}
+              {/* ----------------------------------------------------------------- */}
+              {/* SECTION 1 : MOYEN DE PAIEMENT */}
+              {/* ----------------------------------------------------------------- */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-[#0c0c0c] border border-white/10 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-sm shadow-inner">
+                      💳
                     </div>
                     <div>
-                      <div className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
-                        Sélecteur d'identification
-                      </div>
-                      <div className="text-xs text-white font-agrandir-extrabold uppercase flex items-center gap-2 mt-0.5">
-                        <span>
-                          {COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode)?.name 
-                            ? `${COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode)?.flag} ${COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode)?.name}`
-                            : (country === 'CI' ? '🇨🇮 Côte d’Ivoire' : country === 'SN' ? '🇸🇳 Sénégal' : country === 'ML' ? '🇲🇱 Mali' : country === 'BF' ? '🇧🇫 Burkina' : '🌍 International')}
-                        </span>
-                        <span className="text-[#666]">·</span>
-                        <span className="text-[#eee]">
-                          {paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : paymentMethod === 'moov_money' ? 'Moov Money' : 'Carte Bancaire'}
-                        </span>
-                      </div>
+                      <h4 className="text-xs font-agrandir-extrabold text-white uppercase tracking-wider">
+                        1. Moyen de paiement
+                      </h4>
+                      <p className="text-[11px] text-[#777] font-agrandir-regular">
+                        Choisissez votre opérateur mobile money ou carte bancaire
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-neutral-400">
-                    <span className="text-[10px] font-agrandir-semibold uppercase text-[#d4af37]">
-                      Ouvrir le tiroir
-                    </span>
-                    <ChevronDown className="w-4 h-4 text-[#d4af37]" />
-                  </div>
-                </button>
+                  <span className="text-[10px] text-[#d4af37] font-agrandir-semibold uppercase tracking-wider bg-[#d4af37]/10 px-2.5 py-1 rounded-full border border-[#d4af37]/30">
+                    Sécurisé
+                  </span>
+                </div>
+
+                {/* Grille de sélection des moyens de paiement */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {[
+                    { id: 'wave', label: 'Wave', desc: 'Sénégal & Côte d’Ivoire', icon: '🌊', color: 'border-[#1DC3F2]/40 bg-[#1b263b]/30 hover:border-[#1DC3F2]' },
+                    { id: 'orange_money', label: 'Orange Money', desc: 'Afrique de l’Ouest', icon: '🟠', color: 'border-[#FF7900]/40 bg-[#2a1b12]/30 hover:border-[#FF7900]' },
+                    { id: 'mtn_momo', label: 'MTN MoMo', desc: 'CI, Bénin, Cameroun...', icon: '🟡', color: 'border-[#FFCC00]/40 bg-[#2a2812]/30 hover:border-[#FFCC00]' },
+                    { id: 'djamo', label: 'Djamo', desc: 'Visa & Portefeuille', icon: '🟣', color: 'border-[#6366F1]/40 bg-[#1e1b38]/30 hover:border-[#6366F1]' },
+                    { id: 'moov_money', label: 'Moov Money', desc: 'Flooz & Moov', icon: '🔵', color: 'border-[#004F9F]/40 bg-[#1b2238]/30 hover:border-[#004F9F]' },
+                    { id: 'card', label: 'Carte Bancaire', desc: 'Visa / Mastercard', icon: '💳', color: 'border-white/40 bg-white/10 hover:border-white' },
+                  ].map((op) => {
+                    const isSelected = paymentMethod === op.id;
+                    return (
+                      <button
+                        key={op.id}
+                        type="button"
+                        onClick={() => setPaymentMethod(op.id as PaymentOption)}
+                        className={`p-3 sm:p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                          isSelected 
+                            ? 'border-[#d4af37] ring-1 ring-[#d4af37]/50 shadow-[0_0_20px_rgba(212,175,55,0.2)] bg-[#181818]' 
+                            : 'bg-[#121212] border-white/10 hover:border-white/25 text-[#999]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xl">{op.icon}</span>
+                          {isSelected && <Check className="w-4 h-4 text-[#d4af37]" />}
+                        </div>
+                        <div className={`font-agrandir-bold text-xs uppercase ${isSelected ? 'text-white' : 'text-neutral-300'}`}>
+                          {op.label}
+                        </div>
+                        <div className="text-[10px] text-[#777] font-agrandir-regular truncate mt-0.5">
+                          {op.desc}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Juste en bas de l'identification, on identifie directement le numéro d'identification */}
-              <div className="p-5 rounded-2xl bg-[#0c0c0c] border border-white/10 space-y-3 shadow-lg">
-                {paymentMethod !== 'card' && paymentMethod !== 'djamo' ? (
+              {/* ----------------------------------------------------------------- */}
+              {/* SECTION 2 : SÉLECTEUR D'IDENTIFICATION & NUMÉRO */}
+              {/* ----------------------------------------------------------------- */}
+              <div className="p-5 sm:p-6 rounded-3xl bg-[#0c0c0c] border border-white/10 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-sm shadow-inner">
+                      🌍
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-agrandir-extrabold text-white uppercase tracking-wider">
+                        2. Sélecteur d'identification
+                      </h4>
+                      <p className="text-[11px] text-[#777] font-agrandir-regular">
+                        Identifiez votre pays et saisissez votre numéro personnel
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Le Sélecteur d'identification en menu déroulant */}
+                <div>
+                  <label className="block text-[10px] uppercase text-[#888] mb-1.5 font-agrandir-semibold">
+                    Pays d'identification (Menu déroulant)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCountryDrawerTarget('payment');
+                      setCountrySearchQuery('');
+                      setIsCountryDrawerOpen(true);
+                    }}
+                    className="w-full p-3.5 bg-[#141414] hover:bg-[#1a1a1a] active:scale-[0.99] border border-white/15 hover:border-white/30 rounded-2xl flex items-center justify-between transition-all cursor-pointer text-left shadow-md group"
+                    title="Ouvrir la liste complète des pays"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-2xl shrink-0">
+                        {COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode)?.flag || '🇨🇮'}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="font-agrandir-bold text-xs text-white uppercase truncate group-hover:text-[#d4af37] transition-colors">
+                          {COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode)?.name || 'Côte d’Ivoire'}
+                        </div>
+                        <div className="text-[10px] text-[#888] font-mono mt-0.5">
+                          Indicatif téléphonique : <strong className="text-[#d4af37] font-bold">{paymentDialCode}</strong>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-neutral-400 shrink-0 ml-2">
+                      <span className="text-[10px] font-agrandir-semibold uppercase text-[#d4af37] bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
+                        Choisir le pays
+                      </span>
+                      <ChevronDown className="w-4 h-4 text-[#d4af37] group-hover:translate-y-0.5 transition-transform" />
+                    </div>
+                  </button>
+                </div>
+
+                {/* Saisie du numéro d'identification juste en dessous */}
+                {paymentMethod !== 'card' ? (
                   <div>
-                    <label className="block text-xs uppercase text-white font-agrandir-bold tracking-wider mb-2">
-                      Numéro d'identification ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'moov_money' ? 'Moov Money' : 'Mobile Money'})
+                    <label className="block text-[10px] uppercase text-[#888] mb-1.5 font-agrandir-semibold">
+                      Numéro de téléphone ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : 'Mobile Money'}) *
                     </label>
                     <div className="flex gap-2">
-                      {/* Case indicatif : UNIQUEMENT l'indicatif dans la case, clic ouvre le tiroir des pays */}
+                      {/* Case indicatif : UNIQUEMENT l'indicatif sans le nom du pays */}
                       <button
                         type="button"
                         onClick={() => {
@@ -901,7 +1050,7 @@ export const CheckoutModal: React.FC = () => {
                           setCountrySearchQuery('');
                           setIsCountryDrawerOpen(true);
                         }}
-                        className="bg-[#141414] hover:bg-[#1a1a1a] active:scale-95 border border-white/15 hover:border-white/30 rounded-xl px-3.5 py-3 text-xs sm:text-sm text-white font-mono flex items-center gap-1.5 cursor-pointer transition-all shrink-0 shadow-sm"
+                        className="bg-[#141414] hover:bg-[#1a1a1a] active:scale-95 border border-white/15 hover:border-white/30 rounded-2xl px-3.5 py-3 text-xs sm:text-sm text-white font-mono flex items-center gap-1.5 cursor-pointer transition-all shrink-0 shadow-sm"
                         title="Sélectionner le pays / indicatif"
                       >
                         <span className="font-mono font-bold text-white text-xs sm:text-sm">{paymentDialCode}</span>
@@ -913,8 +1062,9 @@ export const CheckoutModal: React.FC = () => {
                           type="tel"
                           value={paymentPhoneNumber}
                           onChange={(e) => setPaymentPhoneNumber(e.target.value)}
-                          placeholder="07 00 00 00 00"
-                          className="w-full bg-[#141414] border border-white/15 rounded-xl pl-10 pr-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-white"
+                          placeholder="Ex : 07 00 00 00 00"
+                          required
+                          className="w-full bg-[#141414] border border-white/15 rounded-2xl pl-10 pr-4 py-3 text-sm text-white font-mono placeholder-[#555] focus:outline-none focus:border-white"
                         />
                       </div>
                     </div>
@@ -922,33 +1072,34 @@ export const CheckoutModal: React.FC = () => {
                 ) : (
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs uppercase text-white font-agrandir-bold tracking-wider mb-2">
-                        Numéro
+                      <label className="block text-[10px] uppercase text-[#888] mb-1.5 font-agrandir-semibold">
+                        Numéro de carte bancaire *
                       </label>
                       <input
                         type="text"
                         value={cardNumber}
                         onChange={(e) => setCardNumber(e.target.value)}
-                        placeholder="4000 0000 0000 0000"
-                        className="w-full bg-[#141414] border border-white/15 rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-white"
+                        placeholder="Ex : 4000 1234 5678 9010"
+                        className="w-full bg-[#141414] border border-white/15 rounded-2xl px-4 py-3 text-sm text-white font-mono placeholder-[#555] focus:outline-none focus:border-white"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] uppercase text-[#888] mb-1 font-agrandir-semibold">
-                          Expiration (MM/AA)
+                          Expiration (MM/AA) *
                         </label>
                         <input
                           type="text"
                           value={cardExp}
                           onChange={(e) => setCardExp(e.target.value)}
                           placeholder="MM/AA"
-                          className="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-white"
+                          maxLength={5}
+                          className="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-[#555] focus:outline-none focus:border-white"
                         />
                       </div>
                       <div>
                         <label className="block text-[10px] uppercase text-[#888] mb-1 font-agrandir-semibold">
-                          CVV
+                          CVV (3 chiffres) *
                         </label>
                         <input
                           type="password"
@@ -956,7 +1107,7 @@ export const CheckoutModal: React.FC = () => {
                           onChange={(e) => setCardCvv(e.target.value)}
                           maxLength={4}
                           placeholder="•••"
-                          className="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-white"
+                          className="w-full bg-[#141414] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-[#555] focus:outline-none focus:border-white"
                         />
                       </div>
                     </div>
@@ -1338,7 +1489,7 @@ export const CheckoutModal: React.FC = () => {
                     <span>de Pays &amp; Indicatif</span>
                   </h3>
                   <p className="text-[11px] text-[#888] mt-0.5">
-                    Sélectionnez un pays dans le tiroir. Seul l'indicatif apparaîtra dans votre case.
+                    Sélectionnez un pays dans la liste. Seul son indicatif apparaîtra dans votre case.
                   </p>
                 </div>
                 <button
@@ -1350,39 +1501,6 @@ export const CheckoutModal: React.FC = () => {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-
-              {/* Sélection rapide de l'opérateur si ouvert depuis l'étape paiement */}
-              {countryDrawerTarget === 'payment' && (
-                <div className="p-4 border-b border-white/10 bg-[#080808] space-y-2">
-                  <div className="text-[9px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
-                    Mode / Opérateur de paiement
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { id: 'wave', label: 'Wave', icon: '🌊', color: 'border-[#1DC3F2]/40 bg-[#1b263b]/40' },
-                      { id: 'orange_money', label: 'Orange', icon: '🟠', color: 'border-[#FF7900]/40 bg-[#2a1b12]/40' },
-                      { id: 'mtn_momo', label: 'MTN MoMo', icon: '🟡', color: 'border-[#FFCC00]/40 bg-[#2a2812]/40' },
-                      { id: 'djamo', label: 'Djamo', icon: '🟣', color: 'border-[#6366F1]/40 bg-[#1e1b38]/40' },
-                      { id: 'moov_money', label: 'Moov', icon: '🔵', color: 'border-[#004F9F]/40 bg-[#1b2238]/40' },
-                      { id: 'card', label: 'Carte Bancaire', icon: '💳', color: 'border-white/40 bg-white/10' },
-                    ].map((op) => (
-                      <button
-                        key={op.id}
-                        type="button"
-                        onClick={() => setPaymentMethod(op.id as PaymentOption)}
-                        className={`p-2 rounded-xl border text-left flex items-center gap-1.5 transition-all cursor-pointer ${
-                          paymentMethod === op.id
-                            ? `${op.color} border-white text-white font-bold shadow-md`
-                            : 'bg-[#121212] border-white/5 text-[#888] hover:border-white/20'
-                        }`}
-                      >
-                        <span className="text-sm">{op.icon}</span>
-                        <span className="text-[10px] truncate font-agrandir-semibold">{op.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Barre de recherche dans le tiroir */}
               <div className="p-4 border-b border-white/10 bg-[#0a0a0a]">
@@ -1409,8 +1527,8 @@ export const CheckoutModal: React.FC = () => {
                 </div>
               </div>
 
-              {/* Liste défilante des pays dans le tiroir */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[46vh] scrollbar-thin">
+              {/* Liste défilante des pays dans le tiroir (longue page confortable) */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[60vh] scrollbar-thin">
                 {filteredCountries.map((c) => {
                   const currentDial = countryDrawerTarget === 'customer' ? customerDialCode : paymentDialCode;
                   const isSelected = currentDial === c.dialCode;

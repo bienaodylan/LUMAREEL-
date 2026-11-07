@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { X, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react';
+import { isValidRealEmail } from './CheckoutModal';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, showToast, checkoutEvent, setCheckoutEvent } = useApp();
@@ -17,8 +18,8 @@ export const AuthModal: React.FC = () => {
 
   const handlePasswordReset = async () => {
     const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      showToast('Saisissez votre e-mail ci-dessus pour réinitialiser le mot de passe.', 'error');
+    if (!cleanEmail || !isValidRealEmail(cleanEmail)) {
+      showToast('Saisissez une adresse e-mail réelle et valide pour réinitialiser le mot de passe.', 'error');
       return;
     }
 
@@ -42,8 +43,8 @@ export const AuthModal: React.FC = () => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
 
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      showToast('Veuillez saisir une adresse e-mail valide.', 'error');
+    if (!cleanEmail || !isValidRealEmail(cleanEmail)) {
+      showToast('Veuillez saisir une adresse e-mail réelle et valide (ex : nom@domaine.com).', 'error');
       return;
     }
 
