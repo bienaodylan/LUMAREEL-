@@ -3,6 +3,22 @@ import { useApp } from '../context/AppContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { X, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react';
 
+// Validation stricte du format email (en complément de la validation native HTML).
+const isValidEmail = (value: string): boolean => {
+  const email = value.trim();
+  if (email.length > 254 || /\\s/.test(email)) return false;
+  const parts = email.split('@');
+  if (parts.length !== 2) return false;
+  const [local, domain] = parts;
+  if (!local || local.length > 64 || local.startsWith('.') || local.endsWith('.') || local.includes('..')) return false;
+  if (!/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(local)) return false;
+  if (!domain || domain.length > 253 || domain.startsWith('.') || domain.endsWith('.') || domain.includes('..')) return false;
+  const labels = domain.split('.');
+  if (labels.length < 2 || labels.some(label => !label || label.length > 63 || label.startsWith('-') || label.endsWith('-') || !/^[A-Za-z0-9-]+$/.test(label))) return false;
+  const tld = labels[labels.length - 1];
+  return /^[A-Za-z]{2,}$/.test(tld);
+};
+
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, showToast, checkoutEvent, setCheckoutEvent } = useApp();
 
@@ -17,8 +33,8 @@ export const AuthModal: React.FC = () => {
 
   const handlePasswordReset = async () => {
     const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      showToast('Saisissez votre e-mail ci-dessus pour réinitialiser le mot de passe.', 'error');
+    if (!isValidEmail(cleanEmail)) {
+      showToast('Saisissez une adresse e-mail valide (ex. nom@gmail.com) pour réinitialiser le mot de passe.', 'error');
       return;
     }
 
@@ -44,7 +60,7 @@ export const AuthModal: React.FC = () => {
     const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanEmail || !cleanEmail.includes('@')) {
-      showToast('Veuillez saisir une adresse e-mail valide.', 'error');
+      showToast('Veuillez saisir une adresse e-mail valide (ex. nom@gmail.com).', 'error');
       return;
     }
 
