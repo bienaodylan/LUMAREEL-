@@ -24,7 +24,8 @@ export const AuthModal: React.FC = () => {
 
     setIsResettingPassword(true);
     try {
-      if (isSupabaseConfigured) {
+      if (!isSupabaseConfigured) throw new Error('Supabase Auth n’est pas configuré : aucun e-mail réel ne peut être envoyé.');
+      {
         const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
           redirectTo: window.location.origin + '/',
         });
