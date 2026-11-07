@@ -3,22 +3,6 @@ import { useApp } from '../context/AppContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { X, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react';
 
-// Validation stricte du format email (en complément de la validation native HTML).
-const isValidEmail = (value: string): boolean => {
-  const email = value.trim();
-  if (email.length > 254 || /\\s/.test(email)) return false;
-  const parts = email.split('@');
-  if (parts.length !== 2) return false;
-  const [local, domain] = parts;
-  if (!local || local.length > 64 || local.startsWith('.') || local.endsWith('.') || local.includes('..')) return false;
-  if (!/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(local)) return false;
-  if (!domain || domain.length > 253 || domain.startsWith('.') || domain.endsWith('.') || domain.includes('..')) return false;
-  const labels = domain.split('.');
-  if (labels.length < 2 || labels.some(label => !label || label.length > 63 || label.startsWith('-') || label.endsWith('-') || !/^[A-Za-z0-9-]+$/.test(label))) return false;
-  const tld = labels[labels.length - 1];
-  return /^[A-Za-z]{2,}$/.test(tld);
-};
-
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, showToast, checkoutEvent, setCheckoutEvent } = useApp();
 
@@ -33,15 +17,14 @@ export const AuthModal: React.FC = () => {
 
   const handlePasswordReset = async () => {
     const cleanEmail = email.trim().toLowerCase();
-    if (!isValidEmail(cleanEmail)) {
-      showToast('Saisissez une adresse e-mail valide (ex. nom@gmail.com) pour réinitialiser le mot de passe.', 'error');
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      showToast('Saisissez votre e-mail ci-dessus pour réinitialiser le mot de passe.', 'error');
       return;
     }
 
     setIsResettingPassword(true);
     try {
-      if (!isSupabaseConfigured) throw new Error('Supabase Auth n’est pas configuré : aucun e-mail réel ne peut être envoyé.');
-      {
+      if (isSupabaseConfigured) {
         const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
           redirectTo: window.location.origin + '/',
         });
@@ -60,7 +43,7 @@ export const AuthModal: React.FC = () => {
     const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanEmail || !cleanEmail.includes('@')) {
-      showToast('Veuillez saisir une adresse e-mail valide (ex. nom@gmail.com).', 'error');
+      showToast('Veuillez saisir une adresse e-mail valide.', 'error');
       return;
     }
 
@@ -77,70 +60,93 @@ export const AuthModal: React.FC = () => {
     setIsLoading(true);
 
     try {
-      if (!isSupabaseConfigured) {
-        throw new Error("L’authentification réelle n’est pas configurée. Vérifiez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY dans Vercel.");
+      let authenticatedUser: any = null;
+
+      // 1. TENTATIVE AUTH SUPABASE DIRECTE (Si configuré et accessible)
+      if (isSupabaseConfigured) {
+        try {
+          if (mode === 'register') {
+            const { data, error } = await supabase.auth.signUp({
+              email: cleanEmail,
+              password,
+              options: { data: { name: name.trim() } },
+            });
+            if (error) {
+              // Si erreur d'inscription Supabase spécifique (ex: utilisateur déjà existant)
+              if (/already registered/i.test(error.message)) {
+                throw new Error('Un compte existe déjà avec cette adresse e-mail. Veuillez vous connecter.');
+              }
+              throw error;
+            }
+            if (data?.user) {
+              authenticatedUser = {
+                id: data.user.id,
+                email: data.user.email || cleanEmail,
+                name: name.trim() || cleanEmail.split('@')[0],
+                role: cleanEmail === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer',
+                emailVerified: Boolean(data.user.email_confirmed_at),
+                createdAt: data.user.created_at,
+              };
+            }
+          } else {
+            const { data, error } = await supabase.auth.signInWithPassword({
+              email: cleanEmail,
+              password,
+            });
+            if (error) {
+              if (/invalid login credentials/i.test(error.message)) {
+                // Mauvais identifiants sur Supabase : tester également le serveur local en cas de compte d'administration
+                console.warn('[Supabase Auth] Identifiants Supabase non reconnus, vérification serveur local...');
+              } else if (/email not confirmed/i.test(error.message)) {
+                throw new Error('Veuillez confirmer votre adresse e-mail avant de vous connecter.');
+              } else {
+                throw error;
+              }
+            } else if (data?.user) {
+              authenticatedUser = {
+                id: data.user.id,
+                email: data.user.email || cleanEmail,
+                name: String(data.user.user_metadata?.name || cleanEmail.split('@')[0]),
+                role: cleanEmail === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer',
+                emailVerified: Boolean(data.user.email_confirmed_at),
+                createdAt: data.user.created_at,
+              };
+            }
+          }
+        } catch (sbErr: any) {
+          console.warn('[Supabase Auth warning]', sbErr?.message || sbErr);
+          // Si l'erreur est un blocage explicite de confirmation d'e-mail ou utilisateur déjà existant
+          if (sbErr?.message && /confirm.*email|already registered/i.test(sbErr.message)) {
+            throw sbErr;
+          }
+        }
       }
 
-      if (mode === 'register') {
-        const { data, error } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-          options: {
-            data: { name: name.trim() },
-            emailRedirectTo: window.location.origin,
-          },
+      // 2. REPLI TRANSPARENT SUR LE SERVEUR D'AUTHENTIFICATION LOCAL LUMARÉEL
+      if (!authenticatedUser) {
+        const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: cleanEmail,
+            password,
+            name: name.trim(),
+          }),
         });
-        if (error) {
-          if (/already registered|already exists/i.test(error.message)) {
-            throw new Error("Un compte existe déjà avec cette adresse e-mail. Connectez-vous ou réinitialisez votre mot de passe.");
-          }
-          throw error;
+
+        const data = await res.json();
+        if (!res.ok || !data.success || !data.user) {
+          throw new Error(data.error || 'Identifiants ou connexion invalide.');
         }
-        if (!data.user) throw new Error("Supabase n’a pas créé le compte. Réessayez.");
-        if (!data.session) {
-          showToast("Inscription enregistrée. Consultez votre boîte mail (et les spams) pour confirmer votre adresse avant de vous connecter.", "success");
-          setMode('login');
-          setPassword('');
-          return;
-        }
-        const authenticatedUser = {
-          id: data.user.id,
-          email: data.user.email || cleanEmail,
-          name: String(data.user.user_metadata?.name || name.trim() || cleanEmail.split('@')[0]),
-          role: cleanEmail === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer',
-          emailVerified: Boolean(data.user.email_confirmed_at),
-          createdAt: data.user.created_at,
-        };
-        setCurrentUser(authenticatedUser);
-        setIsAuthModalOpen(false);
-        showToast(`Bienvenue, ${authenticatedUser.name}. Compte créé.`, 'success');
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
-        if (error) {
-          if (/email not confirmed/i.test(error.message)) {
-            throw new Error("Confirmez votre adresse e-mail depuis le message reçu avant de vous connecter.");
-          }
-          if (/invalid login credentials/i.test(error.message)) {
-            throw new Error("E-mail ou mot de passe incorrect. Vérifiez vos identifiants ou utilisez « Mot de passe oublié ».");
-          }
-          throw error;
-        }
-        if (!data.user || !data.session) throw new Error("Connexion non établie par Supabase.");
-        const authenticatedUser = {
-          id: data.user.id,
-          email: data.user.email || cleanEmail,
-          name: String(data.user.user_metadata?.name || cleanEmail.split('@')[0]),
-          role: cleanEmail === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer',
-          emailVerified: Boolean(data.user.email_confirmed_at),
-          createdAt: data.user.created_at,
-        };
-        setCurrentUser(authenticatedUser);
-        setIsAuthModalOpen(false);
-        showToast(`Bienvenue, ${authenticatedUser.name}. Connexion réussie.`, 'success');
+        authenticatedUser = data.user;
       }
+
+      // 3. ENREGISTREMENT ET ACTIVATION DE LA SESSION
+      setCurrentUser(authenticatedUser);
+      setIsAuthModalOpen(false);
+
+      showToast(`Bienvenue, ${authenticatedUser.name}. Connexion réussie.`, 'success');
 
       if (checkoutEvent) setCheckoutEvent(checkoutEvent);
     } catch (err: any) {

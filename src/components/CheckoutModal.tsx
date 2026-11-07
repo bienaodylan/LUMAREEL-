@@ -4,7 +4,7 @@ import { Order, Ticket, TicketCategory } from '../types';
 import { 
   X, ShieldCheck, Ticket as TicketIcon, CheckCircle2, Loader2, ArrowRight, 
   Printer, Mail, Clock, ArrowLeft, Tag, Smartphone, CreditCard, Lock, Sparkles, AlertTriangle,
-  ChevronDown, ChevronUp, Package, TrendingUp, Check
+  ChevronDown, ChevronUp, Package, TrendingUp, Check, Search
 } from 'lucide-react';
 import { generatePersonalizedTicketEmail } from '../utils/emailTemplate';
 import { formatDateLong } from '../utils/dateUtils';
@@ -13,20 +13,36 @@ type CheckoutStep = 1 | 2 | 3 | 4;
 type PaymentOption = 'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'djamo' | 'card';
 type CountryOption = 'CI' | 'SN' | 'ML' | 'BF' | 'INT';
 
-export const COUNTRY_DIAL_CODES = [
-  { code: '+225', label: '🇨🇮 Côte d’Ivoire (+225)' },
-  { code: '+221', label: '🇸🇳 Sénégal (+221)' },
-  { code: '+223', label: '🇲🇱 Mali (+223)' },
-  { code: '+226', label: '🇧🇫 Burkina Faso (+226)' },
-  { code: '+229', label: '🇧🇯 Bénin (+229)' },
-  { code: '+228', label: '🇹🇬 Togo (+228)' },
-  { code: '+237', label: '🇨🇲 Cameroun (+237)' },
-  { code: '+224', label: '🇬🇳 Guinée (+224)' },
-  { code: '+241', label: '🇬🇦 Gabon (+241)' },
-  { code: '+242', label: '🇨🇬 Congo (+242)' },
-  { code: '+33', label: '🇫🇷 France (+33)' },
-  { code: '+1', label: '🇺🇸 États-Unis (+1)' },
+export interface CountryOptionItem {
+  id: CountryOption;
+  name: string;
+  flag: string;
+  dialCode: string;
+}
+
+export const COUNTRIES_CATALOG: CountryOptionItem[] = [
+  { id: 'CI', name: 'Côte d’Ivoire', flag: '🇨🇮', dialCode: '+225' },
+  { id: 'SN', name: 'Sénégal', flag: '🇸🇳', dialCode: '+221' },
+  { id: 'ML', name: 'Mali', flag: '🇲🇱', dialCode: '+223' },
+  { id: 'BF', name: 'Burkina Faso', flag: '🇧🇫', dialCode: '+226' },
+  { id: 'INT', name: 'Bénin', flag: '🇧🇯', dialCode: '+229' },
+  { id: 'INT', name: 'Togo', flag: '🇹🇬', dialCode: '+228' },
+  { id: 'INT', name: 'Cameroun', flag: '🇨🇲', dialCode: '+237' },
+  { id: 'INT', name: 'Guinée', flag: '🇬🇳', dialCode: '+224' },
+  { id: 'INT', name: 'Gabon', flag: '🇬🇦', dialCode: '+241' },
+  { id: 'INT', name: 'Congo', flag: '🇨🇬', dialCode: '+242' },
+  { id: 'INT', name: 'RDC', flag: '🇨🇩', dialCode: '+243' },
+  { id: 'INT', name: 'Niger', flag: '🇳🇪', dialCode: '+227' },
+  { id: 'INT', name: 'France', flag: '🇫🇷', dialCode: '+33' },
+  { id: 'INT', name: 'États-Unis / Canada', flag: '🇺🇸', dialCode: '+1' },
+  { id: 'INT', name: 'Royaume-Uni', flag: '🇬🇧', dialCode: '+44' },
+  { id: 'INT', name: 'Autre pays / International', flag: '🌍', dialCode: '+' },
 ];
+
+export const COUNTRY_DIAL_CODES = COUNTRIES_CATALOG.map((c) => ({
+  code: c.dialCode,
+  label: `${c.flag} ${c.name} (${c.dialCode})`,
+}));
 
 export const CheckoutModal: React.FC = () => {
   const { 
@@ -70,6 +86,31 @@ export const CheckoutModal: React.FC = () => {
   const [cardExp, setCardExp] = useState<string>('12/28');
   const [cardCvv, setCardCvv] = useState<string>('888');
   const [isIdentityDrawerOpen, setIsIdentityDrawerOpen] = useState<boolean>(false);
+
+  // Tiroir des pays & indicatifs téléphoniques
+  const [isCountryDrawerOpen, setIsCountryDrawerOpen] = useState<boolean>(false);
+  const [countryDrawerTarget, setCountryDrawerTarget] = useState<'customer' | 'payment'>('customer');
+  const [countrySearchQuery, setCountrySearchQuery] = useState<string>('');
+
+  const filteredCountries = COUNTRIES_CATALOG.filter((c) => {
+    const q = countrySearchQuery.toLowerCase().trim();
+    if (!q) return true;
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.dialCode.toLowerCase().includes(q) ||
+      c.id.toLowerCase().includes(q)
+    );
+  });
+
+  const handleSelectCountry = (c: CountryOptionItem) => {
+    if (countryDrawerTarget === 'customer') {
+      setCustomerDialCode(c.dialCode);
+    } else {
+      setPaymentDialCode(c.dialCode);
+      setCountry(c.id);
+    }
+    setIsCountryDrawerOpen(false);
+  };
 
   // Étape 4 : Simulation passerelle & Résultat
   const [isSimulatingGateway, setIsSimulatingGateway] = useState<boolean>(false);
@@ -753,17 +794,20 @@ export const CheckoutModal: React.FC = () => {
                         {t('checkout.phone')} *
                       </label>
                       <div className="flex gap-2">
-                        <select
-                          value={customerDialCode}
-                          onChange={(e) => setCustomerDialCode(e.target.value)}
-                          className="bg-[#141414] border border-white/10 rounded-xl px-2.5 py-2.5 text-xs text-white focus:outline-none focus:border-white font-mono cursor-pointer shrink-0"
+                        {/* Case indicatif : UNIQUEMENT l'indicatif sans le nom du pays, clic ouvre le tiroir */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCountryDrawerTarget('customer');
+                            setCountrySearchQuery('');
+                            setIsCountryDrawerOpen(true);
+                          }}
+                          className="bg-[#141414] hover:bg-[#1a1a1a] active:scale-95 border border-white/10 hover:border-white/30 rounded-xl px-3 py-2.5 text-xs text-white font-mono flex items-center gap-1.5 cursor-pointer transition-all shrink-0 shadow-sm"
+                          title="Sélectionner le pays / indicatif"
                         >
-                          {COUNTRY_DIAL_CODES.map((item) => (
-                            <option key={item.code} value={item.code}>
-                              {item.label}
-                            </option>
-                          ))}
-                        </select>
+                          <span className="font-mono font-bold text-white text-xs">{customerDialCode}</span>
+                          <ChevronDown className="w-3.5 h-3.5 text-[#888]" />
+                        </button>
                         <input
                           type="tel"
                           value={customerPhoneNumber}
@@ -804,7 +848,11 @@ export const CheckoutModal: React.FC = () => {
               <div className="rounded-2xl bg-[#0c0c0c] border border-white/10 overflow-hidden shadow-lg">
                 <button
                   type="button"
-                  onClick={() => setIsIdentityDrawerOpen((prev) => !prev)}
+                  onClick={() => {
+                    setCountryDrawerTarget('payment');
+                    setCountrySearchQuery('');
+                    setIsCountryDrawerOpen(true);
+                  }}
                   className="w-full p-4 flex items-center justify-between hover:bg-white/5 active:bg-white/10 transition-colors cursor-pointer text-left"
                 >
                   <div className="flex items-center gap-3">
@@ -817,7 +865,9 @@ export const CheckoutModal: React.FC = () => {
                       </div>
                       <div className="text-xs text-white font-agrandir-extrabold uppercase flex items-center gap-2 mt-0.5">
                         <span>
-                          {country === 'CI' ? '🇨🇮 Côte d’Ivoire' : country === 'SN' ? '🇸🇳 Sénégal' : country === 'ML' ? '🇲🇱 Mali' : country === 'BF' ? '🇧🇫 Burkina' : '🌍 International'}
+                          {COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode)?.name 
+                            ? `${COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode)?.flag} ${COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode)?.name}`
+                            : (country === 'CI' ? '🇨🇮 Côte d’Ivoire' : country === 'SN' ? '🇸🇳 Sénégal' : country === 'ML' ? '🇲🇱 Mali' : country === 'BF' ? '🇧🇫 Burkina' : '🌍 International')}
                         </span>
                         <span className="text-[#666]">·</span>
                         <span className="text-[#eee]">
@@ -827,105 +877,36 @@ export const CheckoutModal: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 text-neutral-400">
-                    <span className="text-[10px] font-agrandir-semibold uppercase">
-                      {isIdentityDrawerOpen ? 'Fermer le tiroir' : 'Ouvrir le tiroir'}
+                    <span className="text-[10px] font-agrandir-semibold uppercase text-[#d4af37]">
+                      Ouvrir le tiroir
                     </span>
-                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isIdentityDrawerOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className="w-4 h-4 text-[#d4af37]" />
                   </div>
                 </button>
-
-                {/* Tiroir déroulant */}
-                {isIdentityDrawerOpen && (
-                  <div className="p-4 border-t border-white/10 bg-[#080808] space-y-4">
-                    <div>
-                      <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                        {[
-                          { id: 'CI', flag: '🇨🇮', label: 'Côte d’Ivoire' },
-                          { id: 'SN', flag: '🇸🇳', label: 'Sénégal' },
-                          { id: 'ML', flag: '🇲🇱', label: 'Mali' },
-                          { id: 'BF', flag: '🇧🇫', label: 'Burkina' },
-                          { id: 'INT', flag: '🌍', label: 'International' },
-                        ].map((c) => (
-                          <button
-                            key={c.id}
-                            type="button"
-                            onClick={() => {
-                              setCountry(c.id as CountryOption);
-                              if (c.id === 'CI') setPaymentDialCode('+225');
-                              if (c.id === 'SN') setPaymentDialCode('+221');
-                              if (c.id === 'ML') setPaymentDialCode('+223');
-                              if (c.id === 'BF') setPaymentDialCode('+226');
-                              if (c.id === 'INT') setPaymentDialCode('+33');
-                            }}
-                            className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
-                              country === c.id
-                                ? 'bg-white/20 border-white text-white font-bold'
-                                : 'bg-[#121212] border-white/5 text-[#888] hover:border-white/20'
-                            }`}
-                          >
-                            <div className="text-base">{c.flag}</div>
-                            <div className="text-[10px] truncate mt-0.5">{c.label}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Mode / Opérateur */}
-                    <div>
-                      <div className="text-[9px] font-agrandir-bold tracking-widest text-[#888] uppercase mb-2">
-                        Opérateur
-                      </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                        {[
-                          { id: 'wave', label: 'Wave', icon: '🌊', color: 'border-[#1DC3F2]/40 bg-[#1b263b]/40' },
-                          { id: 'orange_money', label: 'Orange Money', icon: '🟠', color: 'border-[#FF7900]/40 bg-[#2a1b12]/40' },
-                          { id: 'mtn_momo', label: 'MTN MoMo', icon: '🟡', color: 'border-[#FFCC00]/40 bg-[#2a2812]/40' },
-                          { id: 'djamo', label: 'Djamo', icon: '🟣', color: 'border-[#6366F1]/40 bg-[#1e1b38]/40' },
-                          { id: 'moov_money', label: 'Moov Money', icon: '🔵', color: 'border-[#004F9F]/40 bg-[#1b2238]/40' },
-                          { id: 'card', label: 'Carte Bancaire', icon: '💳', color: 'border-white/40 bg-white/10' },
-                        ].map((op) => (
-                          <button
-                            key={op.id}
-                            type="button"
-                            onClick={() => {
-                              setPaymentMethod(op.id as PaymentOption);
-                              setIsIdentityDrawerOpen(false);
-                            }}
-                            className={`p-2.5 rounded-xl border text-left flex items-center gap-2 transition-all cursor-pointer ${
-                              paymentMethod === op.id
-                                ? `${op.color} border-white text-white font-bold shadow-md`
-                                : 'bg-[#121212] border-white/5 text-[#888] hover:border-white/20'
-                            }`}
-                          >
-                            <span className="text-base">{op.icon}</span>
-                            <span className="text-xs truncate font-agrandir-semibold">{op.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
-              {/* Champ Unique : Numéro avec liste déroulante des indicatifs */}
+              {/* Juste en bas de l'identification, on identifie directement le numéro d'identification */}
               <div className="p-5 rounded-2xl bg-[#0c0c0c] border border-white/10 space-y-3 shadow-lg">
                 {paymentMethod !== 'card' && paymentMethod !== 'djamo' ? (
                   <div>
                     <label className="block text-xs uppercase text-white font-agrandir-bold tracking-wider mb-2">
-                      Numéro
+                      Numéro d'identification ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'moov_money' ? 'Moov Money' : 'Mobile Money'})
                     </label>
                     <div className="flex gap-2">
-                      <select
-                        value={paymentDialCode}
-                        onChange={(e) => setPaymentDialCode(e.target.value)}
-                        className="bg-[#141414] border border-white/15 rounded-xl px-2.5 py-3 text-xs sm:text-sm text-white font-mono focus:outline-none focus:border-white cursor-pointer shrink-0"
+                      {/* Case indicatif : UNIQUEMENT l'indicatif dans la case, clic ouvre le tiroir des pays */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCountryDrawerTarget('payment');
+                          setCountrySearchQuery('');
+                          setIsCountryDrawerOpen(true);
+                        }}
+                        className="bg-[#141414] hover:bg-[#1a1a1a] active:scale-95 border border-white/15 hover:border-white/30 rounded-xl px-3.5 py-3 text-xs sm:text-sm text-white font-mono flex items-center gap-1.5 cursor-pointer transition-all shrink-0 shadow-sm"
+                        title="Sélectionner le pays / indicatif"
                       >
-                        {COUNTRY_DIAL_CODES.map((item) => (
-                          <option key={item.code} value={item.code}>
-                            {item.label}
-                          </option>
-                        ))}
-                      </select>
+                        <span className="font-mono font-bold text-white text-xs sm:text-sm">{paymentDialCode}</span>
+                        <ChevronDown className="w-3.5 h-3.5 text-[#888]" />
+                      </button>
                       <div className="relative flex-1 min-w-0">
                         <Smartphone className="w-4 h-4 text-[#888] absolute left-3.5 top-1/2 -translate-y-1/2" />
                         <input
@@ -1326,6 +1307,170 @@ export const CheckoutModal: React.FC = () => {
                   Fermer l'aperçu
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TIROIR DÉROULANT DES PAYS ET INDICATIFS TÉLÉPHONIQUES */}
+        {/* ========================================================================= */}
+        {isCountryDrawerOpen && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
+            {/* Arrière-plan sombre avec fermeture au clic */}
+            <div 
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 
+              onClick={() => setIsCountryDrawerOpen(false)}
+            />
+
+            {/* Corps du tiroir (bottom sheet sur mobile, modal luxueux sur desktop) */}
+            <div className="relative z-10 w-full max-w-lg bg-[#0e0e0e] border border-white/15 rounded-t-[32px] sm:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.9)] max-h-[88vh] flex flex-col overflow-hidden animate-slideUp text-left">
+              
+              {/* Poignée tactile mobile */}
+              <div className="pt-3 pb-1 flex justify-center sm:hidden">
+                <div className="w-12 h-1 rounded-full bg-white/20" />
+              </div>
+
+              {/* En-tête du tiroir */}
+              <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between">
+                <div>
+                  <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white uppercase tracking-wide flex items-center gap-2">
+                    <span className="text-[#d4af37]">Sélecteur</span>
+                    <span>de Pays &amp; Indicatif</span>
+                  </h3>
+                  <p className="text-[11px] text-[#888] mt-0.5">
+                    Sélectionnez un pays dans le tiroir. Seul l'indicatif apparaîtra dans votre case.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCountryDrawerOpen(false)}
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label="Fermer le tiroir"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Sélection rapide de l'opérateur si ouvert depuis l'étape paiement */}
+              {countryDrawerTarget === 'payment' && (
+                <div className="p-4 border-b border-white/10 bg-[#080808] space-y-2">
+                  <div className="text-[9px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
+                    Mode / Opérateur de paiement
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: 'wave', label: 'Wave', icon: '🌊', color: 'border-[#1DC3F2]/40 bg-[#1b263b]/40' },
+                      { id: 'orange_money', label: 'Orange', icon: '🟠', color: 'border-[#FF7900]/40 bg-[#2a1b12]/40' },
+                      { id: 'mtn_momo', label: 'MTN MoMo', icon: '🟡', color: 'border-[#FFCC00]/40 bg-[#2a2812]/40' },
+                      { id: 'djamo', label: 'Djamo', icon: '🟣', color: 'border-[#6366F1]/40 bg-[#1e1b38]/40' },
+                      { id: 'moov_money', label: 'Moov', icon: '🔵', color: 'border-[#004F9F]/40 bg-[#1b2238]/40' },
+                      { id: 'card', label: 'Carte Bancaire', icon: '💳', color: 'border-white/40 bg-white/10' },
+                    ].map((op) => (
+                      <button
+                        key={op.id}
+                        type="button"
+                        onClick={() => setPaymentMethod(op.id as PaymentOption)}
+                        className={`p-2 rounded-xl border text-left flex items-center gap-1.5 transition-all cursor-pointer ${
+                          paymentMethod === op.id
+                            ? `${op.color} border-white text-white font-bold shadow-md`
+                            : 'bg-[#121212] border-white/5 text-[#888] hover:border-white/20'
+                        }`}
+                      >
+                        <span className="text-sm">{op.icon}</span>
+                        <span className="text-[10px] truncate font-agrandir-semibold">{op.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Barre de recherche dans le tiroir */}
+              <div className="p-4 border-b border-white/10 bg-[#0a0a0a]">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-[#888] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={countrySearchQuery}
+                    onChange={(e) => setCountrySearchQuery(e.target.value)}
+                    placeholder="Rechercher un pays ou indicatif (Sénégal, +221, Côte d'Ivoire...)..."
+                    className="w-full bg-[#161616] border border-white/15 rounded-xl pl-10 pr-9 py-2.5 text-xs text-white placeholder-[#666] focus:outline-none focus:border-[#d4af37] font-agrandir-regular"
+                    autoFocus
+                  />
+                  {countrySearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setCountrySearchQuery('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#777] hover:text-white"
+                      aria-label="Effacer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Liste défilante des pays dans le tiroir */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[46vh] scrollbar-thin">
+                {filteredCountries.map((c) => {
+                  const currentDial = countryDrawerTarget === 'customer' ? customerDialCode : paymentDialCode;
+                  const isSelected = currentDial === c.dialCode;
+
+                  return (
+                    <button
+                      key={c.name + c.dialCode}
+                      type="button"
+                      onClick={() => handleSelectCountry(c)}
+                      className={`w-full p-3.5 rounded-2xl border flex items-center justify-between transition-all cursor-pointer text-left ${
+                        isSelected
+                          ? 'bg-[#d4af37]/15 border-[#d4af37] text-white shadow-md'
+                          : 'bg-[#141414] border-white/5 hover:border-white/20 hover:bg-[#1a1a1a] text-[#ddd]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <span className="text-2xl shrink-0">{c.flag}</span>
+                        <div className="min-w-0">
+                          <div className={`font-agrandir-bold text-xs uppercase truncate ${isSelected ? 'text-[#d4af37]' : 'text-white'}`}>
+                            {c.name}
+                          </div>
+                          <div className="text-[10px] text-[#777] font-mono mt-0.5">
+                            Indicatif international
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2.5 shrink-0 ml-3">
+                        <span className={`font-mono text-xs font-bold px-2.5 py-1 rounded-lg border ${
+                          isSelected 
+                            ? 'bg-[#d4af37] text-black border-[#d4af37]' 
+                            : 'bg-white/5 text-[#d4af37] border-white/10'
+                        }`}>
+                          {c.dialCode}
+                        </span>
+                        {isSelected && <Check className="w-4 h-4 text-[#d4af37]" />}
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {filteredCountries.length === 0 && (
+                  <div className="py-8 text-center text-xs text-[#777]">
+                    Aucun pays trouvé pour « {countrySearchQuery} »
+                  </div>
+                )}
+              </div>
+
+              {/* Pied du tiroir */}
+              <div className="p-4 border-t border-white/10 bg-[#080808] flex items-center justify-between text-[11px] text-[#888]">
+                <span>Appuyez sur un pays pour insérer son indicatif</span>
+                <button
+                  type="button"
+                  onClick={() => setIsCountryDrawerOpen(false)}
+                  className="text-white hover:text-[#d4af37] font-agrandir-semibold uppercase text-[10px] tracking-wider cursor-pointer"
+                >
+                  Fermer
+                </button>
+              </div>
+
             </div>
           </div>
         )}
