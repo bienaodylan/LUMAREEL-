@@ -907,78 +907,14 @@ async function startServer() {
   });
 
   // 2. Commande & Émission Atomique d'Adhésion (Max 100 membres Founders)
-  app.post('/api/membership/order', async (req: Request, res: Response) => {
-    try {
-      const {
-        planId,
-        customerName,
-        customerEmail,
-        customerPhone,
-        paymentProvider = 'geniuspay',
-        paymentMethod = 'wave',
-        shippingAddress,
-      } = req.body;
-
-      if (!planId || !customerName || !customerEmail) {
-        return res.status(400).json({
-          success: false,
-          error: 'Formule, nom complet et adresse e-mail valides requis.',
-        });
-      }
-
-      const plan = membershipService.getPlanById(planId);
-      if (!plan) {
-        return res.status(404).json({ success: false, error: 'Formule introuvable.' });
-      }
-
-      // Vérifier le quota restant
-      const edition = membershipService.getActiveFoundersEdition();
-      if (!edition || edition.allocatedCount >= edition.quota) {
-        return res.status(400).json({
-          success: false,
-          error: `Le quota strict de ${edition?.quota || 100} adhésions Founders est épuisé.`,
-        });
-      }
-
-      // Créer ou récupérer l'utilisateur local / Supabase
-      let user = db.getUserByEmail(customerEmail);
-      if (!user) {
-        user = db.registerUser(customerName, customerEmail, 'customer');
-      }
-      const userId = user?.id || `usr_${Date.now()}`;
-
-      const orderRef = `LMR-MBR-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      // Émission atomique de la carte et création de la commande physique PVC
-      const { card, qrToken, physicalOrder } = membershipService.issueMembershipCard({
-        userId,
-        planId: plan.id,
-        cardholderName: customerName,
-        cardholderEmail: customerEmail,
-        customerPhone,
-        paymentMethod: paymentMethod || 'wave',
-        paymentReference: orderRef,
-        shippingAddress,
-      });
-
-      // Générer l'image du QR code en base64 pour affichage immédiat
-      const qrDataUrl = await QRCode.toDataURL(qrToken, {
-        margin: 1,
-        color: { dark: '#000000', light: '#ffffff' },
-        width: 480,
-      });
-
-      res.status(201).json({
-        success: true,
-        message: `Félicitations ! Votre LUMARÉEL CARD ${card.cardNumber} a été émise avec succès.`,
-        card,
-        qrToken,
-        qrDataUrl,
-        physicalOrder,
-      });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
+  // Membership issuance is deliberately disabled until a verified payment webhook
+  // is connected. Never mark a client-submitted order as paid/completed.
+  app.post('/api/membership/order', (_req: Request, res: Response) => {
+    return res.status(503).json({
+      success:false,
+      code:'PAYMENT_CONFIRMATION_REQUIRED',
+      error:'Émission momentanément indisponible : la confirmation de paiement sécurisée n’est pas encore connectée.',
+    });
   });
 
   // 3. Espace Membre : Récupérer Ma Carte, Mes Avantages & Billets Reliés
