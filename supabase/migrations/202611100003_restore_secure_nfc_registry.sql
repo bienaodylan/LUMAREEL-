@@ -55,3 +55,8 @@ COMMENT ON TABLE public.membership_chip_credentials IS
     'Metadata-only NFC registry. chip_reference must be opaque or a one-way UID digest; never store master keys or diversification secrets.';
 COMMENT ON COLUMN public.membership_chip_credentials.chip_reference IS
     'Opaque chip reference or one-way UID digest; not a raw NFC UID and not cryptographic key material.';
+
+-- QR hashes/card mappings are not a public API. Verify QR tokens through a
+-- trusted server endpoint/service-role function instead of direct table SELECT.
+DROP POLICY IF EXISTS "Verification publique des tokens QR"
+    ON public.membership_qr_tokens;
