@@ -16,6 +16,7 @@ import { TicketBatchPrintModal } from './components/TicketBatchPrintModal';
 import { CheckoutModal } from './components/CheckoutModal';
 import { AuthModal } from './components/AuthModal';
 import { LumareelCardView } from './components/LumareelCardView';
+import { LumareelMemberCardPage } from './components/LumareelMemberCardPage';
 import { CardVerificationView } from './components/CardVerificationView';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Shield } from 'lucide-react';
@@ -55,6 +56,7 @@ const MainApp: React.FC = () => {
             {currentPage === 'client_space' && <LumareelWalletView />}
             {currentPage === 'profile' && <ProfileView />}
             {currentPage === 'card' && <LumareelCardView />}
+            {currentPage === 'member_card' && <LumareelMemberCardPage />}
             {currentPage === 'card_verify' && <CardVerificationView />}
             {currentPage === 'gate_scanner' && <ScannerView />}
             {currentPage === 'admin' && <AdminDashboard />}
