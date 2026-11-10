@@ -17,6 +17,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({success:true,stock:data||[]});
     }
     const body=typeof req.body==='string'?JSON.parse(req.body||'{}'):(req.body||{});
+    if(req.method==='PATCH'){
+      const stockId=clean(body.stockId,80);const status=clean(body.status,30);
+      if(!stockId||!['verified','ready','shipped','delivered','blocked','returned'].includes(status))return res.status(400).json({success:false,error:'Carte et statut logistique valides requis.'});
+      const patch:any={stock_status:status,updated_at:new Date().toISOString()};
+      if(status==='verified'){patch.verified_at=new Date().toISOString();patch.verified_by=auth.user.id;}
+      if(status==='shipped'){patch.shipped_at=new Date().toISOString();patch.carrier=clean(body.carrier,100)||null;patch.tracking_reference=clean(body.trackingReference,160)||null;}
+      if(status==='delivered')patch.delivered_at=new Date().toISOString();
+      const {data,error}=await auth.db.from('membership_physical_card_stock').update(patch).eq('id',stockId).select('id,manufacturer_serial,stock_status,carrier,tracking_reference,shipped_at,delivered_at').single();
+      if(error)throw error;
+      await auth.db.from('membership_events').insert({actor_id:auth.user.id,action_type:'PHYSICAL_CARD_STATUS_UPDATED',entity_type:'membership_physical_card_stock',entity_id:stockId,details:{status,carrier:patch.carrier||null,tracking_reference:patch.tracking_reference||null}});
+      return res.status(200).json({success:true,stock:data});
+    }
+    if(body.action==='associate'){
+      const stockId=clean(body.stockId,80);const membershipCardId=clean(body.membershipCardId,80);
+      if(!stockId||!membershipCardId)return res.status(400).json({success:false,error:'Carte reçue et membre requis.'});
+      const {data,error}=await auth.db.rpc('lumareel_assign_received_card',{p_stock_id:stockId,p_membership_card_id:membershipCardId});
+      if(error){const status=error.code==='42501'?403:['23505','23514','22023'].includes(error.code||'')?409:500;return res.status(status).json({success:false,error:status===500?'Association physique indisponible.':error.message});}
+      return res.status(200).json({success:true,association:data});
+    }
     const items=Array.isArray(body.items)?body.items:[body];
     if(!items.length||items.length>500) return res.status(400).json({success:false,error:'Import limité à 1–500 cartes par lot.'});
     const rows:any[]=[];const seenSerial=new Set<string>();const seenChip=new Set<string>();
