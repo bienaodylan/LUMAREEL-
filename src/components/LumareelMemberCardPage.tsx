@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { MemberCardSection } from './MemberCardSection';
+import { LumareelWalletView } from './LumareelWalletView';
+import { supabase } from '../lib/supabaseClient';
 import { ArrowLeft, CreditCard, LockKeyhole } from 'lucide-react';
 
 /**
@@ -9,6 +11,25 @@ import { ArrowLeft, CreditCard, LockKeyhole } from 'lucide-react';
  */
 export const LumareelMemberCardPage: React.FC = () => {
   const { currentUser, setCurrentPage, setIsAuthModalOpen } = useApp();
+  const [membershipStatus, setMembershipStatus] = useState<'loading'|'none'|'pending'|'active'>('loading');
+
+  useEffect(() => {
+    let alive = true;
+    const loadStatus = async () => {
+      if (!currentUser) { setMembershipStatus('none'); return; }
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) { setMembershipStatus('none'); return; }
+        const response = await fetch('/api/membership/my-card', { headers: { Authorization: `Bearer ${session.access_token}` } });
+        const result = await response.json();
+        if (!alive) return;
+        if (!result.success || !result.hasCard) setMembershipStatus('none');
+        else setMembershipStatus(result.card?.card_status === 'active' ? 'active' : 'pending');
+      } catch { if (alive) setMembershipStatus('none'); }
+    };
+    loadStatus();
+    return () => { alive = false; };
+  }, [currentUser]);
 
   return (
     <div className="min-h-screen bg-black px-4 pb-32 pt-24 text-white sm:px-8">
@@ -36,8 +57,13 @@ export const LumareelMemberCardPage: React.FC = () => {
             <p className="mx-auto mt-2 max-w-md text-sm text-neutral-400">Connectez-vous pour vérifier votre adhésion et accéder à votre carte. Aucun contenu membre n’est accessible sans session.</p>
             <button onClick={() => setIsAuthModalOpen(true)} className="mt-6 rounded-full bg-[#d4af37] px-6 py-3 text-xs font-bold uppercase text-black">Se connecter</button>
           </div>
+        ) : membershipStatus === 'active' ? (
+          <LumareelWalletView />
         ) : (
-          <MemberCardSection onOpenSubscribe={() => setCurrentPage('card')} />
+          <>
+            {membershipStatus === 'pending' && <div className="mb-6 rounded-2xl border border-[#d4af37]/30 bg-[#d4af37]/10 px-5 py-4 text-sm text-[#e8d18a">Votre commande est enregistrée. Votre carte reste en préparation jusqu’à confirmation de son activation.</div>}
+            <MemberCardSection onOpenSubscribe={() => setCurrentPage('card')} />
+          </>
         )}
       </div>
     </div>
