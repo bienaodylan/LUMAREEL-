@@ -32,7 +32,7 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
       db.from('membership_events').select('id,action_type,entity_type,entity_id,details,created_at').order('created_at',{ascending:false}).limit(15) ,
     ]);
     if(events.error) throw events.error;
-    const [orderRows, physicalCards] = await Promise.all([
+    const [orderRows, physicalCards, physicalOrderRows] = await Promise.all([
       db.from('membership_orders')
         .select('id,order_reference,amount,currency,payment_status,paid_at,created_at')
         .order('created_at',{ascending:false}).limit(100),
@@ -41,13 +41,13 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
         .order('issued_at',{ascending:false}).limit(100),
     ]);
     if(orderRows.error) throw orderRows.error;
-    if(physicalCards.error) throw physicalCards.error;
+    if(physicalCards.error) throw physicalCards.error;\n    if(physicalOrderRows.error) throw physicalOrderRows.error;
     return res.status(200).json({
       success:true,
       stats:{orders,cards,active,suspended,revoked,expired,pending,shipped,delivered,credentials,nfcActive,nfcRevoked,unassigned},
       events:events.data||[],
       orderRows:orderRows.data||[],
-      physicalCards:physicalCards.data||[],
+      physicalCards:physicalCards.data||[],\n      physicalOrderRows:physicalOrderRows.data||[],
     });
   }catch(error:any){
     console.error('[physical-cards-overview]',error?.message||error);
