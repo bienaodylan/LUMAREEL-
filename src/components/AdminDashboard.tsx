@@ -11,6 +11,7 @@ import { AdminArchivesView } from './admin/views/AdminArchivesView';
 import { AdminEmailsView } from './admin/views/AdminEmailsView';
 import { AdminSettingsView } from './admin/views/AdminSettingsView';
 import { AdminMembershipView } from './admin/views/AdminMembershipView';
+import { AdminPhysicalCardsView } from './admin/views/AdminPhysicalCardsView';
 import { AdminWorkshopView } from './admin/views/AdminWorkshopView';
 import { TicketBatchPrintModal } from './TicketBatchPrintModal';
 import { Plus, X } from 'lucide-react';
@@ -262,6 +263,8 @@ const AdminDashboardContent: React.FC = () => {
               {currentSection === 'membership' && (
                 <AdminMembershipView />
               )}
+
+              {currentSection === 'physicalCards' && <AdminPhysicalCardsView />}
 
               {currentSection === 'workshop' && (
                 <AdminWorkshopView />
