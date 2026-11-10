@@ -22,16 +22,16 @@ export const FloatingAppNavbar: React.FC = () => {
       initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed z-40 md:hidden pointer-events-none select-none"
+      className="fixed z-40 md:hidden pointer-events-none select-none w-full"
       style={{
-        left: '12px',
-        right: '12px',
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
+        left: '0',
+        right: '0',
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)',
       }}
     >
       <nav
         aria-label="Navigation principale"
-        className="pointer-events-auto mx-auto grid grid-cols-5 items-center rounded-[24px] border border-white/[0.09] bg-[#101010]/85 px-1.5 shadow-[0_12px_34px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl"
+        className="pointer-events-auto mx-auto grid w-[calc(100%-24px)] max-w-[440px] grid-cols-5 items-center rounded-[24px] border border-white/[0.09] bg-[#101010]/85 px-1.5 shadow-[0_12px_34px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl"
         style={{ height: '66px', WebkitBackdropFilter: 'blur(18px)' }}
       >
         {navItems.map((item) => {
