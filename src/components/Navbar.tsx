@@ -29,11 +29,10 @@ export const Navbar: React.FC = () => {
 
   const navItems: Array<{ label: string; page: PageView; isGold?: boolean }> = [
     { label: t('nav.home'), page: 'home' },
-    { label: 'MA LUMARÉEL CARD', page: 'member_card', isGold: true },
-    { label: t('nav.orders'), page: 'client_space' },
+    { label: 'Mes commandes', page: 'client_space' },
     { label: t('nav.archives'), page: 'archive' },
-    { label: t('nav.news'), page: 'news' },
-    { label: t('nav.profile'), page: 'profile' },
+    { label: 'Ma carte', page: 'member_card', isGold: true },
+    { label: 'Mon compte', page: 'profile' },
   ];
 
   // Masqué sur l'écran d'accueil splash ou pendant le contrôle vigile plein écran
