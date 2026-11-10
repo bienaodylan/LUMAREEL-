@@ -29,7 +29,7 @@ export const Navbar: React.FC = () => {
 
   const navItems: Array<{ label: string; page: PageView; isGold?: boolean }> = [
     { label: t('nav.home'), page: 'home' },
-    { label: 'LUMARÉEL CARD', page: 'card', isGold: true },
+    { label: 'MA LUMARÉEL CARD', page: 'member_card', isGold: true },
     { label: t('nav.orders'), page: 'client_space' },
     { label: t('nav.archives'), page: 'archive' },
     { label: t('nav.news'), page: 'news' },
