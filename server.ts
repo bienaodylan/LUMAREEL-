@@ -1089,7 +1089,7 @@ async function startServer() {
     catch(error:any){return res.status(400).json({success:false,error:'Modification du statut refusée.'});}
   });
   app.post('/api/membership/admin/cards/:id/rotate-token',async(req:Request,res:Response)=>{
-    try{const session=await requireMemberSession(req,res);if(!session)return;const card=membershipService.getCardByUserId(session.user.id);if(!card||card.id!==req.params.id)return res.status(403).json({success:false,error:'Cette carte ne vous appartient pas.'});const result=membershipService.rotateCardQrToken(req.params.id,'Rotation demandée par le titulaire',session.user.id);return res.json({success:true,...result});}
+    try{const session=await requireMemberSession(req,res);if(!session)return;const card=membershipService.getCardByUserId(session.user.id);if(!card||card.id!==req.params.id)return res.status(403).json({success:false,error:'Cette carte ne vous appartient pas.'});const result=membershipService.rotateCardQrToken(req.params.id,'Rotation demandée par le titulaire',session.user.id);const qrDataUrl=await QRCode.toDataURL(result.newQrToken,{margin:1,color:{dark:'#000000',light:'#ffffff'},width:400});return res.json({success:true,card:result.card,newQrToken:result.newQrToken,qrDataUrl});}
     catch(error:any){return res.status(400).json({success:false,error:'Rotation du QR refusée.'});}
   });
 
