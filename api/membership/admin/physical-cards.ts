@@ -48,7 +48,8 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
       stats:{orders,cards,active,suspended,revoked,expired,pending,shipped,delivered,credentials,nfcActive,nfcRevoked,unassigned},
       events:events.data||[],
       orderRows:orderRows.data||[],
-      physicalCards:physicalCards.data||[],\n      physicalOrderRows:physicalOrderRows.data||[],
+      physicalCards:physicalCards.data||[],
+      physicalOrderRows:physicalOrderRows.data||[],
     });
   }catch(error:any){
     console.error('[physical-cards-overview]',error?.message||error);
