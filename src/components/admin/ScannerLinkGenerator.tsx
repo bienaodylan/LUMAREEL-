@@ -75,7 +75,7 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
       if (!isSupabaseConfigured || !accessToken) throw new Error('Connectez-vous avec un compte administrateur vérifié.');
-      const res = await fetch(`/api/events/${eventId}/scanner-token`, {
+      const res = await fetch(`/api/events/${eventId}/scanner-tokens`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
         body: JSON.stringify({
