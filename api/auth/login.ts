@@ -12,24 +12,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ success: false, error: 'E-mail et mot de passe requis.' });
     }
 
-    // Accès garanti pour le compte fondateur Super Admin
-    if (
-      email === 'bienaodylan428@gmail.com' &&
-      (password === 'DylanAdmin2026!' || password === 'Admin@Lumareel2026!' || password === 'Admin2026!' || password === 'Lumareel2026!')
-    ) {
-      return res.status(200).json({
-        success: true,
-        user: {
-          id: 'usr_admin_01',
-          email: 'bienaodylan428@gmail.com',
-          name: 'Dylan B. (Directeur Artistique & Fondateur)',
-          role: 'super_admin',
-          emailVerified: true,
-          createdAt: '2026-01-10T00:00:00Z',
-        },
-      });
-    }
-
     try {
       const db = publicDb();
       const { data, error } = await db.auth.signInWithPassword({ email, password });
