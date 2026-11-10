@@ -451,7 +451,8 @@ async function startServer() {
   });
 
   // Administration : Liste des comptes utilisateurs enregistrés
-  app.get('/api/admin/users', (_req: Request, res: Response) => {
+  app.get('/api/admin/users', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const users = db.getAllUsers().map((u) => db.sanitizeUser(u));
       res.json({ success: true, users });
@@ -1371,7 +1372,8 @@ async function startServer() {
 
   // 7. Administration
 
-  app.get('/api/admin/overview', (_req: Request, res: Response) => {
+  app.get('/api/admin/overview', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin','box_office']))return;
     try {
       const stats = db.getAdminStats();
       res.json({ success: true, stats });
@@ -1380,7 +1382,8 @@ async function startServer() {
     }
   });
 
-  app.get('/api/admin/orders', (_req: Request, res: Response) => {
+  app.get('/api/admin/orders', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin','box_office']))return;
     try {
       const orders = db.getAllOrders();
       res.json({ success: true, orders });
@@ -1389,7 +1392,8 @@ async function startServer() {
     }
   });
 
-  app.get('/api/admin/emails', (_req: Request, res: Response) => {
+  app.get('/api/admin/emails', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const emails = db.getEmails();
       res.json({ success: true, emails });
@@ -1398,7 +1402,8 @@ async function startServer() {
     }
   });
 
-  app.get('/api/admin/settings', (_req: Request, res: Response) => {
+  app.get('/api/admin/settings', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const settings = db.getSettings();
       res.json({ success: true, settings });
