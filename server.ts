@@ -1251,7 +1251,8 @@ async function startServer() {
     }
   });
 
-  app.post('/api/membership/workshop/toggle-simulator', (req: Request, res: Response) => {
+  app.post('/api/membership/workshop/toggle-simulator', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const { enabled } = req.body;
       membershipService.printerSimulatorMode = Boolean(enabled);
@@ -1268,7 +1269,8 @@ async function startServer() {
   });
 
   // 9. Scanners 2D & Journaux d'Audit
-  app.get('/api/membership/admin/readers', (_req: Request, res: Response) => {
+  app.get('/api/membership/admin/readers', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin','box_office']))return;
     try {
       const readers = membershipService.getReaders();
       res.json({ success: true, readers });
@@ -1277,7 +1279,8 @@ async function startServer() {
     }
   });
 
-  app.post('/api/membership/admin/readers', (req: Request, res: Response) => {
+  app.post('/api/membership/admin/readers', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const reader = membershipService.registerReader(req.body);
       res.status(201).json({ success: true, reader });
@@ -1286,7 +1289,8 @@ async function startServer() {
     }
   });
 
-  app.post('/api/membership/admin/readers/:id/status', (req: Request, res: Response) => {
+  app.post('/api/membership/admin/readers/:id/status', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const { status } = req.body;
       const reader = membershipService.updateReaderStatus(req.params.id, status);
@@ -1296,7 +1300,8 @@ async function startServer() {
     }
   });
 
-  app.get('/api/membership/admin/scan-logs', (req: Request, res: Response) => {
+  app.get('/api/membership/admin/scan-logs', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin','box_office']))return;
     try {
       const limit = Number(req.query.limit) || 100;
       const suspiciousOnly = req.query.suspiciousOnly === 'true';
@@ -1313,15 +1318,11 @@ async function startServer() {
 
   app.get('/api/wallet/overview', async (req: Request, res: Response) => {
     try {
-      const email = ((req.query.email as string) || '').toLowerCase().trim();
-      const user = db.getUserByEmail(email);
-      const userOrders = email ? db.getOrdersForCustomer(email) : [];
-
-      const overview = membershipService.getWalletOverview({
-        email: email || user?.email || 'bienaodylan428@gmail.com',
-        userName: user?.name,
-        userOrders,
-      });
+      const session=await requireMemberSession(req,res);if(!session)return;
+      const email=(session.user.email||'').toLowerCase().trim();
+      const user=db.getUserByEmail(email);
+      const userOrders=db.getOrdersForCustomer(email);
+      const overview=membershipService.getWalletOverview({email,userName:user?.name,userOrders});
 
       // Generate base64 QR code for membership card if present
       if (overview.card?.qrToken) {
@@ -1338,18 +1339,23 @@ async function startServer() {
     }
   });
 
-  app.get('/api/wallet/invitations', (req: Request, res: Response) => {
+  app.get('/api/wallet/invitations', async (req: Request, res: Response) => {
     try {
-      const email = ((req.query.email as string) || '').toLowerCase().trim();
-      const invitations = membershipService.getInvitations(email);
-      res.json({ success: true, invitations });
+      const session=await requireMemberSession(req,res);if(!session)return;
+      const email=(session.user.email||'').toLowerCase().trim();
+      const invitations=membershipService.getInvitations(email);
+      res.json({success:true,invitations});
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
-  app.post('/api/wallet/invitations/:id/respond', (req: Request, res: Response) => {
+  app.post('/api/wallet/invitations/:id/respond', async (req: Request, res: Response) => {
     try {
+      const session=await requireMemberSession(req,res);if(!session)return;
+      const invitation=membershipService.getInvitationById(req.params.id);
+      const email=(session.user.email||'').toLowerCase().trim();
+      if(!invitation||(invitation.recipientEmail&&invitation.recipientEmail.toLowerCase().trim()!==email))return res.status(403).json({success:false,error:'Invitation non attribuée à ce compte.'});
       const { response } = req.body;
       if (!response || !['accepted', 'declined'].includes(response)) {
         return res.status(400).json({ success: false, error: 'Réponse valide requise (accepted ou declined).' });
@@ -1361,7 +1367,8 @@ async function startServer() {
     }
   });
 
-  app.post('/api/membership/admin/invitations', (req: Request, res: Response) => {
+  app.post('/api/membership/admin/invitations', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const invitation = membershipService.createInvitation(req.body);
       res.status(201).json({ success: true, invitation });
