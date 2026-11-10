@@ -5,7 +5,7 @@ const clean = (v: unknown, max = 160) => String(v ?? '').trim().slice(0, max);
 const validRef = (v: string) => /^[A-Za-z0-9_-]{16,160}$/.test(v);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (!['GET','POST'].includes(req.method || '')) return methodNotAllowed(res,['GET','POST']);
+  if (!['GET','POST','PATCH'].includes(req.method || '')) return methodNotAllowed(res,['GET','POST','PATCH']);
   const auth = await requireRole(req,['super_admin']);
   if (!auth.ok) return res.status(auth.status).json({success:false,error:auth.error});
   try {
