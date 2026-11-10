@@ -96,23 +96,6 @@ export const Navbar: React.FC = () => {
         {/* Zone 3: Sélecteur de langue & Accès Profil sur Ordinateur */}
         <div className="flex items-center gap-2.5 shrink-0">
           
-          {/* Bouton Profil dédié sur Ordinateur (Desktop) */}
-          <button
-            type="button"
-            onClick={() => setCurrentPage('profile')}
-            className={`hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full border transition-all cursor-pointer ${
-              currentPage === 'profile'
-                ? 'bg-white text-black border-white font-agrandir-extrabold shadow-md'
-                : 'bg-white/5 border-white/15 text-neutral-200 hover:text-white hover:bg-white/10 hover:border-white/30'
-            }`}
-            title={t('profile.title')}
-          >
-            <UserIcon className="w-3.5 h-3.5 text-[#d4af37]" />
-            <span className="text-xs font-agrandir-semibold tracking-wide">
-              {currentUser?.name || t('nav.profile')}
-            </span>
-          </button>
-
           {/* Bouton Administrateur épuré sur Desktop si connecté avec le mail Dylan */}
           {isSuperAdmin && (
             <button
