@@ -51,6 +51,7 @@ export const CardVerificationView: React.FC<{ token?: string; onBack?: () => voi
     } catch (err) {
       setResult({
         valid: false,
+        outcome: 'SYSTEM_UNAVAILABLE',
         status: 'NOT_FOUND',
         message: 'Impossible de joindre le registre officiel de vérification.',
       });
@@ -214,7 +215,7 @@ export const CardVerificationView: React.FC<{ token?: string; onBack?: () => voi
                 <div className="border-t border-white/10 pt-3 text-[11px] text-neutral-400 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
-                    <span>Sécurisé par NXP DESFire EV3 & Jeton révocable</span>
+                    <span>Sécurisé par QR Cryptographique 256-bit &amp; Jeton révocable</span>
                   </span>
                   <span className="font-mono text-[10px] text-neutral-500">
                     LUMARÉEL CO. · AREEL GROUPE

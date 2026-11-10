@@ -287,8 +287,8 @@ export const LumareelCardView: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/30 text-[8px] font-agrandir-bold text-[#d4af37] tracking-widest uppercase">
-                      <Radio className="w-3 h-3 text-[#d4af37]" />
-                      <span>NFC DESFire</span>
+                      <QrCode className="w-3 h-3 text-[#d4af37]" />
+                      <span>QR HAUTE SÉCURITÉ</span>
                     </div>
                   </div>
 
@@ -343,10 +343,10 @@ export const LumareelCardView: React.FC = () => {
                         AUTHENTICITÉ SÉCURISÉE
                       </p>
                       <p>
-                        Puce cryptographique NXP DESFire EV3 AES-128. Carte nominative et incessible. Valable pour la saison officielle LUMARÉEL 2026-2027.
+                        Jeton QR cryptographique 256-bit révocable. Carte nominative et incessible. Valable pour la saison officielle LUMARÉEL 2026-2027.
                       </p>
                       <p className="font-mono text-[#d4af37] text-[8px]">
-                        SAM AV3 INTEGRITY · EMV COMPLIANT
+                        SHA-256 HASH VERIFICATION · ANTI-COPY SECURE
                       </p>
                     </div>
 
@@ -367,7 +367,7 @@ export const LumareelCardView: React.FC = () => {
 
             <div className="mt-3 flex items-center gap-2 text-[11px] text-[#888]">
               <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span>Puce physique DESFire EV3 + Jeton QR dynamique anti-rejeu</span>
+              <span>Carte physique PVC gravée + QR code sécurisé 256-bit</span>
             </div>
           </div>
 
@@ -416,14 +416,14 @@ export const LumareelCardView: React.FC = () => {
               desc: 'Réduction appliquée automatiquement sur vos réservations de tickets de concert tout au long de votre année d’adhésion.',
             },
             {
-              icon: Radio,
-              title: 'Technologie Hybride',
-              desc: 'Identification sans contact instantanée via puce NXP MIFARE DESFire EV3 ou QR code dynamique sur smartphone.',
+              icon: QrCode,
+              title: 'Identification Sécurisée',
+              desc: 'Authentification immédiate via QR code cryptographique dynamique sur smartphone ou carte PVC haute précision.',
             },
             {
               icon: Layers,
               title: 'Coffret Physique Collector',
-              desc: 'Carte physique noire mate haut de gamme, gravure laser personnalisée et puce cryptographique livrée sous étui.',
+              desc: 'Carte physique noire mate haut de gamme, gravure personnalisée et QR code haute résolution livrée sous étui.',
             },
             {
               icon: Users,
@@ -482,7 +482,7 @@ export const LumareelCardView: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             {[
-              'Carte physique NXP MIFARE DESFire EV3 incluse',
+              'Carte physique PVC noire mate personnalisée incluse',
               'Carte numérique pour smartphone avec QR anti-rejeu',
               'Numéro permanent unique LMR-2026-XXXX garanti',
               'File prioritaire garantie sur tous les événements',
@@ -572,7 +572,7 @@ export const LumareelCardView: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center text-neutral-300">
                   <span>Format :</span>
-                  <span className="text-white">Carte physique NXP DESFire EV3 + Digitale</span>
+                  <span className="text-white">Carte physique PVC personnalisée + Digitale</span>
                 </div>
                 <div className="border-t border-white/10 pt-2 flex justify-between items-center text-sm">
                   <span className="font-agrandir-bold uppercase text-white">Montant Total</span>

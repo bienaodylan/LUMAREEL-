@@ -894,6 +894,8 @@ async function startServer() {
         customerEmail,
         customerPhone,
         paymentProvider = 'geniuspay',
+        paymentMethod = 'wave',
+        shippingAddress,
       } = req.body;
 
       if (!planId || !customerName || !customerEmail) {
@@ -926,22 +928,23 @@ async function startServer() {
 
       const orderRef = `LMR-MBR-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-      // Émission atomique de la carte
-      const { card, qrToken, chipCredential } = membershipService.issueMembershipCard({
+      // Émission atomique de la carte et création de la commande physique PVC
+      const { card, qrToken, physicalOrder } = membershipService.issueMembershipCard({
         userId,
         planId: plan.id,
         cardholderName: customerName,
         cardholderEmail: customerEmail,
-        orderReference: orderRef,
-        amount: plan.price,
-        paymentProvider,
+        customerPhone,
+        paymentMethod: paymentMethod || 'wave',
+        paymentReference: orderRef,
+        shippingAddress,
       });
 
       // Générer l'image du QR code en base64 pour affichage immédiat
       const qrDataUrl = await QRCode.toDataURL(qrToken, {
         margin: 1,
         color: { dark: '#000000', light: '#ffffff' },
-        width: 320,
+        width: 480,
       });
 
       res.status(201).json({
@@ -950,7 +953,7 @@ async function startServer() {
         card,
         qrToken,
         qrDataUrl,
-        chipReference: chipCredential.chipReference,
+        physicalOrder,
       });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
@@ -980,7 +983,7 @@ async function startServer() {
         ? await QRCode.toDataURL(card.qrToken, {
             margin: 1,
             color: { dark: '#000000', light: '#ffffff' },
-            width: 320,
+            width: 400,
           })
         : null;
 
@@ -990,6 +993,9 @@ async function startServer() {
         .filter((o) => o.paymentStatus === 'completed' && o.tickets)
         .flatMap((o) => o.tickets || []);
 
+      const physicalOrders = membershipService.getPhysicalOrders();
+      const physicalOrder = physicalOrders.find((po) => po.cardId === card.id);
+
       res.json({
         success: true,
         hasCard: true,
@@ -997,63 +1003,25 @@ async function startServer() {
         qrDataUrl,
         benefits,
         concertTickets,
+        physicalOrder,
       });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
-  // 4. Vérification Publique Limitée (Route /card/verify/:token)
+  // 4. Vérification Publique Sécurisée (Route /card/verify/:token)
   app.get('/api/card/verify/:token', (req: Request, res: Response) => {
     try {
-      const result = membershipService.verifyCardPublicly(req.params.token);
+      const clientIp = (req.headers['x-forwarded-for'] as string) || req.ip || req.socket.remoteAddress || 'unknown';
+      const result = membershipService.verifyCardPublicly(req.params.token, clientIp);
       res.json(result);
     } catch (error: any) {
-      res.status(500).json({ valid: false, error: error.message });
+      res.status(500).json({ valid: false, outcome: 'SYSTEM_UNAVAILABLE', error: error.message });
     }
   });
 
-  // 5. Authentification Cryptographique NFC DESFire EV3
-  app.post('/api/membership/verify-nfc', (req: Request, res: Response) => {
-    try {
-      const {
-        readerIdentifier = 'LMR-MOB-SCANNER-01',
-        chipReference,
-        sessionCryptogram,
-        timestamp = Date.now(),
-        challengeNonce = 'NONCE_LMR_TEST',
-      } = req.body;
-
-      if (!chipReference || !sessionCryptogram) {
-        return res.status(400).json({
-          success: false,
-          error: 'Référence de puce DESFire et cryptogramme de session requis.',
-        });
-      }
-
-      const result = membershipService.verifyNfcDesfireSession({
-        readerIdentifier,
-        chipReference,
-        sessionCryptogram,
-        timestamp,
-        challengeNonce,
-      });
-
-      if (!result.success) {
-        return res.status(403).json(result);
-      }
-
-      res.json({
-        success: true,
-        message: 'Authentification mutuelle DESFire EV3 validée avec succès.',
-        card: result.card,
-      });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
-
-  // 6. Contrôle d'Accès Événementiel (Scan Carte / Entrée / VIP / Coupe-File)
+  // 5. Contrôle d'Accès Événementiel (Scan Carte / Entrée / VIP / Coupe-File)
   app.post('/api/membership/check-access', (req: Request, res: Response) => {
     try {
       const cardIdentifier = req.body.cardIdentifier || req.body.identifier;
@@ -1090,7 +1058,7 @@ async function startServer() {
     }
   });
 
-  // 7. Consommation Atomique d'Avantage Membre
+  // 6. Consommation Atomique d'Avantage Membre
   app.post('/api/membership/redeem-benefit', (req: Request, res: Response) => {
     try {
       const { cardId, benefitId, eventId, redeemedBy = 'Agent Événementiel' } = req.body;
@@ -1118,14 +1086,14 @@ async function startServer() {
     }
   });
 
-  // 8. Administration : Vue d'Ensemble & Gestion Centralisée Membership
+  // 7. Administration : Vue d'Ensemble & Gestion Centralisée Membership
   app.get('/api/membership/admin/overview', (_req: Request, res: Response) => {
     try {
-      const stats = membershipService.getMembershipStats();
+      const stats = membershipService.getAdminOverview();
       const activeEdition = membershipService.getActiveFoundersEdition();
-      const recentScans = membershipService.getScanLogs(15);
-      const recentRedemptions = membershipService.getRedemptions(15);
-      res.json({ success: true, stats, activeEdition, recentScans, recentRedemptions });
+      const recentScans = membershipService.getScanLogs({ limit: 15 });
+      const workshop = membershipService.getWorkshopOverview();
+      res.json({ success: true, stats, activeEdition, recentScans, workshop });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
@@ -1178,31 +1146,180 @@ async function startServer() {
     }
   });
 
-  app.post('/api/membership/admin/cards/:id/physical-status', (req: Request, res: Response) => {
-    try {
-      const { physicalStatus, trackingNumber, actorId } = req.body;
-      const updated = membershipService.updatePhysicalCardStatus(
-        req.params.id,
-        physicalStatus,
-        trackingNumber,
-        actorId
-      );
-      res.json({ success: true, card: updated });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
-
   app.post('/api/membership/admin/cards/:id/rotate-token', (req: Request, res: Response) => {
     try {
-      const { actorId } = req.body;
-      const result = membershipService.rotateCardQrToken(req.params.id, actorId);
+      const { actorId, reason } = req.body;
+      const result = membershipService.rotateCardQrToken(req.params.id, reason, actorId);
       res.json({ success: true, ...result });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
   });
 
+  // 8. ATELIER D'IMPRESSION PHYSIQUE (CARD PRINTING STUDIO & LUMARÉEL WORKSHOP)
+  app.get('/api/membership/workshop/overview', (_req: Request, res: Response) => {
+    try {
+      const overview = membershipService.getWorkshopOverview();
+      res.json({ success: true, overview });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/membership/workshop/orders', (req: Request, res: Response) => {
+    try {
+      const status = req.query.status as any;
+      const orders = membershipService.getPhysicalOrders(status);
+      res.json({ success: true, orders });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/membership/workshop/orders/:id/status', (req: Request, res: Response) => {
+    try {
+      const { status, operator, note } = req.body;
+      const updated = membershipService.updatePhysicalOrderStatus(req.params.id, status, operator, note);
+      res.json({ success: true, order: updated });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/membership/workshop/inventory', (_req: Request, res: Response) => {
+    try {
+      const inventory = membershipService.getInventory();
+      res.json({ success: true, inventory });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.put('/api/membership/workshop/inventory/:id', (req: Request, res: Response) => {
+    try {
+      const updated = membershipService.updateInventoryItem(req.params.id, req.body);
+      res.json({ success: true, item: updated });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/membership/workshop/jobs', (_req: Request, res: Response) => {
+    try {
+      const jobs = membershipService.getPrintJobs();
+      res.json({ success: true, jobs });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/membership/workshop/print', (req: Request, res: Response) => {
+    try {
+      const { cardId, operatorId, printerModel, printerType, duplex } = req.body;
+      if (!cardId) {
+        return res.status(400).json({ success: false, error: 'cardId requis.' });
+      }
+      const job = membershipService.createPrintJob(cardId, operatorId, {
+        printerModel,
+        printerType,
+        duplex,
+      });
+      const execution = membershipService.executePrintJob(job.id);
+      res.status(201).json({ success: true, ...execution });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/membership/workshop/print-batch', (req: Request, res: Response) => {
+    try {
+      const { cardIds, operatorId } = req.body;
+      if (!Array.isArray(cardIds) || cardIds.length === 0) {
+        return res.status(400).json({ success: false, error: 'Liste cardIds requise.' });
+      }
+      const result = membershipService.createBatchPrintJob(cardIds, operatorId);
+      res.status(201).json({ success: true, ...result });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/membership/workshop/reprint', (req: Request, res: Response) => {
+    try {
+      const { cardId, reason, operatorId, rotateQr, notes } = req.body;
+      if (!cardId || !reason) {
+        return res.status(400).json({
+          success: false,
+          error: 'cardId et motif de réimpression (reason) obligatoires.',
+        });
+      }
+      const result = membershipService.reprintCard({
+        cardId,
+        reason,
+        operatorId: operatorId || 'Opérateur Atelier',
+        rotateQr: Boolean(rotateQr),
+        notes,
+      });
+      res.status(201).json({ success: true, ...result });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/membership/workshop/quality-check', (req: Request, res: Response) => {
+    try {
+      const {
+        cardId,
+        scannedQrToken,
+        visualCheckPassed,
+        centeringPassed,
+        contrastPassed,
+        noScratchesPassed,
+        operatorId,
+        operatorNotes,
+      } = req.body;
+
+      if (!cardId || !scannedQrToken) {
+        return res.status(400).json({
+          success: false,
+          error: 'cardId et scannedQrToken (scan physique du QR) requis.',
+        });
+      }
+
+      const result = membershipService.performQualityCheck({
+        cardId,
+        scannedQrToken,
+        visualCheckPassed: Boolean(visualCheckPassed),
+        centeringPassed: Boolean(centeringPassed),
+        contrastPassed: Boolean(contrastPassed),
+        noScratchesPassed: Boolean(noScratchesPassed),
+        operatorId: operatorId || 'Contrôleur Qualité',
+        operatorNotes,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/membership/workshop/toggle-simulator', (req: Request, res: Response) => {
+    try {
+      const { enabled } = req.body;
+      membershipService.printerSimulatorMode = Boolean(enabled);
+      res.json({
+        success: true,
+        simulatorModeActive: membershipService.printerSimulatorMode,
+        message: membershipService.printerSimulatorMode
+          ? 'Mode simulateur atelier activé.'
+          : 'Mode pilote physique machine activé.',
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // 9. Scanners 2D & Journaux d'Audit
   app.get('/api/membership/admin/readers', (_req: Request, res: Response) => {
     try {
       const readers = membershipService.getReaders();
@@ -1234,7 +1351,8 @@ async function startServer() {
   app.get('/api/membership/admin/scan-logs', (req: Request, res: Response) => {
     try {
       const limit = Number(req.query.limit) || 100;
-      const logs = membershipService.getScanLogs(limit);
+      const suspiciousOnly = req.query.suspiciousOnly === 'true';
+      const logs = membershipService.getScanLogs({ limit, suspiciousOnly });
       res.json({ success: true, logs });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });

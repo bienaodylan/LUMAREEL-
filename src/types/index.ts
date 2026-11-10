@@ -281,16 +281,24 @@ export interface MembershipApplication {
 export interface MembershipOrder {
   id: string;
   userId: string;
+  planId?: string;
+  editionId?: string;
   applicationId?: string;
   orderReference: string;
+  paymentReference?: string;
   amount: number;
   currency: string;
   paymentProvider: string;
+  paymentMethod?: string;
   providerTransactionId?: string;
   paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
+  orderStatus?: string;
+  shippingAddress?: any;
   paidAt?: string;
+  completedAt?: string;
   metadata?: Record<string, any>;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface MembershipCard {
@@ -311,36 +319,170 @@ export interface MembershipCard {
   revokedAt?: string;
   revocationReason?: string;
   replacedByCardId?: string;
-  physicalCardStatus: PhysicalCardStatus;
+  physicalCardStatus: PhysicalCardProductionStatus;
   physicalCardTrackingNumber?: string;
   qrToken?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface MembershipChipCredential {
-  id: string;
-  cardId: string;
-  chipReference: string;
-  chipType: 'MIFARE_DESFIRE_EV3';
-  applicationReference: string;
-  keyVersion: number;
-  credentialStatus: 'active' | 'suspended' | 'revoked' | 'rotated';
-  diversificationSeed: string; // Not the master key!
-  enrolledAt: string;
-  revokedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+export type PhysicalCardProductionStatus =
+  | 'requested'
+  | 'payment_pending'
+  | 'approved'
+  | 'in_production'
+  | 'printed'
+  | 'quality_checked'
+  | 'ready_for_dispatch'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
+  | 'blocked'
+  | 'lost'
+  | 'returned'
+  | 'replacement_requested'
+  | 'defective';
+
+export type CardVerificationOutcome =
+  | 'VALID'
+  | 'EXPIRED'
+  | 'SUSPENDED'
+  | 'REVOKED'
+  | 'INVALID'
+  | 'SYSTEM_UNAVAILABLE';
 
 export interface MembershipQrToken {
   id: string;
   cardId: string;
   tokenHash: string;
+  tokenPrefix: string;
   tokenVersion: number;
-  createdAt: string;
+  isCurrent: boolean;
+  status: 'active' | 'rotated' | 'revoked';
+  revocationReason?: string;
+  issuedAt: string;
   revokedAt?: string;
   lastVerifiedAt?: string;
+  verificationCount: number;
+}
+
+export interface MembershipPhysicalCardOrder {
+  id: string;
+  cardId: string;
+  userId: string;
+  orderNumber: string;
+  cardNumber: string;
+  cardholderName: string;
+  cardholderEmail: string;
+  cardholderPhone?: string;
+  editionName: string;
+  shippingAddress: {
+    street: string;
+    city: string;
+    postalCode?: string;
+    country: string;
+    recipientName?: string;
+  };
+  productionStatus: PhysicalCardProductionStatus;
+  batchId?: string;
+  printJobId?: string;
+  qualityCheckId?: string;
+  trackingNumber?: string;
+  shippingCarrier?: string;
+  reprintCount: number;
+  reprintReasons?: string[];
+  historyNotes?: {
+    timestamp: string;
+    operator: string;
+    status: PhysicalCardProductionStatus;
+    note?: string;
+  }[];
+  requestedAt: string;
+  approvedAt?: string;
+  printedAt?: string;
+  qualityCheckedAt?: string;
+  dispatchedAt?: string;
+  deliveredAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MembershipCardInventory {
+  id: string;
+  itemName: string;
+  itemType:
+    | 'blank_pvc_card'
+    | 'gold_foil_ribbon'
+    | 'ymcko_ribbon'
+    | 'monochrome_black_ribbon'
+    | 'laminate_overlay'
+    | 'collector_box';
+  sku: string;
+  totalQuantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  minThresholdAlert: number;
+  unit: string;
+  notes?: string;
+  lastRestockedAt: string;
+  updatedAt: string;
+}
+
+export interface MembershipPrintJob {
+  id: string;
+  jobCode: string;
+  batchId?: string;
+  cardId: string;
+  cardNumber: string;
+  cardholderName: string;
+  orderId?: string;
+  printerModel: string;
+  printerType: 'simulated' | 'evolis' | 'zebra' | 'magicard' | 'fargo';
+  duplex: boolean;
+  resolutionDpi: number;
+  isReprint: boolean;
+  reprintReason?: 'damaged' | 'lost' | 'defect' | 'data_update' | 'member_request';
+  status: 'pending' | 'spooling' | 'printing' | 'completed' | 'failed' | 'cancelled';
+  operatorId: string;
+  failureReason?: string;
+  startedAt?: string;
+  completedAt?: string;
+  createdAt: string;
+}
+
+export interface MembershipCardQualityCheck {
+  id: string;
+  cardId: string;
+  cardNumber: string;
+  orderId?: string;
+  printJobId?: string;
+  scannedQrToken: string;
+  qrVerifiedServer: boolean;
+  visualCheckPassed: boolean;
+  centeringPassed: boolean;
+  contrastPassed: boolean;
+  noScratchesPassed: boolean;
+  operatorId: string;
+  operatorNotes?: string;
+  status: 'passed' | 'rejected';
+  checkedAt: string;
+}
+
+export type CardTemplateTheme = 'founders_noir_or' | 'minimaliste_obsidienne' | 'prestige_monogramme';
+
+export interface CardDesignerConfig {
+  templateTheme: CardTemplateTheme;
+  cardFormat: 'CR80_STANDARD';
+  dimensionsMm: { width: 85.60; height: 53.98 };
+  targetDpi: 300 | 600;
+  bleedMm: number;
+  safeZoneMm: number;
+  frontLogoScale: number;
+  qrQuietZoneModules: number;
+  qrSizeMm: number;
+  includeHologramStamp: boolean;
+  includeGuillochePattern: boolean;
+  monochromeVerso: boolean;
 }
 
 export type BenefitType =
@@ -405,8 +547,8 @@ export interface MembershipRedemption {
 export interface MembershipReader {
   id: string;
   readerName: string;
-  readerIdentifier: string; // Technical device ID
-  readerType: 'mobile_android' | 'fixed_gate' | 'turnstile' | 'pos_desk';
+  readerIdentifier: string;
+  readerType: 'usb_2d_barcode' | 'mobile_camera' | 'fixed_gate_qr' | 'pos_desk';
   hardwareModel: string;
   eventId?: string;
   eventTitle?: string;
@@ -445,11 +587,13 @@ export interface MembershipScanLog {
   readerName?: string;
   accessPointId?: string;
   accessPointName?: string;
-  scanMethod: 'qr_code' | 'nfc_desfire' | 'manual_override';
+  scanMethod: 'qr_code' | 'manual_override';
   verificationResult: 'AUTHORIZED' | 'DENIED';
   rejectionReason?: string;
   operatorId: string;
   scannedAt: string;
+  flaggedSuspicious?: boolean;
+  repeatScanCount?: number;
   metadata?: Record<string, any>;
 }
 
@@ -465,13 +609,16 @@ export interface MembershipEventLog {
 
 export interface PublicCardVerificationResult {
   valid: boolean;
+  outcome: CardVerificationOutcome;
   status: MembershipCardStatus | 'NOT_FOUND';
   maskedCardNumber?: string;
   editionName?: string;
   editionCode?: string;
+  cardholderDisplayName?: string;
   cardholderInitials?: string;
   validFrom?: string;
   expiresAt?: string;
+  physicalCardStatus?: PhysicalCardProductionStatus;
   message: string;
 }
 

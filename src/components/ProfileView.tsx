@@ -164,7 +164,7 @@ export const ProfileView: React.FC = () => {
                 Ma LUMARÉEL CARD
               </span>
               <span className="text-[10px] text-neutral-400 font-mono block">
-                Founders Edition · Puce DESFire EV3 & Privilèges
+                Founders Edition · Carte PVC Gravée &amp; Privilèges
               </span>
             </div>
           </div>

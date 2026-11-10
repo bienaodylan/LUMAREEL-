@@ -434,7 +434,7 @@ export const ScannerView: React.FC = () => {
     }
   };
 
-  const handleVerifyMembership = async (identifier: string, scanMethod: 'qr_code' | 'nfc_desfire') => {
+  const handleVerifyMembership = async (identifier: string, scanMethod: 'qr_code' | 'manual_override' = 'qr_code') => {
     if (isProcessingRef.current || authStatus !== 'authorized') return;
     isProcessingRef.current = true;
     setIsProcessing(true);
@@ -902,7 +902,7 @@ export const ScannerView: React.FC = () => {
           <div className="p-3 rounded-2xl bg-[#0e0e0e] border border-[#d4af37]/30 space-y-2.5 animate-fadeIn">
             <div className="flex items-center justify-between text-[10px] font-agrandir-bold text-[#d4af37] uppercase tracking-wider">
               <span>Point de Contrôle / Zone :</span>
-              <span className="font-mono text-neutral-400">DESFire EV3 Actif</span>
+              <span className="font-mono text-emerald-400">Scanner 2D QR Actif</span>
             </div>
 
             <div className="grid grid-cols-2 gap-1.5 text-[11px]">
@@ -927,16 +927,9 @@ export const ScannerView: React.FC = () => {
               ))}
             </div>
 
-            {/* Déclencheur Simulateur NFC DESFire EV3 pour banc d'essai */}
-            <button
-              type="button"
-              disabled={nfcSimulating}
-              onClick={() => handleVerifyMembership('LMR-2026-0001', 'nfc_desfire')}
-              className="w-full py-2 px-3 rounded-xl bg-[#d4af37]/15 hover:bg-[#d4af37]/25 border border-[#d4af37]/40 text-[#d4af37] font-agrandir-bold text-[11px] uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <Radio className="w-3.5 h-3.5" />
-              <span>Simuler Détection NFC (DESFire EV3)</span>
-            </button>
+            <div className="text-[10px] text-neutral-400 font-mono text-center pt-1">
+              Scannez le QR code de la carte digitale ou de la carte physique PVC.
+            </div>
           </div>
         )}
       </div>

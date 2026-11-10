@@ -16,7 +16,7 @@ import {
   Crown
 } from 'lucide-react';
 
-export type AdminSection = 'overview' | 'membership' | 'events' | 'orders' | 'archives' | 'emails' | 'settings';
+export type AdminSection = 'overview' | 'membership' | 'workshop' | 'events' | 'orders' | 'archives' | 'emails' | 'settings';
 
 interface AdminSidebarProps {
   currentSection: AdminSection;
@@ -60,6 +60,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       label: 'LUMARÉEL CARD',
       icon: Crown,
       badge: '100',
+    },
+    {
+      id: 'workshop' as AdminSection,
+      label: 'LUMARÉEL WORKSHOP',
+      icon: Printer,
+      badge: 'Atelier',
     },
     {
       id: 'events' as AdminSection,

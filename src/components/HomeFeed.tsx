@@ -331,7 +331,7 @@ const EventCardCountdown: React.FC<{
                     LUMARÉEL CARD <span className="text-[#d4af37] text-[10px] font-mono">· 100 MEMBRES</span>
                   </span>
                   <span className="text-[10px] text-neutral-400 font-light block">
-                    Founders Edition · Puce DESFire EV3, VIP & Coupe-File
+                    Founders Edition · Carte PVC Gravée, VIP &amp; Coupe-File
                   </span>
                 </div>
               </div>

@@ -155,7 +155,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
             VOUS N'AVEZ PAS ENCORE DE LUMARÉEL CARD
           </h2>
           <p className="text-xs text-neutral-400 font-light leading-relaxed">
-            Rejoignez la <strong>Founders Edition</strong> limitée strictement à 100 membres d’élite. Accédez aux files prioritaires, salons VIP, préventes privées et recevez votre carte physique sécurisée DESFire EV3.
+            Rejoignez la <strong>Founders Edition</strong> limitée strictement à 100 membres d’élite. Accédez aux files prioritaires, salons VIP, préventes privées et recevez votre carte physique officielle gravée.
           </p>
         </div>
 
@@ -272,7 +272,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
                       CONTRÔLE D'ACCÈS CERTIFIÉ
                     </p>
                     <p>
-                      Numéro permanent non réattribuable. Présentez le QR ou approchez la puce DESFire aux portillons des concerts.
+                      Numéro permanent non réattribuable. Présentez le QR code dynamique aux portillons des concerts.
                     </p>
                     <p className="font-mono text-[#d4af37] text-[8px]">
                       VALIDITÉ : {new Date(card.validFrom).toLocaleDateString('fr-FR')} AU {new Date(card.expiresAt).toLocaleDateString('fr-FR')}
@@ -288,7 +288,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
 
                 <div className="flex items-center justify-between text-[8px] font-mono text-[#777] border-t border-white/10 pt-2">
                   <span>LUMARÉEL CO. · AREEL GROUPE</span>
-                  <span>PUCE NXP DESFire EV3 AES-128</span>
+                  <span>QR SÉCURISÉ 256-BIT · SHA-256</span>
                 </div>
               </div>
             </motion.div>
@@ -359,7 +359,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
                 SUIVI DE LA CARTE PHYSIQUE
               </h3>
               <p className="text-xs text-neutral-400">
-                Puce NXP MIFARE DESFire EV3 gravée à chaud dans son coffret collector
+                Carte PVC haut de gamme gravée à chaud dans son coffret collector
               </p>
             </div>
           </div>
@@ -377,13 +377,13 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             {
-              step: '1. Personnalisation & Gravure Laser',
-              desc: `Numéro ${card.cardNumber} et encodage cryptographique DESFire EV3.`,
+              step: '1. Personnalisation & Impression PVC',
+              desc: `Numéro ${card.cardNumber} et QR code haute résolution gravé.`,
               done: true,
             },
             {
               step: '2. Contrôle Qualité & Coffret',
-              desc: 'Vérification SAM AV3 et mise sous étui de protection scellé.',
+              desc: 'Scan de conformité cryptographique et mise sous étui scellé.',
               done: card.physicalCardStatus === 'shipped' || card.physicalCardStatus === 'delivered',
             },
             {

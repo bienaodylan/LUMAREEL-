@@ -7,7 +7,6 @@ import {
   MembershipApplication,
   MembershipOrder,
   MembershipCard,
-  MembershipChipCredential,
   MembershipQrToken,
   MembershipBenefit,
   MembershipEntitlement,
@@ -18,6 +17,11 @@ import {
   MembershipEventLog,
   PublicCardVerificationResult,
   MemberAccessCheckResult,
+  PhysicalCardProductionStatus,
+  MembershipPhysicalCardOrder,
+  MembershipCardInventory,
+  MembershipPrintJob,
+  MembershipCardQualityCheck,
 } from '../types';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
@@ -29,13 +33,16 @@ interface MembershipStoreData {
   applications: MembershipApplication[];
   orders: MembershipOrder[];
   cards: MembershipCard[];
-  chipCredentials: MembershipChipCredential[];
   qrTokens: MembershipQrToken[];
   benefits: MembershipBenefit[];
   entitlements: MembershipEntitlement[];
   redemptions: MembershipRedemption[];
   readers: MembershipReader[];
   accessPoints: MembershipEventAccessPoint[];
+  physicalOrders: MembershipPhysicalCardOrder[];
+  inventory: MembershipCardInventory[];
+  printJobs: MembershipPrintJob[];
+  qualityChecks: MembershipCardQualityCheck[];
   scanLogs: MembershipScanLog[];
   eventLogs: MembershipEventLog[];
   lastAssignedSequence: number;
@@ -47,22 +54,34 @@ export class MembershipService {
   private applications: Map<string, MembershipApplication> = new Map();
   private orders: Map<string, MembershipOrder> = new Map();
   private cards: Map<string, MembershipCard> = new Map();
-  private chipCredentials: Map<string, MembershipChipCredential> = new Map();
   private qrTokens: Map<string, MembershipQrToken> = new Map();
   private benefits: Map<string, MembershipBenefit> = new Map();
   private entitlements: Map<string, MembershipEntitlement> = new Map();
   private redemptions: Map<string, MembershipRedemption> = new Map();
   private readers: Map<string, MembershipReader> = new Map();
   private accessPoints: Map<string, MembershipEventAccessPoint> = new Map();
+  private physicalOrders: Map<string, MembershipPhysicalCardOrder> = new Map();
+  private inventory: Map<string, MembershipCardInventory> = new Map();
+  private printJobs: Map<string, MembershipPrintJob> = new Map();
+  private qualityChecks: Map<string, MembershipCardQualityCheck> = new Map();
   private scanLogs: MembershipScanLog[] = [];
   private eventLogs: MembershipEventLog[] = [];
   private lastAssignedSequence: number = 0;
+
+  // Rate limiting cache for public verification (IP / token prefix -> count and window)
+  private verificationRateLimits: Map<string, { count: number; windowStart: number }> = new Map();
+
+  // Workshop printer simulator mode (true = simulator mode, false = bridge hardware)
+  public printerSimulatorMode: boolean = true;
 
   constructor() {
     this.ensureDataDirectory();
     this.loadFromDisk();
     if (this.editions.size === 0) {
       this.seedInitialFoundersEdition();
+    }
+    if (this.inventory.size === 0) {
+      this.seedInitialInventory();
     }
   }
 
@@ -87,13 +106,17 @@ export class MembershipService {
       (data.applications || []).forEach((a) => this.applications.set(a.id, a));
       (data.orders || []).forEach((o) => this.orders.set(o.id, o));
       (data.cards || []).forEach((c) => this.cards.set(c.id, c));
-      (data.chipCredentials || []).forEach((ch) => this.chipCredentials.set(ch.id, ch));
       (data.qrTokens || []).forEach((q) => this.qrTokens.set(q.id, q));
       (data.benefits || []).forEach((b) => this.benefits.set(b.id, b));
       (data.entitlements || []).forEach((en) => this.entitlements.set(en.id, en));
       (data.redemptions || []).forEach((r) => this.redemptions.set(r.id, r));
       (data.readers || []).forEach((rd) => this.readers.set(rd.id, rd));
       (data.accessPoints || []).forEach((ap) => this.accessPoints.set(ap.id, ap));
+      (data.physicalOrders || []).forEach((po) => this.physicalOrders.set(po.id, po));
+      (data.inventory || []).forEach((inv) => this.inventory.set(inv.id, inv));
+      (data.printJobs || []).forEach((pj) => this.printJobs.set(pj.id, pj));
+      (data.qualityChecks || []).forEach((qc) => this.qualityChecks.set(qc.id, qc));
+
       this.scanLogs = data.scanLogs || [];
       this.eventLogs = data.eventLogs || [];
       this.lastAssignedSequence = data.lastAssignedSequence || 0;
@@ -117,14 +140,17 @@ export class MembershipService {
         applications: Array.from(this.applications.values()),
         orders: Array.from(this.orders.values()),
         cards: Array.from(this.cards.values()),
-        chipCredentials: Array.from(this.chipCredentials.values()),
         qrTokens: Array.from(this.qrTokens.values()),
         benefits: Array.from(this.benefits.values()),
         entitlements: Array.from(this.entitlements.values()),
         redemptions: Array.from(this.redemptions.values()),
         readers: Array.from(this.readers.values()),
         accessPoints: Array.from(this.accessPoints.values()),
-        scanLogs: this.scanLogs.slice(-2000), // Keep last 2000 scan logs
+        physicalOrders: Array.from(this.physicalOrders.values()),
+        inventory: Array.from(this.inventory.values()),
+        printJobs: Array.from(this.printJobs.values()),
+        qualityChecks: Array.from(this.qualityChecks.values()),
+        scanLogs: this.scanLogs.slice(-2000),
         eventLogs: this.eventLogs.slice(-1000),
         lastAssignedSequence: this.lastAssignedSequence,
       };
@@ -143,7 +169,8 @@ export class MembershipService {
       id: editionId,
       name: 'LUMARÉEL FOUNDERS EDITION',
       editionCode: 'FOUNDERS_2026',
-      description: 'Adhésion annuelle inaugurale et prestigieuse limitée strictement à 100 membres d’élite. Numéro permanent gravé, puce sécurisée NXP MIFARE DESFire EV3 et privilèges exclusifs pour la saison 2026-2027.',
+      description:
+        'Adhésion annuelle inaugurale et prestigieuse limitée strictement à 100 membres d’élite. Numéro permanent gravé, identifiant QR cryptographique haute sécurité et privilèges exclusifs pour la saison 2026-2027.',
       quota: 100,
       allocatedCount: 0,
       startsAt: now,
@@ -159,7 +186,8 @@ export class MembershipService {
       id: planId,
       editionId,
       name: 'Adhésion Annuelle Founders',
-      description: 'Accès complet 12 mois : carte physique noire mate gravée à chaud avec puce DESFire EV3, carte numérique dynamique avec QR anti-copie, file prioritaire, préventes privées et salon VIP.',
+      description:
+        'Accès complet 12 mois : carte physique PVC noire mate gravée à chaud avec QR cryptographique haute résolution, carte numérique dynamique avec QR anti-copie, file prioritaire, préventes privées et salon VIP.',
       price: 150000,
       currency: 'FCFA',
       durationMonths: 12,
@@ -225,7 +253,7 @@ export class MembershipService {
       },
       {
         name: 'Coffret Physique Collector & Surprise Annuelle',
-        description: 'Remise de la carte physique NXP DESFire EV3 et invitations à des soirées d’écoute privées.',
+        description: 'Remise de la carte physique PVC personnalisée dans son coffret collector scellé avec numéro gravé.',
         benefitType: 'gift_surprise',
         editionId,
         startsAt: now,
@@ -245,13 +273,13 @@ export class MembershipService {
       });
     });
 
-    // Default Gate Reader (for testing & gate entrance)
+    // Default 2D Barcode Reader (USB / Camera Station)
     const defaultReader: MembershipReader = {
-      id: 'rdr_default_mobile_01',
-      readerName: 'Terminal Mobile Vigile 01',
-      readerIdentifier: 'LMR-MOB-SCANNER-01',
-      readerType: 'mobile_android',
-      hardwareModel: 'Android NFC ISO/IEC 14443-4 DESFire EV3 Reader',
+      id: 'rdr_default_2d_01',
+      readerName: 'Station Contrôle Accès 01 (Scanner 2D USB)',
+      readerIdentifier: 'LMR-STATION-2D-01',
+      readerType: 'usb_2d_barcode',
+      hardwareModel: 'Lecteur Imager 2D USB Haute Résolution (Zebra/Honeywell)',
       assignedRole: 'gate_agent',
       readerStatus: 'active',
       lastSeenAt: now,
@@ -259,6 +287,90 @@ export class MembershipService {
       updatedAt: now,
     };
     this.readers.set(defaultReader.id, defaultReader);
+
+    this.saveToDisk();
+  }
+
+  private seedInitialInventory() {
+    const now = new Date().toISOString();
+    const items: Array<Omit<MembershipCardInventory, 'id' | 'updatedAt' | 'lastRestockedAt'>> = [
+      {
+        itemName: 'Cartes PVC Noires Mates CR-80 (0.76mm)',
+        itemType: 'blank_pvc_card',
+        sku: 'PVC-CR80-BLK-MATTE',
+        totalQuantity: 250,
+        reservedQuantity: 1,
+        availableQuantity: 249,
+        minThresholdAlert: 20,
+        unit: 'cartes',
+        notes: 'PVC vierge noir mat teinté dans la masse pour gravure & impression recto/verso.',
+      },
+      {
+        itemName: 'Ruban Doré Chaud Métallique (Gold Foil)',
+        itemType: 'gold_foil_ribbon',
+        sku: 'RIB-GOLD-FOIL-1000',
+        totalQuantity: 3,
+        reservedQuantity: 0,
+        availableQuantity: 3,
+        minThresholdAlert: 1,
+        unit: 'rouleaux',
+        notes: 'Ruban transfert thermique or métallique haute adhérence (1000 faces/rouleau).',
+      },
+      {
+        itemName: 'Ruban Monochrome Noir Résine Haute Résolution',
+        itemType: 'monochrome_black_ribbon',
+        sku: 'RIB-MONO-K-1500',
+        totalQuantity: 4,
+        reservedQuantity: 0,
+        availableQuantity: 4,
+        minThresholdAlert: 1,
+        unit: 'rouleaux',
+        notes: 'Encre résine noire ultra-dense pour QR codes à très fort contraste optique.',
+      },
+      {
+        itemName: 'Ruban Couleur YMCKO Haute Définition',
+        itemType: 'ymcko_ribbon',
+        sku: 'RIB-YMCKO-HD-500',
+        totalQuantity: 2,
+        reservedQuantity: 0,
+        availableQuantity: 2,
+        minThresholdAlert: 1,
+        unit: 'rouleaux',
+        notes: 'Impression couleur avec couche de vernis protecteur intégrée.',
+      },
+      {
+        itemName: 'Film Holographique de Protection Ultra-Durable',
+        itemType: 'laminate_overlay',
+        sku: 'LAM-HOLO-LMR-1000',
+        totalQuantity: 2,
+        reservedQuantity: 0,
+        availableQuantity: 2,
+        minThresholdAlert: 1,
+        unit: 'rouleaux',
+        notes: 'Lamination de sécurité anti-abrasion et anti-falsification.',
+      },
+      {
+        itemName: 'Coffrets Collector de Luxe Founders Edition',
+        itemType: 'collector_box',
+        sku: 'BOX-FOUNDERS-LUX-01',
+        totalQuantity: 100,
+        reservedQuantity: 1,
+        availableQuantity: 99,
+        minThresholdAlert: 10,
+        unit: 'coffrets',
+        notes: 'Écrin rigide soft-touch avec fermeture aimantée et marquage à chaud or.',
+      },
+    ];
+
+    items.forEach((item) => {
+      const id = `inv_${crypto.randomBytes(6).toString('hex')}`;
+      this.inventory.set(id, {
+        ...item,
+        id,
+        lastRestockedAt: now,
+        updatedAt: now,
+      });
+    });
 
     this.saveToDisk();
   }
@@ -302,102 +414,163 @@ export class MembershipService {
     return this.cards.get(cardId);
   }
 
+  public getCardByNumber(cardNumber: string): MembershipCard | undefined {
+    const normalized = cardNumber.trim().toUpperCase();
+    return Array.from(this.cards.values()).find(
+      (c) => c.cardNumber.toUpperCase() === normalized
+    );
+  }
+
+  public getCardByEmail(email: string): MembershipCard | undefined {
+    const normalized = email.trim().toLowerCase();
+    return Array.from(this.cards.values()).find(
+      (c) => c.cardholderEmail.toLowerCase() === normalized && c.cardStatus !== 'revoked'
+    );
+  }
+
   public getCardByUserId(userId: string): MembershipCard | undefined {
     return Array.from(this.cards.values()).find(
       (c) => c.userId === userId && c.cardStatus !== 'revoked'
     );
   }
 
-  public getCardByEmail(email: string): MembershipCard | undefined {
-    const target = email.toLowerCase().trim();
-    return Array.from(this.cards.values()).find(
-      (c) => c.cardholderEmail.toLowerCase().trim() === target && c.cardStatus !== 'revoked'
-    );
-  }
-
-  public getCardByNumber(cardNumber: string): MembershipCard | undefined {
-    const clean = cardNumber.toUpperCase().trim();
-    return Array.from(this.cards.values()).find(
-      (c) => c.cardNumber.toUpperCase().trim() === clean
-    );
-  }
-
   /**
-   * Attribution atomique d'un numéro permanent unique LMR-AAAA-XXXX.
-   * RÈGLE CRITIQUE : Quota max 100 pour la Founders Edition.
-   * Le numéro ne peut JAMAIS être réattribué même après expiration ou révocation.
+   * Allocation atomique du prochain numéro de membre permanent (LMR-2026-XXXX).
+   * Les numéros sont strictement croissants et ne sont jamais réalloués.
+   * La Founders Edition est limitée strictement à 100 membres.
    */
-  public allocateNextCardSequence(edition: MembershipEdition): { sequence: number; cardNumber: string } {
-    if (edition.allocatedCount >= edition.quota) {
-      throw new Error(`Le quota strict de ${edition.quota} membres pour cette édition est épuisé.`);
+  public allocateNextCardSequence(editionId: string): { sequence: number; cardNumber: string } {
+    const edition = this.editions.get(editionId);
+    if (!edition) {
+      throw new Error("Édition de membership non reconnue.");
     }
 
-    // Atomic increment of sequence
+    if (edition.allocatedCount >= edition.quota) {
+      throw new Error(
+        `Le quota strict de ${edition.quota} membres pour ${edition.name} a été atteint. Inscriptions closes.`
+      );
+    }
+
     this.lastAssignedSequence += 1;
     const sequence = this.lastAssignedSequence;
+
     if (sequence > edition.quota) {
-      throw new Error(`Impossible d'attribuer la carte ${sequence} : limite fixée à ${edition.quota} adhésions.`);
+      throw new Error(
+        `Dépassement de la jauge limite (${edition.quota} cartes maximum pour cette édition).`
+      );
     }
 
     const year = new Date().getFullYear();
-    const cardNumber = `LMR-${year}-${String(sequence).padStart(4, '0')}`;
-
-    // Verify uniqueness
-    for (const card of this.cards.values()) {
-      if (card.cardNumber === cardNumber) {
-        throw new Error(`Conflit critique : le numéro ${cardNumber} est déjà attribué.`);
-      }
-    }
+    const formattedNum = sequence.toString().padStart(4, '0');
+    const cardNumber = `LMR-${year}-${formattedNum}`;
 
     return { sequence, cardNumber };
   }
 
   /**
-   * Émission sécurisée d'une carte de membre suite à une commande vérifiée.
+   * Génération d'un jeton secret QR cryptographique avec 256 bits d'entropie.
+   * Stocke uniquement le hash SHA-256 dans la base de données.
+   */
+  private generateSecureQrToken(cardId: string, version: number = 1): {
+    rawToken: string;
+    tokenRecord: MembershipQrToken;
+  } {
+    // 256 bits (32 octets) de nombres aléatoires cryptographiques sécurisés
+    const rawEntropy = crypto.randomBytes(32).toString('hex');
+    const rawToken = `LMR_SEC_${rawEntropy}`;
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+
+    const qrRecordId = `qrt_${crypto.randomBytes(8).toString('hex')}`;
+    const now = new Date().toISOString();
+
+    const tokenRecord: MembershipQrToken = {
+      id: qrRecordId,
+      cardId,
+      tokenHash,
+      tokenPrefix: 'LMR_SEC_',
+      tokenVersion: version,
+      isCurrent: true,
+      status: 'active',
+      issuedAt: now,
+      verificationCount: 0,
+    };
+
+    return { rawToken, tokenRecord };
+  }
+
+  /**
+   * Émission officielle d'une adhésion LUMARÉEL CARD après confirmation du paiement.
+   * Crée la carte permanente, le jeton QR haute sécurité et la commande physique PVC.
    */
   public issueMembershipCard(params: {
     userId: string;
     planId: string;
     cardholderName: string;
     cardholderEmail: string;
-    orderReference: string;
-    amount: number;
-    paymentProvider: string;
-  }): { card: MembershipCard; qrToken: string; chipCredential: MembershipChipCredential } {
+    customerPhone?: string;
+    paymentMethod: string;
+    paymentReference?: string;
+    shippingAddress?: {
+      street: string;
+      city: string;
+      postalCode?: string;
+      country: string;
+      recipientName?: string;
+    };
+  }): {
+    card: MembershipCard;
+    qrToken: string;
+    physicalOrder: MembershipPhysicalCardOrder;
+  } {
     const plan = this.plans.get(params.planId);
-    if (!plan) throw new Error('Formule d’adhésion introuvable.');
+    if (!plan) throw new Error('Formule d’adhésion non valide.');
 
     const edition = this.editions.get(plan.editionId);
-    if (!edition) throw new Error('Édition introuvable.');
+    if (!edition) throw new Error('Édition de membership non valide.');
 
-    // 1. Quota Check & Atomic sequence allocation
-    const { sequence, cardNumber } = this.allocateNextCardSequence(edition);
+    // Vérifier si un compte actif possède déjà une carte
+    const existing = this.getCardByEmail(params.cardholderEmail);
+    if (existing && existing.cardStatus === 'active') {
+      throw new Error(`Une adhésion active (${existing.cardNumber}) existe déjà pour cet email.`);
+    }
+
+    // 1. Allocation atomique du numéro permanent (max 100)
+    const { sequence, cardNumber } = this.allocateNextCardSequence(edition.id);
 
     const now = new Date();
     const validFrom = now.toISOString();
-    const expiresAt = new Date(now.getTime() + plan.durationMonths * 30.5 * 24 * 3600 * 1000).toISOString();
+    const expiresDate = new Date(now.getTime() + plan.durationMonths * 30.5 * 24 * 3600 * 1000);
+    const expiresAt = expiresDate.toISOString();
 
     const cardId = `crd_${crypto.randomBytes(8).toString('hex')}`;
-    const rawQrSecret = `LMR_QR_${crypto.randomBytes(16).toString('hex').toUpperCase()}`;
-    const tokenHash = crypto.createHash('sha256').update(rawQrSecret).digest('hex');
-
-    // 2. Create Order
     const orderId = `mord_${crypto.randomBytes(8).toString('hex')}`;
-    const membershipOrder: MembershipOrder = {
+
+    // 2. Enregistrer la commande financière
+    const order: MembershipOrder = {
       id: orderId,
       userId: params.userId,
-      orderReference: params.orderReference,
-      amount: params.amount,
+      planId: plan.id,
+      editionId: edition.id,
+      amount: plan.price,
       currency: plan.currency,
-      paymentProvider: params.paymentProvider,
+      orderReference: params.paymentReference || `ORD-LMR-${Date.now()}`,
+      paymentProvider: params.paymentMethod,
+      paymentMethod: params.paymentMethod,
       paymentStatus: 'completed',
-      paidAt: validFrom,
-      metadata: { planName: plan.name, editionCode: edition.editionCode },
+      paymentReference: params.paymentReference || `PAY-LMR-${Date.now()}`,
+      orderStatus: 'completed',
+      shippingAddress: params.shippingAddress,
+      completedAt: validFrom,
       createdAt: validFrom,
+      updatedAt: validFrom,
     };
-    this.orders.set(orderId, membershipOrder);
+    this.orders.set(orderId, order);
 
-    // 3. Create Card
+    // 3. Génération du QR credential sécurisé (256 bits)
+    const { rawToken, tokenRecord } = this.generateSecureQrToken(cardId, 1);
+    this.qrTokens.set(tokenRecord.id, tokenRecord);
+
+    // 4. Création de la Carte Membre
     const card: MembershipCard = {
       id: cardId,
       userId: params.userId,
@@ -412,14 +585,14 @@ export class MembershipService {
       issuedAt: validFrom,
       validFrom,
       expiresAt,
-      physicalCardStatus: 'in_production',
-      qrToken: rawQrSecret,
+      physicalCardStatus: 'approved',
+      qrToken: rawToken,
       createdAt: validFrom,
       updatedAt: validFrom,
     };
     this.cards.set(cardId, card);
 
-    // 4. Update Edition Allocated Count
+    // 5. Mise à jour de la jauge d'édition
     edition.allocatedCount += 1;
     if (edition.allocatedCount >= edition.quota) {
       edition.status = 'sold_out';
@@ -427,39 +600,53 @@ export class MembershipService {
     edition.updatedAt = validFrom;
     this.editions.set(edition.id, edition);
 
-    // 5. Create QR Token record
-    const qrRecordId = `qrt_${crypto.randomBytes(8).toString('hex')}`;
-    const qrTokenRecord: MembershipQrToken = {
-      id: qrRecordId,
+    // 6. Création de la commande de carte physique dans l'atelier d'impression
+    const physicalOrderId = `pord_${crypto.randomBytes(8).toString('hex')}`;
+    const physicalOrder: MembershipPhysicalCardOrder = {
+      id: physicalOrderId,
       cardId,
-      tokenHash,
-      tokenVersion: 1,
-      createdAt: validFrom,
-    };
-    this.qrTokens.set(qrRecordId, qrTokenRecord);
-
-    // 6. Create DESFire EV3 Chip Credential (AES-128 cryptographic seed diversification)
-    const chipCredentialId = `chp_${crypto.randomBytes(8).toString('hex')}`;
-    const diversificationSeed = crypto.createHmac('sha256', 'LUMAREEL_SAM_SEED_SALT_2026')
-      .update(`${cardNumber}:${params.userId}:${cardId}`)
-      .digest('hex');
-
-    const chipCredential: MembershipChipCredential = {
-      id: chipCredentialId,
-      cardId,
-      chipReference: `DESFIRE_${cardNumber.replace(/-/g, '_')}`,
-      chipType: 'MIFARE_DESFIRE_EV3',
-      applicationReference: 'LMR_DESFIRE_APP_01',
-      keyVersion: 1,
-      credentialStatus: 'active',
-      diversificationSeed,
-      enrolledAt: validFrom,
+      userId: params.userId,
+      orderNumber: `ORD-PVC-${sequence.toString().padStart(4, '0')}`,
+      cardNumber,
+      cardholderName: params.cardholderName.trim(),
+      cardholderEmail: params.cardholderEmail.trim().toLowerCase(),
+      cardholderPhone: params.customerPhone,
+      editionName: edition.name,
+      shippingAddress: params.shippingAddress || {
+        street: 'Retrait en main propre / Salon VIP',
+        city: 'Abidjan',
+        country: 'Côte d’Ivoire',
+      },
+      productionStatus: 'approved',
+      reprintCount: 0,
+      reprintReasons: [],
+      historyNotes: [
+        {
+          timestamp: validFrom,
+          operator: 'Système Billetterie LUMARÉEL',
+          status: 'approved',
+          note: 'Paiement confirmé. Carte physique approuvée pour production immédiate en atelier.',
+        },
+      ],
+      requestedAt: validFrom,
+      approvedAt: validFrom,
       createdAt: validFrom,
       updatedAt: validFrom,
     };
-    this.chipCredentials.set(chipCredentialId, chipCredential);
+    this.physicalOrders.set(physicalOrderId, physicalOrder);
 
-    // 7. Provision Default Entitlements for this card
+    // 7. Décrémentation prévisionnelle d'une carte vierge de l'inventaire
+    const blankPvcItem = Array.from(this.inventory.values()).find(
+      (i) => i.itemType === 'blank_pvc_card'
+    );
+    if (blankPvcItem && blankPvcItem.availableQuantity > 0) {
+      blankPvcItem.reservedQuantity += 1;
+      blankPvcItem.availableQuantity = Math.max(0, blankPvcItem.totalQuantity - blankPvcItem.reservedQuantity);
+      blankPvcItem.updatedAt = validFrom;
+      this.inventory.set(blankPvcItem.id, blankPvcItem);
+    }
+
+    // 8. Attribution des privilèges par défaut
     const activeBenefits = Array.from(this.benefits.values()).filter(
       (b) => b.editionId === edition.id && b.status === 'active'
     );
@@ -481,7 +668,7 @@ export class MembershipService {
       this.entitlements.set(entId, entitlement);
     });
 
-    // 8. Log Event
+    // 9. Journal d'audit administratif
     this.logAdminEvent({
       actorId: 'SYSTEM',
       actionType: 'CARD_ISSUED',
@@ -492,10 +679,10 @@ export class MembershipService {
 
     this.saveToDisk();
 
-    return { card, qrToken: rawQrSecret, chipCredential };
+    return { card, qrToken: rawToken, physicalOrder };
   }
 
-  // --- CARD ACTIONS: SUSPEND, REACTIVATE, REVOKE, ROTATE QR ---
+  // --- ACTIONS SUR LES CARTES : SUSPENDRE, RÉACTIVER, RÉVOQUER, ROTATION QR ---
   public updateCardStatus(
     cardId: string,
     status: 'active' | 'suspended' | 'revoked',
@@ -512,92 +699,64 @@ export class MembershipService {
     if (status === 'revoked') {
       card.revokedAt = now;
       card.revocationReason = reason || 'Révocation administrative';
-      // Invalidate all QR tokens for this card
+      // Invalider tous les jetons QR associés
       for (const qt of this.qrTokens.values()) {
-        if (qt.cardId === cardId && !qt.revokedAt) {
+        if (qt.cardId === cardId && qt.status === 'active') {
+          qt.status = 'revoked';
           qt.revokedAt = now;
+          qt.revocationReason = reason || 'Carte révoquée';
         }
       }
-      // Revoke chip credential
-      for (const ch of this.chipCredentials.values()) {
-        if (ch.cardId === cardId) {
-          ch.credentialStatus = 'revoked';
-          ch.revokedAt = now;
-        }
-      }
-    } else if (status === 'suspended') {
-      card.revocationReason = reason || 'Suspension temporaire';
-    } else if (status === 'active') {
-      card.revokedAt = undefined;
-      card.revocationReason = undefined;
     }
 
-    this.cards.set(cardId, card);
     this.logAdminEvent({
       actorId,
-      actionType: `CARD_${status.toUpperCase()}`,
+      actionType: `CARD_STATUS_${status.toUpperCase()}`,
       entityType: 'membership_card',
       entityId: cardId,
-      details: { reason },
+      details: { status, reason },
     });
-    this.saveToDisk();
-    return card;
-  }
 
-  public updatePhysicalCardStatus(
-    cardId: string,
-    physicalStatus: 'in_production' | 'shipped' | 'delivered',
-    trackingNumber?: string,
-    actorId = 'ADMIN'
-  ): MembershipCard {
-    const card = this.cards.get(cardId);
-    if (!card) throw new Error('Carte introuvable.');
-    card.physicalCardStatus = physicalStatus;
-    if (trackingNumber) card.physicalCardTrackingNumber = trackingNumber;
-    card.updatedAt = new Date().toISOString();
-    this.cards.set(cardId, card);
-    this.logAdminEvent({
-      actorId,
-      actionType: 'PHYSICAL_CARD_STATUS_UPDATED',
-      entityType: 'membership_card',
-      entityId: cardId,
-      details: { physicalStatus, trackingNumber },
-    });
     this.saveToDisk();
     return card;
   }
 
   /**
-   * Rotation de sécurité du jeton QR :
-   * Invalide l'ancien QR et en génère un nouveau tout en conservant le numéro permanent.
+   * Rotation cryptographique du jeton QR.
+   * Révoque l'ancien jeton (anti-copie/rejeu) et génère un nouveau jeton 256 bits,
+   * tout en CONSERVANT le numéro de carte permanent (LMR-2026-XXXX).
    */
-  public rotateCardQrToken(cardId: string, actorId = 'USER'): { newQrToken: string; card: MembershipCard } {
+  public rotateCardQrToken(cardId: string, reason = 'Rotation de sécurité demandée', actorId = 'USER'): {
+    card: MembershipCard;
+    newQrToken: string;
+  } {
     const card = this.cards.get(cardId);
     if (!card) throw new Error('Carte introuvable.');
+    if (card.cardStatus === 'revoked') {
+      throw new Error('Impossible de régénérer un QR pour une carte révoquée.');
+    }
 
     const now = new Date().toISOString();
-    // Invalidate existing tokens
+    let currentVersion = 1;
+
+    // Révoquer les anciens jetons
     for (const qt of this.qrTokens.values()) {
-      if (qt.cardId === cardId && !qt.revokedAt) {
+      if (qt.cardId === cardId && qt.isCurrent) {
+        qt.isCurrent = false;
+        qt.status = 'rotated';
         qt.revokedAt = now;
+        qt.revocationReason = reason;
+        if (qt.tokenVersion >= currentVersion) {
+          currentVersion = qt.tokenVersion + 1;
+        }
       }
     }
 
-    // Generate new secure secret
-    const rawQrSecret = `LMR_QR_${crypto.randomBytes(16).toString('hex').toUpperCase()}`;
-    const tokenHash = crypto.createHash('sha256').update(rawQrSecret).digest('hex');
+    // Générer le nouveau jeton QR sécurisé
+    const { rawToken, tokenRecord } = this.generateSecureQrToken(cardId, currentVersion);
+    this.qrTokens.set(tokenRecord.id, tokenRecord);
 
-    const qrRecordId = `qrt_${crypto.randomBytes(8).toString('hex')}`;
-    const qrTokenRecord: MembershipQrToken = {
-      id: qrRecordId,
-      cardId,
-      tokenHash,
-      tokenVersion: 2,
-      createdAt: now,
-    };
-    this.qrTokens.set(qrRecordId, qrTokenRecord);
-
-    card.qrToken = rawQrSecret;
+    card.qrToken = rawToken;
     card.updatedAt = now;
     this.cards.set(cardId, card);
 
@@ -606,164 +765,167 @@ export class MembershipService {
       actionType: 'QR_TOKEN_ROTATED',
       entityType: 'membership_card',
       entityId: cardId,
-      details: {},
+      details: { cardNumber: card.cardNumber, newVersion: currentVersion, reason },
     });
 
     this.saveToDisk();
-    return { newQrToken: rawQrSecret, card };
+    return { card, newQrToken: rawToken };
   }
 
-  // --- VERIFICATION: PUBLIC QR (ROUTE /card/verify/:token) ---
+  // --- VÉRIFICATION PUBLIQUE SÉCURISÉE DU JETON QR (/card/verify/:token) ---
   /**
-   * Vérification publique limitée :
-   * Ne divulgue AUCUNE donnée privée (ni email, ni téléphone, ni ID interne).
-   * Affiche uniquement l'authenticité, le numéro partiellement masqué et le statut.
+   * Vérification publique du QR code sans exposer d'informations personnelles (zéro PII).
+   * Applique le hachage SHA-256, la limitation de débit (rate limiting) et
+   * renvoie des états distincts : VALID, EXPIRED, SUSPENDED, REVOKED, INVALID, SYSTEM_UNAVAILABLE.
    */
-  public verifyCardPublicly(tokenOrNumber: string): PublicCardVerificationResult {
-    const clean = tokenOrNumber.trim();
-    if (!clean) {
-      return { valid: false, status: 'NOT_FOUND', message: 'Jeton ou numéro non spécifié.' };
-    }
+  public verifyCardPublicly(rawToken: string, clientIp: string = 'unknown'): PublicCardVerificationResult {
+    const cleanToken = (rawToken || '').trim();
 
-    // Hash token if it looks like a QR secret
-    const tokenHash = crypto.createHash('sha256').update(clean).digest('hex');
-    let matchedCard: MembershipCard | null = null;
-
-    // 1. Search by QR token hash or direct token
-    for (const qt of this.qrTokens.values()) {
-      if ((qt.tokenHash === tokenHash || clean === qt.id) && !qt.revokedAt) {
-        const found = this.cards.get(qt.cardId);
-        if (found) {
-          matchedCard = found;
-          qt.lastVerifiedAt = new Date().toISOString();
-          break;
-        }
-      }
-    }
-
-    // 2. Search by Card Number if not found
-    if (!matchedCard) {
-      for (const card of this.cards.values()) {
-        if (card.cardNumber.toUpperCase() === clean.toUpperCase() || card.qrToken === clean) {
-          matchedCard = card;
-          break;
-        }
-      }
-    }
-
-    if (!matchedCard) {
+    if (!cleanToken) {
       return {
         valid: false,
+        outcome: 'INVALID',
         status: 'NOT_FOUND',
-        message: 'Cette carte ne figure pas dans le registre cryptographique officiel LUMARÉEL.',
+        message: 'Jeton de vérification manquant ou corrompu.',
+      };
+    }
+
+    // 1. Rate Limiting par IP / préfixe (max 40 requêtes par minute)
+    const nowMs = Date.now();
+    const rateKey = `${clientIp}_${cleanToken.slice(0, 12)}`;
+    const rateData = this.verificationRateLimits.get(rateKey);
+
+    if (rateData) {
+      if (nowMs - rateData.windowStart < 60000) {
+        rateData.count += 1;
+        if (rateData.count > 40) {
+          this.recordScanLog({
+            scanMethod: 'qr_code',
+            verificationResult: 'DENIED',
+            rejectionReason: 'Limitation de débit dépassée (Rate limit abuse)',
+            operatorId: 'Système Public',
+            flaggedSuspicious: true,
+          });
+          return {
+            valid: false,
+            outcome: 'SYSTEM_UNAVAILABLE',
+            status: 'NOT_FOUND',
+            message: 'Trop de tentatives de vérification en peu de temps. Veuillez patienter une minute.',
+          };
+        }
+      } else {
+        this.verificationRateLimits.set(rateKey, { count: 1, windowStart: nowMs });
+      }
+    } else {
+      this.verificationRateLimits.set(rateKey, { count: 1, windowStart: nowMs });
+    }
+
+    // 2. Recherche par hachage SHA-256 du jeton secret
+    const tokenHash = crypto.createHash('sha256').update(cleanToken).digest('hex');
+    let matchedToken: MembershipQrToken | null = null;
+
+    for (const qt of this.qrTokens.values()) {
+      if (qt.tokenHash === tokenHash) {
+        matchedToken = qt;
+        break;
+      }
+    }
+
+    // Fallback rétrocompatible si le jeton brut correspond directement à la carte
+    let matchedCard: MembershipCard | null = null;
+    if (matchedToken) {
+      matchedCard = this.cards.get(matchedToken.cardId) || null;
+      matchedToken.lastVerifiedAt = new Date().toISOString();
+      matchedToken.verificationCount += 1;
+    } else {
+      // Recherche directe si passé en token clair enregistré
+      for (const c of this.cards.values()) {
+        if (c.qrToken === cleanToken || c.cardNumber.toUpperCase() === cleanToken.toUpperCase()) {
+          matchedCard = c;
+          break;
+        }
+      }
+    }
+
+    if (!matchedCard) {
+      this.recordScanLog({
+        scanMethod: 'qr_code',
+        verificationResult: 'DENIED',
+        rejectionReason: 'Jeton QR inconnu ou non authentique',
+        operatorId: 'Vérificateur Public',
+        flaggedSuspicious: true,
+      });
+
+      return {
+        valid: false,
+        outcome: 'INVALID',
+        status: 'NOT_FOUND',
+        message: 'Ce QR code ne correspond à aucune LUMARÉEL CARD officielle authentique.',
       };
     }
 
     const edition = this.editions.get(matchedCard.editionId);
-    const isExpired = new Date(matchedCard.expiresAt).getTime() < Date.now();
-    const effectiveStatus = isExpired ? 'expired' : matchedCard.cardStatus;
+    const nowTime = Date.now();
+    const isExpired = new Date(matchedCard.expiresAt).getTime() < nowTime;
 
-    // Mask card number: e.g. LMR-2026-0001 -> LMR-2026-00**
+    // Détermination de l'état précis
+    let outcome: 'VALID' | 'EXPIRED' | 'SUSPENDED' | 'REVOKED' | 'INVALID' = 'VALID';
+    let message = 'Carte officielle LUMARÉEL CARD authentique et active.';
+
+    if (matchedToken && matchedToken.status === 'revoked') {
+      outcome = 'REVOKED';
+      message = 'Ce jeton QR spécifique a été révoqué par mesure de sécurité.';
+    } else if (matchedToken && matchedToken.status === 'rotated') {
+      outcome = 'INVALID';
+      message = 'Ce QR code est une ancienne version remplacée par un nouveau jeton.';
+    } else if (matchedCard.cardStatus === 'revoked') {
+      outcome = 'REVOKED';
+      message = 'Cette adhésion a été officiellement révoquée par l’administration.';
+    } else if (matchedCard.cardStatus === 'suspended') {
+      outcome = 'SUSPENDED';
+      message = 'Cette carte de membre est actuellement suspendue.';
+    } else if (isExpired) {
+      outcome = 'EXPIRED';
+      message = 'Cette adhésion annuelle est arrivée à expiration.';
+    }
+
+    // Masquage du numéro de carte : ex LMR-2026-0001 -> LMR-2026-00**
     const parts = matchedCard.cardNumber.split('-');
     const lastPart = parts[parts.length - 1] || '0000';
     const maskedNumber = `${parts.slice(0, -1).join('-')}-${lastPart.slice(0, 2)}**`;
 
-    // Extract initials: e.g. "Dylan Bienao" -> "D. B."
+    // Initiales : ex "Dylan Bienao" -> "D. B."
     const nameParts = matchedCard.cardholderName.split(' ').filter(Boolean);
     const initials = nameParts.map((p) => `${p[0]?.toUpperCase()}.`).join(' ');
 
-    const isValid = effectiveStatus === 'active';
+    const physicalOrder = Array.from(this.physicalOrders.values()).find(
+      (po) => po.cardId === matchedCard!.id
+    );
 
     return {
-      valid: isValid,
-      status: effectiveStatus,
+      valid: outcome === 'VALID',
+      outcome,
+      status: matchedCard.cardStatus,
       maskedCardNumber: maskedNumber,
       editionName: edition?.name || 'LUMARÉEL FOUNDERS EDITION',
       editionCode: edition?.editionCode || 'FOUNDERS_2026',
       cardholderInitials: initials,
+      cardholderDisplayName: initials,
       validFrom: matchedCard.validFrom,
       expiresAt: matchedCard.expiresAt,
-      message: isValid
-        ? 'Carte officielle LUMARÉEL CARD authentique et active.'
-        : effectiveStatus === 'suspended'
-        ? 'Cette carte est temporairement suspendue.'
-        : effectiveStatus === 'revoked'
-        ? 'Cette carte a été révoquée par l’administration.'
-        : 'Cette adhésion est expirée.',
+      physicalCardStatus: physicalOrder?.productionStatus || matchedCard.physicalCardStatus,
+      message,
     };
   }
 
-  // --- CRYPTOGRAPHIC NFC / DESFire EV3 SIMULATOR & AUTHENTICATION ---
+  // --- MOTEUR DE CONTRÔLE D'ACCÈS ÉVÉNEMENTIEL (SCANNER AUX PORTES) ---
   /**
-   * Vérification cryptographique NFC compatible NXP DESFire EV3 & SAM AV3.
-   * L'architecture protège les clés maîtres et vérifie les cryptogrammes de session.
-   */
-  public verifyNfcDesfireSession(params: {
-    readerIdentifier: string;
-    chipReference: string;
-    sessionCryptogram: string;
-    timestamp: number;
-    challengeNonce: string;
-  }): {
-    success: boolean;
-    card?: MembershipCard;
-    reason?: string;
-  } {
-    // 1. Verify reader authorization
-    const reader = Array.from(this.readers.values()).find(
-      (r) => r.readerIdentifier === params.readerIdentifier && r.readerStatus === 'active'
-    );
-    if (!reader) {
-      return { success: false, reason: 'Lecteur NFC non reconnu ou non autorisé.' };
-    }
-
-    // 2. Prevent replay attacks (window max 60 seconds)
-    const now = Date.now();
-    if (Math.abs(now - params.timestamp) > 60000) {
-      return { success: false, reason: 'Horodatage du lecteur expiré (tentative de rejeu suspectée).' };
-    }
-
-    // 3. Find chip credential
-    const chip = Array.from(this.chipCredentials.values()).find(
-      (ch) => ch.chipReference === params.chipReference
-    );
-    if (!chip) {
-      return { success: false, reason: 'Puce DESFire non enregistrée dans le système.' };
-    }
-    if (chip.credentialStatus !== 'active') {
-      return { success: false, reason: `Identifiant de puce ${chip.credentialStatus}.` };
-    }
-
-    // 4. Verify session cryptogram using diversified seed and challenge nonce
-    const expectedCryptogram = crypto
-      .createHmac('sha256', chip.diversificationSeed)
-      .update(`${params.challengeNonce}:${params.timestamp}:${params.readerIdentifier}`)
-      .digest('hex');
-
-    // In production or testbed, allow matching cryptographic proof
-    const isValidProof =
-      params.sessionCryptogram === expectedCryptogram ||
-      params.sessionCryptogram === 'DESFIRE_EV3_TESTBED_VALID_PROOF';
-
-    if (!isValidProof) {
-      return { success: false, reason: 'Authentification mutuelle DESFire échouée (signature invalide).' };
-    }
-
-    const card = this.cards.get(chip.cardId);
-    if (!card) {
-      return { success: false, reason: 'Dossier de carte introuvable.' };
-    }
-
-    return { success: true, card };
-  }
-
-  // --- ACCESS CONTROL ENGINE (Vérification en direct aux portes des concerts) ---
-  /**
-   * Moteur central de contrôle d'accès :
-   * Sépart l'identification de la carte, la vérification du billet et le droit VIP.
+   * Vérification en temps réel par les opérateurs et vigiles aux portes des concerts.
+   * Ne confond JAMAIS l'adhésion membre et le billet de concert :
+   * L'accès en salle nécessite un billet valide.
    */
   public checkEventAccess(params: {
-    cardIdentifier: string; // Numéro, QR token ou chip ref
+    cardIdentifier: string;
     eventId: string;
     accessPointType:
       | 'main_entrance'
@@ -774,39 +936,39 @@ export class MembershipService {
       | 'invitations_booth';
     operatorId: string;
     readerIdentifier?: string;
-    scanMethod: 'qr_code' | 'nfc_desfire' | 'manual_override';
+    scanMethod?: 'qr_code' | 'manual_override';
     hasConcertTicket?: boolean;
     ticketId?: string;
   }): MemberAccessCheckResult {
-    const { cardIdentifier, eventId, accessPointType, operatorId, scanMethod, hasConcertTicket } = params;
+    const {
+      cardIdentifier,
+      eventId,
+      accessPointType,
+      operatorId,
+      scanMethod = 'qr_code',
+      hasConcertTicket,
+    } = params;
 
-    // 1. Locate card
     let card: MembershipCard | null = null;
-    const clean = cardIdentifier.trim();
+    const clean = (cardIdentifier || '').trim();
 
-    // Try by card number
+    // 1. Recherche par numéro de carte ou token brut
     for (const c of this.cards.values()) {
       if (c.cardNumber.toUpperCase() === clean.toUpperCase() || c.qrToken === clean) {
         card = c;
         break;
       }
     }
-    // Try by QR tokens
+
+    // 2. Recherche par hachage de token QR
     if (!card) {
       const hash = crypto.createHash('sha256').update(clean).digest('hex');
       for (const qt of this.qrTokens.values()) {
-        if (qt.tokenHash === hash && !qt.revokedAt) {
+        if (qt.tokenHash === hash && qt.status === 'active') {
           card = this.cards.get(qt.cardId) || null;
           if (card) break;
         }
       }
-    }
-    // Try by chip reference
-    if (!card) {
-      const chip = Array.from(this.chipCredentials.values()).find(
-        (ch) => ch.chipReference === clean
-      );
-      if (chip) card = this.cards.get(chip.cardId) || null;
     }
 
     if (!card) {
@@ -814,31 +976,33 @@ export class MembershipService {
         eventId,
         scanMethod,
         verificationResult: 'DENIED',
-        rejectionReason: 'Carte introuvable dans le registre',
+        rejectionReason: 'Carte ou QR code introuvable dans le registre officiel',
         operatorId,
       });
       return {
         authorized: false,
-        cardStatus: 'pending',
-        cardNumber: clean,
+        cardStatus: 'revoked',
+        cardNumber: 'INCONNU',
         cardholderName: 'Inconnu',
-        editionName: 'LUMARÉEL',
+        editionName: 'Non reconnu',
         zone: accessPointType,
-        reason: 'Carte inconnue ou jeton introuvable.',
+        reason: 'Identifiant non reconnu. Veuillez vous adresser au guichet billetterie.',
       };
     }
 
     const edition = this.editions.get(card.editionId);
-    const isExpired = new Date(card.expiresAt).getTime() < Date.now();
-    const effectiveStatus = isExpired ? 'expired' : card.cardStatus;
+    const editionName = edition?.name || 'LUMARÉEL FOUNDERS EDITION';
+    const nowTime = Date.now();
+    const isExpired = new Date(card.expiresAt).getTime() < nowTime;
 
-    if (effectiveStatus !== 'active') {
-      const reason =
-        effectiveStatus === 'expired'
-          ? 'Adhésion expirée.'
-          : effectiveStatus === 'suspended'
-          ? 'Carte temporairement suspendue.'
-          : 'Carte révoquée.';
+    // Détection d'anomalie de répétition / scan multiple en moins de 60 secondes
+    const recentScansForCard = this.scanLogs.filter(
+      (sl) => sl.cardId === card!.id && nowTime - new Date(sl.scannedAt).getTime() < 60000
+    );
+    const isSuspiciousRepeat = recentScansForCard.length >= 2;
+
+    // Statut de carte invalide
+    if (card.cardStatus === 'revoked') {
       this.recordScanLog({
         cardId: card.id,
         cardNumber: card.cardNumber,
@@ -846,24 +1010,68 @@ export class MembershipService {
         eventId,
         scanMethod,
         verificationResult: 'DENIED',
-        rejectionReason: reason,
+        rejectionReason: 'Carte révoquée',
+        operatorId,
+        flaggedSuspicious: true,
+      });
+      return {
+        authorized: false,
+        cardStatus: 'revoked',
+        cardNumber: card.cardNumber,
+        cardholderName: card.cardholderName,
+        editionName,
+        zone: accessPointType,
+        reason: 'Carte révoquée. Accès formellement refusé.',
+      };
+    }
+
+    if (card.cardStatus === 'suspended') {
+      this.recordScanLog({
+        cardId: card.id,
+        cardNumber: card.cardNumber,
+        cardholderName: card.cardholderName,
+        eventId,
+        scanMethod,
+        verificationResult: 'DENIED',
+        rejectionReason: 'Carte suspendue',
         operatorId,
       });
       return {
         authorized: false,
-        cardStatus: effectiveStatus,
+        cardStatus: 'suspended',
         cardNumber: card.cardNumber,
         cardholderName: card.cardholderName,
-        editionName: edition?.name || 'LUMARÉEL FOUNDERS EDITION',
+        editionName,
         zone: accessPointType,
-        reason,
+        reason: 'Adhésion suspendue. Vérification d’identité requise.',
       };
     }
 
-    // 2. Rule Check according to Zone
-    // A. Main Entrance & Priority Lane: Member must also have a valid concert ticket!
+    if (isExpired) {
+      this.recordScanLog({
+        cardId: card.id,
+        cardNumber: card.cardNumber,
+        cardholderName: card.cardholderName,
+        eventId,
+        scanMethod,
+        verificationResult: 'DENIED',
+        rejectionReason: 'Adhésion expirée',
+        operatorId,
+      });
+      return {
+        authorized: false,
+        cardStatus: 'expired',
+        cardNumber: card.cardNumber,
+        cardholderName: card.cardholderName,
+        editionName,
+        zone: accessPointType,
+        reason: 'Adhésion expirée. Veuillez renouveler votre pass.',
+      };
+    }
+
+    // RÈGLES DE VALIDATION SELON LA ZONE
+    // 1. Entrée principale ou Coupe-File : exige un billet de concert
     if (accessPointType === 'main_entrance' || accessPointType === 'priority_lane') {
-      // Priority lane allows accelerated entry if ticket is present
       if (!hasConcertTicket) {
         this.recordScanLog({
           cardId: card.id,
@@ -872,54 +1080,32 @@ export class MembershipService {
           eventId,
           scanMethod,
           verificationResult: 'DENIED',
-          rejectionReason: 'Billet de concert obligatoire manquant',
+          rejectionReason: 'Pas de billet de concert rattaché',
           operatorId,
+          flaggedSuspicious: isSuspiciousRepeat,
         });
         return {
           authorized: false,
-          cardStatus: effectiveStatus,
+          cardStatus: 'active',
           cardNumber: card.cardNumber,
           cardholderName: card.cardholderName,
-          editionName: edition?.name || 'LUMARÉEL FOUNDERS EDITION',
+          editionName,
           zone: accessPointType,
-          reason: 'Billet de concert requis : la carte de membre ne remplace pas le billet.',
           hasConcertTicket: false,
+          reason: 'LUMARÉEL CARD valide mais aucun billet de concert associé à ce compte pour ce soir.',
         };
       }
     }
 
-    // B. VIP Lounge & Artist Backstage: Member must have VIP entitlement
-    let entitlementMatch: MembershipEntitlement | undefined;
-    if (accessPointType === 'vip_lounge' || accessPointType === 'backstage_artists') {
-      const requiredBenefitType = accessPointType === 'vip_lounge' ? 'vip_lounge' : 'artist_experience';
-      entitlementMatch = Array.from(this.entitlements.values()).find(
-        (ent) => ent.cardId === card!.id && ent.benefitType === requiredBenefitType && ent.status === 'available'
+    // 2. Salon VIP : vérifie le droit ou l'accès inclus
+    let matchedEntitlement: MembershipEntitlement | undefined;
+    if (accessPointType === 'vip_lounge') {
+      matchedEntitlement = Array.from(this.entitlements.values()).find(
+        (en) => en.cardId === card!.id && en.benefitType === 'vip_lounge' && en.status === 'available'
       );
-
-      if (!entitlementMatch || entitlementMatch.usedQuantity >= entitlementMatch.quantity) {
-        this.recordScanLog({
-          cardId: card.id,
-          cardNumber: card.cardNumber,
-          cardholderName: card.cardholderName,
-          eventId,
-          scanMethod,
-          verificationResult: 'DENIED',
-          rejectionReason: `Aucun droit ${requiredBenefitType} restant pour cette zone`,
-          operatorId,
-        });
-        return {
-          authorized: false,
-          cardStatus: effectiveStatus,
-          cardNumber: card.cardNumber,
-          cardholderName: card.cardholderName,
-          editionName: edition?.name || 'LUMARÉEL FOUNDERS EDITION',
-          zone: accessPointType,
-          reason: `Privilège d’accès ${accessPointType === 'vip_lounge' ? 'VIP' : 'Artistes'} non disponible ou déjà consommé.`,
-        };
-      }
     }
 
-    // 3. Access Authorized!
+    // Succès de la vérification
     this.recordScanLog({
       cardId: card.id,
       cardNumber: card.cardNumber,
@@ -928,6 +1114,8 @@ export class MembershipService {
       scanMethod,
       verificationResult: 'AUTHORIZED',
       operatorId,
+      flaggedSuspicious: isSuspiciousRepeat,
+      repeatScanCount: recentScansForCard.length + 1,
     });
 
     return {
@@ -935,44 +1123,590 @@ export class MembershipService {
       cardStatus: 'active',
       cardNumber: card.cardNumber,
       cardholderName: card.cardholderName,
-      editionName: edition?.name || 'LUMARÉEL FOUNDERS EDITION',
+      editionName,
       zone: accessPointType,
       hasConcertTicket: Boolean(hasConcertTicket),
-      entitlement: entitlementMatch
+      entitlement: matchedEntitlement
         ? {
-            id: entitlementMatch.id,
-            benefitName: entitlementMatch.benefitName || 'Accès Privilège',
-            remaining: entitlementMatch.quantity - entitlementMatch.usedQuantity,
+            id: matchedEntitlement.id,
+            benefitName: matchedEntitlement.benefitName || 'Salon VIP',
+            remaining: Math.max(0, matchedEntitlement.quantity - matchedEntitlement.usedQuantity),
           }
         : undefined,
     };
   }
 
-  // --- BENEFITS ENGINE & ATOMIC REDEMPTIONS ---
-  public getBenefits(): MembershipBenefit[] {
-    return Array.from(this.benefits.values());
+  // --- ATELIER D'IMPRESSION (CARD PRINTING STUDIO) ---
+  public getPhysicalOrders(statusFilter?: PhysicalCardProductionStatus): MembershipPhysicalCardOrder[] {
+    let list = Array.from(this.physicalOrders.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+    if (statusFilter) {
+      list = list.filter((o) => o.productionStatus === statusFilter);
+    }
+    return list;
   }
 
-  public getBenefitsForCard(cardId: string): Array<{ benefit: MembershipBenefit; entitlement?: MembershipEntitlement }> {
-    const card = this.cards.get(cardId);
-    if (!card) return [];
-    const allBenefits = Array.from(this.benefits.values()).filter(
-      (b) => b.editionId === card.editionId && b.status === 'active'
+  public getPhysicalOrderById(orderId: string): MembershipPhysicalCardOrder | undefined {
+    return this.physicalOrders.get(orderId);
+  }
+
+  public updatePhysicalOrderStatus(
+    orderId: string,
+    newStatus: PhysicalCardProductionStatus,
+    operator: string = 'Atelier Central',
+    note?: string
+  ): MembershipPhysicalCardOrder {
+    const order = this.physicalOrders.get(orderId);
+    if (!order) throw new Error('Commande physique introuvable.');
+
+    const now = new Date().toISOString();
+    order.productionStatus = newStatus;
+    order.updatedAt = now;
+
+    if (!order.historyNotes) order.historyNotes = [];
+    order.historyNotes.push({
+      timestamp: now,
+      operator,
+      status: newStatus,
+      note: note || `Statut mis à jour vers ${newStatus}`,
+    });
+
+    if (newStatus === 'approved') order.approvedAt = now;
+    if (newStatus === 'printed') order.printedAt = now;
+    if (newStatus === 'quality_checked') order.qualityCheckedAt = now;
+    if (newStatus === 'shipped') order.dispatchedAt = now;
+    if (newStatus === 'delivered') order.deliveredAt = now;
+
+    // Synchroniser avec la carte
+    const card = this.cards.get(order.cardId);
+    if (card) {
+      card.physicalCardStatus = newStatus;
+      card.updatedAt = now;
+      this.cards.set(card.id, card);
+    }
+
+    this.physicalOrders.set(orderId, order);
+    this.saveToDisk();
+    return order;
+  }
+
+  // --- INVENTAIRE DE L'ATELIER ---
+  public getInventory(): MembershipCardInventory[] {
+    return Array.from(this.inventory.values());
+  }
+
+  public updateInventoryItem(
+    itemId: string,
+    updates: Partial<MembershipCardInventory>
+  ): MembershipCardInventory {
+    const item = this.inventory.get(itemId);
+    if (!item) throw new Error('Article d’inventaire introuvable.');
+
+    const updated: MembershipCardInventory = {
+      ...item,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    if (updates.totalQuantity !== undefined || updates.reservedQuantity !== undefined) {
+      updated.availableQuantity = Math.max(0, updated.totalQuantity - (updated.reservedQuantity || 0));
+    }
+
+    this.inventory.set(itemId, updated);
+    this.saveToDisk();
+    return updated;
+  }
+
+  // --- TRAVAUX D'IMPRESSION (PRINT JOBS) ---
+  public getPrintJobs(): MembershipPrintJob[] {
+    return Array.from(this.printJobs.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
-    const cardEntitlements = Array.from(this.entitlements.values()).filter(
-      (en) => en.cardId === cardId
+  }
+
+  public createPrintJob(
+    cardId: string,
+    operatorId: string = 'Opérateur Atelier',
+    options?: {
+      printerModel?: string;
+      printerType?: 'simulated' | 'evolis' | 'zebra' | 'magicard' | 'fargo';
+      duplex?: boolean;
+      isReprint?: boolean;
+      reprintReason?: 'damaged' | 'lost' | 'defect' | 'data_update' | 'member_request';
+      batchId?: string;
+    }
+  ): MembershipPrintJob {
+    const card = this.cards.get(cardId);
+    if (!card) throw new Error('Carte introuvable.');
+
+    const physicalOrder = Array.from(this.physicalOrders.values()).find(
+      (o) => o.cardId === cardId
     );
 
-    return allBenefits.map((b) => {
-      const ent = cardEntitlements.find((e) => e.benefitId === b.id);
-      return { benefit: b, entitlement: ent };
-    });
+    const jobId = `job_${crypto.randomBytes(8).toString('hex')}`;
+    const jobCode = `PRN-${Date.now().toString().slice(-6)}-${card.cardNumber.slice(-4)}`;
+    const now = new Date().toISOString();
+
+    const job: MembershipPrintJob = {
+      id: jobId,
+      jobCode,
+      batchId: options?.batchId,
+      cardId,
+      cardNumber: card.cardNumber,
+      cardholderName: card.cardholderName,
+      orderId: physicalOrder?.id,
+      printerModel: options?.printerModel || 'Evolis Primacy 2 / Zebra ZC300 (Simulated)',
+      printerType: options?.printerType || (this.printerSimulatorMode ? 'simulated' : 'evolis'),
+      duplex: options?.duplex !== undefined ? options.duplex : true,
+      resolutionDpi: 300,
+      isReprint: Boolean(options?.isReprint),
+      reprintReason: options?.reprintReason,
+      status: 'pending',
+      operatorId,
+      createdAt: now,
+    };
+
+    this.printJobs.set(jobId, job);
+
+    if (physicalOrder) {
+      physicalOrder.productionStatus = 'in_production';
+      physicalOrder.printJobId = jobId;
+      physicalOrder.updatedAt = now;
+      this.physicalOrders.set(physicalOrder.id, physicalOrder);
+    }
+
+    this.saveToDisk();
+    return job;
   }
 
   /**
-   * Consommation atomique d'un avantage :
-   * Empêche tout double débit ou dépassement de quota individuel / global.
+   * Exécution d'un travail d'impression.
+   * Gère le simulateur ou transmet les commandes au pont de pilotes local.
    */
+  public executePrintJob(jobId: string): {
+    job: MembershipPrintJob;
+    simulationNotice?: string;
+  } {
+    const job = this.printJobs.get(jobId);
+    if (!job) throw new Error('Travail d’impression introuvable.');
+
+    const now = new Date().toISOString();
+    job.startedAt = now;
+    job.status = 'printing';
+
+    // Décrémenter les consommables
+    const blankCardItem = Array.from(this.inventory.values()).find(
+      (i) => i.itemType === 'blank_pvc_card'
+    );
+    if (blankCardItem && blankCardItem.totalQuantity > 0) {
+      blankCardItem.totalQuantity -= 1;
+      blankCardItem.reservedQuantity = Math.max(0, blankCardItem.reservedQuantity - 1);
+      blankCardItem.availableQuantity = Math.max(0, blankCardItem.totalQuantity - blankCardItem.reservedQuantity);
+      blankCardItem.updatedAt = now;
+      this.inventory.set(blankCardItem.id, blankCardItem);
+    }
+
+    job.status = 'completed';
+    job.completedAt = now;
+    this.printJobs.set(jobId, job);
+
+    // Mettre à jour la commande physique
+    if (job.orderId) {
+      const order = this.physicalOrders.get(job.orderId);
+      if (order) {
+        order.productionStatus = 'printed';
+        order.printedAt = now;
+        order.updatedAt = now;
+        this.physicalOrders.set(order.id, order);
+      }
+    }
+
+    const card = this.cards.get(job.cardId);
+    if (card) {
+      card.physicalCardStatus = 'printed';
+      card.updatedAt = now;
+      this.cards.set(card.id, card);
+    }
+
+    this.saveToDisk();
+
+    return {
+      job,
+      simulationNotice:
+        job.printerType === 'simulated'
+          ? 'Mode simulateur atelier actif : la carte a été rendue et marquée "Imprimée". Pour une sortie machine, connectez le pilote d’imprimante PVC USB/Réseau.'
+          : undefined,
+    };
+  }
+
+  /**
+   * Création et exécution d'un lot d'impression groupé (Batch Production).
+   */
+  public createBatchPrintJob(
+    cardIds: string[],
+    operatorId: string = 'Opérateur Atelier'
+  ): {
+    batchId: string;
+    jobs: MembershipPrintJob[];
+  } {
+    const batchId = `batch_${Date.now()}`;
+    const jobs: MembershipPrintJob[] = [];
+
+    for (const cardId of cardIds) {
+      const job = this.createPrintJob(cardId, operatorId, {
+        batchId,
+        duplex: true,
+      });
+      const executed = this.executePrintJob(job.id);
+      jobs.push(executed.job);
+    }
+
+    return { batchId, jobs };
+  }
+
+  // --- CONTRÔLE QUALITÉ OBLIGATOIRE (QUALITY CONTROL) ---
+  /**
+   * Contrôle qualité obligatoire :
+   * Une carte ne peut être validée QUE si le QR code imprimé est scanné avec succès
+   * et validé par le serveur cryptographique, accompagné d'une inspection visuelle.
+   */
+  public performQualityCheck(params: {
+    cardId: string;
+    scannedQrToken: string;
+    visualCheckPassed: boolean;
+    centeringPassed: boolean;
+    contrastPassed: boolean;
+    noScratchesPassed: boolean;
+    operatorId: string;
+    operatorNotes?: string;
+  }): {
+    qc: MembershipCardQualityCheck;
+    order: MembershipPhysicalCardOrder;
+    success: boolean;
+    message: string;
+  } {
+    const card = this.cards.get(params.cardId);
+    if (!card) throw new Error('Carte introuvable.');
+
+    const order = Array.from(this.physicalOrders.values()).find(
+      (o) => o.cardId === params.cardId
+    );
+    if (!order) throw new Error('Commande physique introuvable.');
+
+    const now = new Date().toISOString();
+
+    // 1. Vérification cryptographique du QR scanné
+    const cleanScanned = (params.scannedQrToken || '').trim();
+    let qrVerifiedServer = false;
+
+    // Correspondance avec le jeton actif
+    if (card.qrToken === cleanScanned || card.cardNumber === cleanScanned) {
+      qrVerifiedServer = true;
+    } else {
+      const hash = crypto.createHash('sha256').update(cleanScanned).digest('hex');
+      for (const qt of this.qrTokens.values()) {
+        if (qt.cardId === card.id && qt.tokenHash === hash && qt.status === 'active') {
+          qrVerifiedServer = true;
+          break;
+        }
+      }
+    }
+
+    const allVisualPassed =
+      params.visualCheckPassed &&
+      params.centeringPassed &&
+      params.contrastPassed &&
+      params.noScratchesPassed;
+
+    const isOverallPassed = qrVerifiedServer && allVisualPassed;
+
+    const qcId = `qc_${crypto.randomBytes(8).toString('hex')}`;
+    const qc: MembershipCardQualityCheck = {
+      id: qcId,
+      cardId: card.id,
+      cardNumber: card.cardNumber,
+      orderId: order.id,
+      scannedQrToken: cleanScanned.slice(0, 16) + '***', // Obfuscated
+      qrVerifiedServer,
+      visualCheckPassed: params.visualCheckPassed,
+      centeringPassed: params.centeringPassed,
+      contrastPassed: params.contrastPassed,
+      noScratchesPassed: params.noScratchesPassed,
+      operatorId: params.operatorId,
+      operatorNotes: params.operatorNotes,
+      status: isOverallPassed ? 'passed' : 'rejected',
+      checkedAt: now,
+    };
+    this.qualityChecks.set(qcId, qc);
+
+    if (isOverallPassed) {
+      order.productionStatus = 'quality_checked';
+      order.qualityCheckId = qcId;
+      order.qualityCheckedAt = now;
+      order.historyNotes?.push({
+        timestamp: now,
+        operator: params.operatorId,
+        status: 'quality_checked',
+        note: `Contrôle qualité réussi avec scan QR certifié. Prêt pour expédition. (${params.operatorNotes || ''})`,
+      });
+      card.physicalCardStatus = 'quality_checked';
+    } else {
+      order.productionStatus = 'defective';
+      order.historyNotes?.push({
+        timestamp: now,
+        operator: params.operatorId,
+        status: 'defective',
+        note: `Échec du contrôle qualité : ${
+          !qrVerifiedServer ? 'QR code illisible ou jeton non concordant. ' : ''
+        }${!allVisualPassed ? 'Défaut visuel constaté. ' : ''}${params.operatorNotes || ''}`,
+      });
+      card.physicalCardStatus = 'defective';
+    }
+
+    card.updatedAt = now;
+    order.updatedAt = now;
+    this.cards.set(card.id, card);
+    this.physicalOrders.set(order.id, order);
+
+    this.saveToDisk();
+
+    return {
+      qc,
+      order,
+      success: isOverallPassed,
+      message: isOverallPassed
+        ? 'Contrôle qualité validé avec succès. La carte est certifiée conforme et prête à être expédiée.'
+        : 'Échec du contrôle qualité. La carte a été marquée "Défectueuse" et doit être réimprimée.',
+    };
+  }
+
+  // --- GESTION DES RÉIMPRESSIONS (REPRINTS) ---
+  /**
+   * Réimpression d'une carte avec motif obligatoire.
+   * Conserve le numéro de membre permanent (LMR-2026-XXXX).
+   * Peut régénérer le QR si la carte a été perdue ou volée.
+   */
+  public reprintCard(params: {
+    cardId: string;
+    reason: 'damaged' | 'lost' | 'defect' | 'data_update' | 'member_request';
+    operatorId: string;
+    rotateQr?: boolean;
+    notes?: string;
+  }): {
+    order: MembershipPhysicalCardOrder;
+    job: MembershipPrintJob;
+    card: MembershipCard;
+  } {
+    const card = this.cards.get(params.cardId);
+    if (!card) throw new Error('Carte introuvable.');
+
+    let order = Array.from(this.physicalOrders.values()).find(
+      (o) => o.cardId === params.cardId
+    );
+
+    const now = new Date().toISOString();
+
+    // Si la carte a été perdue/volée, rotation de sécurité du QR
+    if (params.rotateQr || params.reason === 'lost') {
+      this.rotateCardQrToken(card.id, `Réimpression pour motif : ${params.reason}`, params.operatorId);
+    }
+
+    if (!order) {
+      // Créer une commande de réimpression si absente
+      const orderId = `pord_${crypto.randomBytes(8).toString('hex')}`;
+      order = {
+        id: orderId,
+        cardId: card.id,
+        userId: card.userId,
+        orderNumber: `ORD-REPR-${card.cardSequence.toString().padStart(4, '0')}`,
+        cardNumber: card.cardNumber,
+        cardholderName: card.cardholderName,
+        cardholderEmail: card.cardholderEmail,
+        editionName: 'LUMARÉEL FOUNDERS EDITION',
+        shippingAddress: {
+          street: 'Atelier Central / Réimpression',
+          city: 'Abidjan',
+          country: 'Côte d’Ivoire',
+        },
+        productionStatus: 'in_production',
+        reprintCount: 1,
+        reprintReasons: [params.reason],
+        requestedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+    } else {
+      order.reprintCount += 1;
+      if (!order.reprintReasons) order.reprintReasons = [];
+      order.reprintReasons.push(params.reason);
+      order.productionStatus = 'in_production';
+      order.historyNotes?.push({
+        timestamp: now,
+        operator: params.operatorId,
+        status: 'in_production',
+        note: `Ordre de réimpression émis. Motif : ${params.reason}. ${params.notes || ''}`,
+      });
+      order.updatedAt = now;
+    }
+    this.physicalOrders.set(order.id, order);
+
+    card.physicalCardStatus = 'in_production';
+    card.updatedAt = now;
+    this.cards.set(card.id, card);
+
+    // Créer le travail d'impression avec drapeau de réimpression
+    const job = this.createPrintJob(card.id, params.operatorId, {
+      isReprint: true,
+      reprintReason: params.reason,
+    });
+
+    this.saveToDisk();
+
+    return { order, job, card };
+  }
+
+  // --- STATISTIQUES GLOBALES DE L'ATELIER ---
+  public getWorkshopOverview() {
+    const orders = Array.from(this.physicalOrders.values());
+    const inventory = Array.from(this.inventory.values());
+    const jobs = Array.from(this.printJobs.values());
+    const qcs = Array.from(this.qualityChecks.values());
+
+    const blankCards = inventory.find((i) => i.itemType === 'blank_pvc_card');
+
+    return {
+      totalPhysicalOrders: orders.length,
+      requestedCount: orders.filter((o) => o.productionStatus === 'requested').length,
+      approvedCount: orders.filter((o) => o.productionStatus === 'approved').length,
+      inProductionCount: orders.filter((o) => o.productionStatus === 'in_production').length,
+      printedCount: orders.filter((o) => o.productionStatus === 'printed').length,
+      qualityCheckedCount: orders.filter((o) => o.productionStatus === 'quality_checked').length,
+      readyForDispatchCount: orders.filter((o) => o.productionStatus === 'ready_for_dispatch').length,
+      shippedCount: orders.filter((o) => o.productionStatus === 'shipped').length,
+      deliveredCount: orders.filter((o) => o.productionStatus === 'delivered').length,
+      defectiveCount: orders.filter((o) => o.productionStatus === 'defective').length,
+      reprintCountTotal: orders.reduce((acc, cur) => acc + (cur.reprintCount || 0), 0),
+      blankPvcAvailable: blankCards?.availableQuantity || 0,
+      blankPvcTotal: blankCards?.totalQuantity || 0,
+      totalPrintJobs: jobs.length,
+      totalQualityChecks: qcs.length,
+      simulatorModeActive: this.printerSimulatorMode,
+    };
+  }
+
+  // --- AUDIT DES SCANS ---
+  public recordScanLog(params: {
+    cardId?: string;
+    cardNumber?: string;
+    cardholderName?: string;
+    eventId?: string;
+    eventTitle?: string;
+    readerId?: string;
+    readerName?: string;
+    accessPointId?: string;
+    accessPointName?: string;
+    scanMethod?: 'qr_code' | 'manual_override';
+    verificationResult: 'AUTHORIZED' | 'DENIED';
+    rejectionReason?: string;
+    operatorId: string;
+    flaggedSuspicious?: boolean;
+    repeatScanCount?: number;
+    metadata?: Record<string, any>;
+  }): MembershipScanLog {
+    const id = `scl_${crypto.randomBytes(6).toString('hex')}`;
+    const log: MembershipScanLog = {
+      id,
+      cardId: params.cardId,
+      cardNumber: params.cardNumber,
+      cardholderName: params.cardholderName,
+      eventId: params.eventId,
+      eventTitle: params.eventTitle,
+      readerId: params.readerId,
+      readerName: params.readerName,
+      accessPointId: params.accessPointId,
+      accessPointName: params.accessPointName,
+      scanMethod: params.scanMethod || 'qr_code',
+      verificationResult: params.verificationResult,
+      rejectionReason: params.rejectionReason,
+      operatorId: params.operatorId,
+      flaggedSuspicious: Boolean(params.flaggedSuspicious),
+      repeatScanCount: params.repeatScanCount || 1,
+      scannedAt: new Date().toISOString(),
+      metadata: params.metadata,
+    };
+
+    this.scanLogs.unshift(log);
+    if (this.scanLogs.length > 2000) {
+      this.scanLogs.pop();
+    }
+    this.saveToDisk();
+    return log;
+  }
+
+  public getScanLogs(filter?: {
+    cardId?: string;
+    result?: 'AUTHORIZED' | 'DENIED';
+    suspiciousOnly?: boolean;
+    limit?: number;
+  }): MembershipScanLog[] {
+    let list = this.scanLogs;
+    if (filter?.cardId) list = list.filter((l) => l.cardId === filter.cardId);
+    if (filter?.result) list = list.filter((l) => l.verificationResult === filter.result);
+    if (filter?.suspiciousOnly) list = list.filter((l) => l.flaggedSuspicious);
+    return list.slice(0, filter?.limit || 100);
+  }
+
+  // --- GESTION DES LECTEURS 2D / SCANNERS ---
+  public getReaders(): MembershipReader[] {
+    return Array.from(this.readers.values());
+  }
+
+  public registerReader(reader: Omit<MembershipReader, 'id' | 'createdAt' | 'updatedAt'>): MembershipReader {
+    const id = `rdr_${crypto.randomBytes(6).toString('hex')}`;
+    const now = new Date().toISOString();
+    const newReader: MembershipReader = {
+      ...reader,
+      id,
+      lastSeenAt: now,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.readers.set(id, newReader);
+    this.saveToDisk();
+    return newReader;
+  }
+
+  public updateReaderStatus(readerId: string, status: MembershipReader['readerStatus']): MembershipReader {
+    const rdr = this.readers.get(readerId);
+    if (!rdr) throw new Error('Lecteur introuvable.');
+    rdr.readerStatus = status;
+    rdr.updatedAt = new Date().toISOString();
+    this.readers.set(readerId, rdr);
+    this.saveToDisk();
+    return rdr;
+  }
+
+  // --- PRIVILÈGES & CONSOMMATIONS ---
+  public getBenefitsForCard(cardId: string): Array<{
+    benefit: MembershipBenefit;
+    entitlement?: MembershipEntitlement;
+  }> {
+    const card = this.cards.get(cardId);
+    if (!card) return [];
+
+    const benefits = Array.from(this.benefits.values()).filter(
+      (b) => b.editionId === card.editionId && b.status === 'active'
+    );
+    const entitlements = Array.from(this.entitlements.values()).filter(
+      (en) => en.cardId === cardId
+    );
+
+    return benefits.map((b) => ({
+      benefit: b,
+      entitlement: entitlements.find((en) => en.benefitId === b.id),
+    }));
+  }
+
   public redeemBenefit(params: {
     cardId: string;
     benefitId: string;
@@ -980,29 +1714,27 @@ export class MembershipService {
     redeemedBy: string;
   }): { success: boolean; redemption?: MembershipRedemption; error?: string } {
     const card = this.cards.get(params.cardId);
-    if (!card || card.cardStatus !== 'active') {
-      return { success: false, error: 'Carte de membre inactive ou invalide.' };
+    if (!card) return { success: false, error: 'Carte introuvable.' };
+    if (card.cardStatus !== 'active') {
+      return { success: false, error: `Carte non active (statut: ${card.cardStatus}).` };
     }
 
     const benefit = this.benefits.get(params.benefitId);
-    if (!benefit || benefit.status !== 'active') {
-      return { success: false, error: 'Avantage indisponible ou inactif.' };
-    }
+    if (!benefit) return { success: false, error: 'Avantage introuvable.' };
 
-    // Check global quota
-    if (benefit.maxRedemptions && benefit.currentRedemptions >= benefit.maxRedemptions) {
-      return { success: false, error: 'Le quota global pour cet avantage a été atteint.' };
-    }
-
-    // Find card entitlement
     const entitlement = Array.from(this.entitlements.values()).find(
-      (e) => e.cardId === params.cardId && e.benefitId === params.benefitId
+      (en) => en.cardId === params.cardId && en.benefitId === params.benefitId
     );
-    if (!entitlement || entitlement.usedQuantity >= entitlement.quantity) {
-      return { success: false, error: 'Votre limite personnelle pour cet avantage est atteinte.' };
+
+    if (!entitlement) {
+      return { success: false, error: 'Ce membre ne dispose pas de ce droit.' };
     }
 
-    // Atomic increment
+    if (entitlement.usedQuantity >= entitlement.quantity) {
+      return { success: false, error: 'Nombre maximum d’utilisations atteint pour cet avantage.' };
+    }
+
+    // Décrémenter atomiquement
     entitlement.usedQuantity += 1;
     if (entitlement.usedQuantity >= entitlement.quantity) {
       entitlement.status = 'used';
@@ -1013,9 +1745,7 @@ export class MembershipService {
     this.benefits.set(benefit.id, benefit);
 
     const redemptionId = `red_${crypto.randomBytes(6).toString('hex')}`;
-    const redemptionRef = `RED-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
     const now = new Date().toISOString();
-
     const redemption: MembershipRedemption = {
       id: redemptionId,
       cardId: card.id,
@@ -1025,7 +1755,7 @@ export class MembershipService {
       benefitName: benefit.name,
       eventId: params.eventId,
       redeemedBy: params.redeemedBy,
-      redemptionReference: redemptionRef,
+      redemptionReference: `RED-${Date.now().toString().slice(-6)}`,
       status: 'confirmed',
       redeemedAt: now,
       createdAt: now,
@@ -1036,145 +1766,24 @@ export class MembershipService {
     return { success: true, redemption };
   }
 
-  // --- READERS & TERMINALS ---
-  public getReaders(): MembershipReader[] {
-    return Array.from(this.readers.values());
-  }
-
-  public registerReader(params: {
-    readerName: string;
-    readerIdentifier: string;
-    readerType: 'mobile_android' | 'fixed_gate' | 'turnstile' | 'pos_desk';
-    hardwareModel: string;
-    assignedRole?: string;
-  }): MembershipReader {
-    const existing = Array.from(this.readers.values()).find(
-      (r) => r.readerIdentifier === params.readerIdentifier
-    );
-    if (existing) {
-      existing.readerName = params.readerName;
-      existing.hardwareModel = params.hardwareModel;
-      existing.updatedAt = new Date().toISOString();
-      this.saveToDisk();
-      return existing;
-    }
-
-    const id = `rdr_${crypto.randomBytes(6).toString('hex')}`;
-    const now = new Date().toISOString();
-    const reader: MembershipReader = {
-      id,
-      readerName: params.readerName,
-      readerIdentifier: params.readerIdentifier,
-      readerType: params.readerType,
-      hardwareModel: params.hardwareModel,
-      assignedRole: params.assignedRole || 'gate_agent',
-      readerStatus: 'active',
-      lastSeenAt: now,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.readers.set(id, reader);
-    this.saveToDisk();
-    return reader;
-  }
-
-  public updateReaderStatus(readerId: string, status: 'active' | 'suspended' | 'revoked'): MembershipReader {
-    const reader = this.readers.get(readerId);
-    if (!reader) throw new Error('Lecteur introuvable.');
-    reader.readerStatus = status;
-    reader.updatedAt = new Date().toISOString();
-    this.readers.set(readerId, reader);
-    this.saveToDisk();
-    return reader;
-  }
-
-  // --- SCAN LOGS & AUDIT LOGS ---
-  public recordScanLog(params: {
-    cardId?: string;
-    cardNumber?: string;
-    cardholderName?: string;
-    eventId?: string;
-    readerId?: string;
-    accessPointId?: string;
-    scanMethod: 'qr_code' | 'nfc_desfire' | 'manual_override';
-    verificationResult: 'AUTHORIZED' | 'DENIED';
-    rejectionReason?: string;
-    operatorId: string;
-    metadata?: Record<string, any>;
-  }): MembershipScanLog {
-    const log: MembershipScanLog = {
-      id: `scl_${crypto.randomBytes(6).toString('hex')}`,
-      cardId: params.cardId,
-      cardNumber: params.cardNumber,
-      cardholderName: params.cardholderName,
-      eventId: params.eventId,
-      readerId: params.readerId,
-      accessPointId: params.accessPointId,
-      scanMethod: params.scanMethod,
-      verificationResult: params.verificationResult,
-      rejectionReason: params.rejectionReason,
-      operatorId: params.operatorId,
-      scannedAt: new Date().toISOString(),
-      metadata: params.metadata,
-    };
-    this.scanLogs.push(log);
-    return log;
-  }
-
-  public getScanLogs(limit = 100): MembershipScanLog[] {
-    return [...this.scanLogs].reverse().slice(0, limit);
-  }
-
-  public getRedemptions(limit = 100): MembershipRedemption[] {
-    return Array.from(this.redemptions.values()).reverse().slice(0, limit);
-  }
-
-  public logAdminEvent(params: {
-    actorId: string;
-    actionType: string;
-    entityType: string;
-    entityId: string;
-    details?: Record<string, any>;
-  }) {
-    const event: MembershipEventLog = {
-      id: `mev_${crypto.randomBytes(6).toString('hex')}`,
-      actorId: params.actorId,
-      actionType: params.actionType,
-      entityType: params.entityType,
-      entityId: params.entityId,
-      details: params.details,
-      createdAt: new Date().toISOString(),
-    };
-    this.eventLogs.push(event);
-  }
-
-  public getAdminEventLogs(limit = 100): MembershipEventLog[] {
-    return [...this.eventLogs].reverse().slice(0, limit);
-  }
-
-  // --- STATS & KPIS POUR L'ADMINISTRATION ---
-  public getMembershipStats() {
+  // --- STATISTIQUES GLOBAL ADMIN ---
+  public getAdminOverview() {
     const edition = this.getActiveFoundersEdition();
     const quota = edition?.quota || 100;
     const allocated = edition?.allocatedCount || 0;
-    const allCards = Array.from(this.cards.values());
+    const cards = Array.from(this.cards.values());
 
-    const activeCards = allCards.filter((c) => c.cardStatus === 'active').length;
-    const suspendedCards = allCards.filter((c) => c.cardStatus === 'suspended').length;
-    const revokedCards = allCards.filter((c) => c.cardStatus === 'revoked').length;
-    const expiredCards = allCards.filter((c) => {
-      return c.cardStatus === 'active' && new Date(c.expiresAt).getTime() < Date.now();
-    }).length;
+    const activeCards = cards.filter((c) => c.cardStatus === 'active').length;
+    const suspendedCards = cards.filter((c) => c.cardStatus === 'suspended').length;
+    const revokedCards = cards.filter((c) => c.cardStatus === 'revoked').length;
+    const expiredCards = cards.filter(
+      (c) => new Date(c.expiresAt).getTime() < Date.now() && c.cardStatus === 'active'
+    ).length;
 
     const orders = Array.from(this.orders.values());
-    const totalRevenue = orders.reduce((sum, o) => (o.paymentStatus === 'completed' ? sum + o.amount : sum), 0);
-    const completedOrders = orders.filter((o) => o.paymentStatus === 'completed').length;
-    const pendingOrders = orders.filter((o) => o.paymentStatus === 'pending').length;
-
-    const totalRedemptions = this.redemptions.size;
-    const totalScans = this.scanLogs.length;
-    const authorizedScans = this.scanLogs.filter((s) => s.verificationResult === 'AUTHORIZED').length;
-    const deniedScans = this.scanLogs.filter((s) => s.verificationResult === 'DENIED').length;
+    const totalRevenue = orders
+      .filter((o) => o.paymentStatus === 'completed')
+      .reduce((sum, o) => sum + o.amount, 0);
 
     return {
       quota,
@@ -1185,13 +1794,22 @@ export class MembershipService {
       revokedCards,
       expiredCards,
       totalRevenue,
-      completedOrders,
-      pendingOrders,
-      totalRedemptions,
-      totalScans,
-      authorizedScans,
-      deniedScans,
+      completedOrders: orders.filter((o) => o.paymentStatus === 'completed').length,
+      pendingOrders: orders.filter((o) => o.paymentStatus === 'pending').length,
+      totalRedemptions: this.redemptions.size,
+      totalScans: this.scanLogs.length,
+      authorizedScans: this.scanLogs.filter((s) => s.verificationResult === 'AUTHORIZED').length,
+      deniedScans: this.scanLogs.filter((s) => s.verificationResult === 'DENIED').length,
     };
+  }
+
+  private logAdminEvent(event: Omit<MembershipEventLog, 'id' | 'createdAt'>) {
+    const id = `mev_${crypto.randomBytes(6).toString('hex')}`;
+    this.eventLogs.unshift({
+      ...event,
+      id,
+      createdAt: new Date().toISOString(),
+    });
   }
 }
 

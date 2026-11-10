@@ -181,7 +181,7 @@ export const AdminMembershipView: React.FC = () => {
           readerName: newReaderName.trim(),
           readerIdentifier: newReaderIdent.trim().toUpperCase(),
           readerType: newReaderType,
-          hardwareModel: 'Terminal Android NFC DESFire EV3 SAM-Enabled',
+          hardwareModel: 'Lecteur Imager 2D USB Haute Précision',
         }),
       });
       const data = await res.json();
@@ -219,14 +219,14 @@ export const AdminMembershipView: React.FC = () => {
               MODULE CENTRAL
             </span>
             <span className="px-2 py-0.5 rounded-full bg-[#d4af37]/10 text-[9px] font-agrandir-bold text-[#d4af37] uppercase border border-[#d4af37]/30">
-              DESFire EV3 & QR HYBRIDE
+              IDENTIFIANT QR CRYPTOGRAPHIQUE &amp; CARTE PVC
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-agrandir-extrabold uppercase text-white mt-1">
             LUMARÉEL MEMBERSHIP
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Gestion des 100 membres Founders, des puces NFC, des privilèges et des points de contrôle événementiels.
+            Gestion des 100 membres Founders, des jetons QR révocables, des privilèges et des points de contrôle événementiels.
           </p>
         </div>
 
@@ -591,7 +591,7 @@ export const AdminMembershipView: React.FC = () => {
                   <p className="text-xs text-neutral-400 font-light">{p.description}</p>
                   <div className="border-t border-white/10 pt-2 flex justify-between text-[11px] text-neutral-500 font-mono">
                     <span>Durée : {p.durationMonths} mois</span>
-                    <span>Puce DESFire incluse</span>
+                    <span>Carte physique PVC incluse</span>
                   </div>
                 </div>
               ))}
@@ -629,15 +629,15 @@ export const AdminMembershipView: React.FC = () => {
         </div>
       )}
 
-      {/* --- ONGLET 5 : TERMINAUX & LECTEURS NFC / MOBILE --- */}
+      {/* --- ONGLET 5 : SCANNERS 2D & STATIONS D'ACCÈS --- */}
       {activeSubTab === 'readers' && (
         <div className="space-y-6 animate-fadeIn">
           <div className="flex justify-between items-center">
             <div>
               <h3 className="text-sm font-agrandir-bold uppercase text-white tracking-wider">
-                Parc des Terminaux Autorisés
+                Parc des Scanners &amp; Bornes d'Accès
               </h3>
-              <p className="text-xs text-neutral-400">Terminaux mobiles Android et portillons NFC DESFire EV3</p>
+              <p className="text-xs text-neutral-400">Douchettes 2D USB, caméras mobiles et portillons QR</p>
             </div>
             <button
               type="button"
@@ -849,7 +849,7 @@ export const AdminMembershipView: React.FC = () => {
           <div className="w-full max-w-md bg-[#0e0e0e] border border-white/20 rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl relative">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <h3 className="font-agrandir-extrabold text-base text-white uppercase">
-                ENREGISTRER UN TERMINAL NFC
+                ENREGISTRER UN SCANNER 2D / BORNE
               </h3>
               <button
                 type="button"
@@ -863,14 +863,14 @@ export const AdminMembershipView: React.FC = () => {
             <form onSubmit={handleRegisterReader} className="space-y-4">
               <div>
                 <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
-                  Nom du terminal *
+                  Nom du scanner / borne *
                 </label>
                 <input
                   type="text"
                   required
                   value={newReaderName}
                   onChange={(e) => setNewReaderName(e.target.value)}
-                  placeholder="Ex : Terminal Mobile Porte VIP 01"
+                  placeholder="Ex : Douchette 2D USB Porte VIP 01"
                   className="w-full bg-[#161616] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
@@ -884,22 +884,24 @@ export const AdminMembershipView: React.FC = () => {
                   required
                   value={newReaderIdent}
                   onChange={(e) => setNewReaderIdent(e.target.value)}
-                  placeholder="Ex : LMR-MOB-02"
+                  placeholder="Ex : LMR-2D-02"
                   className="w-full bg-[#161616] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#d4af37] font-mono"
                 />
               </div>
 
               <div>
                 <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
-                  Type de lecteur
+                  Type de scanner
                 </label>
                 <select
                   value={newReaderType}
                   onChange={(e) => setNewReaderType(e.target.value as any)}
                   className="w-full bg-[#161616] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
                 >
-                  <option value="mobile_android">Terminal Mobile Android (Caméra QR + NFC)</option>
-                  <option value="fixed_gate">Portillon Fixe / Tourniquet</option>
+                  <option value="usb_2d_barcode">Scanner 2D USB / Douchette</option>
+                  <option value="mobile_camera">Caméra Mobile / Smartphone</option>
+                  <option value="fixed_gate_qr">Portillon Fixe / Tourniquet QR</option>
+                  <option value="pos_desk">Guichet Billetterie / Desk</option>
                 </select>
               </div>
 

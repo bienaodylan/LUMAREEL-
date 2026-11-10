@@ -69,21 +69,6 @@
       "updatedAt": "2026-11-10T14:09:37.496Z"
     }
   ],
-  "chipCredentials": [
-    {
-      "id": "chp_2945b65d86cff4a9",
-      "cardId": "crd_aa7c4e8bf41f26df",
-      "chipReference": "DESFIRE_LMR_2026_0001",
-      "chipType": "MIFARE_DESFIRE_EV3",
-      "applicationReference": "LMR_DESFIRE_APP_01",
-      "keyVersion": 1,
-      "credentialStatus": "active",
-      "diversificationSeed": "610dbf29da29f4186eafd2d94b0b8151a0558b481a0c054302434f3514f69a40",
-      "enrolledAt": "2026-11-10T14:09:37.496Z",
-      "createdAt": "2026-11-10T14:09:37.496Z",
-      "updatedAt": "2026-11-10T14:09:37.496Z"
-    }
-  ],
   "qrTokens": [
     {
       "id": "qrt_7c9bca0005e52098",
@@ -269,6 +254,95 @@
     }
   ],
   "accessPoints": [],
+  "physicalOrders": [],
+  "inventory": [
+    {
+      "itemName": "Cartes PVC Noires Mates CR-80 (0.76mm)",
+      "itemType": "blank_pvc_card",
+      "sku": "PVC-CR80-BLK-MATTE",
+      "totalQuantity": 250,
+      "reservedQuantity": 1,
+      "availableQuantity": 249,
+      "minThresholdAlert": 20,
+      "unit": "cartes",
+      "notes": "PVC vierge noir mat teinté dans la masse pour gravure & impression recto/verso.",
+      "id": "inv_fbca272c0863",
+      "lastRestockedAt": "2026-11-10T14:33:27.392Z",
+      "updatedAt": "2026-11-10T14:33:27.392Z"
+    },
+    {
+      "itemName": "Ruban Doré Chaud Métallique (Gold Foil)",
+      "itemType": "gold_foil_ribbon",
+      "sku": "RIB-GOLD-FOIL-1000",
+      "totalQuantity": 3,
+      "reservedQuantity": 0,
+      "availableQuantity": 3,
+      "minThresholdAlert": 1,
+      "unit": "rouleaux",
+      "notes": "Ruban transfert thermique or métallique haute adhérence (1000 faces/rouleau).",
+      "id": "inv_07ecd362d9a6",
+      "lastRestockedAt": "2026-11-10T14:33:27.392Z",
+      "updatedAt": "2026-11-10T14:33:27.392Z"
+    },
+    {
+      "itemName": "Ruban Monochrome Noir Résine Haute Résolution",
+      "itemType": "monochrome_black_ribbon",
+      "sku": "RIB-MONO-K-1500",
+      "totalQuantity": 4,
+      "reservedQuantity": 0,
+      "availableQuantity": 4,
+      "minThresholdAlert": 1,
+      "unit": "rouleaux",
+      "notes": "Encre résine noire ultra-dense pour QR codes à très fort contraste optique.",
+      "id": "inv_4f07fe56fb8e",
+      "lastRestockedAt": "2026-11-10T14:33:27.392Z",
+      "updatedAt": "2026-11-10T14:33:27.392Z"
+    },
+    {
+      "itemName": "Ruban Couleur YMCKO Haute Définition",
+      "itemType": "ymcko_ribbon",
+      "sku": "RIB-YMCKO-HD-500",
+      "totalQuantity": 2,
+      "reservedQuantity": 0,
+      "availableQuantity": 2,
+      "minThresholdAlert": 1,
+      "unit": "rouleaux",
+      "notes": "Impression couleur avec couche de vernis protecteur intégrée.",
+      "id": "inv_57f582d1a91d",
+      "lastRestockedAt": "2026-11-10T14:33:27.392Z",
+      "updatedAt": "2026-11-10T14:33:27.392Z"
+    },
+    {
+      "itemName": "Film Holographique de Protection Ultra-Durable",
+      "itemType": "laminate_overlay",
+      "sku": "LAM-HOLO-LMR-1000",
+      "totalQuantity": 2,
+      "reservedQuantity": 0,
+      "availableQuantity": 2,
+      "minThresholdAlert": 1,
+      "unit": "rouleaux",
+      "notes": "Lamination de sécurité anti-abrasion et anti-falsification.",
+      "id": "inv_f2db37fec405",
+      "lastRestockedAt": "2026-11-10T14:33:27.392Z",
+      "updatedAt": "2026-11-10T14:33:27.392Z"
+    },
+    {
+      "itemName": "Coffrets Collector de Luxe Founders Edition",
+      "itemType": "collector_box",
+      "sku": "BOX-FOUNDERS-LUX-01",
+      "totalQuantity": 100,
+      "reservedQuantity": 1,
+      "availableQuantity": 99,
+      "minThresholdAlert": 10,
+      "unit": "coffrets",
+      "notes": "Écrin rigide soft-touch avec fermeture aimantée et marquage à chaud or.",
+      "id": "inv_f5709fa7c123",
+      "lastRestockedAt": "2026-11-10T14:33:27.392Z",
+      "updatedAt": "2026-11-10T14:33:27.392Z"
+    }
+  ],
+  "printJobs": [],
+  "qualityChecks": [],
   "scanLogs": [],
   "eventLogs": [
     {
