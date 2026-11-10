@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabaseClient';
 import { useApp } from '../context/AppContext';
 import {
   WalletOverview,
@@ -89,10 +90,11 @@ export const LumareelWalletView: React.FC = () => {
   }, [currentUser]);
 
   const fetchWalletOverview = async () => {
-    const userEmail = currentUser?.email || 'bienaodylan428@gmail.com';
     try {
       setLoading(true);
-      const res = await fetch(`/api/wallet/overview?email=${encodeURIComponent(userEmail)}`);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { setWallet(null); return; }
+      const res = await fetch('/api/wallet/overview', { headers: { Authorization: `Bearer ${session.access_token}` } });
       const data = await res.json();
       if (data.success && data.overview) {
         setWallet(data.overview);
