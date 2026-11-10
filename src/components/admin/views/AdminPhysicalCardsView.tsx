@@ -26,7 +26,8 @@ type PhysicalCard={id:string;card_number:string;cardholder_name:string;card_stat
 
 export const AdminPhysicalCardsView:React.FC=()=>{
  const [tab,setTab]=useState<Tab>('dashboard');
- const [error,setError]=useState('');\n const [success,setSuccess]=useState('');
+ const [error,setError]=useState('');
+ const [success,setSuccess]=useState('');
  const [overview,setOverview]=useState<OverviewStats|null>(null);
  const [events,setEvents]=useState<Activity[]>([]);
  const [orderRows,setOrderRows]=useState<OrderRow[]>([]);
