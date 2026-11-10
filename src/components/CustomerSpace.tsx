@@ -28,9 +28,8 @@ import {
 } from 'lucide-react';
 
 import { formatDateLongFrench } from '../utils/dateUtils';
-import { MemberCardSection } from './MemberCardSection';
 
-type ScrollableTab = 'membership' | 'tickets' | 'transfer' | 'past';
+type ScrollableTab = 'tickets' | 'transfer' | 'past';
 
 export const CustomerSpace: React.FC = () => {
   const { currentUser, customerOrders, refreshCustomerOrders, events, setCurrentPage, showToast, language, t } = useApp();
@@ -102,7 +101,6 @@ export const CustomerSpace: React.FC = () => {
   };
 
   const tabsConfig: Array<{ id: ScrollableTab; label: string; count?: number; highlight?: boolean }> = [
-    { id: 'membership', label: 'Ma LUMARÉEL CARD', highlight: true },
     { id: 'tickets', label: t('orders.tabTickets'), count: allTickets.length },
     { id: 'transfer', label: t('orders.tabTransfer') },
     { id: 'past', label: t('orders.tabPast') },
@@ -186,13 +184,6 @@ export const CustomerSpace: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* --- ONGLET 0: MA LUMARÉEL CARD --- */}
-      {activeTab === 'membership' && (
-        <div className="animate-fadeIn">
-          <MemberCardSection onOpenSubscribe={() => setCurrentPage('card' as any)} />
-        </div>
-      )}
 
       {/* --- ONGLET 1: MES BILLETS --- */}
       {activeTab === 'tickets' && (
