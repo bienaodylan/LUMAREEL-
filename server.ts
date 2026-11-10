@@ -677,9 +677,19 @@ async function startServer() {
     }
   });
 
+  // Scanner bearer is a short-lived event-scoped magic token; never trust operatorId from client.
+  const requireGateScanner = (req: Request, res: Response, eventId?: string) => {
+    const scannerToken = String(req.body?.scannerToken || req.headers['x-lumareel-scanner-token'] || '').trim();
+    if (!scannerToken) { res.status(401).json({valid:false,authorized:false,status:'ACCESS_DENIED',error:'Session scanner requise.'}); return false; }
+    const verified = db.verifyScannerToken(scannerToken, eventId);
+    if (!verified?.valid) { res.status(403).json({valid:false,authorized:false,status:'ACCESS_DENIED',error:'Jeton scanner invalide, expiré ou hors événement.'}); return false; }
+    return true;
+  };
+
   // 6. Dedicated Gate Access Control Controller (POST /api/verify-ticket)
   app.post('/api/verify-ticket', (req: Request, res: Response) => {
     try {
+      if (!requireGateScanner(req,res,String(req.body.eventId || req.body.targetEventId || ''))) return;
       const ticketIdOrToken = (req.body.ticketId || req.body.token || req.body.id || req.body.qrData || '').toString().trim();
       if (!ticketIdOrToken) {
         return res.status(400).json({ valid: false, error: 'ID ou jeton du billet requis.' });
@@ -791,11 +801,12 @@ async function startServer() {
     }
   };
 
-  app.post('/api/scanner/verify', handleScannerVerification);
-  app.post('/api/tickets/verify-and-burn', handleScannerVerification);
+  app.post('/api/scanner/verify', (_req: Request, res: Response) => res.status(401).json({success:false,error:'Endpoint historique désactivé. Utilisez le scanner sécurisé avec jeton événementiel.'}));
+  app.post('/api/tickets/verify-and-burn', (_req: Request, res: Response) => res.status(401).json({success:false,error:'Endpoint historique désactivé. Utilisez le scanner sécurisé avec jeton événementiel.'}));
 
   // --- MAGIC LINK GATE SCANNER ACCESS (Tokens URL) ---
-  app.post('/api/events/:id/scanner-token', (req: Request, res: Response) => {
+  app.post('/api/events/:id/scanner-token', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const eventId = req.params.id;
       const event = db.getEvent(eventId);
@@ -947,6 +958,7 @@ async function startServer() {
   // 5. Contrôle d'Accès Événementiel (Scan Carte / Entrée / VIP / Coupe-File)
   app.post('/api/membership/check-access', (req: Request, res: Response) => {
     try {
+      if (!requireGateScanner(req,res,String(req.body.eventId || ''))) return;
       const cardIdentifier = req.body.cardIdentifier || req.body.identifier;
       const {
         eventId,
@@ -1317,6 +1329,7 @@ async function startServer() {
   // LUMARÉEL ACCESS CONTROL : UNIFIED PORTAL SCANNER (Tickets, Membership & Invitations)
   app.post('/api/access/scan', (req: Request, res: Response) => {
     try {
+      if (!requireGateScanner(req,res,String(req.body.eventId || ''))) return;
       const { rawToken, eventId, zone, operatorId } = req.body;
       if (!rawToken) {
         return res.status(400).json({
