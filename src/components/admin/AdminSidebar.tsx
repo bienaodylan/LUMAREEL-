@@ -1,0 +1,235 @@
+import React from 'react';
+import { useApp } from '../../context/AppContext';
+import { 
+  LayoutDashboard, 
+  Ticket, 
+  ShoppingBag, 
+  Film, 
+  Mail, 
+  Settings, 
+  ExternalLink, 
+  Shield, 
+  ArrowLeft,
+  ChevronRight,
+  Sparkles,
+  Printer,
+  Crown
+} from 'lucide-react';
+
+export type AdminSection = 'overview' | 'membership' | 'events' | 'orders' | 'archives' | 'emails' | 'settings';
+
+interface AdminSidebarProps {
+  currentSection: AdminSection;
+  onSelectSection: (section: AdminSection) => void;
+  selectedEventId: string | null;
+  selectedEventTitle?: string;
+  onClearSelectedEvent: () => void;
+  eventsCount: number;
+  ordersCount: number;
+  archivesCount: number;
+  onExitAdmin: () => void;
+  isMobileOpen: boolean;
+  onCloseMobile: () => void;
+  onOpenBatchPrint?: () => void;
+}
+
+export const AdminSidebar: React.FC<AdminSidebarProps> = ({
+  currentSection,
+  onSelectSection,
+  selectedEventId,
+  selectedEventTitle,
+  onClearSelectedEvent,
+  eventsCount,
+  ordersCount,
+  archivesCount,
+  onExitAdmin,
+  isMobileOpen,
+  onCloseMobile,
+  onOpenBatchPrint,
+}) => {
+  const { platformSettings } = useApp();
+  const navItems = [
+    {
+      id: 'overview' as AdminSection,
+      label: 'Tableau de bord',
+      icon: LayoutDashboard,
+      badge: null,
+    },
+    {
+      id: 'membership' as AdminSection,
+      label: 'LUMARÉEL CARD',
+      icon: Crown,
+      badge: '100',
+    },
+    {
+      id: 'events' as AdminSection,
+      label: 'Concerts & Événements',
+      icon: Ticket,
+      badge: eventsCount > 0 ? String(eventsCount) : null,
+    },
+    {
+      id: 'orders' as AdminSection,
+      label: 'Commandes & Ventes',
+      icon: ShoppingBag,
+      badge: ordersCount > 0 ? String(ordersCount) : null,
+    },
+    {
+      id: 'archives' as AdminSection,
+      label: 'Archives & CMS Vidéo',
+      icon: Film,
+      badge: archivesCount > 0 ? String(archivesCount) : null,
+    },
+    {
+      id: 'emails' as AdminSection,
+      label: 'Journal Transactionnel',
+      icon: Mail,
+      badge: null,
+    },
+    {
+      id: 'settings' as AdminSection,
+      label: 'Paramètres Généraux',
+      icon: Settings,
+      badge: null,
+    },
+  ];
+
+  return (
+    <>
+      {/* Mobile Backdrop */}
+      {isMobileOpen && (
+        <div
+          onClick={onCloseMobile}
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40 lg:hidden"
+        />
+      )}
+
+      {/* Persistent Sidebar */}
+      <aside
+        className={`fixed lg:sticky top-0 left-0 h-screen w-72 bg-[#090909] border-r border-white/10 z-50 flex flex-col justify-between transition-transform duration-300 ${
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        {/* Brand Header */}
+        <div>
+          <div className="p-5 border-b border-white/10 flex items-center justify-between gap-3">
+            <div className="flex flex-col gap-1.5 min-w-0">
+              <img
+                src="/assets/logo-lumareel.png"
+                alt={platformSettings.platformName || 'LUMARÉEL CO.'}
+                className="h-7 w-auto object-contain"
+              />
+              <span className="text-[9px] font-agrandir-semibold tracking-[0.2em] text-[#d4af37] uppercase">
+                CONSOLE DE GESTION
+              </span>
+            </div>
+
+            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[9px] font-agrandir-semibold text-emerald-400 shrink-0">
+              LIVE
+            </span>
+          </div>
+
+          {/* Quick Return when inside an Event */}
+          {selectedEventId && (
+            <div className="p-3 mx-3 my-3 rounded-2xl bg-white/5 border border-white/10">
+              <div className="text-[9px] font-agrandir-semibold tracking-wider text-[#888] uppercase mb-1">
+                ÉVÉNEMENT ACTIF
+              </div>
+              <div className="text-xs font-agrandir-extrabold text-white truncate mb-2">
+                {selectedEventTitle || 'Concert sélectionné'}
+              </div>
+              <button
+                onClick={() => {
+                  onClearSelectedEvent();
+                  onSelectSection('events');
+                }}
+                className="w-full py-1.5 px-3 rounded-xl bg-[#141414] hover:bg-white/10 border border-white/10 text-[10px] font-agrandir-semibold text-[#d4af37] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <ArrowLeft className="w-3 h-3" />
+                <span>Tous les concerts</span>
+              </button>
+            </div>
+          )}
+
+          {/* Navigation Links Group */}
+          <nav className="p-3 space-y-1">
+            <div className="px-3 py-2 text-[10px] font-agrandir-semibold tracking-[0.2em] text-[#666] uppercase">
+              GESTION CENTRALE
+            </div>
+
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentSection === item.id && !selectedEventId;
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    onClearSelectedEvent();
+                    onSelectSection(item.id);
+                    onCloseMobile();
+                  }}
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-agrandir-semibold transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-white text-black shadow-lg font-agrandir-extrabold'
+                      : 'text-neutral-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-black' : 'text-[#888]'}`} />
+                    <span>{item.label}</span>
+                  </div>
+
+                  {item.badge && (
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-agrandir-bold ${
+                        isActive
+                          ? 'bg-black/10 text-black'
+                          : 'bg-white/10 text-[#d4af37]'
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-4 border-t border-white/10 space-y-2">
+          {/* Quick Action: Batch print physical tickets */}
+          {onOpenBatchPrint && (
+            <button
+              type="button"
+              onClick={() => {
+                onOpenBatchPrint();
+                onCloseMobile();
+              }}
+              className="w-full py-2.5 px-3 rounded-xl bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/30 text-xs font-agrandir-bold text-[#d4af37] flex items-center justify-between transition-colors cursor-pointer group"
+              title="Générer et imprimer des planches de billets physiques"
+            >
+              <div className="flex items-center gap-2">
+                <Printer className="w-3.5 h-3.5 text-[#d4af37]" />
+                <span>Impression Billets</span>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-[#d4af37]/60 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          )}
+
+          {/* Link back to public site */}
+          <button
+            onClick={onExitAdmin}
+            className="w-full py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-agrandir-semibold text-white flex items-center justify-between transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-2">
+              <ExternalLink className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Voir le site public</span>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 text-[#666]" />
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+};

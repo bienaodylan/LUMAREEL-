@@ -1,0 +1,1734 @@
+PROMPT MAÎTRE — CONCEPTION ET DÉVELOPPEMENT COMPLET DE LUMARÉEL CARD
+
+1. MISSION GÉNÉRALE
+
+Tu interviens en qualité d’architecte logiciel senior, ingénieur full-stack, spécialiste des systèmes de contrôle d’accès NFC/RFID, expert Supabase/PostgreSQL, expert cybersécurité et développeur de plateformes événementielles.
+
+Ta mission est de concevoir et d’implémenter intégralement LUMARÉEL CARD, le système de membership, d’identification et d’accès privilégié de la plateforme LUMARÉEL.
+
+Il ne s’agit pas de créer une application indépendante.
+
+LUMARÉEL CARD doit devenir un nouveau module natif du site et de l’infrastructure LUMARÉEL existants.
+
+Tu dois intervenir sur le projet existant, comprendre son architecture, identifier ses composants, ses tables, ses routes, ses fonctions et ses systèmes déjà opérationnels, puis intégrer LUMARÉEL CARD sans détruire, remplacer ou dégrader les fonctionnalités existantes.
+
+Site existant :
+
+https://lumareel-theta.vercel.app/
+
+Backend existant : Supabase.
+
+Le projet possède déjà une plateforme de billetterie, des comptes clients, un espace administrateur, des commandes, des billets QR et des fonctionnalités de contrôle événementiel.
+
+Toutes ces fonctionnalités doivent être préservées et réutilisées intelligemment.
+
+Objectif final
+
+Créer un véritable écosystème d’adhésion premium permettant :
+
+* De vendre des adhésions LUMARÉEL CARD.
+* De gérer une communauté de membres.
+* D’attribuer une identité permanente à chaque carte.
+* D’identifier les membres par QR code et NFC sécurisé.
+* De contrôler les accès pendant les concerts.
+* De gérer les préventes privées.
+* De gérer les invitations et expériences exclusives.
+* De gérer les avantages et réductions.
+* De gérer les espaces VIP et les files prioritaires.
+* De connecter les cartes aux billets et commandes existants.
+* De fournir un espace personnel aux membres.
+* De fournir un espace de gestion complet aux administrateurs.
+* De superviser les lecteurs et les opérations de contrôle.
+
+Le système doit être fonctionnel, sécurisé, évolutif et réellement connecté à Supabase.
+
+⸻
+
+2. IDENTITÉ ET POSITIONNEMENT DU PRODUIT
+
+Nom du produit : LUMARÉEL CARD.
+
+Première édition commerciale : LUMARÉEL FOUNDERS EDITION.
+
+LUMARÉEL CARD est une adhésion annuelle premium donnant accès à des privilèges réservés aux membres.
+
+Il ne s’agit pas :
+
+* D’une simple carte de fidélité.
+* D’un simple portefeuille de billets.
+* D’un billet permanent donnant accès à tous les concerts.
+* D’une carte bancaire.
+* D’un système de paiement NFC.
+
+C’est une identité de membre qui permet de reconnaître son titulaire et de vérifier les droits qui lui sont accordés.
+
+Caractéristiques commerciales
+
+* Première édition limitée à 100 membres.
+* Durée d’adhésion : 12 mois.
+* Carte physique et numérique.
+* Numéro permanent unique.
+* Renouvellement possible.
+* Statuts : en attente, active, suspendue, révoquée, expirée.
+* Une seule carte active par membre pour une même édition, sauf remplacement contrôlé.
+
+Format d’identification :
+
+LMR-2026-0001
+LMR-2026-0002
+LMR-2026-0003
+…
+LMR-2026-0100
+
+Un numéro attribué ne doit jamais être réattribué, même après expiration ou révocation.
+
+Le prix, la devise, les périodes de vente et les conditions doivent être configurables depuis l’administration. Ne pas inventer un prix fixe.
+
+Avantages des membres
+
+Le système doit pouvoir gérer :
+
+1. Préventes privées.
+2. Accès prioritaire.
+3. Invitations exclusives.
+4. Tarifs préférentiels.
+5. Espaces VIP.
+6. Expériences privées avec les artistes.
+7. Cadeaux et surprises.
+8. Offres spéciales et avantages partenaires.
+
+Ces avantages doivent être de véritables fonctionnalités administrables, et non de simples textes affichés sur une page.
+
+Ils doivent pouvoir être associés à une édition, un événement, une période, un quota, une réservation ou une catégorie de membre.
+
+Aucun avantage ne doit être considéré comme automatiquement disponible si ses conditions ne sont pas satisfaites.
+
+⸻
+
+3. PRINCIPE FONDAMENTAL : ARCHITECTURE HYBRIDE QR + NFC
+
+La solution retenue est une architecture hybride.
+
+Chaque carte dispose de deux moyens d’identification complémentaires :
+
+A. QR CODE
+
+Le QR code sert à :
+
+* Identifier la carte.
+* Vérifier son authenticité via le système.
+* Permettre une vérification depuis un smartphone.
+* Constituer un moyen de secours si un lecteur NFC est indisponible.
+* Accéder à une page publique de vérification limitée.
+
+B. NFC SÉCURISÉ
+
+Le NFC sert à :
+
+* Identifier le membre sans contact.
+* Accélérer les opérations d’entrée.
+* Contrôler les files prioritaires.
+* Contrôler les espaces VIP.
+* Vérifier les droits d’accès.
+* Autoriser certaines opérations réservées aux membres.
+
+Les deux technologies doivent pointer vers la même identité de carte dans le backend.
+
+Une carte dispose donc :
+
+* D’un numéro permanent.
+* D’un identifiant interne.
+* D’un QR individuel.
+* D’une référence de puce NFC.
+* D’un statut.
+* D’une période de validité.
+* D’un titulaire.
+
+IMPORTANT : la carte LUMARÉEL CARD n’est pas un billet de concert.
+
+Le QR de membership ne doit jamais remplacer le QR individuel des billets existants.
+
+Un membre doit toujours posséder un billet valide pour entrer dans un concert lorsque la billetterie l’exige.
+
+⸻
+
+4. ARCHITECTURE MATÉRIELLE NFC
+
+4.1 Puce principale
+
+Technologie retenue :
+
+NXP MIFARE DESFire EV3.
+
+La puce doit permettre :
+
+* Authentification mutuelle.
+* Cryptographie AES-128.
+* Communication sécurisée.
+* Gestion des applications et fichiers sécurisés.
+* Diversification des clés.
+* Gestion des versions de clés.
+* Protection contre la copie simple de l’identifiant de la puce.
+
+Ne jamais considérer l’UID NFC comme une preuve suffisante d’authenticité.
+
+Ne pas baser les autorisations VIP ou les avantages sur une simple lecture d’UID.
+
+4.2 Gestion cryptographique des lecteurs
+
+Prévoir une architecture compatible avec :
+
+NXP MIFARE SAM AV3.
+
+Le SAM doit servir à protéger les clés cryptographiques utilisées par les lecteurs.
+
+Les secrets maîtres ne doivent jamais être :
+
+* Placés dans le frontend.
+* Exposés dans les applications clientes.
+* Stockés en clair dans Supabase.
+* Commités dans GitHub.
+* Inclus dans les variables publiques NEXT_PUBLIC.
+* Transmis aux agents événementiels.
+
+Prévoir une architecture de gestion de clés permettant :
+
+* Diversification par carte.
+* Rotation des clés.
+* Versionnement.
+* Révocation.
+* Remplacement sécurisé.
+* Séparation des clés de test et de production.
+
+L’architecture logicielle doit être indépendante du modèle exact de lecteur, mais doit permettre l’intégration de lecteurs compatibles DESFire EV3 et SAM AV3.
+
+4.3 Compatibilité des lecteurs
+
+Prévoir deux catégories de terminaux :
+
+1. Terminaux mobiles Android disposant de NFC et d’une caméra QR.
+2. Lecteurs NFC fixes compatibles avec les zones de contrôle avancées.
+
+Le système doit pouvoir communiquer avec ces deux familles de lecteurs par l’intermédiaire d’une couche d’abstraction.
+
+Ne pas intégrer une dépendance rigide à un seul fabricant de lecteurs.
+
+Prévoir des interfaces et adaptateurs pour :
+
+* Lecture QR.
+* Lecture NFC.
+* Authentification DESFire.
+* Communication SAM.
+* Transmission des résultats au backend.
+
+Si le matériel de développement n’est pas disponible, développer un simulateur de lecteur pour tester les parcours logiciels.
+
+Le simulateur ne doit jamais être présenté comme une véritable authentification NFC.
+
+⸻
+
+5. ARCHITECTURE LOGICIELLE GLOBALE
+
+Construire l’architecture suivante :
+
+LUMARÉEL FRONTEND
+
+* Site public.
+* Page LUMARÉEL CARD.
+* Parcours d’adhésion.
+* Espace membre.
+* Administration.
+* Application de contrôle événementiel.
+
+↓
+
+COUCHE API SÉCURISÉE
+
+* Vérification des cartes.
+* Vérification des QR.
+* Vérification NFC.
+* Gestion des droits.
+* Gestion des avantages.
+* Gestion des lecteurs.
+* Gestion des accès.
+* Gestion des journaux.
+* Paiement et émission des cartes.
+
+↓
+
+SUPABASE
+
+* PostgreSQL.
+* Supabase Auth.
+* Row Level Security.
+* Edge Functions.
+* Storage.
+* Realtime lorsque pertinent.
+* Journalisation.
+* Gestion des relations avec la billetterie existante.
+
+Le frontend ne doit jamais être responsable de décider seul si un membre est autorisé.
+
+Toutes les décisions sensibles doivent être validées côté serveur.
+
+⸻
+
+6. AUDIT OBLIGATOIRE AVANT LE DÉVELOPPEMENT
+
+Avant toute modification, effectuer un audit complet du projet existant.
+
+Examiner :
+
+* Architecture des dossiers.
+* Framework et versions.
+* Routeur.
+* Système d’authentification.
+* Composants de navigation.
+* Espace client.
+* Espace administrateur.
+* Tables Supabase.
+* Relations entre les tables.
+* Politiques RLS.
+* Fonctions SQL.
+* Edge Functions.
+* Gestion des commandes.
+* Gestion des paiements.
+* Génération des billets.
+* Génération des QR de billets.
+* Scanner événementiel.
+* Gestion des rôles.
+* Notifications.
+* Système de stockage.
+
+Identifier précisément les fonctionnalités réutilisables.
+
+Ne pas créer une deuxième table de comptes clients si Supabase Auth est déjà opérationnel.
+
+Ne pas créer une deuxième billetterie.
+
+Ne pas créer un deuxième système de commandes.
+
+Ne pas créer un deuxième scanner indépendant si le scanner existant peut être étendu proprement.
+
+Produire un diagnostic des modifications nécessaires avant de commencer les migrations.
+
+En cas d’incertitude, ne pas inventer la structure de la base existante : l’inspecter.
+
+Ne pas supprimer de table, colonne, route ou fonctionnalité existante sans justification, sauvegarde et validation.
+
+⸻
+
+7. STRUCTURE DE DONNÉES SUPABASE
+
+Adapter cette proposition au schéma réellement existant.
+
+Les noms ci-dessous constituent une architecture cible, pas une autorisation de dupliquer des tables déjà présentes.
+
+7.1 membership_editions
+
+Gestion des éditions.
+
+Champs :
+
+* id
+* name
+* edition_code
+* description
+* quota
+* allocated_count
+* starts_at
+* ends_at
+* status
+* created_at
+* updated_at
+
+7.2 membership_plans
+
+Gestion des formules.
+
+Champs :
+
+* id
+* edition_id
+* name
+* description
+* price
+* currency
+* duration_months
+* physical_card_included
+* renewal_enabled
+* status
+* created_at
+* updated_at
+
+7.3 membership_applications
+
+Demandes d’adhésion.
+
+Champs :
+
+* id
+* user_id
+* plan_id
+* application_reference
+* application_status
+* terms_version
+* submitted_at
+* reviewed_at
+* reviewed_by
+* created_at
+
+7.4 membership_orders
+
+Commandes d’adhésion.
+
+Champs :
+
+* id
+* user_id
+* application_id
+* order_reference
+* amount
+* currency
+* payment_provider
+* provider_transaction_id
+* payment_status
+* paid_at
+* created_at
+
+Respecter le système de paiement réellement existant.
+
+Ne jamais confirmer un paiement depuis le navigateur.
+
+L’activation doit être déclenchée par un webhook serveur vérifié ou une vérification serveur équivalente auprès du fournisseur.
+
+7.5 membership_cards
+
+Identité des cartes.
+
+Champs :
+
+* id
+* user_id
+* plan_id
+* edition_id
+* membership_order_id
+* card_number
+* cardholder_name
+* card_status
+* issued_at
+* valid_from
+* expires_at
+* renewed_at
+* revoked_at
+* revocation_reason
+* replaced_by_card_id
+* created_at
+* updated_at
+
+Ajouter des contraintes d’unicité et des index adaptés.
+
+7.6 membership_chip_credentials
+
+Gestion logique des puces NFC.
+
+Champs :
+
+* id
+* card_id
+* chip_reference
+* chip_type
+* application_reference
+* key_version
+* credential_status
+* enrolled_at
+* revoked_at
+* created_at
+* updated_at
+
+Ne jamais stocker de clé maîtresse en clair dans cette table.
+
+Les données nécessaires à l’authentification doivent être protégées par un système de gestion de clés adapté.
+
+7.7 membership_qr_tokens
+
+Gestion des jetons QR.
+
+Champs :
+
+* id
+* card_id
+* token_hash
+* token_version
+* created_at
+* revoked_at
+* last_verified_at
+
+Le token brut ne doit pas être conservé en clair.
+
+7.8 membership_benefits
+
+Catalogue des avantages.
+
+Champs :
+
+* id
+* name
+* description
+* benefit_type
+* edition_id
+* event_id
+* starts_at
+* ends_at
+* max_redemptions
+* per_member_limit
+* conditions
+* status
+* created_at
+* updated_at
+
+7.9 membership_entitlements
+
+Droits accordés aux membres.
+
+Champs :
+
+* id
+* card_id
+* benefit_id
+* quantity
+* used_quantity
+* valid_from
+* valid_until
+* status
+* created_at
+
+7.10 membership_redemptions
+
+Historique des avantages consommés.
+
+Champs :
+
+* id
+* card_id
+* benefit_id
+* event_id
+* redeemed_by
+* redemption_reference
+* status
+* redeemed_at
+* created_at
+
+7.11 membership_readers
+
+Gestion des terminaux.
+
+Champs :
+
+* id
+* reader_name
+* reader_identifier
+* reader_type
+* hardware_model
+* event_id
+* access_point_id
+* assigned_role
+* reader_status
+* last_seen_at
+* created_at
+* updated_at
+
+L’authentification des lecteurs doit utiliser des identifiants techniques propres, des secrets protégés et une révocation possible.
+
+7.12 membership_event_access_points
+
+Gestion des zones.
+
+Champs :
+
+* id
+* event_id
+* name
+* access_point_type
+* allowed_benefit_types
+* access_rules
+* status
+* created_at
+
+Exemples :
+
+* Entrée principale.
+* File prioritaire.
+* Accueil membres.
+* Espace VIP.
+* Accès artistes.
+* Espace invitations.
+
+7.13 membership_scan_logs
+
+Journal des contrôles.
+
+Champs :
+
+* id
+* card_id
+* event_id
+* reader_id
+* access_point_id
+* scan_method
+* verification_result
+* rejection_reason
+* operator_id
+* scanned_at
+* metadata
+
+7.14 membership_events
+
+Journal des opérations administratives.
+
+Champs :
+
+* id
+* actor_id
+* action_type
+* entity_type
+* entity_id
+* details
+* created_at
+
+Les relations vers les commandes, utilisateurs, billets et événements existants doivent utiliser les tables déjà en place.
+
+Ne pas recopier les commandes ou les billets.
+
+⸻
+
+8. SÉCURITÉ SUPABASE ET AUTORISATIONS
+
+Activer RLS sur toutes les tables exposées.
+
+Créer des politiques spécifiques à chaque rôle et chaque type de donnée.
+
+Ne pas se contenter d’une politique générale autorisant tous les utilisateurs authentifiés.
+
+Rôles
+
+1. Visiteur.
+2. Client connecté.
+3. Membre actif.
+4. Agent événementiel.
+5. Gestionnaire membership.
+6. Administrateur.
+7. Super Admin.
+
+Les rôles doivent provenir d’une source serveur fiable, pas de user_metadata modifiable par l’utilisateur.
+
+Un membre doit uniquement accéder à ses propres :
+
+* Carte.
+* Avantages.
+* Commandes.
+* Billets.
+* Historique personnel.
+
+Un agent événementiel doit uniquement accéder :
+
+* À l’événement qui lui est attribué.
+* Aux zones qu’il contrôle.
+* Aux informations nécessaires pour prendre une décision d’accès.
+* Aux résultats de vérification.
+
+Un agent ne doit jamais pouvoir modifier :
+
+* Le prix des adhésions.
+* Les statuts de paiement.
+* Le numéro d’une carte.
+* Les droits d’un membre.
+* Les rôles administratifs.
+* Les clés cryptographiques.
+
+Les gestionnaires doivent avoir des permissions adaptées à leur mission.
+
+Le Super Admin possède les permissions de gestion globales.
+
+Ne jamais exposer service_role ou une clé secrète Supabase dans le frontend.
+
+Utiliser des clés publiques adaptées aux clients.
+
+Les fonctions privilégiées doivent être soigneusement isolées, contrôlées et auditées. Ne pas utiliser SECURITY DEFINER comme raccourci pour contourner les politiques RLS.
+
+Protéger également les vues SQL, les fonctions RPC, les fichiers Storage et les opérations de modification.
+
+⸻
+
+9. EDGE FUNCTIONS ET API
+
+Créer une architecture d’API claire et cohérente.
+
+Fonctions attendues :
+
+membership-verify-qr
+
+Responsabilités :
+
+* Recevoir un token QR.
+* Vérifier son format.
+* Calculer son hash.
+* Rechercher le jeton correspondant.
+* Vérifier la carte.
+* Vérifier sa validité.
+* Vérifier son statut.
+* Retourner un résultat public limité ou un résultat d’agent authentifié.
+
+membership-verify-nfc
+
+Responsabilités :
+
+* Recevoir une preuve cryptographique produite par le lecteur sécurisé.
+* Vérifier l’identité du lecteur.
+* Vérifier la validité de la preuve.
+* Vérifier la carte associée.
+* Vérifier les données nécessaires à la session.
+* Retourner une décision d’identification.
+
+Ne jamais accepter un simple UID comme preuve d’authentification.
+
+L’implémentation doit respecter le protocole réellement supporté par le lecteur et le SAM choisis.
+
+Si le matériel n’est pas disponible, développer une interface simulée pour les tests, clairement séparée de la production.
+
+membership-check-access
+
+Vérifier :
+
+* L’identité de la carte.
+* Le statut du membre.
+* La validité de l’adhésion.
+* L’événement demandé.
+* Le point de contrôle.
+* Le droit d’accès correspondant.
+* Les conditions particulières.
+* L’éventuelle consommation précédente.
+
+membership-redeem-benefit
+
+Consommer un avantage de manière atomique.
+
+Empêcher les doubles utilisations.
+
+Vérifier les limites individuelles et globales.
+
+Enregistrer l’agent et le point de contrôle.
+
+membership-reader-auth
+
+Authentifier un lecteur.
+
+Vérifier :
+
+* Son identité.
+* Son statut.
+* Ses permissions.
+* Son affectation à un événement.
+* Ses autorisations de zone.
+
+membership-register-scan
+
+Enregistrer :
+
+* Le résultat.
+* Le type de lecture.
+* L’événement.
+* Le lecteur.
+* L’agent.
+* L’heure.
+* Le motif d’un éventuel refus.
+
+membership-issue-card
+
+Émettre une carte après paiement confirmé.
+
+Vérifier :
+
+* La commande.
+* Le paiement.
+* Le montant.
+* La devise.
+* La référence fournisseur.
+* L’idempotence.
+* Le quota disponible.
+
+Attribuer un numéro unique dans une transaction atomique.
+
+membership-revoke-card
+
+Suspendre ou révoquer une carte.
+
+Conserver l’historique.
+
+Invalider les jetons QR associés.
+
+Désactiver les droits concernés.
+
+membership-rotate-token
+
+Révoquer l’ancien token QR et générer un nouveau token.
+
+Conserver le numéro permanent de la carte.
+
+membership-sync-reader
+
+Permettre la synchronisation sécurisée des lecteurs et des données événementielles autorisées.
+
+Toutes les fonctions doivent avoir des contrôles d’entrée, une gestion d’erreurs cohérente, des journaux et une authentification appropriée.
+
+⸻
+
+10. QR CODE : FONCTIONNEMENT
+
+Créer une route de vérification publique :
+
+/card/verify/:token
+
+Exemple :
+
+https://lumareel-theta.vercel.app/card/verify/TOKEN
+
+Cette page doit afficher uniquement :
+
+* Authenticité de la carte.
+* Numéro partiellement masqué.
+* Édition.
+* Catégorie.
+* Statut.
+* Validité.
+
+Ne jamais afficher :
+
+* Adresse personnelle.
+* Numéro de téléphone.
+* Commandes.
+* Informations de paiement.
+* Historique privé.
+* Identifiants internes Supabase.
+
+Le QR doit être révocable et renouvelable.
+
+Il ne doit pas être possible de deviner les tokens d’autres membres.
+
+Prévoir une limitation de fréquence des vérifications publiques.
+
+⸻
+
+11. NFC : FONCTIONNEMENT
+
+La carte utilise une puce DESFire EV3.
+
+Lorsqu’un membre approche sa carte :
+
+1. Le lecteur détecte la puce.
+2. Le lecteur identifie l’application DESFire attendue.
+3. Une authentification mutuelle est réalisée.
+4. Les données sécurisées nécessaires sont vérifiées.
+5. Le lecteur produit une preuve adaptée au protocole choisi.
+6. Le lecteur transmet les informations et la preuve à l’API.
+7. L’API vérifie l’authenticité.
+8. Le backend récupère le dossier de la carte.
+9. Les règles d’accès sont appliquées.
+10. Le résultat est affiché.
+
+Le système doit séparer :
+
+* La reconnaissance cryptographique de la carte.
+* L’identification du membre.
+* La vérification de son adhésion.
+* L’autorisation d’accéder à une zone.
+* La consommation éventuelle d’un avantage.
+
+Une carte peut être authentique mais expirée.
+
+Un membre peut avoir une adhésion valide sans disposer d’un billet pour le concert.
+
+Un membre peut posséder un billet pour le concert sans avoir accès à l’espace VIP.
+
+Ces distinctions doivent être présentes dans le moteur de règles.
+
+⸻
+
+12. MOTEUR DE DROITS ET D’AVANTAGES
+
+Construire un véritable moteur de gestion des privilèges.
+
+Les avantages doivent être configurables depuis l’administration.
+
+Chaque avantage possède :
+
+* Nom.
+* Description.
+* Type.
+* Édition concernée.
+* Événement éventuel.
+* Date de début.
+* Date de fin.
+* Quota global.
+* Limite par membre.
+* Conditions.
+* Statut.
+
+États des avantages
+
+* Disponible.
+* Réservé.
+* Confirmé.
+* Utilisé.
+* Annulé.
+* Expiré.
+* Refusé.
+
+Exemples de règles
+
+Prévente privée :
+
+* Membre connecté.
+* Carte active.
+* Adhésion valide.
+* Fenêtre de prévente ouverte.
+* Quota disponible.
+* Limite de billets respectée.
+
+Accès VIP :
+
+* Carte active.
+* Billet valide ou invitation appropriée.
+* Droit VIP disponible.
+* Événement et zone autorisés.
+
+Expérience artiste :
+
+* Invitation ou réservation confirmée.
+* Capacité disponible.
+* Conditions de l’événement satisfaites.
+
+Réduction membre :
+
+* Carte active.
+* Tarif membre autorisé.
+* Application côté serveur au moment du calcul du prix.
+
+Les contrôles doivent être atomiques afin d’éviter les doubles réservations et les dépassements de quotas.
+
+⸻
+
+13. INTÉGRATION À LA BILLETTERIE EXISTANTE
+
+C’est un élément central.
+
+LUMARÉEL CARD doit être connectée à la billetterie actuelle.
+
+Ne pas reconstruire la billetterie.
+
+Réutiliser :
+
+* Comptes existants.
+* Événements existants.
+* Commandes existantes.
+* Billets existants.
+* QR de billets existants.
+* Statuts de paiement existants.
+* Scanner existant lorsqu’il peut être étendu.
+
+Dans l’espace membre, afficher les billets issus de la billetterie réelle.
+
+Chaque billet doit conserver :
+
+* Son événement.
+* Sa catégorie.
+* Son numéro.
+* Son QR individuel.
+* Son statut.
+* Sa commande d’origine.
+
+La carte de membre ne doit jamais modifier le fonctionnement du contrôle d’un billet ordinaire.
+
+Le scanner existant doit pouvoir recevoir un nouveau contexte de contrôle membership, sans mélanger les deux types de validation.
+
+Prévoir deux opérations distinctes :
+
+* Validation d’un billet.
+* Validation d’un droit membership.
+
+Le système doit pouvoir contrôler les deux lors d’une entrée.
+
+⸻
+
+14. ESPACE CLIENT : MA LUMARÉEL CARD
+
+Ajouter une nouvelle rubrique sous « Mon Compte ».
+
+Nom : Ma LUMARÉEL CARD.
+
+Créer les pages suivantes :
+
+14.1 Ma carte
+
+Afficher :
+
+* Recto numérique.
+* Verso numérique.
+* QR individuel.
+* Numéro.
+* Titulaire.
+* Édition.
+* Date d’émission.
+* Début de validité.
+* Date d’expiration.
+* Statut.
+
+Permettre de consulter et télécharger la carte numérique.
+
+Apple Wallet et Google Wallet peuvent être prévus comme évolutions, sans bloquer la première version.
+
+14.2 Mes billets
+
+Afficher les billets issus de la billetterie existante.
+
+Filtres :
+
+* À venir.
+* Utilisés.
+* Expirés.
+* Annulés.
+* Remboursés.
+
+14.3 Mes commandes
+
+Afficher :
+
+* Référence.
+* Date.
+* Montant.
+* Devise.
+* Statut du paiement.
+* Billets ou adhésion associés.
+* Facture ou reçu si disponible.
+
+14.4 Mes avantages
+
+Afficher :
+
+* Avantages disponibles.
+* Avantages réservés.
+* Avantages confirmés.
+* Avantages utilisés.
+* Avantages expirés.
+
+Permettre d’effectuer les réservations lorsqu’elles sont autorisées.
+
+14.5 Historique
+
+Afficher les événements pertinents :
+
+* Émission.
+* Renouvellement.
+* Suspension.
+* Réactivation.
+* Utilisation d’un avantage.
+* Réservation.
+* Remplacement.
+
+Ne pas exposer les journaux techniques internes.
+
+14.6 Ma carte physique
+
+Prévoir la structure fonctionnelle permettant de suivre une carte physique :
+
+* Statut.
+* Préparation.
+* Remise.
+* Livraison.
+* Remplacement.
+
+La fabrication physique n’est pas à développer dans cette mission.
+
+⸻
+
+15. ADMINISTRATION : LUMARÉEL MEMBERSHIP
+
+Ajouter un module complet à l’espace administrateur existant.
+
+Nom : LUMARÉEL MEMBERSHIP.
+
+Ne pas créer un second panneau d’administration indépendant.
+
+15.1 Vue générale
+
+Indicateurs :
+
+* Quota total.
+* Cartes attribuées.
+* Cartes actives.
+* Cartes expirées.
+* Cartes suspendues.
+* Cartes révoquées.
+* Adhésions en attente.
+* Paiements confirmés.
+* Paiements en attente.
+* Revenus.
+* Avantages utilisés.
+* Membres par édition.
+
+15.2 Membres
+
+Fonctions :
+
+* Recherche.
+* Filtres.
+* Liste.
+* Fiche détaillée.
+* Statut.
+* Numéro de carte.
+* Date d’expiration.
+* Commandes.
+* Billets.
+* Avantages.
+* Historique.
+
+Actions :
+
+* Suspendre.
+* Réactiver.
+* Révoquer.
+* Renouveler.
+* Remplacer une carte.
+* Consulter les contrôles.
+
+Chaque action sensible doit être journalisée.
+
+15.3 Éditions et formules
+
+Permettre :
+
+* Création d’une édition.
+* Modification.
+* Configuration du quota.
+* Prix.
+* Devise.
+* Durée.
+* Dates.
+* Conditions.
+* Activation.
+* Désactivation.
+
+Le quota ne doit jamais pouvoir être dépassé, même avec plusieurs paiements simultanés.
+
+15.4 Avantages
+
+Permettre :
+
+* Création.
+* Modification.
+* Suppression logique.
+* Configuration des périodes.
+* Association à un concert.
+* Association à une édition.
+* Quotas.
+* Limites individuelles.
+* Conditions.
+* Activation et désactivation.
+
+15.5 Commandes et paiements
+
+Afficher les commandes d’adhésion.
+
+Permettre :
+
+* Consultation.
+* Recherche.
+* Filtrage.
+* Vérification.
+* Suivi des paiements.
+* Gestion des remboursements selon les capacités du fournisseur existant.
+
+Ne jamais modifier arbitrairement le statut d’un paiement confirmé.
+
+15.6 Contrôle d’accès
+
+Afficher :
+
+* Derniers scans.
+* Lecteurs.
+* Agents.
+* Zones.
+* Événements.
+* Accès acceptés.
+* Accès refusés.
+* Motifs des refus.
+* Activités suspectes.
+
+15.7 Gestion des lecteurs
+
+Permettre :
+
+* Enregistrement d’un lecteur.
+* Affectation à un événement.
+* Affectation à une zone.
+* Activation.
+* Désactivation.
+* Révocation.
+* Dernière connexion.
+* État de synchronisation.
+
+15.8 Journal d’activité
+
+Journaliser les opérations sensibles.
+
+Conserver :
+
+* Auteur.
+* Action.
+* Date.
+* Entité.
+* Identifiant concerné.
+* Détails pertinents.
+
+Le journal ne doit pas être modifiable par un agent ordinaire.
+
+⸻
+
+16. APPLICATION DE CONTRÔLE ÉVÉNEMENTIEL
+
+Créer une interface mobile-first, rapide et simple à utiliser.
+
+Elle doit être adaptée à un agent debout à l’entrée d’un concert, avec un smartphone Android ou un lecteur compatible.
+
+Écran principal
+
+Afficher :
+
+* Événement.
+* Zone de contrôle.
+* Agent connecté.
+* Lecteur associé.
+* État réseau.
+* Nombre de contrôles.
+* Nombre d’accès acceptés.
+* Nombre d’accès refusés.
+
+Modes de lecture
+
+Deux modes :
+
+1. Scanner QR.
+2. Lire NFC.
+
+Le mode doit être facilement identifiable.
+
+Résultats
+
+En cas de succès :
+
+* Membre reconnu.
+* Numéro de carte.
+* Édition.
+* Statut membership.
+* Billet à contrôler.
+* Droit demandé.
+* Zone autorisée.
+
+En cas de refus :
+
+* Carte inconnue.
+* Carte expirée.
+* Carte suspendue.
+* Carte révoquée.
+* Authentification NFC invalide.
+* Billet absent.
+* Billet déjà utilisé.
+* Zone non autorisée.
+* Avantage déjà consommé.
+* Lecteur non autorisé.
+
+Afficher des retours visuels clairs et instantanés.
+
+Ne pas afficher inutilement les données personnelles des membres.
+
+⸻
+
+17. FONCTIONNEMENT PENDANT LES CONCERTS
+
+Prévoir un système de contrôle avec plusieurs points.
+
+Entrée principale
+
+Vérification du billet individuel.
+
+Vérification de la carte si le parcours ou le type d’accès l’exige.
+
+File prioritaire
+
+Vérification :
+
+* Carte active.
+* Droit de priorité.
+* Événement concerné.
+
+Accueil membres
+
+Identification du membre et consultation limitée de son statut.
+
+Espace VIP
+
+Vérification :
+
+* Carte active.
+* Billet ou invitation appropriée.
+* Droit VIP.
+* Événement.
+* Zone demandée.
+
+Expériences exclusives
+
+Vérification :
+
+* Invitation.
+* Réservation.
+* Capacité.
+* Conditions.
+
+Les droits doivent être spécifiques à chaque événement et chaque zone.
+
+⸻
+
+18. CONNECTIVITÉ ET MODE HORS LIGNE
+
+L’architecture doit être online-first.
+
+En fonctionnement normal :
+
+* Lecture.
+* Authentification.
+* Vérification serveur.
+* Décision.
+* Journalisation.
+
+Prévoir :
+
+* Wi-Fi événementiel.
+* Réseau mobile 4G/5G.
+* Possibilité de basculer vers une connexion de secours.
+* Gestion des erreurs réseau.
+* Identifiants idempotents pour les opérations.
+
+Prévoir une architecture extensible vers un serveur local événementiel.
+
+Cependant, ne pas prétendre qu’une validation hors ligne est une validation en temps réel.
+
+En cas de perte de connexion :
+
+* Afficher clairement le mode dégradé.
+* Ne pas déclarer une carte valide sur la seule base d’une information ancienne.
+* Ne pas autoriser silencieusement les opérations sensibles.
+* Prévoir une procédure supervisée.
+* Synchroniser les journaux dès le retour de la connexion.
+
+Le système doit distinguer les opérations en attente des opérations confirmées.
+
+⸻
+
+19. PAIEMENTS ET ÉMISSION DES CARTES
+
+Réutiliser le prestataire de paiement déjà intégré au projet.
+
+Auditer son implémentation avant de développer.
+
+Le paiement doit être réel.
+
+Le navigateur ne doit jamais confirmer lui-même une adhésion.
+
+Processus :
+
+1. Le client choisit une formule.
+2. Le client se connecte ou crée son compte.
+3. Il accepte les conditions.
+4. Le système crée une commande en attente.
+5. Le client effectue son paiement.
+6. Le backend reçoit et vérifie le webhook.
+7. Le système vérifie le montant, la devise et la référence.
+8. Le paiement est confirmé de façon idempotente.
+9. Le quota est contrôlé de façon atomique.
+10. Le numéro de membre est attribué.
+11. La carte est créée.
+12. Les droits initiaux sont attribués.
+13. Le client reçoit sa confirmation.
+
+Le système doit empêcher :
+
+* Double émission après webhook répété.
+* Attribution de plusieurs numéros à une commande.
+* Dépassement du quota.
+* Émission après paiement refusé.
+* Émission après simple retour navigateur.
+
+Une transaction ne doit jamais conduire à plus de 100 cartes attribuées pour la Founders Edition.
+
+Un paiement en attente ne doit pas bloquer définitivement un numéro.
+
+⸻
+
+20. NOTIFICATIONS
+
+Prévoir des notifications françaises et anglaises.
+
+Événements :
+
+* Demande reçue.
+* Paiement confirmé.
+* Carte activée.
+* Carte numérique disponible.
+* Avantage disponible.
+* Ouverture d’une prévente.
+* Invitation exclusive.
+* Confirmation d’une réservation.
+* Rappel d’événement.
+* Suspension.
+* Réactivation.
+* Expiration prochaine.
+* Renouvellement.
+
+Prévoir les rappels :
+
+* J-30.
+* J-7.
+* J-1.
+
+Respecter les préférences de communication des utilisateurs.
+
+Réutiliser le système d’e-mails existant si disponible.
+
+⸻
+
+21. DESIGN ET EXPÉRIENCE UTILISATEUR
+
+La direction artistique doit rester cohérente avec LUMARÉEL.
+
+Palette :
+
+* Noir profond : #050505.
+* Or : #D4AF37.
+* Blanc.
+* Gris subtils.
+
+Univers :
+
+* Premium.
+* Élégant.
+* Minimaliste.
+* Éditorial.
+* Institutionnel.
+* Inspiré des cartes de membre haut de gamme.
+
+La carte numérique doit ressembler à une véritable carte premium.
+
+L’interface ne doit pas devenir une application générique avec une succession de tableaux et de cartes standards.
+
+Préserver les composants, typographies, conventions de navigation et styles existants de LUMARÉEL.
+
+Ne pas modifier inutilement le design des pages existantes.
+
+Créer une expérience cohérente entre :
+
+* Page publique.
+* Espace client.
+* Administration.
+* Scanner événementiel.
+
+L’interface de contrôle doit privilégier la rapidité et la lisibilité plutôt que les animations décoratives.
+
+⸻
+
+22. ARCHITECTURE TECHNIQUE ET QUALITÉ
+
+Respecter les technologies déjà utilisées dans le dépôt.
+
+Ne pas réécrire l’application dans un autre framework sans raison technique majeure.
+
+Vérifier les versions et documentations actuelles avant d’intégrer :
+
+* Supabase.
+* Bibliothèques QR.
+* Bibliothèques NFC.
+* SDK des lecteurs.
+* Authentification.
+* Gestion des sessions.
+
+Éviter les dépendances inutiles.
+
+Verrouiller les versions et conserver les fichiers de dépendances.
+
+Prévoir :
+
+* Validation des entrées.
+* Gestion centralisée des erreurs.
+* Logs structurés.
+* Gestion des sessions.
+* Contrôle des permissions.
+* Tests unitaires.
+* Tests d’intégration.
+* Tests de sécurité.
+* Tests end-to-end.
+
+Le code doit être modulaire.
+
+Séparer :
+
+* Membership.
+* Payments.
+* NFC.
+* QR.
+* Access Control.
+* Benefits.
+* Readers.
+* Tickets.
+* Administration.
+
+Ne pas mélanger la logique métier avec les composants visuels.
+
+⸻
+
+23. TESTS OBLIGATOIRES
+
+Ne pas considérer le développement comme terminé sans tests.
+
+Tests d’adhésion
+
+* Création d’une demande.
+* Paiement confirmé.
+* Paiement refusé.
+* Paiement en attente.
+* Webhook répété.
+* Émission unique.
+* 100e carte autorisée si quota disponible.
+* 101e carte bloquée.
+* Deux paiements simultanés sur la dernière place.
+* Renouvellement.
+* Expiration.
+* Révocation.
+
+Tests QR
+
+* QR valide.
+* QR inconnu.
+* QR révoqué.
+* QR renouvelé.
+* QR expiré.
+* Tentative de rejeu.
+* Tentative d’accès aux données privées.
+
+Tests NFC
+
+* Carte DESFire valide.
+* Carte inconnue.
+* Authentification incorrecte.
+* Preuve cryptographique invalide.
+* Lecteur non autorisé.
+* Carte révoquée.
+* Carte expirée.
+* Tentative de réutilisation d’une ancienne preuve.
+* Rotation de clés.
+
+Tests des avantages
+
+* Avantage disponible.
+* Avantage expiré.
+* Quota épuisé.
+* Limite individuelle atteinte.
+* Double consommation.
+* Deux agents tentant de consommer simultanément le même droit.
+
+Tests des concerts
+
+* Membre avec billet valide.
+* Membre sans billet.
+* Non-membre avec billet valide.
+* Membre avec billet déjà utilisé.
+* Membre autorisé à la file prioritaire.
+* Membre sans droit VIP.
+* Invitation confirmée.
+* Accès à une mauvaise zone.
+* Lecteur associé au mauvais événement.
+
+Tests de sécurité
+
+* Accès aux données d’un autre membre.
+* Modification de son propre statut.
+* Modification du numéro de carte.
+* Modification d’un paiement.
+* Accès non autorisé à l’administration.
+* Tentative d’utilisation d’un lecteur révoqué.
+* Exposition de secrets dans le frontend.
+* Contournement des politiques RLS.
+
+Tests de continuité
+
+* Coupure Internet.
+* Retour de connexion.
+* Synchronisation des opérations.
+* Événement avec plusieurs lecteurs.
+* Double validation.
+* Erreur du fournisseur NFC.
+
+⸻
+
+24. PLAN D’EXÉCUTION
+
+Procéder dans cet ordre.
+
+PHASE 1 — Audit
+
+Auditer le dépôt, Supabase, l’authentification, les commandes, les paiements, les billets, les QR et le scanner existant.
+
+Présenter les conclusions et le plan d’intégration.
+
+PHASE 2 — Architecture et données
+
+Créer les tables nécessaires, les relations, les index, les contraintes, les politiques RLS et les migrations propres.
+
+Préserver les données existantes.
+
+PHASE 3 — Backend membership
+
+Développer :
+
+* Éditions.
+* Formules.
+* Demandes.
+* Commandes.
+* Paiements.
+* Émission.
+* Statuts.
+* Renouvellement.
+* Révocation.
+
+PHASE 4 — QR et NFC
+
+Développer :
+
+* Jetons QR.
+* Vérification.
+* Couche d’abstraction NFC.
+* Intégration DESFire EV3.
+* Architecture SAM AV3.
+* Authentification des lecteurs.
+* Gestion des clés.
+* Simulateur de lecteur pour les tests.
+
+Ne pas déclarer l’intégration matérielle comme terminée tant qu’elle n’a pas été testée sur du matériel compatible.
+
+PHASE 5 — Moteur de droits
+
+Développer les avantages, les réservations, les quotas, les règles d’accès et les consommations atomiques.
+
+PHASE 6 — Espace membre
+
+Intégrer toutes les rubriques sous Mon Compte.
+
+PHASE 7 — Administration
+
+Intégrer LUMARÉEL MEMBERSHIP dans l’administration existante.
+
+PHASE 8 — Contrôle événementiel
+
+Développer le scanner mobile et l’architecture des lecteurs fixes.
+
+Étendre le système de billetterie existant sans le casser.
+
+PHASE 9 — Notifications
+
+Connecter les événements métier au système de notification.
+
+PHASE 10 — Tests et validation
+
+Exécuter les tests fonctionnels, les tests de sécurité et les tests de régression.
+
+Vérifier les builds et le déploiement.
+
+⸻
+
+25. RÈGLES DE DÉVELOPPEMENT NON NÉGOCIABLES
+
+1. Ne jamais remplacer le projet existant par une nouvelle application.
+2. Ne jamais supprimer les fonctionnalités de billetterie existantes.
+3. Ne jamais créer de fausses données de production.
+4. Ne jamais simuler un paiement réel.
+5. Ne jamais déclarer une authentification NFC réelle sans matériel compatible.
+6. Ne jamais utiliser un UID comme seule preuve d’authenticité.
+7. Ne jamais exposer les secrets.
+8. Ne jamais contourner RLS.
+9. Ne jamais laisser le frontend décider seul des autorisations.
+10. Ne jamais attribuer plus de 100 cartes à la Founders Edition.
+11. Ne jamais réattribuer un numéro de carte.
+12. Ne jamais mélanger QR de membre et QR de billet.
+13. Ne jamais permettre à un agent de modifier les adhésions.
+14. Ne jamais consommer deux fois un même avantage.
+15. Ne jamais considérer une opération hors ligne comme confirmée sans mécanisme explicite et sécurisé.
+16. Toujours tester après chaque phase.
+17. Toujours conserver une migration propre et réversible.
+18. Toujours vérifier les politiques RLS après les modifications.
+19. Toujours respecter le design existant.
+20. Toujours documenter les fonctionnalités qui nécessitent un matériel réel.
+
+Si une information est inconnue, inspecter le projet plutôt que d’inventer une réponse.
+
+Si une fonctionnalité dépend d’un fournisseur, d’un SDK ou d’un équipement non encore disponible, développer l’interface logicielle appropriée, documenter la dépendance et isoler clairement ce qui reste à intégrer.
+
+⸻
+
+26. CRITÈRES FINAUX DE LIVRAISON
+
+LUMARÉEL CARD sera considérée comme fonctionnelle lorsque :
+
+* Le produit est accessible depuis le site LUMARÉEL.
+* Les adhésions peuvent être achetées réellement.
+* Les paiements sont vérifiés côté serveur.
+* Les cartes sont émises de manière unique.
+* Le quota de 100 est respecté.
+* Les cartes ont un QR vérifiable.
+* L’architecture NFC sécurisée est intégrée et testée avec le matériel compatible.
+* Les membres disposent de leur espace personnel.
+* Les billets existants sont correctement reliés.
+* Les avantages fonctionnent réellement.
+* Les réservations sont protégées contre les doubles utilisations.
+* Les administrateurs disposent d’une gestion complète.
+* Les lecteurs sont enregistrés et autorisés.
+* Le contrôle événementiel fonctionne.
+* Les accès VIP et prioritaires sont soumis aux bonnes règles.
+* Les journaux sont disponibles.
+* Les autorisations Supabase sont vérifiées.
+* Les tests de sécurité sont réussis.
+* Le projet existant continue de fonctionner.
+
+À la fin, fournir :
+
+1. Un rapport d’audit initial.
+2. Une description de l’architecture réellement implémentée.
+3. La liste des migrations SQL.
+4. La liste des Edge Functions.
+5. Les routes ajoutées.
+6. Les composants ajoutés.
+7. Les variables d’environnement nécessaires, sans révéler leurs valeurs secrètes.
+8. Les règles RLS et rôles.
+9. Les résultats des tests.
+10. Les éléments encore dépendants du matériel NFC.
+11. Les instructions de déploiement.
+12. Les éventuels points bloquants.
+
+INSTRUCTION FINALE
+
+Ne te limite pas à produire un cahier des charges, une maquette ou une démonstration visuelle.
+
+Tu dois réaliser l’intégration dans le code réel du projet existant.
+
+Commence par l’audit, comprends les systèmes déjà en place, puis implémente progressivement toutes les phases.
+
+Ne prétends jamais qu’une fonctionnalité est terminée si elle n’est pas réellement développée, connectée et testée.
+
+L’objectif est de livrer un véritable système LUMARÉEL CARD, intégré à la plateforme LUMARÉEL, et prêt à évoluer vers un système professionnel de membership et de contrôle d’accès événementiel.

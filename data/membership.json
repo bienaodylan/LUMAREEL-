@@ -1,0 +1,289 @@
+{
+  "editions": [
+    {
+      "id": "ed_founders_2026",
+      "name": "LUMARÉEL FOUNDERS EDITION",
+      "editionCode": "FOUNDERS_2026",
+      "description": "Adhésion annuelle inaugurale et prestigieuse limitée strictement à 100 membres d’élite. Numéro permanent gravé, puce sécurisée NXP MIFARE DESFire EV3 et privilèges exclusifs pour la saison 2026-2027.",
+      "quota": 100,
+      "allocatedCount": 1,
+      "startsAt": "2026-11-10T14:09:28.858Z",
+      "endsAt": "2027-11-10T14:09:28.859Z",
+      "status": "active",
+      "createdAt": "2026-11-10T14:09:28.858Z",
+      "updatedAt": "2026-11-10T14:09:37.496Z"
+    }
+  ],
+  "plans": [
+    {
+      "id": "plan_founders_annual",
+      "editionId": "ed_founders_2026",
+      "name": "Adhésion Annuelle Founders",
+      "description": "Accès complet 12 mois : carte physique noire mate gravée à chaud avec puce DESFire EV3, carte numérique dynamique avec QR anti-copie, file prioritaire, préventes privées et salon VIP.",
+      "price": 150000,
+      "currency": "FCFA",
+      "durationMonths": 12,
+      "physicalCardIncluded": true,
+      "renewalEnabled": true,
+      "status": "active",
+      "createdAt": "2026-11-10T14:09:28.858Z",
+      "updatedAt": "2026-11-10T14:09:28.858Z"
+    }
+  ],
+  "applications": [],
+  "orders": [
+    {
+      "id": "mord_ce68103f30802d57",
+      "userId": "usr_814a4ba4f57b",
+      "orderReference": "LMR-MBR-MWARO15K-5710",
+      "amount": 150000,
+      "currency": "FCFA",
+      "paymentProvider": "geniuspay",
+      "paymentStatus": "completed",
+      "paidAt": "2026-11-10T14:09:37.496Z",
+      "metadata": {
+        "planName": "Adhésion Annuelle Founders",
+        "editionCode": "FOUNDERS_2026"
+      },
+      "createdAt": "2026-11-10T14:09:37.496Z"
+    }
+  ],
+  "cards": [
+    {
+      "id": "crd_aa7c4e8bf41f26df",
+      "userId": "usr_814a4ba4f57b",
+      "planId": "plan_founders_annual",
+      "editionId": "ed_founders_2026",
+      "membershipOrderId": "mord_ce68103f30802d57",
+      "cardNumber": "LMR-2026-0001",
+      "cardSequence": 1,
+      "cardholderName": "Dylan Bienao",
+      "cardholderEmail": "bienaodylan@gmail.com",
+      "cardStatus": "active",
+      "issuedAt": "2026-11-10T14:09:37.496Z",
+      "validFrom": "2026-11-10T14:09:37.496Z",
+      "expiresAt": "2027-11-11T14:09:37.496Z",
+      "physicalCardStatus": "in_production",
+      "qrToken": "LMR_QR_CA87C35BCD693F3B7B4EE74EB6B944AA",
+      "createdAt": "2026-11-10T14:09:37.496Z",
+      "updatedAt": "2026-11-10T14:09:37.496Z"
+    }
+  ],
+  "chipCredentials": [
+    {
+      "id": "chp_2945b65d86cff4a9",
+      "cardId": "crd_aa7c4e8bf41f26df",
+      "chipReference": "DESFIRE_LMR_2026_0001",
+      "chipType": "MIFARE_DESFIRE_EV3",
+      "applicationReference": "LMR_DESFIRE_APP_01",
+      "keyVersion": 1,
+      "credentialStatus": "active",
+      "diversificationSeed": "610dbf29da29f4186eafd2d94b0b8151a0558b481a0c054302434f3514f69a40",
+      "enrolledAt": "2026-11-10T14:09:37.496Z",
+      "createdAt": "2026-11-10T14:09:37.496Z",
+      "updatedAt": "2026-11-10T14:09:37.496Z"
+    }
+  ],
+  "qrTokens": [
+    {
+      "id": "qrt_7c9bca0005e52098",
+      "cardId": "crd_aa7c4e8bf41f26df",
+      "tokenHash": "8f18d606211298c30fdcb6d64cf4426f97bb3047df00b97e7fead2fa25cf3c09",
+      "tokenVersion": 1,
+      "createdAt": "2026-11-10T14:09:37.496Z"
+    }
+  ],
+  "benefits": [
+    {
+      "name": "Prévente Privée Exclusive",
+      "description": "Accès prioritaire 48 heures avant l’ouverture de la billetterie générale pour tous les concerts officiels LUMARÉEL.",
+      "benefitType": "private_presale",
+      "editionId": "ed_founders_2026",
+      "startsAt": "2026-11-10T14:09:28.858Z",
+      "currentRedemptions": 0,
+      "perMemberLimit": 10,
+      "status": "active",
+      "id": "ben_cd8d804bb7c9",
+      "createdAt": "2026-11-10T14:09:28.858Z",
+      "updatedAt": "2026-11-10T14:09:28.858Z"
+    },
+    {
+      "name": "Coupe-File & Accueil Prioritaire",
+      "description": "Accès dédié par la voie rapide lors de chaque événement LUMARÉEL pour le titulaire et un accompagnant.",
+      "benefitType": "priority_access",
+      "editionId": "ed_founders_2026",
+      "startsAt": "2026-11-10T14:09:28.858Z",
+      "currentRedemptions": 0,
+      "perMemberLimit": 50,
+      "status": "active",
+      "id": "ben_29e64741a179",
+      "createdAt": "2026-11-10T14:09:28.858Z",
+      "updatedAt": "2026-11-10T14:09:28.858Z"
+    },
+    {
+      "name": "Accès VIP & Espaces Réservés",
+      "description": "Accès au Salon Privé Membres et aux zones VIP aménagées lors des grandes productions.",
+      "benefitType": "vip_lounge",
+      "editionId": "ed_founders_2026",
+      "startsAt": "2026-11-10T14:09:28.858Z",
+      "currentRedemptions": 0,
+      "perMemberLimit": 20,
+      "status": "active",
+      "id": "ben_76eaadf625ca",
+      "createdAt": "2026-11-10T14:09:28.858Z",
+      "updatedAt": "2026-11-10T14:09:28.858Z"
+    },
+    {
+      "name": "Expérience Rencontre Artistes & Immersion Scénique",
+      "description": "Invitation privilégiée aux balances acoustiques privées et rencontres organisées avec les artistes invités.",
+      "benefitType": "artist_experience",
+      "editionId": "ed_founders_2026",
+      "startsAt": "2026-11-10T14:09:28.858Z",
+      "currentRedemptions": 0,
+      "perMemberLimit": 2,
+      "status": "active",
+      "id": "ben_da9fe6d59dd4",
+      "createdAt": "2026-11-10T14:09:28.858Z",
+      "updatedAt": "2026-11-10T14:09:28.858Z"
+    },
+    {
+      "name": "Tarif Préférentiel Membre (-15%)",
+      "description": "Réduction permanente de 15 % appliquée automatiquement sur vos commandes de billetterie.",
+      "benefitType": "preferential_rate",
+      "editionId": "ed_founders_2026",
+      "startsAt": "2026-11-10T14:09:28.858Z",
+      "currentRedemptions": 0,
+      "perMemberLimit": 100,
+      "status": "active",
+      "id": "ben_644ffed3123a",
+      "createdAt": "2026-11-10T14:09:28.858Z",
+      "updatedAt": "2026-11-10T14:09:28.858Z"
+    },
+    {
+      "name": "Coffret Physique Collector & Surprise Annuelle",
+      "description": "Remise de la carte physique NXP DESFire EV3 et invitations à des soirées d’écoute privées.",
+      "benefitType": "gift_surprise",
+      "editionId": "ed_founders_2026",
+      "startsAt": "2026-11-10T14:09:28.858Z",
+      "currentRedemptions": 0,
+      "perMemberLimit": 1,
+      "status": "active",
+      "id": "ben_e4a5bd35b601",
+      "createdAt": "2026-11-10T14:09:28.858Z",
+      "updatedAt": "2026-11-10T14:09:28.858Z"
+    }
+  ],
+  "entitlements": [
+    {
+      "id": "ent_78633710be9d",
+      "cardId": "crd_aa7c4e8bf41f26df",
+      "benefitId": "ben_cd8d804bb7c9",
+      "benefitName": "Prévente Privée Exclusive",
+      "benefitType": "private_presale",
+      "quantity": 10,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-10T14:09:37.496Z",
+      "validUntil": "2027-11-11T14:09:37.496Z",
+      "status": "available",
+      "createdAt": "2026-11-10T14:09:37.496Z"
+    },
+    {
+      "id": "ent_1cc052c10f6a",
+      "cardId": "crd_aa7c4e8bf41f26df",
+      "benefitId": "ben_29e64741a179",
+      "benefitName": "Coupe-File & Accueil Prioritaire",
+      "benefitType": "priority_access",
+      "quantity": 50,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-10T14:09:37.496Z",
+      "validUntil": "2027-11-11T14:09:37.496Z",
+      "status": "available",
+      "createdAt": "2026-11-10T14:09:37.496Z"
+    },
+    {
+      "id": "ent_656fd7d3d2d2",
+      "cardId": "crd_aa7c4e8bf41f26df",
+      "benefitId": "ben_76eaadf625ca",
+      "benefitName": "Accès VIP & Espaces Réservés",
+      "benefitType": "vip_lounge",
+      "quantity": 20,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-10T14:09:37.496Z",
+      "validUntil": "2027-11-11T14:09:37.496Z",
+      "status": "available",
+      "createdAt": "2026-11-10T14:09:37.496Z"
+    },
+    {
+      "id": "ent_10c58f49b978",
+      "cardId": "crd_aa7c4e8bf41f26df",
+      "benefitId": "ben_da9fe6d59dd4",
+      "benefitName": "Expérience Rencontre Artistes & Immersion Scénique",
+      "benefitType": "artist_experience",
+      "quantity": 2,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-10T14:09:37.496Z",
+      "validUntil": "2027-11-11T14:09:37.496Z",
+      "status": "available",
+      "createdAt": "2026-11-10T14:09:37.496Z"
+    },
+    {
+      "id": "ent_a7339a75940e",
+      "cardId": "crd_aa7c4e8bf41f26df",
+      "benefitId": "ben_644ffed3123a",
+      "benefitName": "Tarif Préférentiel Membre (-15%)",
+      "benefitType": "preferential_rate",
+      "quantity": 100,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-10T14:09:37.496Z",
+      "validUntil": "2027-11-11T14:09:37.496Z",
+      "status": "available",
+      "createdAt": "2026-11-10T14:09:37.496Z"
+    },
+    {
+      "id": "ent_06b128e9a624",
+      "cardId": "crd_aa7c4e8bf41f26df",
+      "benefitId": "ben_e4a5bd35b601",
+      "benefitName": "Coffret Physique Collector & Surprise Annuelle",
+      "benefitType": "gift_surprise",
+      "quantity": 1,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-10T14:09:37.496Z",
+      "validUntil": "2027-11-11T14:09:37.496Z",
+      "status": "available",
+      "createdAt": "2026-11-10T14:09:37.496Z"
+    }
+  ],
+  "redemptions": [],
+  "readers": [
+    {
+      "id": "rdr_default_mobile_01",
+      "readerName": "Terminal Mobile Vigile 01",
+      "readerIdentifier": "LMR-MOB-SCANNER-01",
+      "readerType": "mobile_android",
+      "hardwareModel": "Android NFC ISO/IEC 14443-4 DESFire EV3 Reader",
+      "assignedRole": "gate_agent",
+      "readerStatus": "active",
+      "lastSeenAt": "2026-11-10T14:09:28.858Z",
+      "createdAt": "2026-11-10T14:09:28.858Z",
+      "updatedAt": "2026-11-10T14:09:28.858Z"
+    }
+  ],
+  "accessPoints": [],
+  "scanLogs": [],
+  "eventLogs": [
+    {
+      "id": "mev_d806d44067f3",
+      "actorId": "SYSTEM",
+      "actionType": "CARD_ISSUED",
+      "entityType": "membership_card",
+      "entityId": "crd_aa7c4e8bf41f26df",
+      "details": {
+        "cardNumber": "LMR-2026-0001",
+        "cardholderName": "Dylan Bienao",
+        "sequence": 1
+      },
+      "createdAt": "2026-11-10T14:09:37.497Z"
+    }
+  ],
+  "lastAssignedSequence": 1
+}

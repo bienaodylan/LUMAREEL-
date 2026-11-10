@@ -1,0 +1,173 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Agrandir Grand';
+  font-weight: 800;
+  font-style: normal;
+  src: local('Agrandir Grand ExtraBold'), local('AgrandirGrand-ExtraBold'), local('Agrandir-ExtraBold');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Agrandir Grand';
+  font-weight: 600;
+  font-style: normal;
+  src: local('Agrandir Grand SemiBold'), local('AgrandirGrand-SemiBold'), local('Agrandir-SemiBold');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Agrandir Grand';
+  font-weight: 400;
+  font-style: normal;
+  src: local('Agrandir Grand Regular'), local('AgrandirGrand-Regular'), local('Agrandir-Regular');
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --font-agrandir: 'Agrandir Grand', 'Agrandir', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-serif-italic: 'Newsreader', serif;
+  }
+
+  *, html, body, button, input, select, textarea, a, p, span, div, h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-agrandir) !important;
+  }
+
+  body {
+    background-color: #000000;
+    color: #FFFFFF;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 800; /* Agrandir Grand Extra Bold */
+    letter-spacing: -0.03em;
+  }
+
+  button, .font-semibold {
+    font-weight: 600; /* Agrandir Grand Semi Bold */
+  }
+
+  .font-agrandir-extrabold {
+    font-weight: 800 !important;
+  }
+
+  .font-agrandir-semibold {
+    font-weight: 600 !important;
+  }
+
+  .font-agrandir-regular {
+    font-weight: 400 !important;
+  }
+
+  .font-editorial-italic {
+    font-family: var(--font-serif-italic) !important;
+    font-style: italic;
+    font-weight: 400;
+  }
+}
+
+/* 3D sculpted architectural logo inspired by Jeune Incompris reference */
+.logo-sculpted-3d {
+  color: #f7f7f7;
+  text-shadow:
+    1px 1px 0px #d4d4d4,
+    2px 2px 0px #b8b8b8,
+    3px 3px 0px #9e9e9e,
+    4px 4px 0px #828282,
+    5px 5px 0px #666666,
+    6px 6px 0px #4d4d4d,
+    7px 7px 0px #333333,
+    8px 8px 1px rgba(0, 0, 0, 0.9),
+    12px 14px 24px rgba(0, 0, 0, 0.95);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s ease;
+}
+
+.logo-sculpted-3d:hover {
+  transform: translateY(-2px) scale(1.015);
+  text-shadow:
+    1px 1px 0px #e6e6e6,
+    2px 2px 0px #cccccc,
+    3px 3px 0px #b3b3b3,
+    4px 4px 0px #999999,
+    5px 5px 0px #808080,
+    6px 6px 0px #666666,
+    7px 7px 0px #4d4d4d,
+    8px 8px 1px rgba(0, 0, 0, 0.9),
+    14px 18px 30px rgba(0, 0, 0, 0.98);
+}
+
+/* Volumetric stage light beam cutting down through the darkness */
+.spotlight-beam {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.05) 60%, rgba(255, 255, 255, 0.01) 85%, transparent 100%);
+  clip-path: polygon(36% 0%, 64% 0%, 90% 100%, 10% 100%);
+  pointer-events: none;
+}
+
+.spotlight-beam-secondary {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 70%, transparent 100%);
+  clip-path: polygon(25% 0%, 75% 0%, 100% 100%, 0% 100%);
+  pointer-events: none;
+}
+
+.logo-glow {
+  filter: drop-shadow(0 0 45px rgba(255, 255, 255, 0.45)) drop-shadow(0 0 15px rgba(255, 255, 255, 0.25));
+}
+
+/* Atmospheric subtle lighting drift */
+@keyframes ambientGlow {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+    opacity: 0.18;
+  }
+  33% {
+    transform: translate(3%, -4%) scale(1.08);
+    opacity: 0.28;
+  }
+  66% {
+    transform: translate(-4%, 2%) scale(0.96);
+    opacity: 0.16;
+  }
+  100% {
+    transform: translate(0%, 0%) scale(1);
+    opacity: 0.18;
+  }
+}
+
+@keyframes slowShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.ambient-aurora {
+  animation: ambientGlow 22s ease-in-out infinite alternate;
+}
+
+/* Film grain overlay */
+.bg-grain {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Print styling for e-tickets */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+

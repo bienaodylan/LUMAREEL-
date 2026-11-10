@@ -1,0 +1,710 @@
+PROMPT MAÎTRE — REFONTE COMPLÈTE DE LUMARÉEL CO.
+
+Expérience digitale immersive, identité culturelle et plateforme de billetterie professionnelle
+
+Agis comme un directeur artistique digital senior, un designer UI/UX spécialisé dans les marques culturelles haut de gamme, un motion designer et un architecte logiciel full-stack expert en plateformes de billetterie, paiements en ligne, authentification, génération de billets électroniques et systèmes d’administration.
+
+Ta mission est de reconstruire et finaliser LUMARÉEL CO., une entreprise de production de concerts et d’expériences musicales, en créant une plateforme numérique immersive, minimaliste, vivante, mystérieuse et cinématographique.
+
+Ne construis pas un site événementiel générique. Ne reproduis pas les structures habituelles des grandes billetteries commerciales. Crée un univers digital reconnaissable, inspiré des codes des marques de mode avant-gardistes, des galeries artistiques et des expériences culturelles contemporaines.
+
+Références artistiques :
+
+* Site actuel de LUMARÉEL CO. : https://lumareel.co/
+* Galerie Jeune Incompris : https://galeriejeuneincompris.world/
+* Enfants Riches Déprimés : https://www.enfantsrichesdeprimes.com/
+* Chrome Hearts : https://www.chromehearts.com/
+
+Ces références servent à comprendre la direction artistique, la sobriété de la navigation, la composition des pages et la personnalité visuelle. Ne copie pas leurs contenus, leurs logos ou leurs éléments propriétaires.
+
+⸻
+
+1. RÈGLE FONDAMENTALE : AUDITER AVANT DE CONSTRUIRE
+
+Si un projet existant est disponible, inspecte son code, ses composants, ses feuilles de style, ses dépendances, ses variables d’environnement, sa base de données et ses intégrations avant toute modification.
+
+Identifie précisément :
+
+* L’architecture actuelle du frontend et du backend.
+* Les routes et pages existantes.
+* Les typographies effectivement utilisées par LUMARÉEL.
+* Les couleurs, espacements, dimensions de logo et règles de composition existantes.
+* Les animations et transitions déjà implémentées.
+* Les tables, relations, utilisateurs et règles de sécurité de la base de données.
+* Le fonctionnement de l’authentification.
+* Les fonctionnalités existantes de concerts et de billetterie.
+* Les intégrations de paiement, d’e-mail et de stockage des images.
+* Les éventuelles fonctionnalités incomplètes ou simulées.
+
+Ne supprime pas les fonctionnalités existantes sans justification. Ne remplace pas une intégration fonctionnelle par une démonstration fictive.
+
+Préserve les données existantes lorsque cela est possible. Si une migration est nécessaire, prépare-la de manière sûre et réversible.
+
+Si le projet doit être créé de zéro, construis une architecture cohérente et évolutive, avec une séparation claire entre interface publique, espace client, administration et services backend.
+
+2. DIRECTION ARTISTIQUE
+
+Identité générale
+
+LUMARÉEL doit être perçu comme un univers culturel et musical, et non comme une agence événementielle traditionnelle.
+
+L’interface doit être :
+
+* Minimaliste, mais pas vide.
+* Vivante, mais pas agitée.
+* Mystérieuse, mais compréhensible.
+* Élégante, mais accessible sur mobile.
+* Immersive, mais rapide à charger.
+* Visuellement forte, sans surcharge de textes ou de boutons.
+
+Le site doit provoquer une impression immédiate dès l’ouverture.
+
+Évite les mises en page SaaS conventionnelles, les cartes arrondies répétitives, les dégradés décoratifs artificiels, les illustrations génériques, les icônes inutiles et les sections commerciales trop nombreuses.
+
+Typographie
+
+Conserve en priorité les familles typographiques originales de LUMARÉEL.
+
+Inspecte les fichiers CSS, les déclarations @font-face, les fichiers locaux, les imports et les ressources réseau pour identifier les polices réellement utilisées.
+
+Ne prétends pas avoir conservé une police si son identité n’a pas été vérifiée.
+
+Si une police originale est indisponible, choisis un équivalent sans serif pertinent et documente ce remplacement.
+
+Utilise une direction typographique sans serif :
+
+* Titres expressifs et visuellement forts.
+* Noms d’artistes mis en valeur.
+* Navigation discrète et précise.
+* Informations secondaires compactes et lisibles.
+* Dates, horaires et tarifs clairement hiérarchisés.
+
+Utilise les variations de graisse, de taille, de casse et d’espacement pour créer de la richesse sans multiplier inutilement les familles de polices.
+
+Couleurs
+
+Préserve la palette originale de LUMARÉEL après inspection.
+
+Si aucune palette exploitable n’est disponible, privilégie une base monochrome, des contrastes maîtrisés, des noirs profonds, des blancs cassés et des nuances neutres adaptées aux photographies.
+
+Ne choisis pas de couleurs arbitraires sans examiner l’identité actuelle.
+
+3. PAGE D’ACCUEIL — SPLASH PAGE IMMERSIVE
+
+C’est la partie la plus importante du projet.
+
+La première page doit fonctionner comme une porte d’entrée vers l’univers LUMARÉEL.
+
+Composition
+
+Le premier écran doit présenter :
+
+* Le logo officiel LUMARÉEL CO.
+* Une navigation discrète, directement intégrée à la composition.
+* Une animation d’arrière-plan subtile et immersive.
+* Une hiérarchie typographique minimaliste.
+* Un accès évident au prochain événement.
+* Un compte à rebours dynamique si un événement futur est publié.
+
+Le logo doit rester lisible au premier plan. L’animation ne doit jamais entrer en concurrence avec lui.
+
+Animation d’arrière-plan
+
+Crée une animation atmosphérique, cinématographique et subtile.
+
+Selon les ressources réellement disponibles, utilise une vidéo optimisée, une séquence visuelle, une animation CSS ou une combinaison légère de ces techniques.
+
+Pistes possibles :
+
+* Un mouvement lent de lumière.
+* Une texture granuleuse subtile.
+* Des ombres ou des formes abstraites en mouvement.
+* Des images de scène volontairement floues.
+* Une variation lente de contraste.
+* Une boucle vidéo sombre montrant une ambiance de concert, si les droits d’utilisation sont acquis.
+
+L’animation doit être perceptible sans nécessairement être immédiatement identifiable. Elle doit créer une atmosphère, pas raconter une histoire trop littérale.
+
+Contraintes :
+
+* Le logo et les menus restent parfaitement lisibles.
+* Aucun son ne démarre automatiquement.
+* Les vidéos d’arrière-plan sont muettes, optimisées et adaptées au mobile.
+* Prévois une image de remplacement pendant le chargement.
+* Respecte prefers-reduced-motion.
+* Sur les appareils peu performants, utilise une version plus légère.
+* Évite les animations qui provoquent des saccades ou un défilement instable.
+
+Navigation de la splash page
+
+Inspire-toi de la sobriété de Jeune Incompris, sans copier sa structure exacte.
+
+Navigation envisagée :
+
+UPCOMING · WORK · ARCHIVE · ABOUT · CONTACT
+
+Le logo renvoie à l’accueil.
+
+Les menus doivent être discrets, mais immédiatement compréhensibles. Sur mobile, conserve une navigation élégante et facilement accessible.
+
+La page d’accueil ne doit pas présenter une grille d’affiches de concerts.
+
+Présentation du prochain concert
+
+Si un prochain événement est publié, affiche une présentation éditoriale contenant :
+
+* Le portrait de l’artiste ou une photographie artistique.
+* Le nom de l’artiste.
+* Le nom de l’événement.
+* La date et le lieu.
+* Un compte à rebours réel.
+* Un accès discret aux informations et à la billetterie.
+
+N’affiche pas l’affiche officielle du concert sur l’accueil.
+
+Le portrait d’artiste sert à créer l’intérêt. L’affiche officielle est réservée à la page de l’événement et à la billetterie.
+
+Si aucun concert n’est publié, ne fabrique pas de faux événement ni de faux compte à rebours.
+
+4. ANIMATIONS ET MICRO-INTERACTIONS
+
+Le site doit être animé sur l’ensemble du parcours, mais les animations doivent servir la composition et la navigation.
+
+Implémente notamment :
+
+* Apparition progressive du logo et des éléments du premier écran.
+* Révélation douce des textes.
+* Transitions fluides entre les pages.
+* Apparition des images au défilement.
+* Effets subtils au survol des liens et des visuels.
+* Déplacements légers des images lorsque cela renforce la composition.
+* Transitions typographiques discrètes.
+* Animation du compte à rebours.
+* Retours visuels clairs lors des actions de billetterie.
+* États de chargement élégants pour les opérations asynchrones.
+
+Les animations doivent être cohérentes et réutilisables.
+
+Ne multiplie pas les bibliothèques d’animation. Réutilise les dépendances déjà présentes lorsqu’elles conviennent.
+
+N’anime jamais un élément au point de compromettre la lisibilité, l’accessibilité, le paiement ou la navigation.
+
+Le site doit rester agréable à utiliser au clavier, au toucher et avec les préférences d’accessibilité du système.
+
+5. PAGE UPCOMING — CONCERTS À VENIR
+
+Cette page présente les événements commercialisés par LUMARÉEL.
+
+Chaque événement doit disposer d’une fiche indépendante comprenant :
+
+* Le nom du concert.
+* Le ou les artistes.
+* L’affiche officielle.
+* Une photographie ou une vidéo complémentaire.
+* La date et les horaires.
+* Le lieu et les informations pratiques.
+* Une description.
+* Les catégories de billets disponibles.
+* Les tarifs.
+* Les quotas et disponibilités.
+* Le statut de commercialisation.
+
+Le contenu est chargé depuis la base de données.
+
+Ne crée pas une page codée en dur pour chaque nouveau concert.
+
+Chaque événement doit disposer d’une route stable, par exemple /upcoming/nom-du-concert, avec une URL adaptée et partageable.
+
+L’affiche officielle doit être visible sur la fiche du concert. Les images doivent pouvoir être modifiées depuis l’administration.
+
+Les événements peuvent être publiés, en préparation, complets, annulés ou terminés selon leurs règles métier.
+
+Les concerts terminés ne doivent plus apparaître comme des événements futurs. Ils doivent être archivés selon leur statut et leur date, sans supprimer leur historique.
+
+6. PAGE DÉTAILLÉE D’UN CONCERT
+
+Construis une page événementielle immersive, avec une hiérarchie claire entre l’affiche, les informations et l’achat.
+
+Le client doit pouvoir :
+
+1. Consulter l’affiche.
+2. Découvrir les artistes.
+3. Consulter la date, le lieu et les informations pratiques.
+4. Choisir une catégorie de billet.
+5. Choisir une quantité autorisée.
+6. Voir le prix total avant de continuer.
+7. Se connecter ou créer un compte.
+8. Finaliser son achat dans un parcours sécurisé.
+
+Les quotas doivent être contrôlés côté serveur.
+
+Ne permets jamais à un client de choisir un prix ou un statut de paiement arbitraire depuis le navigateur.
+
+Prévois une gestion des stocks concurrente pour empêcher la vente de billets au-delà du quota disponible.
+
+Si un système de réservation temporaire de places est nécessaire, sa durée d’expiration et sa libération doivent être gérées côté serveur.
+
+7. ARCHIVE — MÉMOIRE DES PRODUCTIONS
+
+La page Archive doit présenter les événements passés comme une collection éditoriale.
+
+Chaque production peut contenir :
+
+* Une couverture.
+* Des photographies.
+* Une vidéo ou un aftermovie.
+* Les artistes.
+* La date et le lieu.
+* Une courte description.
+* Des galeries d’images.
+
+Prévois une présentation visuelle forte et une navigation simple.
+
+Les archives ne doivent pas être mélangées avec les événements ouverts à la vente.
+
+L’administration doit permettre de publier, modifier, ordonner et dépublier les archives.
+
+Ne rends pas une archive publiquement accessible avant sa publication effective.
+
+8. WORK, ABOUT ET CONTACT
+
+Work
+
+Présente les productions, les collaborations et les expériences créées par LUMARÉEL, avec une direction artistique cohérente.
+
+About
+
+Présente la vision de LUMARÉEL, sa manière de produire et son approche des expériences musicales.
+
+Conserve les contenus de marque existants lorsqu’ils sont disponibles et pertinents.
+
+Évite les longs textes institutionnels génériques.
+
+Contact
+
+Prévois un formulaire fonctionnel comprenant les champs nécessaires à une demande de collaboration, de production ou de partenariat.
+
+Valide les données côté serveur, protège le formulaire contre le spam et affiche des confirmations explicites.
+
+Les messages doivent être transmis à une adresse configurée dans l’administration ou dans les variables d’environnement.
+
+9. AUTHENTIFICATION ET COMPTES CLIENTS
+
+Utilise Supabase Auth si le projet existant est déjà construit autour de Supabase. Sinon, conserve une solution d’authentification sécurisée déjà en place, ou propose une migration documentée.
+
+L’authentification doit être réellement fonctionnelle.
+
+Fonctionnalités :
+
+* Création de compte avec e-mail.
+* Vérification de l’adresse e-mail.
+* Connexion et déconnexion.
+* Réinitialisation du mot de passe.
+* Gestion sécurisée des sessions.
+* Accès à l’espace personnel.
+* Protection des routes privées.
+
+Le client doit pouvoir consulter librement les concerts. Il doit se connecter ou créer un compte avant de finaliser un achat.
+
+Après connexion, conserve autant que possible son événement, sa catégorie et sa quantité sélectionnés.
+
+L’adresse e-mail doit être vérifiée avant l’émission du billet.
+
+Ne désactive pas la vérification des comptes pour faciliter artificiellement les tests de production.
+
+10. ESPACE CLIENT — MES BILLETS
+
+Crée une interface personnelle minimaliste accessible après connexion.
+
+Sections :
+
+* Mes billets.
+* Mes commandes.
+* Paiements en attente.
+* Historique des achats.
+* Informations de compte.
+
+Chaque commande doit présenter :
+
+* Le nom du concert.
+* La date et le lieu.
+* Le nombre de billets.
+* Le montant.
+* Le statut du paiement.
+* La référence de commande.
+* Le statut des billets.
+* Les actions autorisées.
+
+Un client doit uniquement pouvoir consulter ses propres données.
+
+Pour un paiement confirmé, affiche le billet et donne accès au téléchargement du PDF.
+
+Pour un paiement en attente ou échoué, affiche le statut réel et les actions possibles.
+
+Ne génère jamais un billet valide simplement parce qu’une commande a été créée.
+
+Ne considère pas une redirection vers une page de succès comme une preuve de paiement.
+
+11. BILLETTERIE ET PAIEMENTS
+
+Intègre GeniusPay si le compte marchand et les accès nécessaires sont disponibles.
+
+Documentation de référence :
+https://geniuspay.ci/docs/api
+
+Utilise les mécanismes documentés par GeniusPay pour initier une transaction, rediriger le client vers le checkout et recevoir les notifications de paiement.
+
+Les moyens de paiement disponibles doivent correspondre à la configuration réelle du compte marchand et aux pays pris en charge.
+
+Sécurité des paiements
+
+* Conserve les clés secrètes uniquement côté serveur.
+* Ne place jamais une clé privée ou un secret API dans le frontend.
+* Associe chaque transaction à une commande interne.
+* Vérifie les signatures des webhooks selon la documentation du fournisseur.
+* Vérifie les montants, la devise, la référence et la commande correspondante.
+* Rejette les notifications invalides.
+* Traite les notifications de manière idempotente.
+* Empêche la génération de billets en double.
+* Enregistre les événements de paiement de manière traçable.
+* Gère les paiements en attente, réussis, échoués, annulés et remboursés.
+
+Prévois un environnement sandbox pour tester les paiements sans mouvement d’argent réel.
+
+Le système doit utiliser la confirmation serveur comme source de vérité.
+
+12. GÉNÉRATION DES BILLETS ÉLECTRONIQUES
+
+Après confirmation valide du paiement, le backend doit générer les billets correspondant à la commande.
+
+Chaque billet doit posséder :
+
+* Un identifiant unique.
+* Une référence lisible.
+* Un événement associé.
+* Une catégorie.
+* Un statut.
+* Un QR code unique.
+* Une date d’émission.
+* Une référence de commande.
+
+Génère un PDF élégant et fonctionnel, adapté à l’impression et au téléphone.
+
+Le design doit reprendre les codes de LUMARÉEL : typographie, couleurs, composition et identité de l’événement.
+
+Le QR code ne doit pas contenir directement de données personnelles sensibles. Il doit renvoyer à un identifiant ou à un jeton aléatoire sécurisé permettant une vérification côté serveur.
+
+Le téléchargement doit être réservé au propriétaire du billet ou à une personne autorisée.
+
+Évite les liens de téléchargement permanents qui exposeraient les billets à des tiers.
+
+Le système doit permettre de récupérer un billet déjà émis sans en générer un autre.
+
+13. ENVOI DES BILLETS PAR E-MAIL
+
+Utilise Resend pour les e-mails transactionnels si ce service est retenu et configuré.
+
+Documentation :
+https://resend.com/docs
+
+Prévois des modèles personnalisés pour :
+
+* La vérification du compte.
+* La confirmation d’achat.
+* L’envoi du ou des billets électroniques.
+* Les informations de paiement en attente ou échoué, si nécessaire.
+
+L’e-mail de confirmation d’achat doit comprendre :
+
+* Le nom du client lorsque cette information est disponible.
+* Le nom du concert.
+* La date et le lieu.
+* La référence de commande.
+* Le récapitulatif des billets.
+* Un lien sécurisé vers l’espace personnel.
+* Le PDF du billet en pièce jointe ou un accès sécurisé au téléchargement.
+
+Envoie le billet uniquement après confirmation du paiement.
+
+Pour éviter les doubles envois, utilise un mécanisme idempotent et conserve l’historique des tentatives d’envoi.
+
+Si le paiement est confirmé mais que l’envoi d’e-mail échoue, le billet doit rester disponible dans l’espace client. Le système doit permettre de relancer l’envoi sans créer un nouveau billet.
+
+Configure les secrets côté serveur et vérifie le domaine d’envoi avant la mise en production.
+
+Pour les e-mails d’authentification Supabase, configure un SMTP personnalisé si nécessaire. Ne confonds pas les e-mails d’authentification et les e-mails de billetterie.
+
+Les rappels automatiques de concert ne font pas partie du périmètre initial.
+
+14. VÉRIFICATION DES BILLETS À L’ENTRÉE
+
+C’est une fonctionnalité essentielle.
+
+Crée une interface de contrôle distincte du site public, accessible uniquement aux agents autorisés.
+
+Elle doit permettre :
+
+* De sélectionner ou de confirmer l’événement contrôlé.
+* De scanner le QR code avec la caméra d’un téléphone.
+* De vérifier le billet auprès du serveur.
+* De confirmer que le billet appartient au bon événement.
+* De vérifier le statut du billet.
+* De vérifier s’il a déjà été utilisé.
+* D’enregistrer l’heure du scan et l’identifiant de l’agent.
+* D’afficher immédiatement un résultat compréhensible.
+
+Résultats possibles :
+
+* Billet valide : entrée autorisée.
+* Billet déjà utilisé : entrée refusée.
+* Billet annulé ou remboursé : entrée refusée selon les règles de l’événement.
+* Billet introuvable : entrée refusée.
+* Mauvais événement : entrée refusée.
+
+L’opération de validation doit être atomique côté serveur afin d’empêcher deux appareils de valider simultanément le même billet.
+
+Ne considère jamais la simple lecture d’un QR code comme une validation suffisante.
+
+Prévois une architecture permettant d’étudier ultérieurement un contrôle hors ligne sécurisé. Ne prétends pas que le mode hors ligne est fiable sans mécanisme de synchronisation et de gestion des doubles scans.
+
+15. DASHBOARD D’ADMINISTRATION
+
+Construis une interface privée cohérente avec la direction artistique, mais optimisée pour le travail quotidien.
+
+Le dashboard doit être fonctionnel, pas simplement visuel.
+
+Tableau de bord
+
+Présente les indicateurs issus de données réelles :
+
+* Événements publiés.
+* Billets vendus.
+* Billets disponibles.
+* Commandes payées.
+* Paiements en attente.
+* Chiffre d’affaires confirmé.
+* Remboursements.
+* Dernières commandes.
+
+N’affiche pas de chiffres fictifs en production.
+
+Gestion des événements
+
+L’administrateur doit pouvoir :
+
+* Créer un concert.
+* Modifier un concert.
+* Publier et dépublier un concert.
+* Définir le nom, l’artiste, la date, l’heure et le lieu.
+* Ajouter l’affiche officielle.
+* Choisir le portrait affiché sur l’accueil.
+* Ajouter des images et des vidéos.
+* Modifier les descriptions.
+* Configurer les catégories de billets.
+* Définir les tarifs et les quotas.
+* Définir les périodes de commercialisation.
+* Marquer un événement comme complet, annulé ou terminé.
+* Consulter les ventes et les commandes associées.
+
+Prévois une prévisualisation avant publication.
+
+Gestion des archives
+
+Permets de créer des archives, de gérer les galeries, de modifier les couvertures et d’organiser l’ordre d’affichage.
+
+Gestion des commandes
+
+L’administrateur doit pouvoir rechercher une commande par référence et consulter son état réel.
+
+Les actions sensibles, comme les remboursements ou les annulations, doivent respecter les permissions et laisser une trace d’audit.
+
+Gestion des accès
+
+Prévois plusieurs rôles si nécessaire :
+
+* Super administrateur.
+* Administrateur événementiel.
+* Responsable billetterie.
+* Agent de contrôle.
+
+Chaque rôle doit disposer uniquement des permissions nécessaires.
+
+Ne laisse jamais une simple modification du frontend accorder des privilèges administratifs.
+
+16. ARCHITECTURE TECHNIQUE ET BASE DE DONNÉES
+
+Réutilise la stack existante si elle est saine. Si le projet est construit avec Supabase, privilégie une architecture reposant sur Supabase Auth, PostgreSQL, le stockage sécurisé et des fonctions backend adaptées.
+
+Modélise au minimum les entités suivantes :
+
+* Profils clients.
+* Rôles et permissions.
+* Événements.
+* Artistes et médias, si nécessaires.
+* Catégories de billets.
+* Commandes.
+* Lignes de commande.
+* Transactions de paiement.
+* Billets.
+* Historique de validation des billets.
+* Envois d’e-mails.
+* Journal des actions administratives.
+
+Définis les relations, contraintes, index et statuts nécessaires.
+
+Implémente les règles de sécurité RLS si Supabase est utilisé.
+
+Un utilisateur ne doit pas pouvoir consulter les commandes, les billets ou les données privées d’un autre utilisateur.
+
+Les opérations sensibles doivent être exécutées côté serveur, avec validation des données et contrôle des permissions.
+
+Ne place pas de clé secrète, de service-role key ou de logique d’autorisation critique dans le frontend.
+
+Les opérations d’achat doivent gérer les accès concurrents, les erreurs, les doublons et les tentatives répétées.
+
+17. STOCKAGE DES IMAGES ET CONTENUS
+
+Les administrateurs doivent pouvoir remplacer les visuels sans modifier le code.
+
+Prévois :
+
+* Un stockage adapté aux images et vidéos.
+* Des formats optimisés.
+* Plusieurs tailles d’image lorsque nécessaire.
+* Le chargement différé des images secondaires.
+* Des images de remplacement en cas d’erreur.
+* Des règles d’accès adaptées aux médias privés.
+* Des contrôles de type et de taille des fichiers importés.
+
+L’image d’accueil, l’affiche du concert et les visuels des archives doivent être des champs distincts.
+
+Ne réutilise pas automatiquement la même image pour toutes les fonctions.
+
+18. PERFORMANCE ET RESPONSIVE DESIGN
+
+Le site doit fonctionner parfaitement sur :
+
+* iPhone et autres téléphones.
+* Tablettes.
+* Ordinateurs portables.
+* Écrans larges.
+
+Priorité au mobile, car une grande partie du public consultera les concerts et achètera ses billets depuis son téléphone.
+
+Optimise les médias, les animations, le chargement des polices et les transitions.
+
+Évite de charger toutes les vidéos et toutes les images dès l’ouverture.
+
+Prévois des états de chargement, des erreurs compréhensibles, des pages vides élégantes et des confirmations d’action.
+
+Le site doit rester navigable même si les animations ne sont pas disponibles.
+
+19. SEO, ACCESSIBILITÉ ET CONFORMITÉ
+
+Prévois :
+
+* Des titres et descriptions adaptés à chaque événement.
+* Des URLs stables.
+* Des métadonnées de partage.
+* Des images de prévisualisation.
+* Des textes alternatifs utiles.
+* Une navigation au clavier.
+* Des contrastes suffisants.
+* Des formulaires accessibles.
+* Une gestion respectueuse des données personnelles.
+* Des règles de conservation des données et de gestion des consentements appropriées.
+
+N’affiche pas publiquement des informations personnelles de clients.
+
+Ne considère pas l’adresse e-mail comme une autorisation suffisante pour consulter un billet appartenant à quelqu’un d’autre.
+
+20. STRATÉGIE D’IMPLÉMENTATION
+
+Travaille par étapes et vérifie chaque étape avant de poursuivre.
+
+Phase 1 — Audit et fondations
+
+* Audit du projet.
+* Identification des typographies et du design existant.
+* Cartographie des pages et fonctionnalités.
+* Vérification de la base de données.
+* Plan des corrections et migrations.
+
+Phase 2 — Identité et interface
+
+* Splash page immersive.
+* Navigation.
+* Animations.
+* Pages Upcoming, Work, Archive, About et Contact.
+* Responsive design.
+
+Phase 3 — Authentification et espace client
+
+* Inscription.
+* Connexion.
+* Vérification e-mail.
+* Protection des routes.
+* Espace Mes billets.
+
+Phase 4 — Billetterie
+
+* Gestion des événements.
+* Catégories et quotas.
+* Commandes.
+* Paiements.
+* Génération des billets.
+* E-mails transactionnels.
+
+Phase 5 — Contrôle et administration
+
+* Scanner QR code.
+* Vérification des billets.
+* Dashboard.
+* Gestion des rôles.
+* Historique des opérations.
+
+Phase 6 — Tests et mise en production
+
+* Tests du parcours complet.
+* Tests des paiements en sandbox.
+* Tests des webhooks.
+* Tests des droits d’accès.
+* Tests des doubles scans.
+* Tests de génération et d’envoi des billets.
+* Tests mobiles et de performance.
+* Documentation des variables d’environnement et des étapes de déploiement.
+
+Ne te contente pas de créer les écrans. Implémente réellement les fonctionnalités dans le code, la base de données et les services backend.
+
+Si une clé API, un compte marchand, un domaine ou une permission est manquant, prépare l’intégration, indique précisément ce qui manque et ne simule pas son fonctionnement.
+
+21. CRITÈRES DE VALIDATION FINALE
+
+Le projet ne sera considéré comme finalisé que si :
+
+1. La splash page présente un logo lisible et une animation d’arrière-plan maîtrisée.
+2. Les typographies originales sont préservées ou les substitutions sont documentées.
+3. La navigation et toutes les pages publiques fonctionnent.
+4. Les concerts proviennent de données administrables.
+5. L’accueil présente un portrait d’artiste et non l’affiche officielle.
+6. Les pages événementielles présentent les affiches et les informations de vente.
+7. Les clients peuvent créer un compte et se connecter.
+8. Le paiement est confirmé côté serveur.
+9. Les billets sont générés une seule fois par émission autorisée.
+10. Les billets payés sont disponibles dans l’espace client et envoyés par e-mail.
+11. Le QR code est vérifié côté serveur.
+12. Un billet déjà utilisé ne peut pas être accepté une deuxième fois.
+13. Les administrateurs peuvent gérer les événements, les tarifs, les quotas et les médias.
+14. Les permissions sont appliquées côté serveur et dans la base de données.
+15. Aucun secret API ni chiffre fictif n’est exposé en production.
+16. Le parcours complet fonctionne sur mobile et ordinateur.
+
+INSTRUCTION FINALE
+
+Construis LUMARÉEL CO. comme une marque culturelle contemporaine dotée d’un système de billetterie professionnel.
+
+Ne sacrifie pas l’expérience visuelle à la technique, ni la sécurité à l’esthétique.
+
+Le résultat doit être minimaliste, mystérieux, animé, vivant, rapide et parfaitement fonctionnel.
+
+Le site public doit donner envie d’entrer dans l’univers LUMARÉEL. Le système technique doit permettre à l’équipe de produire, vendre, gérer et contrôler les événements avec fiabilité.
