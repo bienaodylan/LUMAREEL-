@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import QRCode from 'qrcode';
 import {
   Printer,
   RotateCw,
   Sparkles,
-  Download,
   Eye,
   CheckCircle2,
   AlertTriangle,
@@ -29,7 +27,6 @@ export const CardPrintingStudio: React.FC<CardPrintingStudioProps> = ({
   const [templateTheme, setTemplateTheme] = useState<CardTemplateTheme>('founders_noir_or');
   const [activeSide, setActiveSide] = useState<'both' | 'front' | 'back'>('both');
   const [showGuides, setShowGuides] = useState(false);
-  const [qrDataUrl, setQrDataUrl] = useState<string>('');
   const [printing, setPrinting] = useState(false);
   const [printSuccessNotice, setPrintSuccessNotice] = useState<string | null>(null);
 
@@ -49,7 +46,6 @@ export const CardPrintingStudio: React.FC<CardPrintingStudioProps> = ({
     validFrom: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
     physicalCardStatus: 'approved',
-    qrToken: 'LMR_SEC_98a76bc384df9201bc94582fca1209e7436b90d2381fcae87291a9203bcde892',
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -389,17 +385,6 @@ export const CardPrintingStudio: React.FC<CardPrintingStudioProps> = ({
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          {qrDataUrl && (
-            <a
-              href={qrDataUrl}
-              download={`QR_LUMAREEL_${sampleCard.cardNumber}.png`}
-              className="px-4 py-3 rounded-xl bg-[#171717] hover:bg-[#202020] border border-white/10 text-white font-agrandir-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>QR HD</span>
-            </a>
-          )}
-
           <button
             type="button"
             onClick={handleTriggerPrint}
