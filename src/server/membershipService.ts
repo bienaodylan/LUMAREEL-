@@ -1877,7 +1877,7 @@ export class MembershipService {
     if (email) {
       const q = email.toLowerCase().trim();
       list = list.filter(
-        (inv) => !inv.recipientEmail || inv.recipientEmail.toLowerCase().trim() === q || q === 'bienaodylan428@gmail.com'
+        (inv) => !inv.recipientEmail || inv.recipientEmail.toLowerCase().trim() === q
       );
     }
     return list;
