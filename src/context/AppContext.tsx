@@ -18,6 +18,7 @@ export type PageView =
   | 'gate_scanner'
   | 'admin'
   | 'card'
+  | 'member_card'
   | 'card_verify'
   | 'contact'
   | 'about'
