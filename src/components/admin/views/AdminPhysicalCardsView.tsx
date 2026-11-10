@@ -50,7 +50,7 @@ export const AdminPhysicalCardsView:React.FC=()=>{
  const revoke=async(id:string)=>{
    const reason=window.prompt('Motif obligatoire de révocation (min. 5 caractères) :');
    if(!reason)return;setSaving(true);
-   try{await api(`/api/membership/nfc/${encodeURIComponent(id)}/revoke',{method:'POST',body:JSON.stringify({reason})});await loadNfc();setError('Credential révoqué et opération auditée.');}
+   try{await api(`/api/membership/nfc/${encodeURIComponent(id)}/revoke`,{method:'POST',body:JSON.stringify({reason})});await loadNfc();setError('Credential révoqué et opération auditée.');}
    catch(err:any){setError(err.message||'Révocation refusée.');}finally{setSaving(false);}
  };
 
