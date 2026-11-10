@@ -92,8 +92,8 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Échec de rotation du jeton.');
       }
+      if (data.qrDataUrl) setQrDataUrl(data.qrDataUrl);
       showToast('Jeton QR régénéré avec succès. L’ancien jeton a été révoqué.', 'success');
-      fetchMyCard();
     } catch (err: any) {
       showToast(err.message || 'Impossible de faire pivoter le jeton.', 'error');
     } finally {
