@@ -53,7 +53,7 @@ const MainApp: React.FC = () => {
             {currentPage === 'archive' && <ArchiveView />}
             {currentPage === 'news' && <NewsView />}
             {currentPage === 'organizers' && <OrganizersView />}
-            {currentPage === 'client_space' && <LumareelWalletView />}
+            {currentPage === 'client_space' && <CustomerSpace />}
             {currentPage === 'profile' && <ProfileView />}
             {currentPage === 'card' && <LumareelCardView />}
             {currentPage === 'member_card' && <LumareelMemberCardPage />}
