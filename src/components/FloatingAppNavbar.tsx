@@ -3,31 +3,15 @@ import { useApp, PageView } from '../context/AppContext';
 import { Home, Ticket, Film, User, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-/**
- * FloatingAppNavbar.tsx — Barre de navigation inférieure moderne inspirée du design Meta / iOS.
- * Conteneur en forme de pilule, détaché des bords de l'écran (fixed bottom-6),
- * coins très arrondis (rounded-full), translucidité subtile (bg-black/40 backdrop-blur-xl),
- * animations fluides (framer-motion) avec ressort spring layoutId pour l'indicateur actif.
- */
+/** Navigation mobile flottante LUMARÉEL — cinq destinations, icônes seules. */
 export const FloatingAppNavbar: React.FC = () => {
-  const { currentPage, setCurrentPage, customerOrders, t } = useApp();
+  const { currentPage, setCurrentPage } = useApp();
 
-  // Ne pas afficher sur le splash screen ou pendant le scan vigile plein écran
-  if (currentPage === 'splash' || currentPage === 'gate_scanner') {
-    return null;
-  }
+  if (currentPage === 'splash' || currentPage === 'gate_scanner') return null;
 
-  // Calcul du nombre de billets actifs pour badge discret
-  const activeTicketsCount = customerOrders.reduce((total, order) => {
-    if (order.paymentStatus === 'completed' && order.tickets) {
-      return total + order.tickets.length;
-    }
-    return total;
-  }, 0);
-
-  const navItems: Array<{ page: PageView; label: string; icon: React.ComponentType<{ className?: string }>; badge?: number }> = [
+  const navItems: Array<{ page: PageView; label: string; icon: React.ComponentType<{ className?: string }> }> = [
     { page: 'home', label: 'Accueil', icon: Home },
-    { page: 'client_space', label: 'Mes commandes', icon: Ticket, badge: activeTicketsCount || undefined },
+    { page: 'client_space', label: 'Mes commandes', icon: Ticket },
     { page: 'archive', label: 'Archives', icon: Film },
     { page: 'member_card', label: 'Ma carte', icon: CreditCard },
     { page: 'profile', label: 'Mon compte', icon: User },
@@ -35,14 +19,20 @@ export const FloatingAppNavbar: React.FC = () => {
 
   return (
     <motion.div
-      initial={{ y: 35, opacity: 0 }}
+      initial={{ y: 24, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed bottom-6 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 z-40 max-w-2xl mx-auto pointer-events-none select-none md:hidden"
+      transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
+      className="fixed z-40 md:hidden pointer-events-none select-none"
+      style={{
+        left: '12px',
+        right: '12px',
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)',
+      }}
     >
       <nav
-        aria-label="Navigation principale Meta Style"
-        className="pointer-events-auto mx-auto px-2 py-2 sm:py-2.5 rounded-2xl bg-black/45 backdrop-blur-2xl border border-white/15 shadow-[0_16px_40px_rgba(0,0,0,0.75)] grid grid-cols-5 items-center gap-1 transition-all duration-300"
+        aria-label="Navigation principale"
+        className="pointer-events-auto mx-auto grid grid-cols-5 items-center rounded-[24px] border border-white/[0.09] bg-[#101010]/85 px-1.5 shadow-[0_12px_34px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl"
+        style={{ height: '66px', WebkitBackdropFilter: 'blur(18px)' }}
       >
         {navItems.map((item) => {
           const isActive = currentPage === item.page;
@@ -53,54 +43,24 @@ export const FloatingAppNavbar: React.FC = () => {
               key={item.page}
               type="button"
               onClick={() => setCurrentPage(item.page)}
-              whileTap={{ scale: 0.88 }}
-              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.94 }}
               aria-label={item.label}
               title={item.label}
-              className="relative px-1.5 py-2 rounded-xl flex flex-col gap-1 items-center justify-center cursor-pointer group min-w-0"
+              className="relative flex h-full min-w-0 items-center justify-center overflow-visible rounded-xl outline-none"
             >
-              {/* Fond translucide actif avec ressort fluide spring layoutId */}
               {isActive && (
                 <motion.span
                   layoutId="activeFloatingNavbarPill"
-                  className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-[0_0_14px_rgba(255,255,255,0.2)]"
-                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+                  className="absolute left-1/2 top-1/2 h-[44px] w-[60px] -translate-x-1/2 -translate-y-1/2 rounded-[15px] border border-[#d4af37]/20 bg-[#29251b]/90 shadow-[inset_0_1px_0_rgba(212,175,55,0.08)]"
+                  transition={{ type: 'spring', stiffness: 420, damping: 32, mass: 0.7 }}
                 />
               )}
-
-              {/* Conteneur Icône & Badge */}
-              <div className="relative z-10 flex flex-col items-center justify-center gap-1">
-                <Icon
-                  className={`w-5 h-5 transition-colors duration-200 ${
-                    isActive
-                      ? 'text-white stroke-[2.3] drop-shadow-[0_0_6px_rgba(255,255,255,0.5)]'
-                      : 'text-neutral-400 group-hover:text-white stroke-[1.7]'
-                  }`}
-                />
-
-                <span className={`relative z-10 text-[9px] sm:text-[10px] leading-tight text-center truncate max-w-full ${isActive ? 'text-white font-bold' : 'text-neutral-400'}`}>{item.label}</span>
-
-                {/* Badge de notification pour les billets */}
-                {item.badge !== undefined && item.badge > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                    className="absolute -top-1.5 -right-2 px-1.5 py-0.2 rounded-full bg-[#d4af37] text-black text-[9px] font-agrandir-extrabold leading-tight shadow-md"
-                  >
-                    {item.badge}
-                  </motion.span>
-                )}
-              </div>
-
-              {/* Point indicateur glissant sous l'icône active */}
-              {isActive && (
-                <motion.span
-                  layoutId="activeFloatingNavbarDot"
-                  className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-[#d4af37] shadow-[0_0_6px_#d4af37]"
-                  transition={{ type: 'spring', stiffness: 380, damping: 28 }}
-                />
-              )}
+              <Icon
+                aria-hidden="true"
+                className={`relative z-10 h-[21px] w-[21px] transition-colors duration-200 ${
+                  isActive ? 'text-[#D4AF37] stroke-[2.15]' : 'text-neutral-400 stroke-[1.75]'
+                }`}
+              />
             </motion.button>
           );
         })}
