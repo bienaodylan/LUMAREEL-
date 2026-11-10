@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { FloatingAppNavbar } from './components/FloatingAppNavbar';
+import { DesktopSidebar } from './components/DesktopSidebar';
 import { HomeFeed } from './components/HomeFeed';
 import { ConcertDetailView } from './components/ConcertDetailView';
 import { ArchiveView } from './components/ArchiveView';
@@ -33,10 +34,10 @@ const MainApp: React.FC = () => {
     <div className="min-h-screen w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative overflow-x-hidden">
       
       {/* Top Navbar (Masquée sur le scanner et la console admin) */}
-      {!isAdminOrScanner && <Navbar />}
+      {!isAdminOrScanner && <><Navbar /><DesktopSidebar /></>}
 
       {/* Dynamic View Router avec transition de page fluide et espacement optimisé */}
-      <main className={`flex-1 w-full relative z-10 ${!isAdminOrScanner ? 'pb-8 sm:pb-12' : ''}`}>
+      <main className={`flex-1 w-full relative z-10 ${!isAdminOrScanner ? 'pb-8 sm:pb-12 md:pl-[244px]' : ''}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPage}
