@@ -26,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           id: data.user.id,
           email: data.user.email || email,
           name: profile?.name || data.user.user_metadata?.name || email.split('@')[0],
-          role: email === 'bienaodylan428@gmail.com' ? 'super_admin' : (profile?.role || 'customer'),
+          role: profile?.role || 'customer',
           emailVerified: Boolean(data.user.email_confirmed_at || profile?.email_verified),
           createdAt: data.user.created_at,
         },
