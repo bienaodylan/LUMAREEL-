@@ -69,7 +69,7 @@ export const FloatingAppNavbar: React.FC = () => {
               )}
 
               {/* Conteneur Icône & Badge */}
-              <div className="relative z-10 flex items-center justify-center">
+              <div className="relative z-10 flex flex-col items-center justify-center gap-1">
                 <Icon
                   className={`w-5 h-5 transition-colors duration-200 ${
                     isActive
