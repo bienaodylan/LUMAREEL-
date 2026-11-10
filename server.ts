@@ -455,7 +455,8 @@ async function startServer() {
   });
 
   // Administration : Suppression d'un compte utilisateur
-  app.delete('/api/admin/users/:id', (req: Request, res: Response) => {
+  app.delete('/api/admin/users/:id', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const { id } = req.params;
       const result = db.deleteUser(id);
@@ -1400,7 +1401,8 @@ async function startServer() {
     }
   });
 
-  app.put('/api/admin/settings', (req: Request, res: Response) => {
+  app.put('/api/admin/settings', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const updated = db.updateSettings(req.body);
       res.json({ success: true, settings: updated });
@@ -1409,7 +1411,8 @@ async function startServer() {
     }
   });
 
-  app.post('/api/admin/supabase-config', (req: Request, res: Response) => {
+  app.post('/api/admin/supabase-config', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const { supabaseUrl, supabaseAnonKey } = req.body;
       if (!supabaseUrl || !supabaseAnonKey) {
@@ -1453,6 +1456,7 @@ async function startServer() {
 
   // 13. Synchronisation et Push Git / GitHub Automatisé
   app.post('/api/admin/git-sync', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const { remoteUrl, token, commitMessage } = req.body;
       const { execSync } = await import('child_process');
