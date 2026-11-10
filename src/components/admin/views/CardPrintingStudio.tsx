@@ -42,8 +42,8 @@ export const CardPrintingStudio: React.FC<CardPrintingStudioProps> = ({
     membershipOrderId: 'ord_sample',
     cardNumber: 'LMR-2026-0001',
     cardSequence: 1,
-    cardholderName: 'Dylan Bienao',
-    cardholderEmail: 'bienaodylan@gmail.com',
+    cardholderName: 'APERÇU — TITULAIRE',
+    cardholderEmail: '',
     cardStatus: 'active',
     issuedAt: new Date().toISOString(),
     validFrom: new Date().toISOString(),
@@ -72,6 +72,10 @@ export const CardPrintingStudio: React.FC<CardPrintingStudioProps> = ({
   }, [verifyUrl]);
 
   const handleTriggerPrint = async () => {
+    if (!card) {
+      setPrintSuccessNotice('Sélectionnez une carte réelle avant de lancer une impression.');
+      return;
+    }
     setPrinting(true);
     setPrintSuccessNotice(null);
     try {
@@ -460,7 +464,7 @@ export const CardPrintingStudio: React.FC<CardPrintingStudioProps> = ({
           <button
             type="button"
             onClick={handleTriggerPrint}
-            disabled={printing}
+            disabled={printing || !card}
             className="flex-1 sm:flex-initial px-6 py-3 rounded-xl bg-[#d4af37] hover:bg-[#c49f27] active:scale-[0.98] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#d4af37]/20 disabled:opacity-50"
           >
             {printing ? (
