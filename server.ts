@@ -1059,7 +1059,8 @@ async function startServer() {
   });
 
   // 7. Administration : Vue d'Ensemble & Gestion Centralisée Membership
-  app.get('/api/membership/admin/overview', (_req: Request, res: Response) => {
+  app.get('/api/membership/admin/overview', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin','box_office']))return;
     try {
       const stats = membershipService.getAdminOverview();
       const activeEdition = membershipService.getActiveFoundersEdition();
@@ -1094,7 +1095,8 @@ async function startServer() {
   });
 
   // 8. ATELIER D'IMPRESSION PHYSIQUE (CARD PRINTING STUDIO & LUMARÉEL WORKSHOP)
-  app.get('/api/membership/workshop/overview', (_req: Request, res: Response) => {
+  app.get('/api/membership/workshop/overview', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin','box_office']))return;
     try {
       const overview = membershipService.getWorkshopOverview();
       res.json({ success: true, overview });
@@ -1103,7 +1105,8 @@ async function startServer() {
     }
   });
 
-  app.get('/api/membership/workshop/orders', (req: Request, res: Response) => {
+  app.get('/api/membership/workshop/orders', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin','box_office']))return;
     try {
       const status = req.query.status as any;
       const orders = membershipService.getPhysicalOrders(status);
@@ -1113,7 +1116,8 @@ async function startServer() {
     }
   });
 
-  app.post('/api/membership/workshop/orders/:id/status', (req: Request, res: Response) => {
+  app.post('/api/membership/workshop/orders/:id/status', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const { status, operator, note } = req.body;
       const updated = membershipService.updatePhysicalOrderStatus(req.params.id, status, operator, note);
@@ -1123,7 +1127,8 @@ async function startServer() {
     }
   });
 
-  app.get('/api/membership/workshop/inventory', (_req: Request, res: Response) => {
+  app.get('/api/membership/workshop/inventory', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin','box_office']))return;
     try {
       const inventory = membershipService.getInventory();
       res.json({ success: true, inventory });
@@ -1132,7 +1137,8 @@ async function startServer() {
     }
   });
 
-  app.put('/api/membership/workshop/inventory/:id', (req: Request, res: Response) => {
+  app.put('/api/membership/workshop/inventory/:id', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const updated = membershipService.updateInventoryItem(req.params.id, req.body);
       res.json({ success: true, item: updated });
@@ -1141,7 +1147,8 @@ async function startServer() {
     }
   });
 
-  app.get('/api/membership/workshop/jobs', (_req: Request, res: Response) => {
+  app.get('/api/membership/workshop/jobs', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin','box_office']))return;
     try {
       const jobs = membershipService.getPrintJobs();
       res.json({ success: true, jobs });
@@ -1150,7 +1157,8 @@ async function startServer() {
     }
   });
 
-  app.post('/api/membership/workshop/print', (req: Request, res: Response) => {
+  app.post('/api/membership/workshop/print', async (req: Request, res: Response) => {
+    const admin=await requireMemberAdmin(req,res,['super_admin']);if(!admin)return;
     try {
       const { cardId, operatorId, printerModel, printerType, duplex } = req.body;
       if (!cardId) {
@@ -1168,7 +1176,8 @@ async function startServer() {
     }
   });
 
-  app.post('/api/membership/workshop/print-batch', (req: Request, res: Response) => {
+  app.post('/api/membership/workshop/print-batch', async (req: Request, res: Response) => {
+    const admin=await requireMemberAdmin(req,res,['super_admin']);if(!admin)return;
     try {
       const { cardIds, operatorId } = req.body;
       if (!Array.isArray(cardIds) || cardIds.length === 0) {
@@ -1181,7 +1190,8 @@ async function startServer() {
     }
   });
 
-  app.post('/api/membership/workshop/reprint', (req: Request, res: Response) => {
+  app.post('/api/membership/workshop/reprint', async (req: Request, res: Response) => {
+    const admin=await requireMemberAdmin(req,res,['super_admin']);if(!admin)return;
     try {
       const { cardId, reason, operatorId, rotateQr, notes } = req.body;
       if (!cardId || !reason) {
@@ -1203,7 +1213,8 @@ async function startServer() {
     }
   });
 
-  app.post('/api/membership/workshop/quality-check', (req: Request, res: Response) => {
+  app.post('/api/membership/workshop/quality-check', async (req: Request, res: Response) => {
+    const admin=await requireMemberAdmin(req,res,['super_admin']);if(!admin)return;
     try {
       const {
         cardId,
