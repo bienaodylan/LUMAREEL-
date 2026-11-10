@@ -62,7 +62,7 @@ export const AdminPhysicalCardsView:React.FC=()=>{
    catch(e:any){setError(e.message||'Vue d’ensemble indisponible.');}
    finally{setLoadingOverview(false);}
  },[api]);
- useEffect(()=>{if(tab==='nfc')void loadNfc();if(tab==='dashboard'||tab==='logs')void loadOverview();},[tab,loadNfc,loadOverview]);
+ useEffect(()=>{if(tab==='nfc')void loadNfc();if(tab==='dashboard'||tab==='logs'||tab==='orders'||tab==='inventory'||tab==='shipping')void loadOverview();},[tab,loadNfc,loadOverview]);
 
  const associate=async(e:React.FormEvent)=>{
    e.preventDefault();setSaving(true);
