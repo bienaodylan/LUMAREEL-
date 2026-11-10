@@ -199,7 +199,8 @@ async function startServer() {
   };
 
   // POST /api/events (create or upsert with Multer upload support)
-  app.post('/api/events', eventUploadFields, (req: Request, res: Response) => {
+  app.post('/api/events', eventUploadFields, async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const payload = extractEventPayload(req);
       if (!payload.title && !payload.artist) {
@@ -216,7 +217,8 @@ async function startServer() {
   });
 
   // PUT /api/events/:id (update existing event with Multer upload support)
-  app.put('/api/events/:id', eventUploadFields, (req: Request, res: Response) => {
+  app.put('/api/events/:id', eventUploadFields, async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const payload = extractEventPayload(req);
       const updated = db.updateEvent(req.params.id, payload);
@@ -230,7 +232,8 @@ async function startServer() {
   });
 
   // DELETE /api/events/:id (delete existing event)
-  app.delete('/api/events/:id', (req: Request, res: Response) => {
+  app.delete('/api/events/:id', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const deleted = db.deleteEvent(req.params.id);
       if (!deleted) {
@@ -309,7 +312,8 @@ async function startServer() {
     }
   });
 
-  app.post('/api/archives', (req: Request, res: Response) => {
+  app.post('/api/archives', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const archive = db.saveArchive(req.body);
       res.status(201).json({ success: true, archive });
@@ -318,7 +322,8 @@ async function startServer() {
     }
   });
 
-  app.put('/api/archives/:id', (req: Request, res: Response) => {
+  app.put('/api/archives/:id', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const archive = db.saveArchive({ ...req.body, id: req.params.id });
       res.json({ success: true, archive });
@@ -327,7 +332,8 @@ async function startServer() {
     }
   });
 
-  app.delete('/api/archives/:id', (req: Request, res: Response) => {
+  app.delete('/api/archives/:id', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const deleted = db.deleteArchive(req.params.id);
       res.json({ success: true, deleted });
