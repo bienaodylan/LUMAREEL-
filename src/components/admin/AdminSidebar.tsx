@@ -13,10 +13,11 @@ import {
   ChevronRight,
   Sparkles,
   Printer,
-  Crown
+  Crown,
+  Radio
 } from 'lucide-react';
 
-export type AdminSection = 'overview' | 'membership' | 'workshop' | 'events' | 'orders' | 'archives' | 'emails' | 'settings';
+export type AdminSection = 'overview' | 'membership' | 'workshop' | 'events' | 'orders' | 'archives' | 'emails' | 'settings' | 'physicalCards';
 
 interface AdminSidebarProps {
   currentSection: AdminSection;
@@ -60,6 +61,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       label: 'LUMARÉEL CARD',
       icon: Crown,
       badge: '100',
+    },
+    {
+      id: 'physicalCards' as AdminSection,
+      label: 'Cartes physiques & NFC',
+      icon: Radio,
+      badge: 'NFC',
     },
     {
       id: 'workshop' as AdminSection,
