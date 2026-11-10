@@ -28,7 +28,9 @@ export const AdminPhysicalCardsView:React.FC=()=>{
  const [tab,setTab]=useState<Tab>('dashboard');
  const [error,setError]=useState('');
  const [overview,setOverview]=useState<OverviewStats|null>(null);
- const [events,setEvents]=useState<Activity[]>([]);\n const [orderRows,setOrderRows]=useState<OrderRow[]>([]);\n const [physicalCards,setPhysicalCards]=useState<PhysicalCard[]>([]);
+ const [events,setEvents]=useState<Activity[]>([]);
+ const [orderRows,setOrderRows]=useState<OrderRow[]>([]);
+ const [physicalCards,setPhysicalCards]=useState<PhysicalCard[]>([]);
  const [loadingOverview,setLoadingOverview]=useState(false);
  const [credentials,setCredentials]=useState<Credential[]>([]);
  const [loadingNfc,setLoadingNfc]=useState(false);
