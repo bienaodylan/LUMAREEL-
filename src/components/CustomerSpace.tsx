@@ -101,9 +101,9 @@ export const CustomerSpace: React.FC = () => {
   };
 
   const tabsConfig: Array<{ id: ScrollableTab; label: string; count?: number; highlight?: boolean }> = [
-    { id: 'tickets', label: t('orders.tabTickets'), count: allTickets.length },
-    { id: 'transfer', label: t('orders.tabTransfer') },
-    { id: 'past', label: t('orders.tabPast') },
+    { id: 'tickets', label: 'Mes billets', count: allTickets.length },
+    { id: 'past', label: 'Historique' },
+    { id: 'transfer', label: 'Transférés' },
   ];
 
   return (
