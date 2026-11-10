@@ -897,7 +897,8 @@ async function startServer() {
     }
   });
 
-  app.put('/api/membership/plans/:id', (req: Request, res: Response) => {
+  app.put('/api/membership/plans/:id', async (req: Request, res: Response) => {
+    if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const plan = membershipService.updatePlan(req.params.id, req.body);
       res.json({ success: true, plan });
