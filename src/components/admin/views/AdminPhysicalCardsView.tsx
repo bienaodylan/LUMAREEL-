@@ -26,7 +26,7 @@ type PhysicalCard={id:string;card_number:string;cardholder_name:string;card_stat
 
 export const AdminPhysicalCardsView:React.FC=()=>{
  const [tab,setTab]=useState<Tab>('dashboard');
- const [error,setError]=useState('');
+ const [error,setError]=useState('');\n const [success,setSuccess]=useState('');
  const [overview,setOverview]=useState<OverviewStats|null>(null);
  const [events,setEvents]=useState<Activity[]>([]);
  const [orderRows,setOrderRows]=useState<OrderRow[]>([]);
@@ -66,13 +66,13 @@ export const AdminPhysicalCardsView:React.FC=()=>{
  const associate=async(e:React.FormEvent)=>{
    e.preventDefault();setSaving(true);
    try{await api('/api/membership/nfc/associate',{method:'POST',body:JSON.stringify({cardId,chipReference,chipType})});
-     setCardId('');setChipReference('');await loadNfc();setTab('nfc');setError('Association NFC confirmée et auditée.');
+     setCardId('');setChipReference('');await loadNfc();setTab('nfc');setError('');setSuccess('Association NFC confirmée et auditée.');
    }catch(err:any){setError(err.message||'Association refusée.');}finally{setSaving(false);}
  };
  const revoke=async(id:string)=>{
    const reason=window.prompt('Motif obligatoire de révocation (min. 5 caractères) :');
    if(!reason)return;setSaving(true);
-   try{await api(`/api/membership/nfc/${encodeURIComponent(id)}/revoke`,{method:'POST',body:JSON.stringify({reason})});await loadNfc();setError('Credential révoqué et opération auditée.');}
+   try{await api(`/api/membership/nfc/${encodeURIComponent(id)}/revoke`,{method:'POST',body:JSON.stringify({reason})});await loadNfc();setError('');setSuccess('Credential révoqué et opération auditée.');}
    catch(err:any){setError(err.message||'Révocation refusée.');}finally{setSaving(false);}
  };
 
@@ -88,6 +88,6 @@ export const AdminPhysicalCardsView:React.FC=()=>{
   {tab==='replacements'&&<div className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6"><h2 className="font-bold">Remplacements & révocations</h2><p className="mt-2 text-sm text-neutral-400">Historique conservé, motif obligatoire et désactivation de l’ancien credential.</p></div>}
   {tab==='imports'&&<div className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6 space-y-3"><h2 className="font-bold">Import fournisseur CSV / Excel</h2><input type="file" accept=".csv,.xlsx,.xls" onChange={e=>setFile(e.target.files?.[0]||null)} className="block text-sm text-neutral-400"/>{file&&<p className="text-xs text-neutral-300">{file.name} · {(file.size/1024).toFixed(1)} Ko — aperçu/validation serveur à connecter.</p>}<p className="text-xs text-amber-300">Sélectionner un fichier ne déclenche aucun import.</p></div>}
   {tab==='logs'&&<div className="space-y-4 rounded-2xl border border-white/10 bg-[#0b0b0b] p-6"><div className="flex items-center justify-between"><h2 className="font-bold">Journal d’activité récent</h2><button onClick={()=>void loadOverview()} disabled={loadingOverview} className="rounded-lg border border-white/15 p-2"><RefreshCw size={15} className={loadingOverview?'animate-spin':''}/></button></div>{loadingOverview?<p className="text-sm text-neutral-400">Chargement du journal…</p>:events.length===0?<p className="text-sm text-neutral-400">Aucun événement enregistré pour le moment.</p>:<div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="text-neutral-500"><tr><th className="p-2">Date</th><th className="p-2">Action</th><th className="p-2">Objet</th><th className="p-2">Référence</th></tr></thead><tbody>{events.map(ev=><tr key={ev.id} className="border-t border-white/10"><td className="p-2 whitespace-nowrap">{new Date(ev.created_at).toLocaleString('fr-FR')}</td><td className="p-2">{ev.action_type}</td><td className="p-2">{ev.entity_type}</td><td className="p-2 font-mono">{ev.entity_id}</td></tr>)}</tbody></table></div>}</div>}
-  {error&&<div className="flex gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[.05] p-4 text-xs text-amber-200"><AlertCircle size={16} className="shrink-0"/><p>{error}</p></div>}
+  {success&&<div className="flex gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[.05] p-4 text-xs text-emerald-200"><ShieldCheck size={16} className="shrink-0"/><p>{success}</p></div>}\n  {error&&<div className="flex gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[.05] p-4 text-xs text-amber-200"><AlertCircle size={16} className="shrink-0"/><p>{error}</p></div>}
  </section>;
 };
