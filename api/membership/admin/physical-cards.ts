@@ -32,7 +32,23 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
       db.from('membership_events').select('id,action_type,entity_type,entity_id,details,created_at').order('created_at',{ascending:false}).limit(15) ,
     ]);
     if(events.error) throw events.error;
-    return res.status(200).json({success:true,stats:{orders,cards,active,suspended,revoked,expired,pending,shipped,delivered,credentials,nfcActive,nfcRevoked,unassigned},events:events.data||[]});
+    const [orderRows, physicalCards] = await Promise.all([
+      db.from('membership_orders')
+        .select('id,order_reference,amount,currency,payment_status,paid_at,created_at')
+        .order('created_at',{ascending:false}).limit(100),
+      db.from('membership_cards')
+        .select('id,card_number,cardholder_name,card_status,physical_card_status,physical_card_tracking_number,issued_at,expires_at')
+        .order('issued_at',{ascending:false}).limit(100),
+    ]);
+    if(orderRows.error) throw orderRows.error;
+    if(physicalCards.error) throw physicalCards.error;
+    return res.status(200).json({
+      success:true,
+      stats:{orders,cards,active,suspended,revoked,expired,pending,shipped,delivered,credentials,nfcActive,nfcRevoked,unassigned},
+      events:events.data||[],
+      orderRows:orderRows.data||[],
+      physicalCards:physicalCards.data||[],
+    });
   }catch(error:any){
     console.error('[physical-cards-overview]',error?.message||error);
     return res.status(500).json({success:false,error:'Les données de gestion des cartes sont indisponibles. Vérifiez les migrations Supabase.'});
