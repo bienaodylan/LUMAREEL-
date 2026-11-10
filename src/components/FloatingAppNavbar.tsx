@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp, PageView } from '../context/AppContext';
-import { Home, Ticket, Film, Newspaper, User, CreditCard } from 'lucide-react';
+import { Home, Ticket, Film, User, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 /**
@@ -25,43 +25,12 @@ export const FloatingAppNavbar: React.FC = () => {
     return total;
   }, 0);
 
-  const navItems: Array<{
-    page: PageView;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    badge?: number;
-  }> = [
-    {
-      page: 'home',
-      label: t('nav.home'),
-      icon: Home,
-    },
-    {
-      page: 'member_card',
-      label: 'LUMARÉEL CARD',
-      icon: CreditCard,
-    },
-    {
-      page: 'client_space',
-      label: t('nav.orders'),
-      icon: Ticket,
-      badge: activeTicketsCount > 0 ? activeTicketsCount : undefined,
-    },
-    {
-      page: 'archive',
-      label: t('nav.archives'),
-      icon: Film,
-    },
-    {
-      page: 'news',
-      label: t('nav.news'),
-      icon: Newspaper,
-    },
-    {
-      page: 'profile',
-      label: t('profile.title'),
-      icon: User,
-    },
+  const navItems: Array<{ page: PageView; label: string; icon: React.ComponentType<{ className?: string }>; badge?: number }> = [
+    { page: 'home', label: 'Accueil', icon: Home },
+    { page: 'client_space', label: 'Mes commandes', icon: Ticket, badge: activeTicketsCount || undefined },
+    { page: 'archive', label: 'Archives', icon: Film },
+    { page: 'member_card', label: 'Ma carte', icon: CreditCard },
+    { page: 'profile', label: 'Mon compte', icon: User },
   ];
 
   return (
@@ -69,11 +38,11 @@ export const FloatingAppNavbar: React.FC = () => {
       initial={{ y: 35, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed bottom-6 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 z-40 max-w-sm mx-auto pointer-events-none select-none md:hidden"
+      className="fixed bottom-6 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 z-40 max-w-2xl mx-auto pointer-events-none select-none md:hidden"
     >
       <nav
         aria-label="Navigation principale Meta Style"
-        className="pointer-events-auto mx-auto px-4 py-2 sm:py-2.5 rounded-full bg-black/45 backdrop-blur-2xl border border-white/15 shadow-[0_16px_40px_rgba(0,0,0,0.75)] flex items-center justify-around transition-all duration-300"
+        className="pointer-events-auto mx-auto px-2 py-2 sm:py-2.5 rounded-2xl bg-black/45 backdrop-blur-2xl border border-white/15 shadow-[0_16px_40px_rgba(0,0,0,0.75)] grid grid-cols-5 items-center gap-1 transition-all duration-300"
       >
         {navItems.map((item) => {
           const isActive = currentPage === item.page;
@@ -88,7 +57,7 @@ export const FloatingAppNavbar: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               aria-label={item.label}
               title={item.label}
-              className="relative p-2.5 sm:p-3 rounded-full flex items-center justify-center cursor-pointer group"
+              className="relative px-1.5 py-2 rounded-xl flex flex-col gap-1 items-center justify-center cursor-pointer group min-w-0"
             >
               {/* Fond translucide actif avec ressort fluide spring layoutId */}
               {isActive && (
@@ -102,12 +71,14 @@ export const FloatingAppNavbar: React.FC = () => {
               {/* Conteneur Icône & Badge */}
               <div className="relative z-10 flex items-center justify-center">
                 <Icon
-                  className={`w-5 h-5 sm:w-5.5 sm:h-5.5 transition-colors duration-200 ${
+                  className={`w-5 h-5 transition-colors duration-200 ${
                     isActive
                       ? 'text-white stroke-[2.3] drop-shadow-[0_0_6px_rgba(255,255,255,0.5)]'
                       : 'text-neutral-400 group-hover:text-white stroke-[1.7]'
                   }`}
                 />
+
+                <span className={`relative z-10 text-[9px] sm:text-[10px] leading-tight text-center truncate max-w-full ${isActive ? 'text-white font-bold' : 'text-neutral-400'}`}>{item.label}</span>
 
                 {/* Badge de notification pour les billets */}
                 {item.badge !== undefined && item.badge > 0 && (
