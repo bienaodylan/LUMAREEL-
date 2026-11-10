@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp, PageView } from '../context/AppContext';
-import { Home, Ticket, Film, Newspaper, User } from 'lucide-react';
+import { Home, Ticket, Film, Newspaper, User, CreditCard } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 /**
@@ -35,6 +35,11 @@ export const FloatingAppNavbar: React.FC = () => {
       page: 'home',
       label: t('nav.home'),
       icon: Home,
+    },
+    {
+      page: 'member_card',
+      label: 'LUMARÉEL CARD',
+      icon: CreditCard,
     },
     {
       page: 'client_space',
