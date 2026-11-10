@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { requireRole } from './_lib/supabase.js';
 
 const fallbackEvents = [
   {
@@ -173,13 +174,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (req.method === 'POST' || req.method === 'PUT') {
+    const auth = await requireRole(req, ['super_admin']);
+    if (!auth.ok) return res.status(auth.status).json({success:false,error:auth.error});
     const event = req.body;
     if (!event || !event.id) {
       return res.status(400).json({ success: false, error: 'Données d’événement invalides.' });
     }
 
     try {
-      if (supabase) {
+      if (auth.db) {
         const dbRow = {
           id: event.id,
           slug: event.slug,
@@ -208,7 +211,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           categories: event.categories || [],
           updated_at: new Date().toISOString(),
         };
-        await supabase.from('events').upsert(dbRow, { onConflict: 'id' });
+        const {error}=await auth.db.from('events').upsert(dbRow,{onConflict:'id'});
+        if(error) throw error;
       }
     } catch (e) {
       console.warn('Supabase upsert failed in /api/events:', e);
