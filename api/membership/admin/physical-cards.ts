@@ -41,7 +41,8 @@ export default async function handler(req:VercelRequest,res:VercelResponse){
         .order('issued_at',{ascending:false}).limit(100),
     ]);
     if(orderRows.error) throw orderRows.error;
-    if(physicalCards.error) throw physicalCards.error;\n    if(physicalOrderRows.error) throw physicalOrderRows.error;
+    if(physicalCards.error) throw physicalCards.error;
+    if(physicalOrderRows.error) throw physicalOrderRows.error;
     return res.status(200).json({
       success:true,
       stats:{orders,cards,active,suspended,revoked,expired,pending,shipped,delivered,credentials,nfcActive,nfcRevoked,unassigned},
