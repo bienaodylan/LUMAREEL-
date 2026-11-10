@@ -7,12 +7,33 @@ import multer from 'multer';
 import QRCode from 'qrcode';
 import { db } from './src/server/db';
 import { membershipService } from './src/server/membershipService';
+import { createClient } from '@supabase/supabase-js';
 
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+
+// Supabase session verification for membership endpoints (never trust email/userId from query/body).
+async function requireMemberSession(req: Request, res: Response) {
+  const bearer = String(req.headers.authorization || '');
+  const token = bearer.startsWith('Bearer ') ? bearer.slice(7) : '';
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  if (!token || !url || !key) { res.status(401).json({success:false,error:'Session Supabase requise.'}); return null; }
+  const client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:'Bearer '+token}}});
+  const {data,error}=await client.auth.getUser(token);
+  if(error||!data.user){res.status(401).json({success:false,error:'Session invalide ou expirée.'});return null;}
+  return {user:data.user,client};
+}
+async function requireMemberAdmin(req: Request,res: Response,roles:string[]=['super_admin']){
+  const session=await requireMemberSession(req,res);if(!session)return null;
+  const {data:role,error}=await session.client.rpc('lumareel_current_admin_role');
+  if(error||!role||!roles.includes(String(role))){res.status(403).json({success:false,error:'Accès administrateur non autorisé.'});return null;}
+  return session;
+}
 
 async function startServer() {
   const app = express();
@@ -963,51 +984,16 @@ async function startServer() {
   // 3. Espace Membre : Récupérer Ma Carte, Mes Avantages & Billets Reliés
   app.get('/api/membership/my-card', async (req: Request, res: Response) => {
     try {
-      const email = (req.query.email as string || '').toLowerCase().trim();
-      const userId = (req.query.userId as string || '').trim();
-
-      if (!email && !userId) {
-        return res.status(400).json({ success: false, error: 'Email ou ID utilisateur requis.' });
-      }
-
-      const card = email
-        ? membershipService.getCardByEmail(email)
-        : membershipService.getCardByUserId(userId);
-
-      if (!card) {
-        return res.json({ success: true, hasCard: false, card: null });
-      }
-
-      const benefits = membershipService.getBenefitsForCard(card.id);
-      const qrDataUrl = card.qrToken
-        ? await QRCode.toDataURL(card.qrToken, {
-            margin: 1,
-            color: { dark: '#000000', light: '#ffffff' },
-            width: 400,
-          })
-        : null;
-
-      // Récupérer les billets de concert existants reliés à cet utilisateur
-      const customerOrders = db.getOrdersForCustomer(card.cardholderEmail);
-      const concertTickets = customerOrders
-        .filter((o) => o.paymentStatus === 'completed' && o.tickets)
-        .flatMap((o) => o.tickets || []);
-
-      const physicalOrders = membershipService.getPhysicalOrders();
-      const physicalOrder = physicalOrders.find((po) => po.cardId === card.id);
-
-      res.json({
-        success: true,
-        hasCard: true,
-        card,
-        qrDataUrl,
-        benefits,
-        concertTickets,
-        physicalOrder,
-      });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
+      const session=await requireMemberSession(req,res);if(!session)return;
+      const card=membershipService.getCardByUserId(session.user.id);
+      if(!card)return res.json({success:true,hasCard:false,card:null});
+      const benefits=membershipService.getBenefitsForCard(card.id);
+      const qrDataUrl=card.qrToken?await QRCode.toDataURL(card.qrToken,{margin:1,color:{dark:'#000000',light:'#ffffff'},width:400}):null;
+      const customerOrders=db.getOrdersForCustomer(card.cardholderEmail);
+      const concertTickets=customerOrders.filter((o)=>o.paymentStatus==='completed'&&o.tickets).flatMap((o)=>o.tickets||[]);
+      const physicalOrder=membershipService.getPhysicalOrders().find((po)=>po.cardId===card.id);
+      return res.json({success:true,hasCard:true,card,qrDataUrl,benefits,concertTickets,physicalOrder});
+    }catch(error:any){return res.status(500).json({success:false,error:'Impossible de charger la carte membre.'});}
   });
 
   // 4. Vérification Publique Sécurisée (Route /card/verify/:token)
@@ -1059,31 +1045,17 @@ async function startServer() {
   });
 
   // 6. Consommation Atomique d'Avantage Membre
-  app.post('/api/membership/redeem-benefit', (req: Request, res: Response) => {
+  app.post('/api/membership/redeem-benefit', async (req: Request, res: Response) => {
     try {
-      const { cardId, benefitId, eventId, redeemedBy = 'Agent Événementiel' } = req.body;
-      if (!cardId || !benefitId) {
-        return res.status(400).json({
-          success: false,
-          error: 'ID de carte et ID d’avantage requis.',
-        });
-      }
-
-      const result = membershipService.redeemBenefit({
-        cardId,
-        benefitId,
-        eventId,
-        redeemedBy,
-      });
-
-      if (!result.success) {
-        return res.status(400).json(result);
-      }
-
-      res.json(result);
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
+      const session=await requireMemberSession(req,res);if(!session)return;
+      const {cardId,benefitId,eventId}=req.body;
+      if(!cardId||!benefitId)return res.status(400).json({success:false,error:'ID carte et avantage requis.'});
+      const owned=membershipService.getCardByUserId(session.user.id);
+      if(!owned||owned.id!==String(cardId))return res.status(403).json({success:false,error:'Cette carte ne vous appartient pas.'});
+      const result=membershipService.redeemBenefit({cardId,benefitId,eventId,redeemedBy:session.user.id});
+      if(!result.success)return res.status(400).json(result);
+      return res.json(result);
+    }catch(error:any){return res.status(500).json({success:false,error:'Impossible de consommer cet avantage.'});}
   });
 
   // 7. Administration : Vue d'Ensemble & Gestion Centralisée Membership
@@ -1099,61 +1071,26 @@ async function startServer() {
     }
   });
 
-  app.get('/api/membership/admin/cards', (req: Request, res: Response) => {
+  app.get('/api/membership/admin/cards', async (req: Request, res: Response) => {
     try {
-      let cards = membershipService.getAllCards();
-      const { status, q } = req.query;
-
-      if (status && status !== 'all') {
-        cards = cards.filter((c) => c.cardStatus === status);
-      }
-      if (q && typeof q === 'string') {
-        const query = q.toLowerCase();
-        cards = cards.filter(
-          (c) =>
-            c.cardNumber.toLowerCase().includes(query) ||
-            c.cardholderName.toLowerCase().includes(query) ||
-            c.cardholderEmail.toLowerCase().includes(query)
-        );
-      }
-
-      res.json({ success: true, cards });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
+      const session=await requireMemberAdmin(req,res,['super_admin','box_office']);if(!session)return;
+      let cards=membershipService.getAllCards();const {status,q}=req.query;
+      if(status&&status!=='all')cards=cards.filter((card)=>card.cardStatus===status);
+      if(q&&typeof q==='string'){const query=q.toLowerCase();cards=cards.filter(card=>card.cardNumber.toLowerCase().includes(query)||card.cardholderName.toLowerCase().includes(query)||card.cardholderEmail.toLowerCase().includes(query));}
+      return res.json({success:true,cards});
+    }catch(error:any){return res.status(500).json({success:false,error:'Liste des cartes indisponible.'});}
   });
-
-  app.get('/api/membership/admin/cards/:id', (req: Request, res: Response) => {
-    try {
-      const card = membershipService.getCardById(req.params.id);
-      if (!card) {
-        return res.status(404).json({ success: false, error: 'Carte introuvable.' });
-      }
-      const benefits = membershipService.getBenefitsForCard(card.id);
-      res.json({ success: true, card, benefits });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
+  app.get('/api/membership/admin/cards/:id', async (req: Request,res: Response)=>{
+    try{const session=await requireMemberAdmin(req,res,['super_admin','box_office']);if(!session)return;const card=membershipService.getCardById(req.params.id);if(!card)return res.status(404).json({success:false,error:'Carte introuvable.'});return res.json({success:true,card,benefits:membershipService.getBenefitsForCard(card.id)});}
+    catch(error:any){return res.status(500).json({success:false,error:'Carte indisponible.'});}
   });
-
-  app.post('/api/membership/admin/cards/:id/status', (req: Request, res: Response) => {
-    try {
-      const { status, reason, actorId } = req.body;
-      const updated = membershipService.updateCardStatus(req.params.id, status, reason, actorId);
-      res.json({ success: true, card: updated });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
+  app.post('/api/membership/admin/cards/:id/status',async(req:Request,res:Response)=>{
+    try{const session=await requireMemberAdmin(req,res,['super_admin']);if(!session)return;const {status,reason}=req.body;const card=membershipService.getCardById(req.params.id);if(!card)return res.status(404).json({success:false,error:'Carte introuvable.'});return res.json({success:true,card:membershipService.updateCardStatus(req.params.id,status,reason,session.user.id)});}
+    catch(error:any){return res.status(400).json({success:false,error:'Modification du statut refusée.'});}
   });
-
-  app.post('/api/membership/admin/cards/:id/rotate-token', (req: Request, res: Response) => {
-    try {
-      const { actorId, reason } = req.body;
-      const result = membershipService.rotateCardQrToken(req.params.id, reason, actorId);
-      res.json({ success: true, ...result });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
+  app.post('/api/membership/admin/cards/:id/rotate-token',async(req:Request,res:Response)=>{
+    try{const session=await requireMemberSession(req,res);if(!session)return;const card=membershipService.getCardByUserId(session.user.id);if(!card||card.id!==req.params.id)return res.status(403).json({success:false,error:'Cette carte ne vous appartient pas.'});const result=membershipService.rotateCardQrToken(req.params.id,'Rotation demandée par le titulaire',session.user.id);const qrDataUrl=await QRCode.toDataURL(result.newQrToken,{margin:1,color:{dark:'#000000',light:'#ffffff'},width:400});return res.json({success:true,card:result.card,newQrToken:result.newQrToken,qrDataUrl});}
+    catch(error:any){return res.status(400).json({success:false,error:'Rotation du QR refusée.'});}
   });
 
   // 8. ATELIER D'IMPRESSION PHYSIQUE (CARD PRINTING STUDIO & LUMARÉEL WORKSHOP)

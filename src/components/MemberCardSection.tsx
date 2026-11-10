@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { supabase } from '../lib/supabaseClient';
 import { MembershipCard, MembershipBenefit, MembershipEntitlement, Ticket, Order } from '../types';
 import {
   ShieldCheck,
@@ -58,7 +59,9 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
     }
     try {
       setLoading(true);
-      const res = await fetch(`/api/membership/my-card?email=${encodeURIComponent(currentUser.email)}`);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { setCard(null); return; }
+      const res = await fetch('/api/membership/my-card', { headers: { Authorization: `Bearer ${session.access_token}` } });
       const data = await res.json();
       if (data.success && data.hasCard) {
         setCard(data.card);
@@ -78,17 +81,19 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
     if (!card) return;
     try {
       setIsRotatingToken(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Session utilisateur requise.');
       const res = await fetch(`/api/membership/admin/cards/${card.id}/rotate-token`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ actorId: currentUser?.email || 'USER' }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({}),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Échec de rotation du jeton.');
       }
+      if (data.qrDataUrl) setQrDataUrl(data.qrDataUrl);
       showToast('Jeton QR régénéré avec succès. L’ancien jeton a été révoqué.', 'success');
-      fetchMyCard();
     } catch (err: any) {
       showToast(err.message || 'Impossible de faire pivoter le jeton.', 'error');
     } finally {
@@ -100,9 +105,11 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
     if (!card) return;
     try {
       setIsRedeeming(benefitId);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Session utilisateur requise.');
       const res = await fetch('/api/membership/redeem-benefit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
           cardId: card.id,
           benefitId,
