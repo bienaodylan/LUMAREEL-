@@ -31,17 +31,17 @@ export const FloatingAppNavbar: React.FC = () => {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.38, ease: [0.16, 1, 0.3, 1] }}
       className="fixed inset-x-0 z-40 md:hidden pointer-events-none select-none w-full"
-      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)' }}
+      style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
     >
       <motion.nav
         aria-label="Navigation principale"
         animate={{
-          width: scrolled ? 'min(280px, calc(100% - 32px))' : 'calc(100% - 24px)',
-          height: scrolled ? 52 : 66,
+          width: scrolled ? 'min(280px, calc(100% - 32px))' : 'min(340px, calc(100% - 24px))',
+          height: scrolled ? 48 : 60,
           backgroundColor: scrolled ? 'rgba(16,16,16,0.94)' : 'rgba(16,16,16,0.84)',
         }}
         transition={{ duration: 0.42, ease: [0.16, 1, 0.3, 1] }}
-        className="pointer-events-auto mx-auto grid max-w-[440px] grid-cols-5 items-center rounded-full border border-white/[0.10] px-1.5 shadow-[0_12px_34px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl"
+        className="pointer-events-auto mx-auto grid max-w-[440px] grid-cols-5 items-center justify-between gap-1 rounded-full border border-white/[0.10] px-2 shadow-[0_10px_30px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl"
         style={{ WebkitBackdropFilter: 'blur(18px)' }}
       >
         {navItems.map((item) => {
@@ -56,13 +56,13 @@ export const FloatingAppNavbar: React.FC = () => {
               whileTap={{ scale: 0.94 }}
               aria-label={item.label}
               title={item.label}
-              className="relative flex h-full min-w-0 items-center justify-center overflow-visible rounded-xl outline-none"
+              className="relative flex h-[44px] min-w-0 flex-1 items-center justify-center overflow-visible rounded-full outline-none"
             >
               {isActive && (
                 <motion.span
                   layoutId="activeFloatingNavbarPill"
-                  className="absolute left-1/2 top-1/2 h-[44px] w-[60px] -translate-x-1/2 -translate-y-1/2 rounded-[15px] border border-[#d4af37]/20 bg-[#29251b]/90 shadow-[inset_0_1px_0_rgba(212,175,55,0.08)]"
-                  animate={{ height: scrolled ? 38 : 44, width: scrolled ? 52 : 60 }}
+                  className="absolute left-1/2 top-1/2 h-[40px] w-[calc(100%-8px)] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#d4af37]/20 bg-[#29251b]/90 shadow-[inset_0_1px_0_rgba(212,175,55,0.08)]"
+                  animate={{ height: scrolled ? 36 : 40, width: scrolled ? "calc(100% - 8px)" : "calc(100% - 8px)" }}
                   transition={{ type: 'spring', stiffness: 420, damping: 32, mass: 0.7 }}
                 />
               )}
