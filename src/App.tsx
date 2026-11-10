@@ -8,6 +8,7 @@ import { ArchiveView } from './components/ArchiveView';
 import { NewsView } from './components/NewsView';
 import { OrganizersView } from './components/OrganizersView';
 import { CustomerSpace } from './components/CustomerSpace';
+import { LumareelWalletView } from './components/LumareelWalletView';
 import { ProfileView } from './components/ProfileView';
 import { ScannerView } from './components/ScannerView';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -51,7 +52,7 @@ const MainApp: React.FC = () => {
             {currentPage === 'archive' && <ArchiveView />}
             {currentPage === 'news' && <NewsView />}
             {currentPage === 'organizers' && <OrganizersView />}
-            {currentPage === 'client_space' && <CustomerSpace />}
+            {currentPage === 'client_space' && <LumareelWalletView />}
             {currentPage === 'profile' && <ProfileView />}
             {currentPage === 'card' && <LumareelCardView />}
             {currentPage === 'card_verify' && <CardVerificationView />}

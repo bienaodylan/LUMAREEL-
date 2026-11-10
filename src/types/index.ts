@@ -99,7 +99,10 @@ export interface Order {
   currency: 'FCFA' | 'XOF' | 'EUR' | string;
   paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
   paymentProvider: 'geniuspay' | 'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'djamo' | 'card' | string;
+  paymentMethod?: string;
   paymentRef: string;
+  orderReference?: string;
+  items?: Array<{ quantity: number; categoryName: string; price?: number }>;
   createdAt: string;
   paidAt?: string;
   tickets?: Ticket[];
@@ -637,4 +640,121 @@ export interface MemberAccessCheckResult {
     benefitName: string;
     remaining: number;
   };
+}
+
+// ============================================================================
+// LUMARÉEL WALLET, INVITATIONS & UNIFIED ACCESS CONTROL
+// ============================================================================
+
+export type InvitationStatus = 'pending' | 'accepted' | 'declined' | 'used' | 'cancelled' | 'expired';
+
+export interface PrivateInvitation {
+  id: string;
+  title: string;
+  subtitle?: string;
+  description: string;
+  category: 'exclusive_gala' | 'artist_meet' | 'secret_show' | 'vip_reception' | 'acoustic_session';
+  host: string;
+  eventDate: string;
+  eventTime: string;
+  venue: string;
+  city: string;
+  recipientEmail: string;
+  recipientName: string;
+  recipientUserId?: string;
+  membershipRequired?: boolean;
+  editionCode?: string;
+  status: InvitationStatus;
+  qrToken: string;
+  dressCode?: string;
+  plusOnesAllowed: number;
+  expiresAt: string;
+  acceptedAt?: string;
+  usedAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export type WalletActivityType =
+  | 'ticket_purchase'
+  | 'membership_activated'
+  | 'physical_card_ordered'
+  | 'physical_card_printed'
+  | 'ticket_scanned'
+  | 'benefit_redeemed'
+  | 'invitation_received'
+  | 'invitation_accepted'
+  | 'token_rotated'
+  | 'payment_confirmed';
+
+export interface WalletActivityRecord {
+  id: string;
+  type: WalletActivityType;
+  title: string;
+  description: string;
+  timestamp: string;
+  reference?: string;
+  badge?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface WalletPaymentRecord {
+  id: string;
+  reference: string;
+  amount: number;
+  currency: string;
+  method: string;
+  product: string;
+  status: 'completed' | 'pending' | 'failed';
+  date: string;
+}
+
+export interface WalletOverview {
+  user: {
+    name: string;
+    email: string;
+    role: string;
+  };
+  card: MembershipCard | null;
+  qrToken?: string;
+  qrDataUrl?: string | null;
+  benefits: Array<{ benefit: MembershipBenefit; entitlement?: MembershipEntitlement }>;
+  tickets: Ticket[];
+  invitations: PrivateInvitation[];
+  orders: Order[];
+  payments: WalletPaymentRecord[];
+  activities: WalletActivityRecord[];
+  metrics: {
+    activeTicketsCount: number;
+    availableBenefitsCount: number;
+    activeInvitationsCount: number;
+    pendingOrdersCount: number;
+    hasActiveMembership: boolean;
+  };
+}
+
+export type UnifiedAccessStatus =
+  | 'ACCESS_GRANTED'
+  | 'ACCESS_DENIED'
+  | 'ALREADY_USED'
+  | 'MEMBERSHIP_EXPIRED'
+  | 'MEMBERSHIP_SUSPENDED'
+  | 'INVITATION_INVALID'
+  | 'TICKET_CANCELLED'
+  | 'SYSTEM_UNAVAILABLE';
+
+export interface UnifiedAccessScanResult {
+  status: UnifiedAccessStatus;
+  targetType: 'ticket' | 'membership' | 'invitation' | 'unknown';
+  holderName?: string;
+  reference?: string;
+  eventTitle?: string;
+  categoryOrEdition?: string;
+  venue?: string;
+  zone?: string;
+  scannedAt: string;
+  message: string;
+  detail?: string;
+  operatorId: string;
+  flaggedAnomaly?: boolean;
 }

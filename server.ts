@@ -1359,6 +1359,104 @@ async function startServer() {
     }
   });
 
+  // =========================================================================
+  // LUMARÉEL WALLET UNIFIÉ & INVITATIONS PRIVÉES
+  // =========================================================================
+
+  app.get('/api/wallet/overview', async (req: Request, res: Response) => {
+    try {
+      const email = ((req.query.email as string) || '').toLowerCase().trim();
+      const user = db.getUserByEmail(email);
+      const userOrders = email ? db.getOrdersForCustomer(email) : [];
+
+      const overview = membershipService.getWalletOverview({
+        email: email || user?.email || 'bienaodylan428@gmail.com',
+        userName: user?.name,
+        userOrders,
+      });
+
+      // Generate base64 QR code for membership card if present
+      if (overview.card?.qrToken) {
+        overview.qrDataUrl = await QRCode.toDataURL(overview.card.qrToken, {
+          margin: 1,
+          color: { dark: '#000000', light: '#ffffff' },
+          width: 480,
+        });
+      }
+
+      res.json({ success: true, overview });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/wallet/invitations', (req: Request, res: Response) => {
+    try {
+      const email = ((req.query.email as string) || '').toLowerCase().trim();
+      const invitations = membershipService.getInvitations(email);
+      res.json({ success: true, invitations });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/wallet/invitations/:id/respond', (req: Request, res: Response) => {
+    try {
+      const { response } = req.body;
+      if (!response || !['accepted', 'declined'].includes(response)) {
+        return res.status(400).json({ success: false, error: 'Réponse valide requise (accepted ou declined).' });
+      }
+      const result = membershipService.respondToInvitation(req.params.id, response);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/membership/admin/invitations', (req: Request, res: Response) => {
+    try {
+      const invitation = membershipService.createInvitation(req.body);
+      res.status(201).json({ success: true, invitation });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // LUMARÉEL ACCESS CONTROL : UNIFIED PORTAL SCANNER (Tickets, Membership & Invitations)
+  app.post('/api/access/scan', (req: Request, res: Response) => {
+    try {
+      const { rawToken, eventId, zone, operatorId } = req.body;
+      if (!rawToken) {
+        return res.status(400).json({
+          status: 'SYSTEM_UNAVAILABLE',
+          targetType: 'unknown',
+          message: 'Jeton ou QR scanné obligatoire.',
+          scannedAt: new Date().toISOString(),
+          operatorId: operatorId || 'Agent Contrôle',
+        });
+      }
+
+      const allOrders = db.getAllOrders();
+      const result = membershipService.unifiedScan({
+        rawToken,
+        eventId,
+        zone,
+        operatorId,
+        allOrders,
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({
+        status: 'SYSTEM_UNAVAILABLE',
+        targetType: 'unknown',
+        message: error.message,
+        scannedAt: new Date().toISOString(),
+        operatorId: req.body.operatorId || 'Agent Contrôle',
+      });
+    }
+  });
+
   // 7. Administration
 
   app.get('/api/admin/overview', (_req: Request, res: Response) => {

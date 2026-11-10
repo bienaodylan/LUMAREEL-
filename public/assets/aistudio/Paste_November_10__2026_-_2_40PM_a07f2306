@@ -1,0 +1,1047 @@
+LUMARÉEL WALLET
+
+MASTER DEVELOPMENT PROMPT — DIGITAL MEMBERSHIP CARD, SMART WALLET, TICKETING & ACCESS ECOSYSTEM
+
+1. MISSION GÉNÉRALE
+
+Tu interviens sur le projet existant LUMARÉEL :
+
+https://lumareel-theta.vercel.app/
+
+Ta mission est de concevoir, développer et intégrer un système complet appelé LUMARÉEL WALLET.
+
+Ce système doit devenir le portefeuille numérique central de chaque utilisateur LUMARÉEL.
+
+Il doit regrouper dans un seul espace :
+
+* La carte de membre LUMARÉEL CARD.
+* Les billets de concerts et d’événements achetés.
+* Les commandes et réservations.
+* Les avantages et privilèges.
+* Les invitations privées.
+* Les paiements et reçus.
+* Les commandes de cartes physiques.
+* L’historique des activités.
+* Les informations personnelles du membre.
+
+Le système doit également être connecté à deux autres espaces :
+
+1. LUMARÉEL ACCESS CONTROL : interface destinée aux agents qui vérifient les cartes, billets, invitations et autorisations.
+2. LUMARÉEL MANAGEMENT : administration centrale permettant de gérer les membres, les commandes, les paiements, les événements, les avantages, les agents et les opérations.
+
+IMPORTANT : il ne s’agit pas de construire trois applications indépendantes. Il faut créer trois interfaces cohérentes reposant sur le même système métier et la même infrastructure de données.
+
+Avant toute modification :
+
+* Inspecte entièrement le projet existant.
+* Identifie le framework, les composants, les routes, les tables Supabase, les Edge Functions et les systèmes de paiement déjà intégrés.
+* Identifie le fonctionnement actuel des comptes, billets, QR codes, commandes et événements.
+* Réutilise les composants et fonctionnalités existants lorsqu’ils sont compatibles.
+* Ne supprime aucune fonctionnalité existante.
+* Ne crée aucune table en doublon.
+* Ne remplace pas les systèmes existants sans justification technique.
+* Établis un plan d’intégration avant les migrations.
+
+2. DIRECTION ARTISTIQUE
+
+LUMARÉEL doit conserver une identité premium, élégante, minimaliste et institutionnelle.
+
+Palette :
+
+* Noir profond : #050505.
+* Noir secondaire : #101010.
+* Or : #D4AF37.
+* Blanc : #FFFFFF.
+* Gris neutres pour les informations secondaires.
+
+Principes :
+
+* Design premium, éditorial et intemporel.
+* Typographie élégante et lisible.
+* Espacements généreux.
+* Icônes discrètes.
+* Animations fluides et précises.
+* Cartes et surfaces soigneusement structurées.
+* Pas de dégradés colorés excessifs.
+* Pas d’interface générique de dashboard SaaS.
+* Pas d’accumulation de bordures.
+* Pas d’effets visuels inutiles.
+
+L’expérience doit être cohérente entre le site public, l’espace membre, l’espace agent et l’administration.
+
+Ne modifie pas arbitrairement l’identité graphique existante de LUMARÉEL.
+
+⸻
+
+PARTIE I — LUMARÉEL DIGITAL MEMBERSHIP CARD
+
+3. CONCEPTION DE LA CARTE NUMÉRIQUE
+
+C’est l’un des éléments les plus importants de toute cette réalisation.
+
+Créer une véritable carte de membre numérique premium, avec un recto et un verso.
+
+La carte doit ressembler à une véritable carte physique haut de gamme, et non à une simple carte de présentation de profil.
+
+3.1 Dimensions et proportions
+
+Utiliser le format standard international des cartes bancaires et cartes PVC CR80 :
+
+* Largeur : 85,60 mm.
+* Hauteur : 53,98 mm.
+* Ratio : environ 1,586:1.
+* Format horizontal.
+* Coins arrondis.
+* Proportions strictement conservées.
+
+Sur le web, utiliser une mise en page responsive fondée sur ce ratio.
+
+CSS de référence :
+
+aspect-ratio: 85.6 / 53.98;
+
+Sur ordinateur :
+
+* Carte centrée dans son espace.
+* Largeur maximale recommandée : environ 420 px.
+* Hauteur calculée automatiquement.
+* Ne jamais étirer la carte pour remplir un grand écran.
+
+Sur tablette :
+
+* Conserver exactement les proportions.
+* Adapter la largeur à l’espace disponible.
+
+Sur smartphone :
+
+* Carte adaptée à la largeur disponible.
+* Garder une marge latérale suffisante.
+* Ne jamais couper les coins.
+* Ne jamais déformer la carte.
+* Garder les textes et le QR lisibles.
+
+La taille doit être responsive, mais les proportions doivent toujours rester identiques.
+
+3.2 Animation de retournement
+
+Créer une véritable interaction de retournement recto-verso.
+
+Le membre peut :
+
+* Cliquer sur la carte pour la retourner.
+* Cliquer sur un bouton discret « Retourner la carte ».
+* Utiliser le geste approprié sur mobile, si cela est pertinent.
+
+Utiliser une animation 3D fluide avec perspective et rotation autour de l’axe Y.
+
+Comportement :
+
+* Face avant visible par défaut.
+* Au clic, rotation de 180 degrés.
+* Le verso apparaît naturellement.
+* Au clic suivant, retour au recto.
+* Animation fluide, sans flash blanc.
+* Aucun chevauchement des deux faces.
+* Utiliser backface-visibility correctement.
+* Prévoir une durée d’animation élégante, autour de 600 ms.
+* Respecter les préférences de réduction des animations du système.
+
+La carte doit être interactive sans donner l’impression d’un jeu ou d’un gadget.
+
+3.3 RECTO — FACE PRINCIPALE
+
+Le recto doit être minimaliste et particulièrement élégant.
+
+Éléments autorisés :
+
+1. Logo LUMARÉEL.
+2. Nom complet du membre.
+3. Numéro permanent de membre.
+4. Mention discrète de l’édition, si nécessaire.
+
+RÈGLE FONDAMENTALE SUR LE NOM :
+
+Le nom de la personne est l’identité principale de la carte.
+
+Afficher uniquement le nom de la personne comme élément nominatif principal.
+
+Exemple :
+
+DYLAN BIENAO
+
+Ne pas ajouter :
+
+* Mr.
+* CEO.
+* Founder.
+* VIP.
+* Ambassadeur.
+* Président.
+* Un titre professionnel.
+* Une fonction.
+* Une description de la personne.
+
+Le nom doit être proprement typographié, avec une taille élégante et une excellente lisibilité.
+
+Exemple de composition :
+
+En haut :
+Logo LUMARÉEL.
+
+Au centre :
+DYLAN BIENAO.
+
+En bas :
+LMR-2026-0001.
+
+La mention FOUNDERS EDITION peut apparaître de manière discrète, sans concurrencer le nom.
+
+La carte doit avoir un fond noir profond, une texture très subtile et des détails dorés soigneusement maîtrisés.
+
+Ne pas surcharger le recto.
+
+3.4 VERSO — FACE QR CODE
+
+Le verso doit être entièrement pensé autour du QR code.
+
+Il remplace l’emplacement qui serait normalement réservé à une puce ou à une fonction de paiement.
+
+Composition :
+
+* Fond noir ou blanc selon la meilleure lisibilité.
+* QR code noir sur fond blanc.
+* Zone blanche suffisamment grande.
+* QR parfaitement carré.
+* Marges de sécurité autour du QR.
+* Logo LUMARÉEL discret si cela ne gêne pas la lecture.
+* Numéro de membre éventuellement affiché en bas.
+
+Le QR code doit être le principal élément visuel du verso.
+
+Il doit être suffisamment grand pour être facilement scanné depuis :
+
+* Un smartphone.
+* Un lecteur QR professionnel.
+* Une tablette.
+* Un appareil de contrôle à l’entrée.
+
+Ne jamais réduire la taille du QR au profit du décor.
+
+Respecter la quiet zone, le contraste et les recommandations techniques d’impression.
+
+Le QR doit être généré à partir d’un credential sécurisé lié au compte membre.
+
+Ne jamais encoder directement les données personnelles dans le QR.
+
+3.5 Bouton et instructions de retournement
+
+Sous la carte, prévoir une indication discrète :
+
+« Cliquez pour retourner la carte »
+
+Sur mobile, l’indication peut être :
+
+« Touchez pour retourner »
+
+Cette instruction doit disparaître ou devenir secondaire une fois que le membre a compris le fonctionnement.
+
+Prévoir également une action permettant d’afficher le QR en grand écran, afin de faciliter le scan à l’entrée.
+
+3.6 Version physique
+
+La version numérique et la version PVC doivent représenter la même adhésion.
+
+Le design du recto et du verso doit pouvoir être exporté dans un format adapté à l’impression.
+
+Prévoir :
+
+* Fichiers haute résolution.
+* Fond perdu et marges de sécurité configurables.
+* Export recto-verso.
+* Vérification du QR avant impression.
+* Aperçu fidèle du résultat.
+* Gestion des réimpressions.
+
+Le QR imprimé sur la carte physique doit correspondre au credential autorisé du membre.
+
+⸻
+
+PARTIE II — LUMARÉEL WALLET
+
+4. ARCHITECTURE DE L’ESPACE MEMBRE
+
+Créer une nouvelle expérience membre accessible depuis « Mon Compte ».
+
+Nom de l’espace :
+
+LUMARÉEL WALLET
+
+L’expérience doit être fluide, élégante et facile à comprendre.
+
+L’utilisateur doit retrouver tous ses achats et ses droits sans devoir parcourir plusieurs espaces différents.
+
+4.1 Page d’accueil du portefeuille
+
+Créer un tableau de bord personnel contenant :
+
+* Salutation personnalisée.
+* Carte membre interactive si l’utilisateur est adhérent.
+* Nombre de billets actifs.
+* Nombre d’avantages disponibles.
+* Nombre d’invitations actives.
+* Commandes en cours.
+* Activités récentes.
+
+Si l’utilisateur ne possède pas encore de membership, lui proposer de découvrir LUMARÉEL CARD sans bloquer l’accès au portefeuille.
+
+Ne jamais afficher une carte de membre fictive comme si elle était active.
+
+4.2 Navigation du portefeuille
+
+Créer les rubriques suivantes :
+
+A. OVERVIEW
+Vue d’ensemble du portefeuille.
+
+B. MY MEMBERSHIP
+Carte numérique, numéro de membre, statut, validité, édition, informations et commande de carte physique.
+
+C. MY TICKETS
+Tous les billets achetés, classés par événement.
+
+D. MY BENEFITS
+Avantages liés au membership, offres, privilèges et droits accordés.
+
+E. MY INVITATIONS
+Invitations privées, expériences et événements spéciaux.
+
+F. MY ORDERS
+Commandes, réservations et achats.
+
+G. MY PAYMENTS
+Historique des paiements, factures et reçus.
+
+H. MY ACTIVITY
+Historique des événements, contrôles et activités du compte.
+
+I. MY PROFILE
+Coordonnées, préférences et paramètres personnels.
+
+La navigation doit s’adapter au mobile et à l’ordinateur.
+
+4.3 MY TICKETS — BILLETS
+
+Cette rubrique doit regrouper automatiquement tous les billets associés au compte.
+
+Pour chaque billet, afficher :
+
+* Nom de l’événement.
+* Affiche ou visuel.
+* Date et heure.
+* Catégorie du billet.
+* Numéro de commande.
+* Numéro de billet.
+* Statut de paiement.
+* Statut du billet.
+* QR code individuel.
+* Informations d’accès.
+
+Statuts possibles :
+
+* Payment pending.
+* Confirmed.
+* Valid.
+* Used.
+* Cancelled.
+* Refunded.
+* Expired.
+
+Le membre peut :
+
+* Consulter son billet.
+* Afficher son QR en plein écran.
+* Consulter sa commande.
+* Télécharger son billet lorsque cette fonction est disponible.
+
+Les QR individuels des billets doivent rester distincts du QR de membership.
+
+Ne jamais utiliser un même QR de membre pour valider plusieurs billets différents.
+
+4.4 MY BENEFITS — AVANTAGES
+
+Créer un véritable système de privilèges.
+
+Exemples :
+
+* Accès aux préventes privées.
+* File prioritaire.
+* Tarifs préférentiels.
+* Invitations exclusives.
+* Expériences privées avec des artistes.
+* Espaces VIP selon les conditions de l’événement.
+* Cadeaux et surprises.
+
+Pour chaque avantage :
+
+* Nom.
+* Description.
+* Visuel éventuel.
+* Date de disponibilité.
+* Date d’expiration.
+* Conditions d’utilisation.
+* Événement ou lieu concerné.
+* Nombre d’utilisations autorisées.
+* Nombre d’utilisations restantes.
+* Statut : available, used, expired, revoked.
+
+L’administration doit pouvoir attribuer des avantages à un membre, à une édition, à un groupe ou à un événement.
+
+Un avantage doit être réellement enregistré et contrôlé côté serveur lorsqu’il est utilisé.
+
+Ne pas confondre un avantage de membership avec un billet d’entrée.
+
+4.5 MY INVITATIONS
+
+Cette rubrique doit accueillir les invitations :
+
+* Événements privés.
+* Rencontres avec artistes.
+* Réceptions.
+* Expériences exclusives.
+* Accès spéciaux.
+
+Chaque invitation possède un identifiant et un statut.
+
+Prévoir un QR individuel lorsque l’invitation nécessite un contrôle à l’entrée.
+
+4.6 MY ORDERS
+
+Afficher toutes les commandes du membre :
+
+* Billets.
+* Adhésions.
+* Cartes physiques.
+* Produits ou services LUMARÉEL disponibles.
+* Réservations.
+
+Chaque commande doit disposer d’une page de détail avec :
+
+* Référence.
+* Date.
+* Articles.
+* Montant.
+* Devise.
+* Paiement.
+* Statut.
+* Historique.
+* Documents associés.
+
+4.7 MY PAYMENTS
+
+Créer un historique financier personnel.
+
+Afficher :
+
+* Référence de transaction.
+* Montant.
+* Devise.
+* Moyen de paiement.
+* Date.
+* Produit acheté.
+* Statut de paiement.
+* Reçu ou facture disponible.
+
+Les données doivent provenir des transactions réellement confirmées.
+
+Ne pas afficher un paiement comme réussi sur la seule base du retour frontend du prestataire.
+
+4.8 MY ACTIVITY
+
+Afficher :
+
+* Achats.
+* Billets utilisés.
+* Invitations acceptées.
+* Avantages consommés.
+* Contrôles d’accès.
+* Commandes de cartes physiques.
+* Modifications importantes du compte.
+
+Ne pas exposer les informations internes ou sensibles concernant les agents.
+
+⸻
+
+PARTIE III — SYNCHRONISATION AUTOMATIQUE
+
+5. UN ACHAT = UNE MISE À JOUR DU PORTEFEUILLE
+
+Le portefeuille doit être alimenté automatiquement.
+
+Exemple :
+
+Un utilisateur achète un billet de concert.
+
+1. La commande est créée.
+2. Le prestataire de paiement traite la transaction.
+3. Le backend vérifie la confirmation réelle.
+4. Le billet est émis.
+5. Le QR individuel du billet est généré.
+6. Le billet apparaît dans MY TICKETS.
+7. La commande apparaît dans MY ORDERS.
+8. Le paiement apparaît dans MY PAYMENTS.
+9. Une notification est envoyée.
+
+Le même principe doit s’appliquer aux adhésions et aux cartes physiques.
+
+Pour chaque transaction :
+
+* Vérifier le montant.
+* Vérifier la devise.
+* Vérifier la référence.
+* Vérifier le statut.
+* Garantir l’idempotence.
+* Empêcher les émissions en double.
+
+Si un paiement est remboursé, annulé ou contesté, appliquer les règles correspondantes aux droits associés.
+
+Ne pas attribuer automatiquement une adhésion ou un billet sur la base d’une simple commande en attente.
+
+6. IDENTITÉ UNIQUE DU CLIENT
+
+Chaque portefeuille est lié à un utilisateur authentifié.
+
+Un client ne doit pas avoir besoin de créer un compte séparé pour ses billets et son membership.
+
+Utiliser l’identité de l’utilisateur existant dans Supabase Auth.
+
+Les achats doivent être associés au bon compte.
+
+Si les commandes existantes ne sont pas correctement liées aux utilisateurs, identifier et résoudre ce problème sans associer arbitrairement des achats à des comptes.
+
+Prévoir un mécanisme sécurisé de réconciliation des commandes historiques.
+
+⸻
+
+PARTIE IV — QR CODE ET IDENTITÉ NUMÉRIQUE
+
+7. ARCHITECTURE DES QR CODES
+
+Il existe deux catégories distinctes :
+
+1. QR de membership.
+2. QR individuel de billet ou d’invitation.
+
+Le QR de membership permet de retrouver l’identité du portefeuille et de vérifier les droits du membre.
+
+Les QR de billets permettent de vérifier un droit d’accès individuel.
+
+Utiliser des tokens opaques, aléatoires et cryptographiquement sécurisés.
+
+Pour le QR membership :
+
+* Générer un token aléatoire à forte entropie.
+* Stocker son hash en base.
+* Ne pas exposer le token secret dans les données publiques.
+* Ne pas encoder de données personnelles.
+* Prévoir révocation, rotation et historique.
+* Prévoir une limitation des tentatives.
+
+Le QR peut pointer vers une URL de vérification officielle LUMARÉEL.
+
+La vérification doit être effectuée par le serveur.
+
+Réponses possibles :
+
+* VALID.
+* EXPIRED.
+* SUSPENDED.
+* REVOKED.
+* INVALID.
+* SYSTEM_UNAVAILABLE.
+
+Une indisponibilité du réseau ne doit jamais donner une validation positive.
+
+Le QR doit pouvoir être affiché en grand format sur le téléphone du membre et imprimé sur la carte physique.
+
+⸻
+
+PARTIE V — LUMARÉEL ACCESS CONTROL
+
+8. PORTAIL PROFESSIONNEL DES AGENTS
+
+Créer une interface spécifique :
+
+LUMARÉEL ACCESS CONTROL.
+
+Elle doit être accessible aux agents autorisés uniquement.
+
+L’interface doit fonctionner sur :
+
+* Smartphones.
+* Tablettes.
+* Ordinateurs.
+* Lecteurs QR professionnels compatibles.
+
+8.1 Écran principal
+
+Afficher :
+
+* Événement sélectionné.
+* Point de contrôle.
+* Agent connecté.
+* Statut de connexion.
+* Bouton principal SCAN QR.
+* Dernier résultat.
+* Nombre de scans.
+* Nombre de validations.
+* Nombre de refus.
+
+L’interface doit être extrêmement rapide à utiliser.
+
+8.2 Processus de scan
+
+Lorsqu’un QR est lu :
+
+1. Identifier le type de QR.
+2. Appeler le bon endpoint.
+3. Vérifier l’authentification de l’agent.
+4. Vérifier ses autorisations.
+5. Vérifier l’identifiant du membre ou du billet.
+6. Vérifier l’événement et le point de contrôle.
+7. Vérifier les droits applicables.
+8. Retourner un résultat clair.
+9. Enregistrer le scan.
+
+Afficher un écran de résultat immédiatement.
+
+Résultats :
+
+* ACCESS GRANTED.
+* ACCESS DENIED.
+* ALREADY USED.
+* MEMBERSHIP EXPIRED.
+* MEMBERSHIP SUSPENDED.
+* INVITATION INVALID.
+* TICKET CANCELLED.
+* SYSTEM UNAVAILABLE.
+
+Pour chaque contrôle, afficher uniquement les informations nécessaires à l’agent.
+
+8.3 Gestion des agents
+
+Créer les rôles suivants :
+
+* Super Administrator.
+* Access Manager.
+* Event Manager.
+* Entry Agent.
+* VIP Agent.
+* Membership Agent.
+
+Chaque rôle dispose de permissions distinctes.
+
+Un agent ne doit pas pouvoir modifier le statut d’une adhésion ou créer un avantage.
+
+L’accès doit être limité aux événements et aux zones qui lui sont attribués.
+
+8.4 Anti-fraude
+
+Prévoir :
+
+* Détection des doubles scans.
+* Détection des QR révoqués.
+* Historique des contrôles.
+* Journal des agents.
+* Horodatage serveur.
+* Limitation des requêtes.
+* Gestion des tentatives anormales.
+* Contrôle des accès simultanés.
+* Alertes en cas de comportements suspects.
+
+Un QR membership peut être photographié ou copié : ne pas prétendre qu’il est incopiable.
+
+Pour les contrôles physiques, prévoir une vérification visuelle du titulaire lorsque nécessaire.
+
+⸻
+
+PARTIE VI — LUMARÉEL MANAGEMENT
+
+9. ADMINISTRATION CENTRALE
+
+Intégrer toutes les nouvelles fonctions à l’administration LUMARÉEL existante.
+
+Créer les rubriques nécessaires sans casser les menus et modules actuels.
+
+9.1 WALLET MANAGEMENT
+
+Gestion de tous les portefeuilles clients.
+
+Fonctions :
+
+* Rechercher un membre.
+* Consulter son profil.
+* Consulter ses commandes.
+* Consulter ses billets.
+* Consulter ses paiements.
+* Consulter ses avantages.
+* Consulter ses invitations.
+* Consulter son activité.
+* Gérer les statuts et les droits selon les permissions.
+
+9.2 MEMBERSHIP MANAGEMENT
+
+Gestion :
+
+* Membership Editions.
+* Membership Plans.
+* Membership Applications.
+* Membership Orders.
+* Membership Cards.
+* Membership Benefits.
+* Membership Entitlements.
+* Membership QR Credentials.
+* Membership Renewals.
+* Membership Suspensions.
+* Membership Revocations.
+
+La FOUNDERS EDITION doit pouvoir être configurée avec un quota strict de 100 cartes.
+
+Les numéros permanents doivent être attribués une seule fois et ne jamais être réutilisés.
+
+Exemple :
+LMR-2026-0001 à LMR-2026-0100.
+
+9.3 TICKET MANAGEMENT
+
+Conserver le système de billetterie existant.
+
+Permettre de retrouver les billets et commandes depuis le profil du membre.
+
+Ne pas reconstruire une billetterie parallèle.
+
+9.4 BENEFITS MANAGEMENT
+
+Permettre :
+
+* Création des avantages.
+* Attribution individuelle.
+* Attribution en masse.
+* Définition des conditions.
+* Définition des périodes.
+* Nombre d’utilisations.
+* Gestion des événements concernés.
+* Révocation.
+* Historique d’utilisation.
+
+9.5 INVITATION MANAGEMENT
+
+Créer et gérer les invitations privées.
+
+Permettre :
+
+* Création.
+* Attribution.
+* Envoi.
+* Acceptation ou refus.
+* Émission d’un QR.
+* Vérification.
+* Annulation.
+* Suivi.
+
+9.6 ACCESS CONTROL MANAGEMENT
+
+Gérer :
+
+* Agents.
+* Rôles.
+* Événements.
+* Points de contrôle.
+* Zones d’accès.
+* Lecteurs.
+* Sessions.
+* Scans.
+* Statistiques.
+* Journaux d’audit.
+
+9.7 CARD PRINTING STUDIO
+
+Conserver le module de production des cartes physiques.
+
+Fonctions :
+
+* Card Designer.
+* QR Generator.
+* Print Preview.
+* Print Queue.
+* Inventory.
+* Bulk Printing.
+* Reprint Management.
+* Quality Control.
+* Printer Management.
+* Production History.
+
+La version physique doit reproduire le design numérique.
+
+Les impressions réelles nécessitent une intégration matérielle vérifiée. Ne jamais prétendre qu’une carte a été imprimée si aucun appareil ne l’a réellement imprimée.
+
+⸻
+
+PARTIE VII — ARCHITECTURE TECHNIQUE ET SUPABASE
+
+10. MODÈLE DE DONNÉES
+
+Auditer le schéma existant avant de créer de nouvelles tables.
+
+Réutiliser les tables existantes lorsque possible.
+
+Les domaines de données à couvrir comprennent :
+
+IDENTITÉ :
+
+* profiles / users existants.
+
+WALLET :
+
+* wallets.
+* wallet_activity.
+* wallet_notifications.
+
+MEMBERSHIP :
+
+* membership_editions.
+* membership_plans.
+* membership_applications.
+* membership_orders.
+* membership_cards.
+* membership_qr_tokens.
+* membership_benefits.
+* membership_entitlements.
+* membership_redemptions.
+
+BILLETS :
+
+* Tables de tickets, orders, events et payments déjà existantes.
+
+INVITATIONS :
+
+* membership_events ou invitations selon le modèle existant.
+* invitation_recipients.
+* invitation_credentials.
+
+COMMANDES :
+
+* Tables de commandes existantes.
+* physical_card_orders.
+* card_shipments.
+
+ACCESS CONTROL :
+
+* membership_readers.
+* membership_scan_logs.
+* membership_access_points.
+* membership_event_access_points.
+* agent_assignments.
+* agent_permissions.
+
+PRODUCTION :
+
+* membership_card_inventory.
+* membership_print_jobs.
+* membership_card_quality_checks.
+* membership_card_replacements.
+
+Ces noms sont des propositions fonctionnelles, pas une obligation de créer toutes ces tables. Adapter le modèle au schéma réel.
+
+Créer les relations, clés étrangères, index et contraintes nécessaires.
+
+11. SÉCURITÉ
+
+Mettre en place :
+
+* Row Level Security sur toutes les tables exposées.
+* Vérification de l’identité avec auth.uid().
+* Contrôle serveur des permissions.
+* Séparation des données clients et administratives.
+* Protection des credentials.
+* Protection contre les doubles émissions.
+* Logs d’audit.
+* Contrôle des Edge Functions.
+* Validation des entrées.
+* Gestion des erreurs.
+
+Ne jamais exposer la clé service_role ou une clé secrète dans le frontend.
+
+Ne jamais utiliser un champ user_metadata modifiable par l’utilisateur comme source fiable d’autorisation.
+
+Les fonctions sensibles doivent être exécutées côté serveur.
+
+12. EDGE FUNCTIONS
+
+Créer ou adapter les fonctions suivantes si elles n’existent pas :
+
+* wallet-get-overview.
+* wallet-get-tickets.
+* wallet-get-orders.
+* wallet-get-benefits.
+* wallet-get-invitations.
+* wallet-get-payments.
+* membership-verify-qr.
+* membership-check-access.
+* membership-redeem-benefit.
+* membership-issue-card.
+* membership-revoke-card.
+* membership-rotate-token.
+* ticket-verify-qr.
+* invitation-verify-qr.
+* access-register-scan.
+* access-check-permissions.
+* access-agent-session.
+* membership-create-physical-order.
+* membership-create-print-job.
+
+Ne pas créer des endpoints redondants si le projet possède déjà des fonctions équivalentes.
+
+⸻
+
+PARTIE VIII — EXPÉRIENCE ET NOTIFICATIONS
+
+13. NOTIFICATIONS AUTOMATIQUES
+
+Prévoir des notifications lorsque :
+
+* Un paiement est confirmé.
+* Un billet est émis.
+* Une adhésion est activée.
+* Une carte physique passe en production.
+* Une commande est expédiée.
+* Un avantage est attribué.
+* Une invitation est reçue.
+* Un avantage arrive à expiration.
+* Une adhésion approche de son expiration.
+
+Réutiliser le système d’emails existant et prévoir des notifications dans le portefeuille.
+
+Ne pas envoyer de notification de paiement réussi avant la confirmation réelle du prestataire.
+
+14. RESPONSIVE DESIGN
+
+Toutes les interfaces doivent fonctionner parfaitement sur :
+
+* iPhone.
+* Android.
+* Tablette.
+* Ordinateur portable.
+* Écran de bureau.
+
+Priorité particulière à l’utilisation mobile du portefeuille et du scanner.
+
+La carte doit toujours conserver son ratio CR80.
+
+Les QR codes doivent être facilement accessibles en plein écran.
+
+⸻
+
+PARTIE IX — QUALITÉ ET LIVRAISON
+
+15. TESTS OBLIGATOIRES
+
+Tester au minimum les scénarios suivants :
+
+1. Un client crée un compte.
+2. Il achète un billet.
+3. Le paiement est confirmé.
+4. Le billet apparaît automatiquement dans son portefeuille.
+5. Il consulte et affiche son QR.
+6. Un agent scanne son billet.
+7. Le système valide le billet.
+8. Un deuxième scan du même billet est refusé lorsque le billet est à usage unique.
+9. Un client achète une adhésion.
+10. Sa carte numérique est générée.
+11. Le recto affiche uniquement son nom comme identité principale.
+12. Le clic retourne la carte.
+13. Le verso affiche le QR.
+14. L’agent scanne la carte.
+15. Le système retrouve l’adhésion.
+16. Le membre consulte ses avantages.
+17. Un agent autorisé vérifie un avantage.
+18. L’utilisation de l’avantage est enregistrée.
+19. Le membre reçoit une invitation.
+20. L’invitation apparaît dans son portefeuille.
+21. L’administration retrouve toutes ces opérations.
+22. Un remboursement met à jour les droits applicables.
+23. Un QR révoqué est refusé.
+24. Un utilisateur ne peut pas consulter les données d’un autre utilisateur.
+25. Un agent ne peut pas effectuer une action administrative non autorisée.
+
+Tester également :
+
+* Affichage mobile.
+* Affichage desktop.
+* Rotation 3D.
+* QR sur écran.
+* QR imprimé.
+* Gestion de la connexion perdue.
+* Double soumission.
+* Webhooks répétés.
+* Erreurs serveur.
+
+16. RÈGLES ABSOLUES
+
+* Ne pas créer de données fictives dans l’environnement de production.
+* Ne pas présenter un paiement simulé comme réel.
+* Ne pas présenter une impression simulée comme réelle.
+* Ne pas générer de billets ou de cartes actifs sans autorisation.
+* Ne pas détruire les données existantes.
+* Ne pas remplacer les tables existantes sans audit.
+* Ne pas casser les parcours de réservation actuels.
+* Ne pas créer une deuxième billetterie.
+* Ne pas mélanger les QR de membership et les QR de billets.
+* Ne pas transformer LUMARÉEL WALLET en simple tableau de bord décoratif.
+
+17. MÉTHODE D’EXÉCUTION
+
+Procéder par étapes :
+
+PHASE 1 — AUDIT
+Inspection du code, de Supabase, de l’authentification, des commandes, paiements, billets et QR existants.
+
+PHASE 2 — ARCHITECTURE
+Définition du modèle de données, des relations, des permissions et des flux.
+
+PHASE 3 — WALLET
+Développement de l’espace client, des rubriques et de la synchronisation automatique.
+
+PHASE 4 — MEMBERSHIP CARD
+Développement de la carte interactive recto-verso, du QR et de la version physique.
+
+PHASE 5 — ACCESS CONTROL
+Développement du portail agent et des fonctions de vérification.
+
+PHASE 6 — ADMINISTRATION
+Intégration de toutes les fonctions de gestion dans l’administration existante.
+
+PHASE 7 — TESTS
+Tests fonctionnels, sécurité, paiements, QR, responsive et intégrité des données.
+
+PHASE 8 — FINALISATION
+Correction des erreurs, optimisation, vérification du build et préparation du déploiement.
+
+À la fin de chaque phase, vérifier que les fonctionnalités existantes continuent de fonctionner.
+
+Ne pas s’arrêter après la création des maquettes ou des composants visuels. Le résultat doit être un système fonctionnel connecté à la véritable base de données et aux véritables flux de paiement.
+
+OBJECTIF FINAL
+
+Construire un véritable écosystème numérique LUMARÉEL dans lequel chaque client possède un portefeuille unique.
+
+Sa carte de membre constitue son identité LUMARÉEL.
+
+Ses billets, ses commandes, ses avantages, ses invitations et ses paiements sont regroupés dans son portefeuille.
+
+Les agents peuvent vérifier les droits à travers ACCESS CONTROL.
+
+L’administration supervise l’ensemble du système à travers LUMARÉEL MANAGEMENT.
+
+L’expérience doit être premium, cohérente, sécurisée, évolutive et réellement opérationnelle.
+
+LUMARÉEL WALLET — ONE MEMBER. ONE WALLET. ONE LUMARÉEL EXPERIENCE.

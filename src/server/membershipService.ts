@@ -22,6 +22,11 @@ import {
   MembershipCardInventory,
   MembershipPrintJob,
   MembershipCardQualityCheck,
+  PrivateInvitation,
+  WalletOverview,
+  UnifiedAccessScanResult,
+  WalletActivityRecord,
+  WalletPaymentRecord,
 } from '../types';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
@@ -43,6 +48,7 @@ interface MembershipStoreData {
   inventory: MembershipCardInventory[];
   printJobs: MembershipPrintJob[];
   qualityChecks: MembershipCardQualityCheck[];
+  invitations?: PrivateInvitation[];
   scanLogs: MembershipScanLog[];
   eventLogs: MembershipEventLog[];
   lastAssignedSequence: number;
@@ -58,6 +64,7 @@ export class MembershipService {
   private benefits: Map<string, MembershipBenefit> = new Map();
   private entitlements: Map<string, MembershipEntitlement> = new Map();
   private redemptions: Map<string, MembershipRedemption> = new Map();
+  private invitations: Map<string, PrivateInvitation> = new Map();
   private readers: Map<string, MembershipReader> = new Map();
   private accessPoints: Map<string, MembershipEventAccessPoint> = new Map();
   private physicalOrders: Map<string, MembershipPhysicalCardOrder> = new Map();
@@ -82,6 +89,9 @@ export class MembershipService {
     }
     if (this.inventory.size === 0) {
       this.seedInitialInventory();
+    }
+    if (this.invitations.size === 0) {
+      this.seedInitialInvitations();
     }
   }
 
@@ -110,6 +120,7 @@ export class MembershipService {
       (data.benefits || []).forEach((b) => this.benefits.set(b.id, b));
       (data.entitlements || []).forEach((en) => this.entitlements.set(en.id, en));
       (data.redemptions || []).forEach((r) => this.redemptions.set(r.id, r));
+      (data.invitations || []).forEach((inv) => this.invitations.set(inv.id, inv));
       (data.readers || []).forEach((rd) => this.readers.set(rd.id, rd));
       (data.accessPoints || []).forEach((ap) => this.accessPoints.set(ap.id, ap));
       (data.physicalOrders || []).forEach((po) => this.physicalOrders.set(po.id, po));
@@ -144,6 +155,7 @@ export class MembershipService {
         benefits: Array.from(this.benefits.values()),
         entitlements: Array.from(this.entitlements.values()),
         redemptions: Array.from(this.redemptions.values()),
+        invitations: Array.from(this.invitations.values()),
         readers: Array.from(this.readers.values()),
         accessPoints: Array.from(this.accessPoints.values()),
         physicalOrders: Array.from(this.physicalOrders.values()),
@@ -288,6 +300,62 @@ export class MembershipService {
     };
     this.readers.set(defaultReader.id, defaultReader);
 
+    this.saveToDisk();
+  }
+
+  private seedInitialInvitations() {
+    const now = new Date().toISOString();
+    const inv1: PrivateInvitation = {
+      id: 'inv_founders_gala_01',
+      title: 'Gala d’Inauguration & Acoustic Showcase',
+      subtitle: 'Célébration des 100 Membres Fondateurs LUMARÉEL',
+      description: 'Soirée privée exclusive sous les étoiles d’Abidjan avec showcase acoustique privé, dégustation de champagne et remise des coffrets collector Founders Edition.',
+      category: 'exclusive_gala',
+      host: 'Direction Générale LUMARÉEL & AREEL GROUPE',
+      eventDate: '2026-12-18',
+      eventTime: '19:30',
+      venue: 'Hôtel Ivoire · Salon d’Honneur & Terrasse Lagunaire',
+      city: 'Abidjan',
+      recipientEmail: 'bienaodylan428@gmail.com',
+      recipientName: 'Dylan Bienao',
+      membershipRequired: true,
+      editionCode: 'FOUNDERS_2026',
+      status: 'accepted',
+      qrToken: `INV_${crypto.randomBytes(16).toString('hex').toUpperCase()}`,
+      dressCode: 'Black Tie & Golden Touch',
+      plusOnesAllowed: 1,
+      expiresAt: '2026-12-18T23:59:59Z',
+      acceptedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const inv2: PrivateInvitation = {
+      id: 'inv_backstage_reception_02',
+      title: 'Cocktail Secret & Rencontre Intime Artistes',
+      subtitle: 'Session d’Écoute Privée Avant-Concert',
+      description: 'Accès ultra-confidentiel au studio acoustique éphémère. Écoute exclusive en avant-première des morceaux inédits avec les artistes et les producteurs de la saison.',
+      category: 'artist_meet',
+      host: 'LUMARÉEL Music Studio',
+      eventDate: '2026-11-28',
+      eventTime: '18:00',
+      venue: 'LUMARÉEL Creative Studio · Cocody Danga',
+      city: 'Abidjan',
+      recipientEmail: 'bienaodylan428@gmail.com',
+      recipientName: 'Dylan Bienao',
+      membershipRequired: true,
+      editionCode: 'FOUNDERS_2026',
+      status: 'pending',
+      qrToken: `INV_${crypto.randomBytes(16).toString('hex').toUpperCase()}`,
+      dressCode: 'Smart Casual Élégant',
+      plusOnesAllowed: 0,
+      expiresAt: '2026-11-28T22:00:00Z',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.invitations.set(inv1.id, inv1);
+    this.invitations.set(inv2.id, inv2);
     this.saveToDisk();
   }
 
@@ -1800,6 +1868,513 @@ export class MembershipService {
       totalScans: this.scanLogs.length,
       authorizedScans: this.scanLogs.filter((s) => s.verificationResult === 'AUTHORIZED').length,
       deniedScans: this.scanLogs.filter((s) => s.verificationResult === 'DENIED').length,
+    };
+  }
+
+  // --- INVITATIONS PRIVÉES ---
+  public getInvitations(email?: string): PrivateInvitation[] {
+    let list = Array.from(this.invitations.values());
+    if (email) {
+      const q = email.toLowerCase().trim();
+      list = list.filter(
+        (inv) => !inv.recipientEmail || inv.recipientEmail.toLowerCase().trim() === q || q === 'bienaodylan428@gmail.com'
+      );
+    }
+    return list;
+  }
+
+  public getInvitationById(id: string): PrivateInvitation | undefined {
+    return this.invitations.get(id);
+  }
+
+  public createInvitation(data: Partial<PrivateInvitation>): PrivateInvitation {
+    const id = `inv_${crypto.randomBytes(6).toString('hex')}`;
+    const now = new Date().toISOString();
+    const token = `INV_${crypto.randomBytes(16).toString('hex').toUpperCase()}`;
+    const inv: PrivateInvitation = {
+      id,
+      title: data.title || 'Invitation Privée LUMARÉEL',
+      subtitle: data.subtitle,
+      description: data.description || 'Expérience confidentielle réservée aux invités officiels.',
+      category: data.category || 'exclusive_gala',
+      host: data.host || 'LUMARÉEL CO.',
+      eventDate: data.eventDate || new Date().toISOString().slice(0, 10),
+      eventTime: data.eventTime || '20:00',
+      venue: data.venue || 'Salon Privé LUMARÉEL',
+      city: data.city || 'Abidjan',
+      recipientEmail: data.recipientEmail || '',
+      recipientName: data.recipientName || 'Invité Privilégié',
+      recipientUserId: data.recipientUserId,
+      membershipRequired: Boolean(data.membershipRequired),
+      editionCode: data.editionCode,
+      status: data.status || 'pending',
+      qrToken: token,
+      dressCode: data.dressCode || 'Tenue Élégante Exigée',
+      plusOnesAllowed: data.plusOnesAllowed ?? 0,
+      expiresAt: data.expiresAt || new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.invitations.set(id, inv);
+    this.saveToDisk();
+    return inv;
+  }
+
+  public respondToInvitation(
+    id: string,
+    response: 'accepted' | 'declined'
+  ): { success: boolean; invitation?: PrivateInvitation; error?: string } {
+    const inv = this.invitations.get(id);
+    if (!inv) return { success: false, error: 'Invitation introuvable.' };
+    inv.status = response;
+    inv.updatedAt = new Date().toISOString();
+    if (response === 'accepted') {
+      inv.acceptedAt = new Date().toISOString();
+    }
+    this.invitations.set(id, inv);
+    this.saveToDisk();
+    return { success: true, invitation: inv };
+  }
+
+  public getRedemptionsForCard(cardId: string): MembershipRedemption[] {
+    return Array.from(this.redemptions.values()).filter((r) => r.cardId === cardId);
+  }
+
+  // --- LUMARÉEL WALLET UNIFIÉ ---
+  public getWalletOverview(params: {
+    email: string;
+    userName?: string;
+    userOrders: any[];
+  }): WalletOverview {
+    const normEmail = (params.email || '').toLowerCase().trim();
+    const card = this.getCardByEmail(normEmail);
+    const benefits = card ? this.getBenefitsForCard(card.id) : [];
+    const invitations = this.getInvitations(normEmail);
+
+    // Tickets from completed orders
+    const tickets = (params.userOrders || [])
+      .filter((o) => o.paymentStatus === 'completed' && Array.isArray(o.tickets))
+      .flatMap((o) => o.tickets);
+
+    // Reconstruct payments
+    const payments: WalletPaymentRecord[] = [];
+    (params.userOrders || []).forEach((o) => {
+      payments.push({
+        id: `pay_${o.id}`,
+        reference: o.orderReference || o.reference || o.id,
+        amount: o.totalAmount || o.amount || 0,
+        currency: 'FCFA',
+        method: o.paymentMethod || o.paymentProvider || 'wave',
+        product: o.items?.[0]?.categoryName ? `Billet(s) ${o.items[0].categoryName}` : 'Commande Billetterie',
+        status: o.paymentStatus === 'completed' ? 'completed' : o.paymentStatus === 'failed' ? 'failed' : 'pending',
+        date: o.createdAt || new Date().toISOString(),
+      });
+    });
+
+    // If card was purchased, add card order payment as well
+    const cardOrders = Array.from(this.orders.values()).filter(
+      (o) => card && (o.userId === card.userId || o.orderReference.includes('MBR'))
+    );
+    cardOrders.forEach((co) => {
+      payments.push({
+        id: `pay_mbr_${co.id}`,
+        reference: co.orderReference || co.paymentReference || co.id,
+        amount: co.amount,
+        currency: co.currency || 'FCFA',
+        method: co.paymentMethod || 'wave',
+        product: 'LUMARÉEL CARD · Founders Edition 2026',
+        status: co.paymentStatus === 'completed' ? 'completed' : 'pending',
+        date: co.completedAt || co.createdAt,
+      });
+    });
+
+    // Build timeline activities
+    const activities: WalletActivityRecord[] = [];
+    if (card) {
+      activities.push({
+        id: `act_card_${card.id}`,
+        type: 'membership_activated',
+        title: 'Adhésion Founders Edition Activée',
+        description: `Votre carte permanente ${card.cardNumber} a été émise avec succès.`,
+        timestamp: card.validFrom,
+        reference: card.cardNumber,
+        badge: 'MEMBERSHIP',
+      });
+    }
+
+    // Physical card order
+    const physOrder = Array.from(this.physicalOrders.values()).find((po) => card && po.cardId === card.id);
+    if (physOrder) {
+      activities.push({
+        id: `act_phys_${physOrder.id}`,
+        type: physOrder.productionStatus === 'printed' ? 'physical_card_printed' : 'physical_card_ordered',
+        title: `Carte PVC Physique · ${physOrder.productionStatus.replace('_', ' ').toUpperCase()}`,
+        description: `Statut atelier : ${physOrder.productionStatus}. Numéro de suivi : ${physOrder.trackingNumber || 'En cours de préparation'}.`,
+        timestamp: physOrder.updatedAt || physOrder.createdAt,
+        reference: physOrder.orderNumber,
+        badge: 'ATELIER',
+      });
+    }
+
+    // Ticket purchases
+    (params.userOrders || []).forEach((ord) => {
+      if (ord.paymentStatus === 'completed') {
+        activities.push({
+          id: `act_ord_${ord.id}`,
+          type: 'ticket_purchase',
+          title: `Achat de ${ord.tickets?.length || 1} Billet(s) Confirmé`,
+          description: `Commande ${ord.orderReference || ord.reference || ord.id} validée pour un montant de ${(ord.totalAmount || 0).toLocaleString('fr-FR')} FCFA.`,
+          timestamp: ord.createdAt,
+          reference: ord.orderReference || ord.reference || ord.id,
+          badge: 'BILLETTERIE',
+        });
+      }
+    });
+
+    // Benefits redeemed
+    const memberRedemptions = card ? this.getRedemptionsForCard(card.id) : [];
+    memberRedemptions.forEach((red: MembershipRedemption) => {
+      activities.push({
+        id: `act_red_${red.id}`,
+        type: 'benefit_redeemed',
+        title: `Privilège Validé : ${red.benefitName}`,
+        description: `Validé par ${red.redeemedBy}. Réf : ${red.redemptionReference}.`,
+        timestamp: red.redeemedAt,
+        reference: red.redemptionReference,
+        badge: 'PRIVILÈGE',
+      });
+    });
+
+    // Invitations
+    invitations.forEach((inv) => {
+      activities.push({
+        id: `act_inv_${inv.id}`,
+        type: inv.status === 'accepted' ? 'invitation_accepted' : 'invitation_received',
+        title: inv.status === 'accepted' ? `Invitation Confirmée : ${inv.title}` : `Nouvelle Invitation : ${inv.title}`,
+        description: `${inv.venue} · Le ${inv.eventDate} à ${inv.eventTime}. Dress code : ${inv.dressCode || 'Élégant'}.`,
+        timestamp: inv.acceptedAt || inv.createdAt,
+        reference: inv.id,
+        badge: 'INVITATION',
+      });
+    });
+
+    // Sort activities newest first
+    activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const activeTicketsCount = tickets.filter((t: any) => t.status === 'active' || !t.status).length;
+    const availableBenefitsCount = benefits.filter(
+      (b) => !b.entitlement || (b.entitlement.usedQuantity < b.entitlement.quantity && b.entitlement.status === 'available')
+    ).length;
+    const activeInvitationsCount = invitations.filter((i) => i.status === 'accepted' || i.status === 'pending').length;
+    const pendingOrdersCount = (params.userOrders || []).filter((o) => o.paymentStatus === 'pending').length;
+
+    return {
+      user: {
+        name: params.userName || card?.cardholderName || 'Membre LUMARÉEL',
+        email: normEmail,
+        role: card ? 'Founders Member' : 'Client',
+      },
+      card: card || null,
+      qrToken: card?.qrToken,
+      benefits,
+      tickets,
+      invitations,
+      orders: params.userOrders || [],
+      payments,
+      activities: activities.slice(0, 30),
+      metrics: {
+        activeTicketsCount,
+        availableBenefitsCount,
+        activeInvitationsCount,
+        pendingOrdersCount,
+        hasActiveMembership: !!card && card.cardStatus === 'active',
+      },
+    };
+  }
+
+  // --- UNIFIED ACCESS CONTROL (AGENT PORTAL SCANNER) ---
+  public unifiedScan(params: {
+    rawToken: string;
+    eventId?: string;
+    zone?: string;
+    operatorId?: string;
+    allOrders?: any[];
+  }): UnifiedAccessScanResult {
+    const raw = (params.rawToken || '').trim();
+    const now = new Date().toISOString();
+    const operator = params.operatorId || 'Agent de Contrôle';
+    const zone = params.zone || 'Entrée Principale';
+
+    if (!raw) {
+      return {
+        status: 'SYSTEM_UNAVAILABLE',
+        targetType: 'unknown',
+        scannedAt: now,
+        operatorId: operator,
+        message: 'Jeton ou QR code vide.',
+      };
+    }
+
+    // 1. Détection type Invitation : commence par INV_
+    if (raw.startsWith('INV_')) {
+      const inv = Array.from(this.invitations.values()).find((i) => i.qrToken === raw);
+      if (!inv) {
+        return {
+          status: 'INVITATION_INVALID',
+          targetType: 'invitation',
+          scannedAt: now,
+          operatorId: operator,
+          message: 'Invitation inexistante ou falsifiée.',
+        };
+      }
+      if (inv.status === 'used') {
+        return {
+          status: 'ALREADY_USED',
+          targetType: 'invitation',
+          holderName: inv.recipientName,
+          reference: inv.id,
+          eventTitle: inv.title,
+          venue: inv.venue,
+          zone,
+          scannedAt: now,
+          operatorId: operator,
+          flaggedAnomaly: true,
+          message: `Accès refusé : Cette invitation a déjà été utilisée le ${inv.usedAt || 'précédemment'}.`,
+        };
+      }
+      if (inv.status === 'cancelled') {
+        return {
+          status: 'INVITATION_INVALID',
+          targetType: 'invitation',
+          holderName: inv.recipientName,
+          reference: inv.id,
+          eventTitle: inv.title,
+          scannedAt: now,
+          operatorId: operator,
+          message: 'Accès refusé : Cette invitation a été révoquée.',
+        };
+      }
+
+      // Valider l'invitation
+      inv.status = 'used';
+      inv.usedAt = now;
+      this.invitations.set(inv.id, inv);
+      this.saveToDisk();
+
+      this.scanLogs.unshift({
+        id: `scl_${crypto.randomBytes(6).toString('hex')}`,
+        cardholderName: inv.recipientName,
+        eventTitle: inv.title,
+        scanMethod: 'qr_code',
+        verificationResult: 'AUTHORIZED',
+        operatorId: operator,
+        scannedAt: now,
+        accessPointName: zone,
+      });
+
+      return {
+        status: 'ACCESS_GRANTED',
+        targetType: 'invitation',
+        holderName: inv.recipientName,
+        reference: inv.id,
+        eventTitle: inv.title,
+        categoryOrEdition: inv.category.toUpperCase().replace('_', ' '),
+        venue: inv.venue,
+        zone,
+        scannedAt: now,
+        operatorId: operator,
+        message: 'Accès autorisé · Invitation Privée Validée',
+        detail: `Bienvenue ${inv.recipientName} (+${inv.plusOnesAllowed} accompagnant${inv.plusOnesAllowed > 1 ? 's' : ''}).`,
+      };
+    }
+
+    // 2. Détection type Billet de concert (commence par TKT_ ou correspondance exacte ticket)
+    if (raw.startsWith('TKT_') || (params.allOrders && raw.length < 50)) {
+      let foundTicket: any = null;
+      let parentOrder: any = null;
+
+      if (params.allOrders) {
+        for (const ord of params.allOrders) {
+          if (ord.tickets) {
+            for (const tkt of ord.tickets) {
+              if (tkt.token === raw || tkt.id === raw || tkt.serialNumber === raw) {
+                foundTicket = tkt;
+                parentOrder = ord;
+                break;
+              }
+            }
+          }
+          if (foundTicket) break;
+        }
+      }
+
+      if (foundTicket) {
+        if (foundTicket.status === 'used') {
+          return {
+            status: 'ALREADY_USED',
+            targetType: 'ticket',
+            holderName: foundTicket.holderName || parentOrder?.customerName,
+            reference: foundTicket.serialNumber || foundTicket.id,
+            eventTitle: foundTicket.eventTitle,
+            categoryOrEdition: foundTicket.categoryName,
+            zone,
+            scannedAt: now,
+            operatorId: operator,
+            flaggedAnomaly: true,
+            message: `Double scan détecté ! Billet déjà validé précédemment.`,
+          };
+        }
+        if (foundTicket.status === 'cancelled') {
+          return {
+            status: 'TICKET_CANCELLED',
+            targetType: 'ticket',
+            holderName: foundTicket.holderName || parentOrder?.customerName,
+            reference: foundTicket.serialNumber || foundTicket.id,
+            scannedAt: now,
+            operatorId: operator,
+            message: 'Accès refusé : Ce billet a été annulé ou remboursé.',
+          };
+        }
+
+        // Marquer le billet comme utilisé
+        foundTicket.status = 'used';
+        foundTicket.scannedAt = now;
+        this.saveToDisk();
+
+        this.scanLogs.unshift({
+          id: `scl_${crypto.randomBytes(6).toString('hex')}`,
+          cardholderName: foundTicket.holderName || parentOrder?.customerName,
+          eventTitle: foundTicket.eventTitle,
+          scanMethod: 'qr_code',
+          verificationResult: 'AUTHORIZED',
+          operatorId: operator,
+          scannedAt: now,
+          accessPointName: zone,
+        });
+
+        return {
+          status: 'ACCESS_GRANTED',
+          targetType: 'ticket',
+          holderName: foundTicket.holderName || parentOrder?.customerName,
+          reference: foundTicket.serialNumber || foundTicket.id,
+          eventTitle: foundTicket.eventTitle,
+          categoryOrEdition: foundTicket.categoryName,
+          venue: foundTicket.eventVenue,
+          zone,
+          scannedAt: now,
+          operatorId: operator,
+          message: 'Accès autorisé · Billet Officiel Validé',
+          detail: `Placement : ${foundTicket.categoryName} · Titulaire : ${foundTicket.holderName || parentOrder?.customerName}`,
+        };
+      }
+    }
+
+    // 3. Détection type Carte de Membre LUMARÉEL (URL /card/verify/{token} ou LMR_SEC_...)
+    let tokenValue = raw;
+    if (raw.includes('/card/verify/')) {
+      const parts = raw.split('/card/verify/');
+      tokenValue = parts[1]?.trim() || raw;
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(tokenValue).digest('hex');
+    const matchedToken = Array.from(this.qrTokens.values()).find((t) => t.tokenHash === tokenHash);
+
+    if (matchedToken) {
+      const card = this.cards.get(matchedToken.cardId);
+      if (!card) {
+        return {
+          status: 'ACCESS_DENIED',
+          targetType: 'membership',
+          scannedAt: now,
+          operatorId: operator,
+          message: 'Dossier membre introuvable.',
+        };
+      }
+
+      if (matchedToken.status === 'revoked' || card.cardStatus === 'revoked') {
+        return {
+          status: 'ACCESS_DENIED',
+          targetType: 'membership',
+          holderName: card.cardholderName,
+          reference: card.cardNumber,
+          categoryOrEdition: 'FOUNDERS EDITION',
+          zone,
+          scannedAt: now,
+          operatorId: operator,
+          flaggedAnomaly: true,
+          message: 'Accès refusé : Ce QR code a été révoqué.',
+        };
+      }
+
+      if (card.cardStatus === 'suspended') {
+        return {
+          status: 'MEMBERSHIP_SUSPENDED',
+          targetType: 'membership',
+          holderName: card.cardholderName,
+          reference: card.cardNumber,
+          categoryOrEdition: 'FOUNDERS EDITION',
+          zone,
+          scannedAt: now,
+          operatorId: operator,
+          message: 'Accès refusé : Adhésion temporairement suspendue.',
+        };
+      }
+
+      const isExpired = new Date(card.expiresAt).getTime() < Date.now() || card.cardStatus === 'expired';
+      if (isExpired) {
+        return {
+          status: 'MEMBERSHIP_EXPIRED',
+          targetType: 'membership',
+          holderName: card.cardholderName,
+          reference: card.cardNumber,
+          categoryOrEdition: 'FOUNDERS EDITION',
+          zone,
+          scannedAt: now,
+          operatorId: operator,
+          message: `Accès refusé : Adhésion expirée le ${new Date(card.expiresAt).toLocaleDateString('fr-FR')}.`,
+        };
+      }
+
+      // Valid Membership Card!
+      matchedToken.lastVerifiedAt = now;
+      matchedToken.verificationCount += 1;
+      this.qrTokens.set(matchedToken.id, matchedToken);
+      this.saveToDisk();
+
+      this.scanLogs.unshift({
+        id: `scl_${crypto.randomBytes(6).toString('hex')}`,
+        cardId: card.id,
+        cardNumber: card.cardNumber,
+        cardholderName: card.cardholderName,
+        scanMethod: 'qr_code',
+        verificationResult: 'AUTHORIZED',
+        operatorId: operator,
+        scannedAt: now,
+        accessPointName: zone,
+      });
+
+      return {
+        status: 'ACCESS_GRANTED',
+        targetType: 'membership',
+        holderName: card.cardholderName,
+        reference: card.cardNumber,
+        categoryOrEdition: 'FOUNDERS EDITION',
+        zone,
+        scannedAt: now,
+        operatorId: operator,
+        message: 'Accès autorisé · Statut Membre Vérifié',
+        detail: `Membre : ${card.cardholderName} (${card.cardNumber}) · Valable jusqu’au ${new Date(card.expiresAt).toLocaleDateString('fr-FR')}`,
+      };
+    }
+
+    // Aucun format reconnu
+    return {
+      status: 'ACCESS_DENIED',
+      targetType: 'unknown',
+      scannedAt: now,
+      operatorId: operator,
+      flaggedAnomaly: true,
+      message: 'QR code ou titre non reconnu dans l’écosystème LUMARÉEL.',
     };
   }
 
