@@ -1,13 +1,13 @@
 import React from 'react';
 import { useApp, PageView } from '../context/AppContext';
-import { Home, Ticket, Archive, CreditCard, UserRound, Search, Compass, Clapperboard, MessageCircle, Bell, Plus, Menu, Settings, LogOut, Sun, Moon } from 'lucide-react';
+import { Home, Ticket, Archive, CreditCard, UserRound, Search, Compass, Clapperboard, MessageCircle, Bell, Plus, Menu, Settings, LogOut, Sun, Moon, type LucideIcon } from 'lucide-react';
 
 /** Navigation desktop LUMARÉEL: sidebar fixe adaptée aux destinations réelles de l'application. */
 export const DesktopSidebar: React.FC = () => {
   const { currentPage, setCurrentPage, platformSettings } = useApp();
   if (['splash', 'gate_scanner', 'admin'].includes(currentPage)) return null;
 
-  const items: Array<{label:string; page:PageView; icon:React.ComponentType<{size?:number;strokeWidth?:number;fill?:string}>}> = [
+  const items: Array<{label:string; page:PageView; icon:LucideIcon}> = [
     {label:'Accueil',page:'home',icon:Home},
     {label:'Mes commandes',page:'client_space',icon:Ticket},
     {label:'Archives',page:'archive',icon:Archive},
