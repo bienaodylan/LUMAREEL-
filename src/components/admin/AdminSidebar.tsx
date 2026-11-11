@@ -14,7 +14,8 @@ import {
   Sparkles,
   Printer,
   Crown,
-  Radio
+  Radio,
+  Cpu
 } from 'lucide-react';
 
 export type AdminSection = 'overview' | 'membership' | 'workshop' | 'events' | 'orders' | 'archives' | 'emails' | 'settings' | 'physicalCards';
@@ -70,9 +71,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     },
     {
       id: 'workshop' as AdminSection,
-      label: 'LUMARÉEL WORKSHOP',
-      icon: Printer,
-      badge: 'Atelier',
+      label: 'Encodeur Puces NFC / RFID',
+      icon: Cpu,
+      badge: 'NFC',
     },
     {
       id: 'events' as AdminSection,

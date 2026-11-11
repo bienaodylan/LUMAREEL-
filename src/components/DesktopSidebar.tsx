@@ -7,7 +7,7 @@ export const DesktopSidebar: React.FC = () => {
   const { currentPage, setCurrentPage, platformSettings } = useApp();
   if (['splash', 'gate_scanner', 'admin'].includes(currentPage)) return null;
 
-  const items: Array<{label:string; page:PageView; icon:React.ComponentType<{size?:number;strokeWidth?:number;fill?:string}>}> = [
+  const items: Array<{label:string; page:PageView; icon:React.ComponentType<{size?:number;strokeWidth?:number;fill?:string;className?:string}>}> = [
     {label:'Accueil',page:'home',icon:Home},
     {label:'Mes commandes',page:'client_space',icon:Ticket},
     {label:'Archives',page:'archive',icon:Archive},

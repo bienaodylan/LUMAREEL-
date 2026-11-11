@@ -292,17 +292,17 @@ export const LumareelCardView: React.FC = () => {
                   validFrom: '2026-11-10T14:09:37.496Z',
                   expiresAt: '2027-11-11T14:09:37.496Z',
                   physicalCardStatus: 'in_production',
-                  qrToken: 'LMR_QR_CA87C35BCD693F3B7B4EE74EB6B944AA',
+                  chipUid: '04:A2:8F:12:9C:5E:80',
+                  chipType: 'NXP_DESFire_EV3',
                   createdAt: '2026-11-10T14:09:37.496Z',
                   updatedAt: '2026-11-10T14:09:37.496Z',
                 }
               }
-              qrDataUrl={cardQrDataUrl}
             />
 
             <div className="mt-4 flex items-center gap-2 text-[11px] text-neutral-400">
               <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span>Format standardisé CR-80 (85.6 × 53.98 mm) · QR cryptographique haute sécurité</span>
+              <span>Format standardisé bancaire CR-80 (85.6 × 53.98 mm) · Puce cryptographique sans contact NXP DESFire EV3</span>
             </div>
           </div>
 
@@ -319,7 +319,7 @@ export const LumareelCardView: React.FC = () => {
             UN ÉCOSYSTÈME CONÇU POUR L'EXCEPTION
           </h2>
           <p className="text-xs sm:text-sm text-neutral-400 font-light">
-            Chaque droit est authentifié en temps réel par nos terminaux de contrôle aux entrées et salons de chaque production.
+            Chaque droit est authentifié en temps réel par passage sans contact sur nos terminaux de contrôle aux entrées et salons VIP.
           </p>
         </div>
 
@@ -351,14 +351,14 @@ export const LumareelCardView: React.FC = () => {
               desc: 'Réduction appliquée automatiquement sur vos réservations de tickets de concert tout au long de votre année d’adhésion.',
             },
             {
-              icon: QrCode,
-              title: 'Identification Sécurisée',
-              desc: 'Authentification immédiate via QR code cryptographique dynamique sur smartphone ou carte PVC haute précision.',
+              icon: Radio,
+              title: 'Puce Sans Contact Haute Sécurité',
+              desc: 'Authentification matérielle instantanée par effleurement sans contact NFC / RFID (13.56 MHz) aux portillons des concerts et salons VIP.',
             },
             {
               icon: Layers,
               title: 'Coffret Physique Collector',
-              desc: 'Carte physique noire mate haut de gamme, gravure personnalisée et QR code haute résolution livrée sous étui.',
+              desc: 'Carte physique noire mate haut de gamme avec microprocesseur doré EMV brossé et antenne d\'induction sans contact intégrée.',
             },
             {
               icon: Users,
@@ -418,7 +418,7 @@ export const LumareelCardView: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
             {[
               'Carte physique PVC noire mate personnalisée incluse',
-              'Carte numérique pour smartphone avec QR anti-rejeu',
+              'Puce cryptographique matérielle inviolable NXP DESFire EV3',
               'Numéro permanent unique LMR-2026-XXXX garanti',
               'File prioritaire garantie sur tous les événements',
               'Accès Salon VIP & Espaces Membres réservés',
@@ -617,18 +617,18 @@ export const LumareelCardView: React.FC = () => {
                   {issuedCard.card.cardholderName}
                 </div>
 
-                {issuedCard.qrDataUrl && (
-                  <div className="pt-2">
-                    <img
-                      src={issuedCard.qrDataUrl}
-                      alt="QR Code Carte Membre"
-                      className="w-32 h-32 mx-auto rounded-xl border border-white/20 p-1 bg-white"
-                    />
-                    <div className="text-[10px] text-neutral-400 mt-1 font-mono">
-                      Jeton QR anti-rejeu actif
-                    </div>
+                <div className="pt-2 p-4 rounded-xl bg-black/60 border border-[#d4af37]/30 flex flex-col items-center justify-center gap-2">
+                  <div className="w-12 h-9 rounded-[6px] bg-gradient-to-br from-[#ffd778] via-[#d4af37] to-[#99751e] p-0.5 shadow-md flex items-center justify-center">
+                    <div className="w-full h-full border border-black/40 rounded-[3px] grid grid-cols-3 gap-0.5 p-0.5 opacity-80 bg-black/20" />
                   </div>
-                )}
+                  <div className="text-[10px] text-emerald-400 font-mono flex items-center gap-1.5 font-bold uppercase">
+                    <Radio className="w-3.5 h-3.5" />
+                    <span>Puce NXP DESFire EV3 active</span>
+                  </div>
+                  <div className="text-[9px] text-neutral-400 font-mono">
+                    Passage sans contact activé
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">

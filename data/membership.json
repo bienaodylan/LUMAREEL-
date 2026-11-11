@@ -64,6 +64,11 @@
       "validFrom": "2026-11-10T14:09:37.496Z",
       "expiresAt": "2027-11-11T14:09:37.496Z",
       "physicalCardStatus": "in_production",
+      "chipUid": "04:A2:8F:12:9C:5E:80",
+      "chipType": "NXP_DESFire_EV3",
+      "chipEncodedAt": "2026-11-10T14:09:37.496Z",
+      "chipEncodedBy": "Atelier Encodage LUMARÉEL",
+      "chipLockStatus": "locked_aes128",
       "qrToken": "LMR_QR_CA87C35BCD693F3B7B4EE74EB6B944AA",
       "createdAt": "2026-11-10T14:09:37.496Z",
       "updatedAt": "2026-11-10T14:09:37.496Z"

@@ -28,7 +28,8 @@ import {
   Printer,
   X,
   AlertCircle,
-  Ticket as TicketIcon
+  Ticket as TicketIcon,
+  Cpu
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DigitalMembershipCard } from './DigitalMembershipCard';
@@ -196,9 +197,6 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
         <div className="lg:col-span-6 flex flex-col items-center">
           <DigitalMembershipCard
             card={card}
-            qrDataUrl={qrDataUrl}
-            onRotateToken={handleRotateQrToken}
-            isRotatingToken={isRotatingToken}
           />
         </div>
 
@@ -228,27 +226,17 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
             </div>
           </div>
 
-          {/* Boutons d'actions */}
-          <div className="flex flex-wrap gap-3 pt-1">
-            <button
-              type="button"
-              onClick={() => setIsQrModalOpen(true)}
-              className="px-5 py-2.5 rounded-full bg-white text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 hover:bg-neutral-200 transition-colors cursor-pointer"
-            >
-              <QrCode className="w-4 h-4 text-black" />
-              <span>Afficher QR Code d'entrée</span>
-            </button>
+          {/* Badges d'état de la puce sans contact */}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <div className="px-5 py-2.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2">
+              <Radio className="w-4 h-4 text-emerald-400" />
+              <span>Passage Sans Contact Activé (NFC / RFID)</span>
+            </div>
 
-            <button
-              type="button"
-              onClick={handleRotateQrToken}
-              disabled={isRotatingToken}
-              className="px-5 py-2.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-neutral-300 hover:text-white font-agrandir-semibold text-xs uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
-              title="Génère un nouveau jeton QR si vous suspectez une copie"
-            >
-              <RotateCw className={`w-3.5 h-3.5 ${isRotatingToken ? 'animate-spin text-[#d4af37]' : ''}`} />
-              <span>Régénérer jeton de sécurité</span>
-            </button>
+            <div className="px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 text-xs font-mono flex items-center gap-2">
+              <Cpu className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>UID : <strong className="text-white">{card.chipUid || '04:A2:8F:12:9C:5E:80'}</strong></span>
+            </div>
           </div>
         </div>
 
@@ -266,7 +254,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
                 SUIVI DE LA CARTE PHYSIQUE
               </h3>
               <p className="text-xs text-neutral-400">
-                Carte PVC haut de gamme gravée à chaud dans son coffret collector
+                Carte PVC haut de gamme gravée avec puce NXP DESFire EV3 sous coffret collector
               </p>
             </div>
           </div>
@@ -284,13 +272,13 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             {
-              step: '1. Personnalisation & Impression PVC',
-              desc: `Numéro ${card.cardNumber} et QR code haute résolution gravé.`,
+              step: '1. Personnalisation & Encodage Puce',
+              desc: `Numéro ${card.cardNumber} et puce sans contact NXP DESFire EV3 associée.`,
               done: true,
             },
             {
               step: '2. Contrôle Qualité & Coffret',
-              desc: 'Scan de conformité cryptographique et mise sous étui scellé.',
+              desc: 'Contrôle de lecture radiofréquence 13.56 MHz et mise sous écrin scellé.',
               done: card.physicalCardStatus === 'shipped' || card.physicalCardStatus === 'delivered',
             },
             {
@@ -437,67 +425,6 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
           </div>
         )}
       </div>
-
-      {/* Modal QR Code Agrandie pour le Contrôle Vigile */}
-      <AnimatePresence>
-        {isQrModalOpen && qrDataUrl && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="w-full max-w-sm bg-white text-black rounded-3xl p-6 sm:p-8 text-center space-y-4 shadow-2xl relative"
-            >
-              <button
-                type="button"
-                onClick={() => setIsQrModalOpen(false)}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/10 hover:bg-black/20 text-black flex items-center justify-center cursor-pointer"
-              >
-                ✕
-              </button>
-
-              <div>
-                <div className="text-[10px] font-mono tracking-widest text-[#666] uppercase">
-                  LUMARÉEL CARD · IDENTITÉ MEMBRE
-                </div>
-                <h3 className="font-agrandir-extrabold text-xl uppercase mt-1">
-                  {card.cardNumber}
-                </h3>
-                <div className="text-xs font-agrandir-bold text-neutral-700">
-                  {card.cardholderName}
-                </div>
-              </div>
-
-              <div className="p-3 border-2 border-black rounded-2xl bg-white shadow-inner">
-                <img src={qrDataUrl} alt="QR Code Membre" className="w-56 h-56 mx-auto object-contain" />
-              </div>
-
-              <p className="text-[10px] text-[#666] leading-tight">
-                Présentez ce QR code à l'accueil membre ou au coupe-file pour valider vos droits d'accès.
-              </p>
-
-              <div className="flex gap-2">
-                <a
-                  href={qrDataUrl}
-                  download={`LUMAREEL_CARD_${card.cardNumber}.png`}
-                  className="flex-1 py-2.5 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-black text-xs font-agrandir-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Télécharger</span>
-                </a>
-
-                <button
-                  type="button"
-                  onClick={() => setIsQrModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-black text-white text-xs font-agrandir-bold uppercase tracking-wider hover:bg-neutral-800 transition-colors cursor-pointer"
-                >
-                  Fermer
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
     </div>
   );

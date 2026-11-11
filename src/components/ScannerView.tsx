@@ -903,7 +903,7 @@ export const ScannerView: React.FC = () => {
           <div className="p-3 rounded-2xl bg-[#0e0e0e] border border-[#d4af37]/30 space-y-2.5 animate-fadeIn">
             <div className="flex items-center justify-between text-[10px] font-agrandir-bold text-[#d4af37] uppercase tracking-wider">
               <span>Point de Contrôle / Zone :</span>
-              <span className="font-mono text-emerald-400">Scanner 2D QR Actif</span>
+              <span className="font-mono text-emerald-400">Lecteur Puce NFC / RFID 13.56 MHz</span>
             </div>
 
             <div className="grid grid-cols-2 gap-1.5 text-[11px]">
@@ -928,8 +928,19 @@ export const ScannerView: React.FC = () => {
               ))}
             </div>
 
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => handleVerifyMembership('04:A2:8F:12:9C:5E:80', 'chip_read' as any)}
+                className="w-full py-2.5 rounded-xl bg-[#d4af37] hover:bg-[#e5c04b] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98 transition-all"
+              >
+                <Radio className="w-4 h-4 text-black animate-pulse" />
+                <span>Passer Carte Membre NFC (Détection Sans Contact)</span>
+              </button>
+            </div>
+
             <div className="text-[10px] text-neutral-400 font-mono text-center pt-1">
-              Scannez le QR code de la carte digitale ou de la carte physique PVC.
+              Approchez la carte sur le lecteur NFC ou saisissez l'identifiant / UID de la puce.
             </div>
           </div>
         )}

@@ -507,6 +507,62 @@ export class MembershipService {
     );
   }
 
+  public getCardByChipUid(chipUid: string): MembershipCard | undefined {
+    const clean = chipUid.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+    return Array.from(this.cards.values()).find((c) => {
+      if (!c.chipUid) return false;
+      const cardClean = c.chipUid.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      return cardClean === clean && c.cardStatus !== 'revoked';
+    });
+  }
+
+  public encodeCardChip(params: {
+    cardId: string;
+    chipUid: string;
+    chipType?: string;
+    operatorId?: string;
+  }): MembershipCard {
+    const card = this.cards.get(params.cardId);
+    if (!card) {
+      throw new Error(`Carte introuvable pour l'identifiant ${params.cardId}`);
+    }
+
+    // Check if another active card already uses this chip UID
+    const existing = this.getCardByChipUid(params.chipUid);
+    if (existing && existing.id !== card.id) {
+      throw new Error(
+        `Cette puce (UID: ${params.chipUid}) est déjà associée à la carte ${existing.cardNumber} (${existing.cardholderName}).`
+      );
+    }
+
+    const now = new Date().toISOString();
+    card.chipUid = params.chipUid.trim().toUpperCase();
+    card.chipType = params.chipType || 'NXP_DESFire_EV3';
+    card.chipEncodedAt = now;
+    card.chipEncodedBy = params.operatorId || 'Encodeur Admin LUMARÉEL';
+    card.chipLockStatus = 'locked_aes128';
+    card.physicalCardStatus = 'ready_for_dispatch';
+    card.updatedAt = now;
+
+    this.cards.set(card.id, card);
+
+    this.logAdminEvent({
+      actorId: params.operatorId || 'ADMIN_WORKSHOP',
+      actionType: 'CHIP_ENCODED',
+      entityType: 'membership_card',
+      entityId: card.id,
+      details: {
+        cardNumber: card.cardNumber,
+        cardholderName: card.cardholderName,
+        chipUid: card.chipUid,
+        chipType: card.chipType,
+      },
+    });
+
+    this.saveToDisk();
+    return card;
+  }
+
   /**
    * Allocation atomique du prochain numéro de membre permanent (LMR-2026-XXXX).
    * Les numéros sont strictement croissants et ne sont jamais réalloués.
@@ -1025,11 +1081,23 @@ export class MembershipService {
     let card: MembershipCard | null = null;
     const clean = (cardIdentifier || '').trim();
 
-    // 1. Recherche par numéro de carte ou token brut
-    for (const c of this.cards.values()) {
-      if (c.cardNumber.toUpperCase() === clean.toUpperCase() || c.qrToken === clean) {
-        card = c;
-        break;
+    // 0. Recherche par UID de puce NFC / RFID physique
+    const chipMatch = this.getCardByChipUid(clean);
+    if (chipMatch) {
+      card = chipMatch;
+    }
+
+    // 1. Recherche par numéro de carte permanent ou identifiant
+    if (!card) {
+      for (const c of this.cards.values()) {
+        if (
+          c.cardNumber.toUpperCase() === clean.toUpperCase() ||
+          (c.chipUid && c.chipUid.toUpperCase() === clean.toUpperCase()) ||
+          c.qrToken === clean
+        ) {
+          card = c;
+          break;
+        }
       }
     }
 

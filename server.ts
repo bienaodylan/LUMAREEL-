@@ -1051,7 +1051,59 @@ async function startServer() {
     catch(error:any){return res.status(400).json({success:false,error:'Rotation du QR refusée.'});}
   });
 
-  // 8. ATELIER D'IMPRESSION PHYSIQUE (CARD PRINTING STUDIO & LUMARÉEL WORKSHOP)
+  // 7b. ENCODAGE & ASSOCIATION PUCE NFC / RFID
+  app.post('/api/membership/cards/:id/encode-chip', async (req: Request, res: Response) => {
+    try {
+      const { chipUid, chipType, operatorId } = req.body;
+      if (!chipUid) {
+        return res.status(400).json({ success: false, error: 'Identifiant UID de puce requis.' });
+      }
+      const updatedCard = membershipService.encodeCardChip({
+        cardId: req.params.id,
+        chipUid,
+        chipType,
+        operatorId,
+      });
+      return res.json({ success: true, card: updatedCard, message: `Puce NFC (${chipUid}) associée avec succès.` });
+    } catch (e: any) {
+      return res.status(400).json({ success: false, error: e.message });
+    }
+  });
+
+  // 7c. VÉRIFICATION D'ACCÈS PAR PASSAGE DE PUCE NFC / RFID
+  app.get('/api/membership/verify-chip/:chipUid', (req: Request, res: Response) => {
+    try {
+      const card = membershipService.getCardByChipUid(req.params.chipUid);
+      if (!card) {
+        return res.json({
+          valid: false,
+          outcome: 'NOT_FOUND',
+          message: 'Puce non reconnue ou non associée à un compte membre.',
+        });
+      }
+      const isExpired = new Date(card.expiresAt).getTime() < Date.now();
+      const valid = card.cardStatus === 'active' && !isExpired;
+      return res.json({
+        valid,
+        outcome: valid ? 'VALID' : isExpired ? 'EXPIRED' : card.cardStatus.toUpperCase(),
+        card: {
+          cardNumber: card.cardNumber,
+          cardholderName: card.cardholderName,
+          cardholderEmail: card.cardholderEmail,
+          status: card.cardStatus,
+          validFrom: card.validFrom,
+          expiresAt: card.expiresAt,
+          chipUid: card.chipUid,
+          chipType: card.chipType,
+          chipLockStatus: card.chipLockStatus,
+        },
+      });
+    } catch (e: any) {
+      return res.status(500).json({ valid: false, error: e.message });
+    }
+  });
+
+  // 8. ATELIER D'IMPRESSION & ENCODAGE PHYSIQUE (LUMARÉEL WORKSHOP)
   app.get('/api/membership/workshop/overview', async (req: Request, res: Response) => {
     if(!await requireMemberAdmin(req,res,['super_admin','box_office']))return;
     try {

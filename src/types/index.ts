@@ -324,6 +324,11 @@ export interface MembershipCard {
   replacedByCardId?: string;
   physicalCardStatus: PhysicalCardProductionStatus;
   physicalCardTrackingNumber?: string;
+  chipUid?: string; // UID Puce physique NXP DESFire EV3 (e.g. 04:A2:8F:12:9C:5E:80)
+  chipType?: string; // 'NXP_DESFire_EV3' | 'MIFARE_Classic' | 'ISO_14443_A'
+  chipEncodedAt?: string;
+  chipEncodedBy?: string;
+  chipLockStatus?: 'unlocked' | 'locked_aes128' | 'read_only';
   qrToken?: string;
   createdAt: string;
   updatedAt: string;

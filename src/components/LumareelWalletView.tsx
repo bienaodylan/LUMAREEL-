@@ -41,7 +41,8 @@ import {
   Check,
   RotateCw,
   Printer,
-  ChevronDown
+  ChevronDown,
+  Radio
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -404,9 +405,6 @@ export const LumareelWalletView: React.FC = () => {
               {/* Rendu 3D de la carte CR-80 */}
               <DigitalMembershipCard
                 card={wallet.card}
-                qrDataUrl={wallet.qrDataUrl}
-                onRotateToken={handleRotateCardToken}
-                isRotatingToken={isRotatingCardToken}
               />
             </div>
           ) : (
@@ -555,31 +553,22 @@ export const LumareelWalletView: React.FC = () => {
                     </h2>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-3.5 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-agrandir-bold uppercase">
-                      ● Adhésion Active
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-3.5 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-agrandir-bold uppercase">
+                        ● Puce NFC / RFID Active
+                      </span>
 
-                    <button
-                      type="button"
-                      onClick={handleRotateCardToken}
-                      disabled={isRotatingCardToken}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-xs text-white transition-all cursor-pointer disabled:opacity-50"
-                      title="En cas de perte ou de compromission visuelle"
-                    >
-                      <RotateCw className={`w-3.5 h-3.5 ${isRotatingCardToken ? 'animate-spin' : ''}`} />
-                      <span>Régénérer le jeton QR</span>
-                    </button>
+                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-[#d4af37]">
+                        <Radio className="w-3.5 h-3.5 text-[#d4af37]" />
+                        <span>UID : {wallet.card.chipUid || '04:A2:8F:12:9C:5E:80'}</span>
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                {/* Composant de carte numérique CR-80 3D standard */}
-                <DigitalMembershipCard
-                  card={wallet.card}
-                  qrDataUrl={wallet.qrDataUrl}
-                  onRotateToken={handleRotateCardToken}
-                  isRotatingToken={isRotatingCardToken}
-                />
+                  {/* Composant de carte numérique CR-80 3D standard */}
+                  <DigitalMembershipCard
+                    card={wallet.card}
+                  />
 
                 {/* Métadonnées de validité & de sécurité */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-white/10 text-xs">
