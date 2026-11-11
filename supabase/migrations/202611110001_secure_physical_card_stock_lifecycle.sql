@@ -52,9 +52,9 @@ BEGIN
   END IF;
   v_previous_status := v_stock.stock_status;
 
-  -- Repeated shipping/delivery requests may safely update tracking metadata;
-  -- all other repeated transitions are rejected to avoid duplicate audit noise.
-  IF p_status = v_previous_status AND p_status NOT IN ('shipped','delivered') THEN
+  -- Repeated shipping may safely refresh tracking metadata; other repeated
+  -- transitions are rejected to avoid duplicate audit noise.
+  IF p_status = v_previous_status AND p_status <> 'shipped' THEN
     RAISE EXCEPTION 'La carte possède déjà ce statut.' USING ERRCODE='23514';
   END IF;
 
