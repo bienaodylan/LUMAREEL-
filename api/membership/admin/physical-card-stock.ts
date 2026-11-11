@@ -20,13 +20,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if(req.method==='PATCH'){
       const stockId=clean(body.stockId,80);const status=clean(body.status,30);
       if(!stockId||!['verified','ready','shipped','delivered','blocked','returned'].includes(status))return res.status(400).json({success:false,error:'Carte et statut logistique valides requis.'});
-      const patch:any={stock_status:status,updated_at:new Date().toISOString()};
-      if(status==='verified'){patch.verified_at=new Date().toISOString();patch.verified_by=auth.user.id;}
-      if(status==='shipped'){patch.shipped_at=new Date().toISOString();patch.carrier=clean(body.carrier,100)||null;patch.tracking_reference=clean(body.trackingReference,160)||null;}
-      if(status==='delivered')patch.delivered_at=new Date().toISOString();
-      const {data,error}=await auth.db.from('membership_physical_card_stock').update(patch).eq('id',stockId).select('id,manufacturer_serial,stock_status,carrier,tracking_reference,shipped_at,delivered_at').single();
-      if(error)throw error;
-      await auth.db.from('membership_events').insert({actor_id:auth.user.id,action_type:'PHYSICAL_CARD_STATUS_UPDATED',entity_type:'membership_physical_card_stock',entity_id:stockId,details:{status,carrier:patch.carrier||null,tracking_reference:patch.tracking_reference||null}});
+      const {data,error}=await auth.db.rpc('lumareel_update_received_card_status',{
+        p_stock_id:stockId,p_status:status,p_carrier:clean(body.carrier,100)||null,
+        p_tracking_reference:clean(body.trackingReference,160)||null,
+      });
+      if(error){
+        const code=error.code||'';
+        const statusCode=code==='42501'?403:code==='P0002'?404:['22023'].includes(code)?400:['23514','23505'].includes(code)?409:500;
+        console.error('[physical-card-stock] status RPC:',error.message);
+        return res.status(statusCode).json({success:false,error:statusCode===500?'Transition logistique indisponible.':error.message});
+      }
       return res.status(200).json({success:true,stock:data});
     }
     if(body.action==='associate'){
