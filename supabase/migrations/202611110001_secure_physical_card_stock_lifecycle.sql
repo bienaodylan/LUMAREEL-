@@ -36,7 +36,7 @@ BEGIN
   IF public.lumareel_current_admin_role() IS DISTINCT FROM 'super_admin' THEN
     RAISE EXCEPTION 'Accès super-administrateur requis.' USING ERRCODE='42501';
   END IF;
-  IF p_status NOT IN ('verified','ready','shipped','delivered','blocked','returned') THEN
+  IF p_status IS NULL OR p_status NOT IN ('verified','ready','shipped','delivered','blocked','returned') THEN
     RAISE EXCEPTION 'Statut physique invalide.' USING ERRCODE='22023';
   END IF;
   IF length(coalesce(v_carrier,'')) > 100 OR length(coalesce(v_tracking,'')) > 160 THEN
@@ -93,6 +93,16 @@ BEGIN
       updated_at=now()
   WHERE id=p_stock_id
   RETURNING * INTO v_stock;
+
+  -- Keep the member-facing card status/tracking in sync with the stock ledger.
+  IF v_stock.membership_card_id IS NOT NULL AND p_status IN ('shipped','delivered') THEN
+    UPDATE public.membership_cards
+    SET physical_card_status=p_status,
+        physical_card_tracking_number=CASE WHEN p_status='shipped'
+          THEN v_stock.tracking_reference ELSE physical_card_tracking_number END,
+        updated_at=now()
+    WHERE id=v_stock.membership_card_id;
+  END IF;
 
   v_action := CASE WHEN p_status=v_previous_status THEN 'PHYSICAL_CARD_TRACKING_UPDATED'
                    ELSE 'PHYSICAL_CARD_STATUS_UPDATED' END;
