@@ -26,6 +26,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DigitalMembershipCard } from './DigitalMembershipCard';
 
 export const LumareelCardView: React.FC = () => {
   const { currentUser, setCurrentPage, setIsAuthModalOpen, showToast, language, t } = useApp();
@@ -33,6 +34,8 @@ export const LumareelCardView: React.FC = () => {
   const [edition, setEdition] = useState<MembershipEdition | null>(null);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [userCard, setUserCard] = useState<MembershipCard | null>(null);
+  const [cardQrDataUrl, setCardQrDataUrl] = useState<string | null>(null);
+  const [previewCard, setPreviewCard] = useState<MembershipCard | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Modal d'adhésion
@@ -42,7 +45,6 @@ export const LumareelCardView: React.FC = () => {
   const [buyerEmail, setBuyerEmail] = useState(currentUser?.email || '');
   const [buyerPhone, setBuyerPhone] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isCardFlipped, setIsCardFlipped] = useState(false);
 
   // Success state after purchase
   const [issuedCard, setIssuedCard] = useState<{ card: MembershipCard; qrDataUrl: string } | null>(null);
@@ -65,11 +67,24 @@ export const LumareelCardView: React.FC = () => {
       }
 
       // Check if current user already has a card
+      let hasActiveCard = false;
       if (currentUser?.email) {
         const cardRes = await fetch(`/api/membership/my-card?email=${encodeURIComponent(currentUser.email)}`);
         const cardData = await cardRes.json();
-        if (cardData.success && cardData.hasCard) {
+        if (cardData.success && cardData.hasCard && cardData.card) {
           setUserCard(cardData.card);
+          setCardQrDataUrl(cardData.qrDataUrl || null);
+          hasActiveCard = true;
+        }
+      }
+
+      // If user doesn't have an active card, fetch the official preview card & QR
+      if (!hasActiveCard) {
+        const previewRes = await fetch('/api/membership/preview-card');
+        const previewData = await previewRes.json();
+        if (previewData.success) {
+          setPreviewCard(previewData.card);
+          setCardQrDataUrl(previewData.qrDataUrl);
         }
       }
     } catch (err) {
@@ -253,121 +268,41 @@ export const LumareelCardView: React.FC = () => {
             </div>
           </div>
 
-          {/* Col Droite : Rendu 3D Visuel Haut de Gamme de la Carte (Recto / Verso Flip) */}
+          {/* Col Droite : Rendu 3D Visuel Haut de Gamme de la Carte (Nouvelle Conception CR-80) */}
           <div className="lg:col-span-5 flex flex-col items-center">
-            <div className="text-[10px] font-agrandir-bold tracking-widest text-[#888] uppercase mb-3 flex items-center gap-2">
-              <span>Aperçu de la carte</span>
-              <span className="text-[#d4af37]">(Cliquer pour retourner)</span>
-            </div>
-
-            {/* Carte interactive 3D */}
-            <div
-              onClick={() => setIsCardFlipped(!isCardFlipped)}
-              className="w-full max-w-[380px] h-[230px] sm:h-[240px] cursor-pointer perspective-[1000px] select-none group"
-            >
-              <motion.div
-                animate={{ rotateY: isCardFlipped ? 180 : 0 }}
-                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full h-full relative preserve-3d"
-              >
-                {/* RECTO NUMÉRIQUE */}
-                <div className="absolute inset-0 backface-hidden rounded-3xl p-6 bg-gradient-to-br from-[#121212] via-[#070707] to-[#020202] border border-[#d4af37]/40 shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_30px_rgba(212,175,55,0.15)] flex flex-col justify-between overflow-hidden">
-                  
-                  {/* Texture filigrane subtile & éclat doré */}
-                  <div className="absolute top-0 right-0 w-48 h-48 bg-radial from-[#d4af37]/20 via-transparent to-transparent pointer-events-none" />
-                  <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-radial from-white/10 via-transparent to-transparent pointer-events-none" />
-
-                  {/* Header Carte */}
-                  <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <img src="/assets/logo-lumareel.png" alt="LUMARÉEL" className="h-6 w-auto object-contain" />
-                      <span className="text-[9px] font-agrandir-extrabold tracking-[0.25em] text-[#d4af37] uppercase">
-                        CARD
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/30 text-[8px] font-agrandir-bold text-[#d4af37] tracking-widest uppercase">
-                      <QrCode className="w-3 h-3 text-[#d4af37]" />
-                      <span>QR HAUTE SÉCURITÉ</span>
-                    </div>
-                  </div>
-
-                  {/* Centre : Puce à contact & monogramme */}
-                  <div className="relative z-10 flex items-center justify-between my-auto">
-                    {/* Empreinte puce dorée stylisée */}
-                    <div className="w-11 h-8 rounded-md bg-gradient-to-br from-amber-200 via-[#d4af37] to-amber-700 p-0.5 shadow-inner flex items-center justify-center">
-                      <div className="w-full h-full border border-black/40 rounded-[4px] grid grid-cols-3 gap-0.5 p-0.5 opacity-80">
-                        <div className="bg-black/30 rounded-xs" />
-                        <div className="bg-black/30 rounded-xs" />
-                        <div className="bg-black/30 rounded-xs" />
-                      </div>
-                    </div>
-
-                    <div className="font-agrandir-extrabold text-xs tracking-[0.2em] text-white/90 uppercase text-right">
-                      FOUNDERS EDITION
-                    </div>
-                  </div>
-
-                  {/* Footer Carte : Numéro permanent & Titulaire */}
-                  <div className="relative z-10 flex items-end justify-between border-t border-white/10 pt-3">
-                    <div>
-                      <div className="text-[8px] tracking-widest text-[#888] uppercase font-mono">
-                        TITULAIRE DU MEMBERSHIP
-                      </div>
-                      <div className="font-agrandir-bold text-xs sm:text-sm text-white tracking-wide truncate max-w-[200px]">
-                        {userCard?.cardholderName || currentUser?.name || 'DYLAN BIENAO'}
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <div className="text-[8px] tracking-widest text-[#d4af37] uppercase font-mono">
-                        IDENTIFIANT PERMANENT
-                      </div>
-                      <div className="font-mono font-bold text-xs sm:text-sm text-white tracking-wider">
-                        {userCard?.cardNumber || 'LMR-2026-0001'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* VERSO NUMÉRIQUE */}
-                <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-3xl p-6 bg-gradient-to-br from-[#0c0c0c] via-[#050505] to-black border border-white/20 shadow-2xl flex flex-col justify-between overflow-hidden">
-                  
-                  {/* Bande magnétique noire satinée */}
-                  <div className="-mx-6 -mt-1 h-10 bg-neutral-900 border-y border-white/10" />
-
-                  {/* Zone centrale : QR Code & Certificat */}
-                  <div className="flex items-center justify-between gap-4 py-2">
-                    <div className="space-y-1.5 flex-1 text-[9px] text-[#aaa] font-light leading-snug">
-                      <p className="font-agrandir-bold text-white uppercase text-[10px]">
-                        AUTHENTICITÉ SÉCURISÉE
-                      </p>
-                      <p>
-                        Jeton QR cryptographique 256-bit révocable. Carte nominative et incessible. Valable pour la saison officielle LUMARÉEL 2026-2027.
-                      </p>
-                      <p className="font-mono text-[#d4af37] text-[8px]">
-                        SHA-256 HASH VERIFICATION · ANTI-COPY SECURE
-                      </p>
-                    </div>
-
-                    {/* QR Code individuel */}
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white p-1 rounded-xl shadow-lg shrink-0 flex items-center justify-center">
-                      <QrCode className="w-full h-full text-black" />
-                    </div>
-                  </div>
-
-                  {/* Footer Verso */}
-                  <div className="flex items-center justify-between text-[8px] font-mono text-[#777] border-t border-white/10 pt-2">
-                    <span>LUMARÉEL CO. · AREEL GROUPE</span>
-                    <span>12 MOIS DE VALIDITÉ</span>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-
-            <div className="mt-3 flex items-center gap-2 text-[11px] text-[#888]">
+            <div className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase mb-3 flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span>Carte physique PVC gravée + QR code sécurisé 256-bit</span>
+              <span>{userCard ? 'Votre Carte Officielle Activée' : 'Nouvelle Conception CR-80 (Format Officiel)'}</span>
+            </div>
+
+            <DigitalMembershipCard
+              card={
+                userCard ||
+                previewCard || {
+                  id: 'crd_preview_founders',
+                  userId: currentUser?.id || 'usr_preview',
+                  planId: 'plan_founders_annual',
+                  editionId: 'ed_founders_2026',
+                  cardNumber: 'LMR-2026-0001',
+                  cardSequence: 1,
+                  cardholderName: currentUser?.name || 'DYLAN BIENAO',
+                  cardholderEmail: currentUser?.email || 'bienaodylan428@gmail.com',
+                  cardStatus: 'active',
+                  issuedAt: '2026-11-10T14:09:37.496Z',
+                  validFrom: '2026-11-10T14:09:37.496Z',
+                  expiresAt: '2027-11-11T14:09:37.496Z',
+                  physicalCardStatus: 'in_production',
+                  qrToken: 'LMR_QR_CA87C35BCD693F3B7B4EE74EB6B944AA',
+                  createdAt: '2026-11-10T14:09:37.496Z',
+                  updatedAt: '2026-11-10T14:09:37.496Z',
+                }
+              }
+              qrDataUrl={cardQrDataUrl}
+            />
+
+            <div className="mt-4 flex items-center gap-2 text-[11px] text-neutral-400">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Format standardisé CR-80 (85.6 × 53.98 mm) · QR cryptographique haute sécurité</span>
             </div>
           </div>
 

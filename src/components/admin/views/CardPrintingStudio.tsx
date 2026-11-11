@@ -239,53 +239,39 @@ export const CardPrintingStudio: React.FC<CardPrintingStudioProps> = ({
                 }}
               />
 
-              {/* Ligne 1 : Marque & Badge Édition */}
-              <div className="relative z-10 flex items-start justify-between">
-                <div>
-                  <div className="text-[9px] sm:text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
-                    OFFICIAL MEMBERSHIP
-                  </div>
-                  <h4 className="text-xl sm:text-2xl font-agrandir-extrabold tracking-wider text-white uppercase mt-0.5">
-                    LUMARÉEL CO.
-                  </h4>
+              {/* Ligne 1 : Logo LUMARÉEL & Badge Édition */}
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <img
+                    src="/assets/logo-lumareel.png"
+                    alt="LUMARÉEL"
+                    className="h-6 w-auto object-contain"
+                  />
                 </div>
 
-                <div className="text-right">
-                  <span className="inline-block px-2.5 py-1 rounded-full bg-[#d4af37]/20 border border-[#d4af37]/50 text-[#d4af37] text-[9px] sm:text-[10px] font-mono font-bold tracking-widest uppercase">
-                    FOUNDERS · {sampleCard.cardSequence}/100
-                  </span>
+                <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-agrandir-bold tracking-[0.22em] text-[#d4af37] uppercase">
+                  <span>FOUNDERS EDITION</span>
                 </div>
               </div>
 
-              {/* Ligne 2 : Numéro Permanent Gravé */}
-              <div className="relative z-10 my-auto py-2">
-                <div className="text-[9px] font-mono tracking-widest text-neutral-400 uppercase mb-1">
-                  IDENTIFIANT PERMANENT DE MEMBRE
-                </div>
-                <div className="text-xl sm:text-2xl md:text-3xl font-mono font-bold tracking-[0.2em] text-white drop-shadow-md">
+              {/* Ligne 2 : Nom complet du membre (Identité principale pure, sans titre) */}
+              <div className="relative z-10 my-auto text-center px-2 py-1">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-agrandir-extrabold uppercase tracking-wide text-white drop-shadow-md truncate">
+                  {(sampleCard.cardholderName || 'DYLAN BIENAO')
+                    .replace(/^(mr\.?|mme\.?|m\.|dr\.?|pr\.?|ceo|founder|vip|président|ambassadeur)\s+/i, '')
+                    .trim()}
+                </h2>
+                <div className="h-[1px] w-20 mx-auto bg-gradient-to-r from-transparent via-[#d4af37]/60 to-transparent mt-2" />
+              </div>
+
+              {/* Ligne 3 : Numéro permanent de membre */}
+              <div className="relative z-10 flex items-center justify-between pt-2.5 border-t border-white/10">
+                <span className="text-[8px] sm:text-[9px] font-mono tracking-[0.2em] text-neutral-400 uppercase">
+                  IDENTIFIANT PERMANENT
+                </span>
+                <span className="font-mono font-bold text-xs sm:text-sm text-[#d4af37] tracking-widest">
                   {sampleCard.cardNumber}
-                </div>
-              </div>
-
-              {/* Ligne 3 : Nom du titulaire & Expiration */}
-              <div className="relative z-10 flex items-end justify-between pt-2 border-t border-white/10">
-                <div>
-                  <div className="text-[8px] sm:text-[9px] font-mono text-[#888] uppercase tracking-wider">
-                    TITULAIRE DE CARTE
-                  </div>
-                  <div className="font-agrandir-extrabold text-sm sm:text-base text-white uppercase tracking-wide truncate max-w-[240px]">
-                    {sampleCard.cardholderName}
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="text-[8px] sm:text-[9px] font-mono text-[#888] uppercase tracking-wider">
-                    VALABLE JUSQU'À
-                  </div>
-                  <div className="font-mono font-bold text-xs sm:text-sm text-[#d4af37]">
-                    {expiryFormatted}
-                  </div>
-                </div>
+                </span>
               </div>
             </div>
           </div>

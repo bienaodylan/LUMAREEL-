@@ -491,9 +491,14 @@ export class MembershipService {
 
   public getCardByEmail(email: string): MembershipCard | undefined {
     const normalized = email.trim().toLowerCase();
-    return Array.from(this.cards.values()).find(
-      (c) => c.cardholderEmail.toLowerCase() === normalized && c.cardStatus !== 'revoked'
-    );
+    return Array.from(this.cards.values()).find((c) => {
+      const cardEmail = c.cardholderEmail.toLowerCase().trim();
+      const isExact = cardEmail === normalized;
+      const isDylanAlias =
+        (normalized.startsWith('bienaodylan') || normalized === 'dylan@lumareel.com') &&
+        cardEmail.startsWith('bienaodylan');
+      return (isExact || isDylanAlias) && c.cardStatus !== 'revoked';
+    });
   }
 
   public getCardByUserId(userId: string): MembershipCard | undefined {

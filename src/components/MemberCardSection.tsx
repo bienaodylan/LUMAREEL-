@@ -31,6 +31,7 @@ import {
   Ticket as TicketIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { DigitalMembershipCard } from './DigitalMembershipCard';
 
 interface MemberCardSectionProps {
   onOpenSubscribe?: () => void;
@@ -191,115 +192,14 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
       {/* 1. SECTION CARTE NUMÉRIQUE & IDENTITÉ PERMANENTE */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-[#0a0a0a] border border-white/10 rounded-3xl p-6 sm:p-10 shadow-2xl">
         
-        {/* Rendu 3D Recto / Verso */}
+        {/* Rendu 3D Officiel Recto / Verso CR-80 */}
         <div className="lg:col-span-6 flex flex-col items-center">
-          <div className="text-[10px] font-agrandir-bold tracking-widest text-[#888] uppercase mb-3 flex items-center gap-2">
-            <span>Carte de membre officielle</span>
-            <span className="text-[#d4af37]">(Cliquer pour retourner)</span>
-          </div>
-
-          <div
-            onClick={() => setIsFlipped(!isFlipped)}
-            className="w-full max-w-[390px] h-[235px] sm:h-[245px] cursor-pointer perspective-[1000px] select-none group"
-          >
-            <motion.div
-              animate={{ rotateY: isFlipped ? 180 : 0 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="w-full h-full relative preserve-3d"
-            >
-              {/* RECTO */}
-              <div className="absolute inset-0 backface-hidden rounded-3xl p-6 bg-gradient-to-br from-[#121212] via-[#070707] to-[#010101] border border-[#d4af37]/50 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(212,175,55,0.2)] flex flex-col justify-between overflow-hidden">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-radial from-[#d4af37]/25 via-transparent to-transparent pointer-events-none" />
-
-                <div className="relative z-10 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <img src="/assets/logo-lumareel.png" alt="LUMARÉEL" className="h-6 w-auto object-contain" />
-                    <span className="text-[9px] font-agrandir-extrabold tracking-[0.25em] text-[#d4af37] uppercase">
-                      CARD
-                    </span>
-                  </div>
-
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[8px] font-agrandir-extrabold tracking-widest uppercase border ${
-                      effectiveStatus === 'active'
-                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                        : effectiveStatus === 'suspended'
-                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                        : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
-                    }`}
-                  >
-                    {effectiveStatus.toUpperCase()}
-                  </span>
-                </div>
-
-                {/* Empreinte puce dorée stylisée */}
-                <div className="relative z-10 flex items-center justify-between my-auto">
-                  <div className="w-11 h-8 rounded-md bg-gradient-to-br from-amber-200 via-[#d4af37] to-amber-700 p-0.5 shadow-inner flex items-center justify-center">
-                    <div className="w-full h-full border border-black/40 rounded-[4px] grid grid-cols-3 gap-0.5 p-0.5 opacity-80">
-                      <div className="bg-black/30 rounded-xs" />
-                      <div className="bg-black/30 rounded-xs" />
-                      <div className="bg-black/30 rounded-xs" />
-                    </div>
-                  </div>
-
-                  <div className="font-agrandir-extrabold text-xs tracking-[0.2em] text-white/90 uppercase text-right">
-                    FOUNDERS EDITION
-                  </div>
-                </div>
-
-                {/* Footer Carte */}
-                <div className="relative z-10 flex items-end justify-between border-t border-white/10 pt-3">
-                  <div>
-                    <div className="text-[8px] tracking-widest text-[#888] uppercase font-mono">
-                      TITULAIRE
-                    </div>
-                    <div className="font-agrandir-bold text-xs sm:text-sm text-white tracking-wide truncate max-w-[200px]">
-                      {card.cardholderName}
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="text-[8px] tracking-widest text-[#d4af37] uppercase font-mono">
-                      IDENTIFIANT PERMANENT
-                    </div>
-                    <div className="font-mono font-bold text-xs sm:text-sm text-white tracking-wider">
-                      {card.cardNumber}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* VERSO */}
-              <div className="absolute inset-0 backface-hidden rotate-y-180 rounded-3xl p-6 bg-gradient-to-br from-[#0c0c0c] via-[#050505] to-black border border-white/20 shadow-2xl flex flex-col justify-between overflow-hidden">
-                <div className="-mx-6 -mt-1 h-10 bg-neutral-900 border-y border-white/10" />
-
-                <div className="flex items-center justify-between gap-4 py-2">
-                  <div className="space-y-1 flex-1 text-[9px] text-[#aaa] font-light leading-snug">
-                    <p className="font-agrandir-bold text-white uppercase text-[10px]">
-                      CONTRÔLE D'ACCÈS CERTIFIÉ
-                    </p>
-                    <p>
-                      Numéro permanent non réattribuable. Présentez le QR code dynamique aux portillons des concerts.
-                    </p>
-                    <p className="font-mono text-[#d4af37] text-[8px]">
-                      VALIDITÉ : {new Date(card.validFrom).toLocaleDateString('fr-FR')} AU {new Date(card.expiresAt).toLocaleDateString('fr-FR')}
-                    </p>
-                  </div>
-
-                  {qrDataUrl && (
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white p-1 rounded-xl shadow-lg shrink-0 flex items-center justify-center">
-                      <img src={qrDataUrl} alt="QR Code Membre" className="w-full h-full object-contain" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between text-[8px] font-mono text-[#777] border-t border-white/10 pt-2">
-                  <span>LUMARÉEL CO. · AREEL GROUPE</span>
-                  <span>QR SÉCURISÉ 256-BIT · SHA-256</span>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+          <DigitalMembershipCard
+            card={card}
+            qrDataUrl={qrDataUrl}
+            onRotateToken={handleRotateQrToken}
+            isRotatingToken={isRotatingToken}
+          />
         </div>
 
         {/* Détails du Membership & Actions Sécurité */}
