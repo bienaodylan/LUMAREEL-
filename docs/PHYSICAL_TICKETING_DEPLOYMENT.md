@@ -59,3 +59,39 @@ Les autres membres autorisés à créer des lots ou des liens vigiles peuvent re
 - Les anciennes données de lots enregistrées dans `data/print_tickets.json` ne sont pas migrées automatiquement. Les conserver en sauvegarde et prévoir une importation contrôlée si elles doivent être reconnues.
 - Le journal cloud conserve les scans, mais l'interface de reporting historique des scans doit encore être reliée à cette table si l'équipe doit le consulter depuis le tableau de bord.
 - La CI doit passer et les tests physiques doivent être signés avant fusion en production.
+
+
+## 6. LUMARÉEL CARD physique & NFC (migrations séparées)
+
+Pour le module d'adhésion / cartes membres, appliquer les migrations versionnées
+ci-dessous **dans l'ordre chronologique**, sur le projet Supabase déjà utilisé :
+
+1. `202611100001_lumareel_card_system.sql`
+2. `202611100002_lumareel_qr_printing_workshop.sql`
+3. `202611100003_restore_secure_nfc_registry.sql`
+4. `202611100004_secure_nfc_enrollment_rpcs.sql`
+5. `202611100005_fix_nfc_diversification_seed.sql`
+6. `202611100006_restrict_card_workshop_rls.sql`
+7. `202611100007_lock_down_membership_audit.sql`
+8. `202611100008_physical_card_received_stock.sql`
+9. `202611110001_secure_physical_card_stock_lifecycle.sql`
+
+**Attention :** la migration 0002 supprime la table NFC historique avec `CASCADE` ;
+la migration 0003 la recrée ensuite en registre de métadonnées. Ne pas sauter
+0003–0007. La migration 0009 convertit les RPC NFC/association en fonctions
+`SECURITY DEFINER` strictement autorisées au super-admin (pour que leurs écritures d'audit
+fonctionnent malgré le verrouillage de `membership_events`) et impose les transitions
+logistiques par RPC transactionnelle : carte membre active/payée requise avant
+`ready`, `shipped` ou `delivered`, journalisation dans la même transaction, et pas de
+mise à jour directe du statut par le client authentifié.
+
+L'API de réception rejette désormais les champs trop longs (sans troncature silencieuse),
+les types de puces inconnus, les références NFC mal formées et les identifiants non UUID.
+Un JSON mal formé est une erreur 400 ; un doublon de stock est une erreur 409 et
+l'import multi-lignes reste atomique (une contrainte échouée annule tout l'insert).
+
+Après application, tester dans un environnement non-production : réception → vérification
+→ association à une adhésion payée → prêt → expédition → livraison ; vérifier aussi
+les transitions interdites, l'accès non-super-admin, la révocation NFC et la présence
+exacte des événements d'audit. Aucune migration n'est appliquée automatiquement par le
+repository ou cette documentation.
