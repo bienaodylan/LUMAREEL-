@@ -43,6 +43,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const body = parseBody(req);
+    if (body.action === 'replace') {
+      const membershipCardId = readText(body.membershipCardId, 36, 'Identifiant de carte membre');
+      const oldStockId = readText(body.oldStockId, 36, 'Identifiant de l’ancienne carte');
+      const newStockId = readText(body.newStockId, 36, 'Identifiant de la carte de remplacement');
+      const reason = readText(body.reason, 500, 'Motif de remplacement');
+      if (![membershipCardId, oldStockId, newStockId].every((id) => UUID.test(id))
+          || oldStockId === newStockId || reason.length < 5) {
+        return res.status(400).json({ success: false, error: 'Trois UUID distincts et un motif de 5 à 500 caractères sont requis.' });
+      }
+      const { data, error } = await auth.db.rpc('lumareel_replace_physical_card', {
+        p_membership_card_id: membershipCardId,
+        p_old_stock_id: oldStockId,
+        p_new_stock_id: newStockId,
+        p_reason: reason,
+      });
+      if (error) {
+        const code = error.code || '';
+        const statusCode = code === '42501' ? 403 : code === 'P0002' ? 404
+          : code === '22023' ? 400 : ['23505', '23514'].includes(code) ? 409 : 500;
+        console.error('[physical-card-stock] replacement RPC:', error.message);
+        return res.status(statusCode).json({
+          success: false,
+          error: statusCode === 500 ? 'Remplacement de carte indisponible.' : error.message,
+        });
+      }
+      return res.status(200).json({ success: true, replacement: data });
+    }
     if (req.method === 'PATCH') {
       const stockId = readText(body.stockId, 36, 'Identifiant de carte');
       const status = readText(body.status, 30, 'Statut');
