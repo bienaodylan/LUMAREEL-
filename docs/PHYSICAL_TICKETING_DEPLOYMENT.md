@@ -95,3 +95,19 @@ Après application, tester dans un environnement non-production : réception →
 les transitions interdites, l'accès non-super-admin, la révocation NFC et la présence
 exacte des événements d'audit. Aucune migration n'est appliquée automatiquement par le
 repository ou cette documentation.
+
+## 6. Remplacement sécurisé d'une carte physique (migration 202611130001)
+
+La migration `202611130001_secure_physical_card_replacement.sql` ajoute le RPC `lumareel_replace_physical_card`. Elle doit être appliquée après les migrations NFC et de stock (0003–0009).
+
+Le remplacement est une transaction unique :
+
+1. verrouille les deux lignes de stock dans un ordre déterministe, puis la carte membre ;
+2. exige un super-administrateur, une adhésion active/payée, une ancienne carte liée et un nouveau stock disponible/vérifié avec puce EV2/EV3 ;
+3. révoque le credential NFC actif avec un motif, puis associe la nouvelle référence NFC ;
+4. bloque l'ancien stock (il peut être perdu, donc il n'est pas marqué « returned »), libère son lien, associe le nouveau stock et remet le suivi physique à « in_production » ;
+5. écrit les événements NFC et `PHYSICAL_CARD_REPLACED` dans la même transaction. Une erreur annule toutes les étapes.
+
+API admin : `POST /api/membership/admin/physical-card-stock` avec `action: "replace"`, `membershipCardId`, `oldStockId`, `newStockId` et `reason` (5–500 caractères). Le endpoint exige `super_admin`; ne transmettre aucune clé NFC ni UID brut.
+
+À tester en non-production : remplacement réussi, ancien credential inutilisable, ancien stock bloqué/délié, nouveau stock assigné, motif d'audit présent, et rollback complet si le nouveau stock ou le credential est invalide. Cette migration n'a pas été appliquée à Supabase dans cette livraison.
