@@ -112,6 +112,18 @@ describe('Phase P2 Security Verification', () => {
       expect(adminRes.body.success).toBe(true);
       expect(adminRes.body.database?.engine).toBe('sqlite');
     });
+
+    it('ne renvoie aucun gateToken ni credential Supabase dans les paramètres admin', async () => {
+      const { res: loginRes, cookies } = await loginAs('admin-p2@lumareel.test', 'AdminBootstrap#2026!');
+      expect(loginRes.status).toBe(200);
+
+      const settingsRes = await request(app).get('/api/admin/settings').set('Cookie', cookies);
+      expect(settingsRes.status).toBe(200);
+      expect(settingsRes.body.settings).toHaveProperty('platformName');
+      expect(settingsRes.body.settings.gateToken).toBeUndefined();
+      expect(settingsRes.body.settings.supabaseUrl).toBeUndefined();
+      expect(settingsRes.body.settings.supabaseAnonKey).toBeUndefined();
+    });
   });
 
   describe('P2-3 Contact Honeypot & CR/LF Header Injection', () => {
