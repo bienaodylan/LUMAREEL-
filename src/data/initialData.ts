@@ -1,4 +1,4 @@
-import type { ArchiveProduction, ConcertEvent, NewsArticle, Order } from '../types';
+import type { ArchiveProduction, ConcertEvent, NewsArticle, Order } from '../types/index.ts';
 
 /**
  * Safe offline defaults for the client.
