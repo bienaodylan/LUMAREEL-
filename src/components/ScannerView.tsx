@@ -84,6 +84,7 @@ export const ScannerView: React.FC = () => {
   const [deniedReason, setDeniedReason] = useState<string>('');
   const [activeToken, setActiveToken] = useState<string>('');
   const [scannerToken, setScannerToken] = useState<string>('');
+  const sessionInitRef = useRef(false);
   const [activeEventId, setActiveEventId] = useState<string>('');
   const [authorizedEvent, setAuthorizedEvent] = useState<AuthorizedEvent | null>(null);
   const [manualTokenInput, setManualTokenInput] = useState<string>('');
@@ -271,7 +272,7 @@ export const ScannerView: React.FC = () => {
   };
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || sessionInitRef.current) return;
 
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
@@ -280,17 +281,19 @@ export const ScannerView: React.FC = () => {
     if (urlEventId) setActiveEventId(urlEventId);
 
     if (urlToken && urlToken.trim()) {
+      sessionInitRef.current = true;
       createScannerSession(urlToken.trim(), urlEventId || undefined);
     } else if (
       currentUser?.role === 'super_admin' ||
       currentUser?.role === 'box_office'
     ) {
+      sessionInitRef.current = true;
       createScannerSession(undefined, urlEventId || undefined);
     } else {
       setAuthStatus('denied');
       setDeniedReason('Accès Refusé. Aucun lien magique d’accès vigile détecté.');
     }
-  }, []);
+  }, [currentUser?.id, currentUser?.role]);
 
   const formatLocalTime = (isoString?: string) => {
     const date = isoString ? new Date(isoString) : new Date();
