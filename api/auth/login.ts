@@ -48,35 +48,87 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const db = publicDb();
       const { data, error } = await db.auth.signInWithPassword({ email, password });
-      if (error || !data.user) {
+      if (error || !data.user || !data.session?.access_token) {
         return res.status(401).json({ success: false, error: 'E-mail ou mot de passe incorrect.' });
       }
 
-      let profile: { name?: string; role?: string; email_verified?: boolean } | null = null;
-      if (data.session?.access_token) {
-        const sessionDb = userDbForToken(data.session.access_token);
-        const { data: profileData, error: profileError } = await sessionDb
-          .from('users')
-          .select('name,role,email_verified')
-          .eq('id', data.user.id)
-          .maybeSingle();
-        if (profileError) {
-          console.error('[auth/login] profile lookup failed:', profileError.message);
-          return res.status(503).json({ success: false, error: 'Profil utilisateur temporairement indisponible.' });
-        }
-        profile = profileData;
+      let accessToken = data.session.access_token;
+      let refreshToken = data.session.refresh_token;
+      const sessionDb = userDbForToken(accessToken);
+
+      // Password-only AAL1 is insufficient when the account has a verified MFA factor.
+      const { data: assurance, error: assuranceError } = await sessionDb.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (assuranceError) {
+        console.error('[auth/login] MFA assurance lookup failed:', assuranceError.message);
+        return res.status(503).json({ success: false, error: 'Vérification de sécurité indisponible.' });
       }
+
+      if (assurance.nextLevel === 'aal2' && assurance.currentLevel !== 'aal2') {
+        const { data: factors, error: factorsError } = await sessionDb.auth.mfa.listFactors();
+        if (factorsError) {
+          console.error('[auth/login] MFA factors lookup failed:', factorsError.message);
+          return res.status(503).json({ success: false, error: 'Vérification du second facteur indisponible.' });
+        }
+
+        const factor = factors.totp[0] || factors.phone[0];
+        if (!factor) {
+          return res.status(403).json({ success: false, error: 'Un second facteur est requis mais aucun facteur vérifié n’est disponible.' });
+        }
+
+        const totpCode = String(req.body?.totpCode || '').trim();
+        if (!totpCode) {
+          return res.status(401).json({
+            success: false,
+            requires2fa: true,
+            error: 'Code de vérification à deux facteurs requis.',
+          });
+        }
+
+        const { data: challenge, error: challengeError } = await sessionDb.auth.mfa.challenge({ factorId: factor.id });
+        if (challengeError || !challenge?.id) {
+          console.error('[auth/login] MFA challenge failed:', challengeError?.message);
+          return res.status(503).json({ success: false, requires2fa: true, error: 'Impossible de lancer la vérification à deux facteurs.' });
+        }
+
+        const { data: verified, error: verifyError } = await sessionDb.auth.mfa.verify({
+          factorId: factor.id,
+          challengeId: challenge.id,
+          code: totpCode,
+        });
+        if (verifyError || !verified?.access_token || !verified?.refresh_token) {
+          return res.status(401).json({
+            success: false,
+            requires2fa: true,
+            error: 'Code de vérification incorrect ou expiré.',
+          });
+        }
+
+        accessToken = verified.access_token;
+        refreshToken = verified.refresh_token;
+      }
+
+      const authenticatedDb = userDbForToken(accessToken);
+      const { data: profile, error: profileError } = await authenticatedDb
+        .from('users')
+        .select('name,role,email_verified')
+        .eq('id', data.user.id)
+        .maybeSingle();
+      if (profileError) {
+        console.error('[auth/login] profile lookup failed:', profileError.message);
+        return res.status(503).json({ success: false, error: 'Profil utilisateur temporairement indisponible.' });
+      }
+
       return res.status(200).json({
         success: true,
         user: {
           id: data.user.id,
           email: data.user.email || email,
           name: profile?.name || data.user.user_metadata?.name || email.split('@')[0],
-          role: profile?.role || 'customer',
+          role: profile?.email_verified ? (profile.role || 'customer') : 'customer',
           emailVerified: Boolean(data.user.email_confirmed_at || profile?.email_verified),
           createdAt: data.user.created_at,
         },
-        session: data.session,
+        session: { ...data.session, access_token: accessToken, refresh_token: refreshToken },
       });
     } catch (dbErr: any) {
       return res.status(500).json({ success: false, error: dbErr?.message || 'Configuration Supabase indisponible.' });
