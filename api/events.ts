@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { methodNotAllowed, publicDb, requireRole } from './_lib/supabase.js';
+import { methodNotAllowed, publicDb, requireRole, serviceDb } from './_lib/supabase.js';
 
 
 import { INITIAL_ARCHIVES } from '../src/data/initialData.ts';
@@ -197,7 +197,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       social_links: input.socialLinks && typeof input.socialLinks === 'object' && !Array.isArray(input.socialLinks) ? input.socialLinks : {},
       updated_at: new Date().toISOString(),
     };
-    const { error } = await auth.db.from('platform_settings').upsert(row, { onConflict: 'id' });
+    const { error } = await serviceDb().from('platform_settings').upsert(row, { onConflict: 'id' });
     if (error) {
       console.error('[api/admin/settings] update failed:', error.message);
       return res.status(500).json({ success: false, error: 'Enregistrement des paramètres impossible.' });
