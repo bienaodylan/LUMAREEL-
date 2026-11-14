@@ -67,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const { data: gate, error: gateError } = await db.from('scanner_tokens')
-      .select('token,event_id,expires_at,is_revoked')
+      .select('token,event_id,event_title,expires_at,is_revoked')
       .eq('token', scannerToken).eq('is_revoked', false).gt('expires_at', nowIso).maybeSingle();
     if (gateError || !gate || (eventId !== 'all_events' && gate.event_id !== eventId)) {
       return res.status(403).json({ authorized: false, reason: 'Session de contrôle invalide, expirée ou non autorisée pour cet événement.', zone });
@@ -92,10 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { data: cardData, error: cardError } = await db.from('membership_cards').select('*').eq('id', tokenRow.card_id).maybeSingle();
         if (cardError) throw cardError;
         card = cardData;
-        await db.from('membership_qr_tokens').update({
-          last_verified_at: nowIso,
-          verification_count: (await db.from('membership_qr_tokens').select('verification_count').eq('id', tokenRow.id).maybeSingle()).data?.verification_count + 1 || 1,
-        }).eq('id', tokenRow.id);
+        await db.from('membership_qr_tokens').update({ last_verified_at: nowIso }).eq('id', tokenRow.id);
       }
     }
 
@@ -149,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             });
             if (redemptionError) console.error('[membership/check-access] redemption log:', redemptionError.message);
             entitlementInfo = { id: match.id, benefitName: benefit.name, remaining: Math.max(0, Number(match.quantity) - nextUsed) };
-            await db.from('membership_benefits').update({ current_redemptions: db.rpc ? undefined : undefined }).eq('id', benefit.id);
+
           }
         }
       }
@@ -159,7 +156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { error: logError } = await db.from('membership_scan_logs').insert({
       card_id: card?.id || null, card_number: card?.card_number || null,
       cardholder_name: card?.cardholder_name || null, event_id: gate.event_id,
-      event_title: '', access_point_id: null, access_point_name: zone,
+      event_title: gate.event_title || '', access_point_id: null, access_point_name: zone,
       scan_method: scanMethod, verification_result: authorized ? 'AUTHORIZED' : 'DENIED',
       rejection_reason: authorized ? null : rejectionReason || 'Accès refusé.',
       operator_id: adminUserId || operatorId, scanned_at: nowIso,
