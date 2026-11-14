@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { X, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck } from 'lucide-react';
 import { isValidRealEmail } from './CheckoutModal';
 import { clearLocalAuthToken, getAuthHeaders } from '../utils/authSession';
+import { supabase } from '../lib/supabaseClient';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, showToast, checkoutEvent, setCheckoutEvent } = useApp();
@@ -120,6 +121,14 @@ export const AuthModal: React.FC = () => {
           throw new Error(data.error || 'Inscription impossible.');
         }
 
+        if (data.session?.access_token && data.session?.refresh_token) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          });
+          if (sessionError) throw sessionError;
+        }
+
         const meRes = await fetch('/api/auth/me', {
           credentials: 'include',
           headers: await getAuthHeaders(),
@@ -163,6 +172,15 @@ export const AuthModal: React.FC = () => {
       if (!res.ok || !data.success || !data.user) {
         throw new Error(data.error || 'Identifiants invalides.');
       }
+
+      if (!data.session?.access_token || !data.session?.refresh_token) {
+        throw new Error('La session sécurisée n’a pas été créée. Vérifiez la configuration de l’authentification.');
+      }
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+      if (sessionError) throw sessionError;
 
       setRequires2fa(false);
       setTotpCode('');
