@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireRole, methodNotAllowed, serviceDb } from '../../_lib/supabase.js';
+import { handleMembershipRoute } from '../_lib.js';
 
 const publicVerificationLimits = new Map<string, { windowStart: number; count: number }>();
 
@@ -25,6 +26,11 @@ function allowPublicVerification(ipAddress: string): boolean {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'private, no-store');
   res.setHeader('Pragma', 'no-cache');
+
+  const dispatch = typeof req.query.__route === 'string' ? req.query.__route : '';
+  if (['check-access','admin-overview','admin-cards','plans','benefits','card-status','physical-status','rotate-token'].includes(dispatch)) {
+    return handleMembershipRoute(req, res, dispatch);
+  }
 
   if (req.query.__route === 'public-verify') {
     if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
