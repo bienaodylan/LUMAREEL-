@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { authenticatedUserDb, publicDb, methodNotAllowed } from '../_lib/supabase.js';
+import { authenticatedUserDb, publicDb, userDbForToken, methodNotAllowed } from '../_lib/supabase.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -25,7 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           id: auth.user.id,
           email: auth.user.email || '',
           name: profile?.name || auth.user.user_metadata?.name || auth.user.email?.split('@')[0] || 'Membre',
-          role: profile?.role || 'customer',
+          role: profile?.email_verified ? (profile.role || 'customer') : 'customer',
           emailVerified: Boolean(auth.user.email_confirmed_at || profile?.email_verified),
           createdAt: auth.user.created_at,
         },
@@ -52,7 +52,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ success: false, error: 'E-mail ou mot de passe incorrect.' });
       }
 
-      const { data: profile } = await db.from('users').select('name,role,email_verified').eq('id', data.user.id).maybeSingle();
+      let profile: { name?: string; role?: string; email_verified?: boolean } | null = null;
+      if (data.session?.access_token) {
+        const sessionDb = userDbForToken(data.session.access_token);
+        const { data: profileData, error: profileError } = await sessionDb
+          .from('users')
+          .select('name,role,email_verified')
+          .eq('id', data.user.id)
+          .maybeSingle();
+        if (profileError) {
+          console.error('[auth/login] profile lookup failed:', profileError.message);
+          return res.status(503).json({ success: false, error: 'Profil utilisateur temporairement indisponible.' });
+        }
+        profile = profileData;
+      }
       return res.status(200).json({
         success: true,
         user: {

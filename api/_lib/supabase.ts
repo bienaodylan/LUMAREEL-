@@ -8,6 +8,14 @@ function projectConfig() {
   return { url, key };
 }
 
+export function userDbForToken(jwt: string): SupabaseClient {
+  const { url, key } = projectConfig();
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { headers: { Authorization: `Bearer ${jwt}` } },
+  });
+}
+
 export function publicDb(): SupabaseClient {
   const { url, key } = projectConfig();
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
