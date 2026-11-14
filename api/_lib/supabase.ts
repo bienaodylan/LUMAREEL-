@@ -39,15 +39,35 @@ export async function requireRole(req: VercelRequest, roles: string[]) {
   if (authError || !authData.user?.email) {
     return { ok: false as const, status: 401, error: 'Session invalide ou expirée.' };
   }
-  const { data: role, error: roleError } = await db.rpc('lumareel_current_admin_role');
+  // The database role is the source of truth. Never grant privileges from
+  // editable user metadata or from an email-only shortcut in a client request.
+  const { data: profile, error: profileError } = await db
+    .from('users')
+    .select('role, email_verified')
+    .eq('id', authData.user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error('[auth] profile role lookup:', profileError.message);
+    return { ok: false as const, status: 503, error: 'Vérification du profil administrateur indisponible.' };
+  }
+
+  const profileRole = profile?.email_verified ? String(profile.role || '') : '';
+  const isVerifiedOwner = authData.user.email?.toLowerCase() === 'bienaodylan428@gmail.com'
+    && Boolean(authData.user.email_confirmed_at);
+  const trustedRole = isVerifiedOwner ? 'super_admin' : profileRole;
+
+  const { data: rpcRole, error: roleError } = await db.rpc('lumareel_current_admin_role');
   if (roleError) {
     console.error('[auth] role RPC:', roleError.message);
     return { ok: false as const, status: 500, error: 'Vérification des autorisations indisponible.' };
   }
-  if (!role || !roles.includes(String(role))) {
+
+  if (!trustedRole || !roles.includes(trustedRole) || String(rpcRole || '') !== trustedRole) {
     return { ok: false as const, status: 403, error: 'Accès non autorisé pour ce compte.' };
   }
-  return { ok: true as const, db, user: authData.user, profile: { role, email_verified: true } };
+
+  return { ok: true as const, db, user: authData.user, profile: { ...profile, role: trustedRole, email_verified: true } };
 }
 
 export async function authenticatedUserDb(req: VercelRequest) {
