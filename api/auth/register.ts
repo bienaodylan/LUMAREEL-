@@ -14,8 +14,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const letters = name.match(/\p{L}/gu) || [];
     const words = name.split(/\s+/u).filter(Boolean);
     const compactName = name.replace(/[\s.'’_-]/gu, '').toLocaleLowerCase();
-    const repeatedCharacterName = compactName.length >= 3 && new Set(Array.from(compactName)).size === 1;
-    const repeatedSingleLetterName = words.length >= 3 &&
+    const repeatedCharacterName = compactName.length >= 2 && new Set(Array.from(compactName)).size === 1;
+    const repeatedSingleLetterName = words.length >= 2 &&
       words.every((word) => Array.from(word).length === 1 && word.toLocaleLowerCase() === words[0].toLocaleLowerCase());
 
     if (
