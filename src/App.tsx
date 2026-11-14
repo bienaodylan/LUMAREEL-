@@ -1,32 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { FloatingAppNavbar } from './components/FloatingAppNavbar';
 import { DesktopSidebar } from './components/DesktopSidebar';
 import { HomeFeed } from './components/HomeFeed';
-import { ConcertDetailView } from './components/ConcertDetailView';
-import { ArchiveView } from './components/ArchiveView';
-import { NewsView } from './components/NewsView';
-import { OrganizersView } from './components/OrganizersView';
-import { CustomerSpace } from './components/CustomerSpace';
-import { LumareelWalletView } from './components/LumareelWalletView';
-import { ProfileView } from './components/ProfileView';
-import { ScannerView } from './components/ScannerView';
-import { AdminDashboard } from './components/AdminDashboard';
 import { TicketBatchPrintModal } from './components/TicketBatchPrintModal';
 import { CheckoutModal } from './components/CheckoutModal';
 import { AuthModal } from './components/AuthModal';
-import { LumareelCardView } from './components/LumareelCardView';
-import { LumareelMemberCardPage } from './components/LumareelMemberCardPage';
-import { CardVerificationView } from './components/CardVerificationView';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Shield } from 'lucide-react';
+
+const ConcertDetailView = lazy(() => import('./components/ConcertDetailView').then((m) => ({ default: m.ConcertDetailView })));
+const ArchiveView = lazy(() => import('./components/ArchiveView').then((m) => ({ default: m.ArchiveView })));
+const NewsView = lazy(() => import('./components/NewsView').then((m) => ({ default: m.NewsView })));
+const OrganizersView = lazy(() => import('./components/OrganizersView').then((m) => ({ default: m.OrganizersView })));
+const CustomerSpace = lazy(() => import('./components/CustomerSpace').then((m) => ({ default: m.CustomerSpace })));
+const ProfileView = lazy(() => import('./components/ProfileView').then((m) => ({ default: m.ProfileView })));
+const ScannerView = lazy(() => import('./components/ScannerView').then((m) => ({ default: m.ScannerView })));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
+const LumareelCardView = lazy(() => import('./components/LumareelCardView').then((m) => ({ default: m.LumareelCardView })));
+const LumareelMemberCardPage = lazy(() => import('./components/LumareelMemberCardPage').then((m) => ({ default: m.LumareelMemberCardPage })));
+const CardVerificationView = lazy(() => import('./components/CardVerificationView').then((m) => ({ default: m.CardVerificationView })));
 
 const MainApp: React.FC = () => {
-  const { currentPage, toast, setCurrentPage, platformSettings, currentUser, setIsAuthModalOpen, showToast } = useApp();
+  const { currentPage, toast, platformSettings, currentUser } = useApp();
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
-  const isSuperAdmin = currentUser?.role === 'super_admin';
 
   return (
     <div className="min-h-screen w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative overflow-x-hidden">
@@ -45,21 +43,27 @@ const MainApp: React.FC = () => {
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="w-full"
           >
-            {currentPage === 'splash' && <HomeFeed />}
-            {currentPage === 'home' && <HomeFeed />}
-            {currentPage === 'discover' && <HomeFeed />}
-            {currentPage === 'concert_detail' && <ConcertDetailView />}
-            {currentPage === 'archive' && <ArchiveView />}
-            {currentPage === 'news' && <NewsView />}
-            {currentPage === 'organizers' && <OrganizersView />}
-            {currentPage === 'client_space' && <CustomerSpace />}
-            {currentPage === 'profile' && <ProfileView />}
-            {currentPage === 'card' && <LumareelCardView />}
-            {currentPage === 'member_card' && <LumareelMemberCardPage />}
-            {currentPage === 'card_verify' && <CardVerificationView />}
-            {currentPage === 'gate_scanner' && <ScannerView />}
-            {currentPage === 'admin' && <AdminDashboard />}
-          </motion.div>
+            <Suspense fallback={
+              <div className="min-h-[45vh] flex items-center justify-center text-xs tracking-[0.2em] text-neutral-500" role="status" aria-live="polite">
+                CHARGEMENT…
+              </div>
+            }>
+              {currentPage === 'splash' && <HomeFeed />}
+              {currentPage === 'home' && <HomeFeed />}
+              {currentPage === 'discover' && <HomeFeed />}
+              {currentPage === 'concert_detail' && <ConcertDetailView />}
+              {currentPage === 'archive' && <ArchiveView />}
+              {currentPage === 'news' && <NewsView />}
+              {currentPage === 'organizers' && <OrganizersView />}
+              {currentPage === 'client_space' && <CustomerSpace />}
+              {currentPage === 'profile' && <ProfileView />}
+              {currentPage === 'card' && <LumareelCardView />}
+              {currentPage === 'member_card' && <LumareelMemberCardPage />}
+              {currentPage === 'card_verify' && <CardVerificationView />}
+              {currentPage === 'gate_scanner' && <ScannerView />}
+              {currentPage === 'admin' && <AdminDashboard />}
+            </Suspense>
+          </motion.div>otion.div>
         </AnimatePresence>
       </main>
 
