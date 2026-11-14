@@ -83,6 +83,7 @@ export const ScannerView: React.FC = () => {
   const [authStatus, setAuthStatus] = useState<'checking' | 'authorized' | 'denied'>('checking');
   const [deniedReason, setDeniedReason] = useState<string>('');
   const [activeToken, setActiveToken] = useState<string>('');
+  const [scannerToken, setScannerToken] = useState<string>('');
   const [activeEventId, setActiveEventId] = useState<string>('');
   const [authorizedEvent, setAuthorizedEvent] = useState<AuthorizedEvent | null>(null);
   const [manualTokenInput, setManualTokenInput] = useState<string>('');
@@ -242,6 +243,7 @@ export const ScannerView: React.FC = () => {
 
       if (res.ok && jsonResponse?.valid === true) {
         setAuthStatus('authorized');
+        setScannerToken(String(jsonResponse.scannerToken || tokenToVerify || '').trim());
         setActiveToken('');
         if (jsonResponse.event) {
           setAuthorizedEvent(jsonResponse.event);
@@ -324,6 +326,7 @@ export const ScannerView: React.FC = () => {
             token: ticketCode.trim(),
             eventId: activeEventId || authorizedEvent?.id,
             gateAgentId: agentName,
+            scannerToken,
           }),
         });
         resStatus = res.status;

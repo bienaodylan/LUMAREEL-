@@ -5,6 +5,10 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/scanner/session",
+      "destination": "/api/verify-scanner-token?__route=session"
+    },
+    {
       "source": "/api/auth/me",
       "destination": "/api/auth/login?__route=me"
     },
