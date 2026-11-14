@@ -8,10 +8,22 @@ export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days sliding
 export const MIN_PASSWORD_LENGTH = 10;
 
 export function assertBootSecurityConfig(): void {
-  const secret = process.env.SESSION_SECRET || '';
+  let secret = process.env.SESSION_SECRET || '';
+
+  // AI Studio and local preview may not inject server-side secrets. Generate a
+  // cryptographically random, process-local secret for non-production runtimes.
+  // Production remains fail-closed and requires an explicitly configured secret.
+  if ((!secret || secret.length < 32) && process.env.NODE_ENV !== 'production') {
+    secret = crypto.randomBytes(48).toString('hex');
+    process.env.SESSION_SECRET = secret;
+    console.warn(
+      '[SECURITY CONFIG] SESSION_SECRET absent: generated ephemeral development secret. Sessions will reset on restart.'
+    );
+  }
+
   if (!secret || secret.length < 32) {
     console.error(
-      '[FATAL SECURITY CONFIG] SESSION_SECRET doit être défini et contenir au moins 32 caractères. Arrêt du serveur.'
+      '[FATAL SECURITY CONFIG] SESSION_SECRET doit être défini et contenir au moins 32 caractères en production. Arrêt du serveur.'
     );
     process.exit(1);
   }
