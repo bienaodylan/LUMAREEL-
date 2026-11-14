@@ -1056,17 +1056,24 @@ class LumareelSqliteStore {
     idempotencyKey?: string;
   }): { balanceBefore: number; balanceAfter: number; transaction: WalletTransaction; deduplicated: boolean } {
     const amount = Math.floor(Number(params.amount));
+    const idempotencyKey = String(params.idempotencyKey || '').trim();
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error('Le montant de recharge doit être un entier positif.');
     }
+    if (!idempotencyKey || idempotencyKey.length > 128) {
+      throw new Error('Une clé d’idempotence unique (1 à 128 caractères) est obligatoire.');
+    }
 
     return this.runImmediateTransaction(() => {
-      if (params.idempotencyKey) {
-        const existing = this.db
-          .prepare(`SELECT * FROM wallet_ledger WHERE idempotency_key = ?`)
-          .get(params.idempotencyKey) as any;
-        if (existing) {
-          return {
+      const existing = this.db
+        .prepare(`SELECT * FROM wallet_ledger WHERE idempotency_key = ?`)
+        .get(idempotencyKey) as any;
+      if (existing) {
+        if (existing.card_id !== params.cardId || Number(existing.amount) !== amount ||
+            existing.type !== 'credit_recharge' || existing.currency !== (params.currency || 'FCFA')) {
+          throw new Error('Conflit : cette clé d’idempotence a déjà été utilisée pour une autre opération.');
+        }
+        return {
             balanceBefore: Number(existing.balance_before),
             balanceAfter: Number(existing.balance_after),
             deduplicated: true,
@@ -1113,7 +1120,7 @@ class LumareelSqliteStore {
         .run(
           txId,
           params.cardId,
-          params.idempotencyKey || null,
+          idempotencyKey,
           amount,
           params.currency || 'FCFA',
           balanceBefore,
@@ -1161,17 +1168,24 @@ class LumareelSqliteStore {
     idempotencyKey?: string;
   }): { balanceBefore: number; balanceAfter: number; transaction: WalletTransaction; deduplicated: boolean } {
     const amount = Math.floor(Number(params.amount));
+    const idempotencyKey = String(params.idempotencyKey || '').trim();
     if (!Number.isFinite(amount) || amount <= 0) {
       throw new Error('Le montant de débit doit être un entier positif.');
     }
+    if (!idempotencyKey || idempotencyKey.length > 128) {
+      throw new Error('Une clé d’idempotence unique (1 à 128 caractères) est obligatoire.');
+    }
 
     return this.runImmediateTransaction(() => {
-      if (params.idempotencyKey) {
-        const existing = this.db
-          .prepare(`SELECT * FROM wallet_ledger WHERE idempotency_key = ?`)
-          .get(params.idempotencyKey) as any;
-        if (existing) {
-          return {
+      const existing = this.db
+        .prepare(`SELECT * FROM wallet_ledger WHERE idempotency_key = ?`)
+        .get(idempotencyKey) as any;
+      if (existing) {
+        if (existing.card_id !== params.cardId || Number(existing.amount) !== amount ||
+            existing.type !== 'debit_purchase' || existing.currency !== (params.currency || 'FCFA')) {
+          throw new Error('Conflit : cette clé d’idempotence a déjà été utilisée pour une autre opération.');
+        }
+        return {
             balanceBefore: Number(existing.balance_before),
             balanceAfter: Number(existing.balance_after),
             deduplicated: true,
@@ -1228,7 +1242,7 @@ class LumareelSqliteStore {
         .run(
           txId,
           params.cardId,
-          params.idempotencyKey || null,
+          idempotencyKey,
           amount,
           params.currency || 'FCFA',
           balanceBefore,
