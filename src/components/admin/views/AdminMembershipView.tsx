@@ -64,6 +64,7 @@ export const AdminMembershipView: React.FC = () => {
   const [selectedCard, setSelectedCard] = useState<MembershipCard | null>(null);
   const [actionReason, setActionReason] = useState('');
   const [physicalTrackingInput, setPhysicalTrackingInput] = useState('');
+  const [rotatedQrToken, setRotatedQrToken] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -153,7 +154,9 @@ export const AdminMembershipView: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Erreur de rotation du jeton.');
-      showToast('Nouveau jeton QR généré. L’ancien jeton a été révoqué avec succès.', 'success');
+      if (!data.token || typeof data.token !== 'string') throw new Error('Le serveur n’a pas retourné le nouveau jeton.');
+      setRotatedQrToken(data.token);
+      showToast('Nouveau jeton QR généré. L’ancien jeton a été révoqué.', 'success');
       setSelectedCard(null);
       fetchDashboardData();
     } catch (err: any) {
@@ -704,7 +707,22 @@ export const AdminMembershipView: React.FC = () => {
         </div>
       )}
 
-
+      {rotatedQrToken && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+          <div className="w-full max-w-xl rounded-3xl border border-[#d4af37]/30 bg-[#101010] p-6 sm:p-8 space-y-5">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.2em] text-[#d4af37] font-bold">Sécurité Membership</div>
+              <h3 className="text-xl text-white font-agrandir-extrabold mt-1">Nouveau jeton QR</h3>
+              <p className="text-xs text-neutral-400 mt-2">Ce jeton est affiché une seule fois. Copiez-le et transmettez-le uniquement au service chargé de réencoder la carte.</p>
+            </div>
+            <div className="rounded-xl bg-black border border-white/10 p-4 font-mono text-xs text-white break-all select-text">{rotatedQrToken}</div>
+            <div className="flex flex-wrap justify-end gap-3">
+              <button type="button" onClick={() => { navigator.clipboard.writeText(rotatedQrToken).then(() => showToast('Jeton copié.', 'success')).catch(() => showToast('Copie impossible sur ce navigateur.', 'error')); }} className="px-4 py-2.5 rounded-xl bg-white text-black text-xs font-bold">Copier le jeton</button>
+              <button type="button" onClick={() => setRotatedQrToken(null)} className="px-4 py-2.5 rounded-xl border border-white/20 text-white text-xs font-bold">Fermer</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
