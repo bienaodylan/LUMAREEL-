@@ -59,7 +59,6 @@ const resilientFetch: typeof fetch = async (url, options: RequestInit = {}) => {
       const response = await fetch(url, {
         ...options,
         signal,
-        // @ts-ignore keepalive is supported in modern browsers & fetch
         keepalive: true,
       });
 
