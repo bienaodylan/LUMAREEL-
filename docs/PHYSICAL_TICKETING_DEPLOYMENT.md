@@ -75,6 +75,8 @@ ci-dessous **dans l'ordre chronologique**, sur le projet Supabase déjà utilis�
 7. `202611100007_lock_down_membership_audit.sql`
 8. `202611100008_physical_card_received_stock.sql`
 9. `202611110001_secure_physical_card_stock_lifecycle.sql`
+10. `202611130001_secure_physical_card_replacement.sql`
+11. `202611140001_guard_physical_nfc_replacement_consistency.sql`
 
 **Attention :** la migration 0002 supprime la table NFC historique avec `CASCADE` ;
 la migration 0003 la recrée ensuite en registre de métadonnées. Ne pas sauter
@@ -111,3 +113,15 @@ Le remplacement est une transaction unique :
 API admin : `POST /api/membership/admin/physical-card-stock` avec `action: "replace"`, `membershipCardId`, `oldStockId`, `newStockId` et `reason` (5–500 caractères). Le endpoint exige `super_admin`; ne transmettre aucune clé NFC ni UID brut.
 
 À tester en non-production : remplacement réussi, ancien credential inutilisable, ancien stock bloqué/délié, nouveau stock assigné, motif d'audit présent, et rollback complet si le nouveau stock ou le credential est invalide. Cette migration n'a pas été appliquée à Supabase dans cette livraison.
+
+
+## 7. Contrôle de cohérence NFC au remplacement (migration 202611140001)
+
+La migration `202611140001_guard_physical_nfc_replacement_consistency.sql` remplace le RPC de remplacement par une version renforcée :
+
+- verrouille tous les credentials actifs de la carte et exige **exactement un** credential actif (les données historiques ambiguës sont refusées) ;
+- vérifie que la référence NFC opaque et le type de puce de l'ancien stock correspondent exactement au credential à révoquer ;
+- refuse le remplacement en cas de divergence, avant toute révocation ou modification du stock ;
+- conserve le même contrat API et le rollback transactionnel.
+
+Cette garde évite de révoquer une puce tout en bloquant par erreur une autre carte physique. Elle ne répare pas automatiquement les éventuelles incohérences existantes : celles-ci doivent être examinées et corrigées manuellement en environnement contrôlé, avec audit.
