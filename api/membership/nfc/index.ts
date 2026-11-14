@@ -9,7 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.query.__route === 'public-verify') {
     if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
     const token = typeof req.query.token === 'string' ? req.query.token.trim() : '';
-    if (!token || token.length < 16 || token.length > 512 || /\\s/u.test(token)) {
+    if (!token || token.length < 16 || token.length > 512 || /\s/u.test(token)) {
       return res.status(200).json({
         valid: false, outcome: 'INVALID', status: 'NOT_FOUND',
         message: 'Jeton QR invalide.',
@@ -92,7 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         message = 'La période de validité de cette carte n’a pas encore commencé.';
       }
 
-      const nameParts = String(card.cardholder_name || '').trim().split(/\\s+/u).filter(Boolean);
+      const nameParts = String(card.cardholder_name || '').trim().split(/\s+/u).filter(Boolean);
       const cardholderDisplayName = nameParts.length > 1
         ? `${nameParts[0]} ${nameParts.slice(1).map((part: string) => `${part[0] || ''}.`).join(' ')}`
         : (nameParts[0] || 'Titulaire non renseigné');
@@ -116,7 +116,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         cardholderInitials: nameParts.map((part: string) => part[0] || '').join('').slice(0, 3).toUpperCase(),
         validFrom: card.valid_from,
         expiresAt: card.expires_at,
-        physicalCardStatus: card.physical_card_status,
+        physicalCardStatus: ['requested', 'payment_pending', 'approved', 'in_production', 'printed', 'quality_checked', 'ready_for_dispatch', 'shipped', 'delivered', 'cancelled', 'blocked', 'lost', 'returned', 'replacement_requested', 'defective'].includes(card.physical_card_status) ? card.physical_card_status : undefined,
         message,
       });
     } catch (error) {
