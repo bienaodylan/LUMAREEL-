@@ -49,7 +49,8 @@
     "typescript-eslint": "^8.72.2",
     "vite": "^8.3.0",
     "vitest": "^5.1.0",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -57,7 +58,9 @@
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.28.2",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.5.0"
   }
 }
