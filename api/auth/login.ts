@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { authenticatedUserDb, publicDb, userDbForToken, methodNotAllowed } from '../_lib/supabase.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('Pragma', 'no-cache');
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   if (req.query.__route === 'me') {
     if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
