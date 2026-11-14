@@ -580,7 +580,7 @@ async function ensureRasterDesign(urlOrData: string): Promise<string> {
       return data;
     } catch (error) {
       // Un billet sans QR code ne peut pas être contrôlé à l'entrée : on n'imprime pas.
-      throw new Error(`QR code impossible à générer pour le billet ${ticket.serialNumber}.`);
+      throw new Error(`QR code impossible à générer pour le billet ${ticket.serialNumber}.`, { cause: error });
     }
   };
 
