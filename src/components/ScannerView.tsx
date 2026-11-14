@@ -1208,34 +1208,36 @@ export const ScannerView: React.FC = () => {
             <div className="text-[9px] font-agrandir-semibold uppercase tracking-wider text-[#777]">
               Saisie Manuelle (si le code QR est illisible)
             </div>
-            <div className="flex gap-1.5 text-[9px]">
-              <button
-                type="button"
-                onClick={() => handleVerifyTicket('TKT_SEC_98A4F1E08C3B127')}
-                className="text-emerald-400/80 hover:text-emerald-400 underline cursor-pointer"
-                title="Billet Valide initial"
-              >
-                + Valide
-              </button>
-              <span className="text-[#444]">·</span>
-              <button
-                type="button"
-                onClick={() => handleVerifyTicket('TKT_SEC_B24CD77382EF091')}
-                className="text-amber-400/80 hover:text-amber-400 underline cursor-pointer"
-                title="Billet Déjà Utilisé initial"
-              >
-                + Déjà utilisé
-              </button>
-              <span className="text-[#444]">·</span>
-              <button
-                type="button"
-                onClick={() => handleVerifyTicket('TKT_FAUX_RANDOM_CODE')}
-                className="text-rose-400/80 hover:text-rose-400 underline cursor-pointer"
-                title="Faux Billet / Invalide"
-              >
-                + Invalide
-              </button>
-            </div>
+            {import.meta.env.DEV && (
+              <div className="flex gap-1.5 text-[9px]">
+                <button
+                  type="button"
+                  onClick={() => handleVerifyTicket('TKT_SEC_98A4F1E08C3B127')}
+                  className="text-emerald-400/80 hover:text-emerald-400 underline cursor-pointer"
+                  title="Billet de test valide"
+                >
+                  + Valide (test)
+                </button>
+                <span className="text-[#444]">·</span>
+                <button
+                  type="button"
+                  onClick={() => handleVerifyTicket('TKT_SEC_B24CD77382EF091')}
+                  className="text-amber-400/80 hover:text-amber-400 underline cursor-pointer"
+                  title="Billet de test déjà utilisé"
+                >
+                  + Déjà utilisé (test)
+                </button>
+                <span className="text-[#444]">·</span>
+                <button
+                  type="button"
+                  onClick={() => handleVerifyTicket('TKT_FAUX_RANDOM_CODE')}
+                  className="text-rose-400/80 hover:text-rose-400 underline cursor-pointer"
+                  title="Faux billet de test"
+                >
+                  + Invalide (test)
+                </button>
+              </div>
+            )}
           </div>
           <form
             onSubmit={(e) => {
