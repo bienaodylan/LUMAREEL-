@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { readFileAsDataURL } from './mediaUtils';
+import { getAuthHeaders } from './authSession';
 
 /**
  * Stockage durable des designs (billets, affiches…).
@@ -13,8 +14,8 @@ let client: SupabaseClient | null = null;
 
 function getClient(): SupabaseClient | null {
   if (client) return client;
-  const url = (import.meta.env.VITE_SUPABASE_URL || 'https://kupznytxykaesfqnngtb.supabase.co').trim();
-  const key = (import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt1cHpueXR4eWthZXNmcW5uZ3RiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMzNjE1MTEsImV4cCI6MjEwODkzNzUxMX0.xDUs9eDtrGe6-coE9t8y2NXZYpaBB3X7wOL1YyzeLTI').trim();
+  const url = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+  const key = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
   if (!url || !key || !url.startsWith('https://') || url.includes('your-project-id')) {
     return null;
   }
@@ -26,9 +27,30 @@ function getClient(): SupabaseClient | null {
   }
 }
 
-/** Envoie un fichier dans le stockage cloud ou le charge en local sans jamais échouer. */
+/** Envoie un fichier sur le serveur Express (/api/upload), ou Supabase Storage si actif, ou Data URL local. */
 export async function uploadDesign(file: File, folder = 'tickets'): Promise<string> {
-  // 1. Supabase Storage si le projet est configuré
+  // 1. Serveur Express /api/upload (stockage durable local sur disque /uploads)
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const headers = await getAuthHeaders();
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      credentials: 'include',
+      headers,
+      body: formData,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.success && data.url) {
+        return data.url;
+      }
+    }
+  } catch (err) {
+    console.warn('[uploadDesign] /api/upload failed:', err);
+  }
+
+  // 2. Supabase Storage si explicitement configuré via env
   const supabase = getClient();
   if (supabase) {
     try {
@@ -51,24 +73,6 @@ export async function uploadDesign(file: File, folder = 'tickets'): Promise<stri
     } catch (err) {
       console.warn('[uploadDesign] Supabase storage upload failed:', err);
     }
-  }
-
-  // 2. Serveur Express /api/upload si disponible
-  try {
-    const formData = new FormData();
-    formData.append('file', file);
-    const res = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
-    if (res.ok) {
-      const data = await res.json();
-      if (data?.success && data.url) {
-        return data.url;
-      }
-    }
-  } catch (err) {
-    console.warn('[uploadDesign] /api/upload failed, using Data URL fallback:', err);
   }
 
   // 3. Repli automatique en Data URL (aucune dépendance externe, pérenne et immédiat)

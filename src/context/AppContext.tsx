@@ -3,7 +3,19 @@ import { User, ConcertEvent, Order, Ticket, ArchiveProduction, PlatformSettings 
 import { INITIAL_EVENTS, INITIAL_NEWS, INITIAL_ORDERS, INITIAL_ARCHIVES } from '../data/initialData';
 import { convertToYouTubeEmbed } from '../utils/mediaUtils';
 import { supabase, isSupabaseConfigured, configureSupabase, testSupabaseConnection } from '../lib/supabaseClient';
+import { clearLocalAuthToken, getAuthHeaders } from '../utils/authSession';
 import { SupportedLanguage, getTranslation } from '../i18n/translations';
+import {
+  BrowserNotificationPermission,
+  CONCERT_REMINDER_OFFSET_MS,
+  dispatchLocalPushNotification,
+  formatTimeHHmm,
+  getBrowserNotificationPermission,
+  getConcertReminderTimestamp,
+  parseConcertStartTimestamp,
+  requestBrowserNotificationPermission,
+  shouldTriggerReminderNow,
+} from '../utils/concertNotifications';
 
 export type PageView =
   | 'splash'
@@ -62,6 +74,18 @@ interface AppContextType {
   setLanguage: (lang: SupportedLanguage) => void;
   t: (key: string, fallback?: string) => string;
 
+  // Favoris & Notifications Push Locales (Rappel 30 min avant le concert)
+  favoriteEventIds: string[];
+  toggleFavoriteEvent: (eventId: string) => void;
+  isFavoriteEvent: (eventId: string) => boolean;
+  notificationsEnabled: boolean;
+  setNotificationsEnabled: (enabled: boolean) => void;
+  notificationPermission: BrowserNotificationPermission;
+  refreshNotificationPermission: () => BrowserNotificationPermission;
+  requestNotificationPermission: () => Promise<BrowserNotificationPermission>;
+  notifiedEventIds: string[];
+  sendTestNotification: () => Promise<boolean>;
+
   // États de scalabilité et base de données Cloud
   isLoadingEvents: boolean;
   isLoadingOrders: boolean;
@@ -80,8 +104,8 @@ const DEFAULT_PLATFORM_SETTINGS: PlatformSettings = {
   logoUrl: '/assets/logo-lumareel.png',
   currency: 'FCFA',
   infoline: '+225 01 53 508 210',
-  gateToken: 'VIGILE_AUTH_LMR_2026',
-  githubRepoUrl: 'https://github.com/bienaodylan/LUMAREEL-',
+  gateToken: '',
+  githubRepoUrl: '',
   socialLinks: {
     tiktok: 'https://www.tiktok.com/@lumareelco',
     instagram: 'https://www.instagram.com/lumareelco/',
@@ -225,6 +249,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ARCHIVES: 'lumareel_persisted_archives_v5',
     SETTINGS: 'lumareel_persisted_settings_v5',
     CURRENT_USER: 'lumareel_persisted_user_v5',
+    FAVORITES: 'lumareel_favorite_events_v1',
+    NOTIF_ENABLED: 'lumareel_notifications_enabled_v1',
+    NOTIFIED_EVENTS: 'lumareel_notified_events_v1',
   };
 
   const readLocal = <T,>(key: string, fallback: T): T => {
@@ -292,6 +319,154 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return getTranslation(language, key, fallback);
   };
 
+  // ============================================================================
+  // FAVORIS & NOTIFICATIONS PUSH LOCALES (RAPPEL 30 MIN AVANT LE CONCERT)
+  // ============================================================================
+  const [favoriteEventIds, setFavoriteEventIds] = useState<string[]>(() => {
+    const raw = readLocal<unknown>(STORAGE_KEYS.FAVORITES, []);
+    return Array.isArray(raw) ? raw.filter((id): id is string => typeof id === 'string') : [];
+  });
+
+  const [notificationsEnabled, setNotificationsEnabledState] = useState<boolean>(() => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const stored = localStorage.getItem(STORAGE_KEYS.NOTIF_ENABLED);
+        if (stored !== null) return JSON.parse(stored) !== false;
+      }
+    } catch {}
+    return true;
+  });
+
+  const [notifiedEventIds, setNotifiedEventIds] = useState<string[]>(() => {
+    const raw = readLocal<unknown>(STORAGE_KEYS.NOTIFIED_EVENTS, []);
+    return Array.isArray(raw) ? raw.filter((id): id is string => typeof id === 'string') : [];
+  });
+  const notifiedEventIdsRef = useRef<string[]>(notifiedEventIds);
+  notifiedEventIdsRef.current = notifiedEventIds;
+
+  const [notificationPermission, setNotificationPermission] = useState<BrowserNotificationPermission>(() =>
+    getBrowserNotificationPermission()
+  );
+
+  const refreshNotificationPermission = useCallback((): BrowserNotificationPermission => {
+    const perm = getBrowserNotificationPermission();
+    setNotificationPermission(perm);
+    return perm;
+  }, []);
+
+  const setNotificationsEnabled = useCallback((enabled: boolean) => {
+    setNotificationsEnabledState(enabled);
+    writeLocal(STORAGE_KEYS.NOTIF_ENABLED, enabled);
+  }, []);
+
+  const requestNotificationPermission = useCallback(async (): Promise<BrowserNotificationPermission> => {
+    const result = await requestBrowserNotificationPermission();
+    setNotificationPermission(result);
+    if (result === 'granted') {
+      setNotificationsEnabled(true);
+    }
+    return result;
+  }, [setNotificationsEnabled]);
+
+  const isFavoriteEvent = useCallback(
+    (eventId: string) => favoriteEventIds.includes(eventId),
+    [favoriteEventIds]
+  );
+
+  const toggleFavoriteEvent = useCallback(
+    (eventId: string) => {
+      const exists = favoriteEventIds.includes(eventId);
+      const next = exists
+        ? favoriteEventIds.filter((id) => id !== eventId)
+        : [eventId, ...favoriteEventIds];
+
+      setFavoriteEventIds(next);
+      writeLocal(STORAGE_KEYS.FAVORITES, next);
+
+      const targetEvent = events.find((e) => e.id === eventId);
+      const label = targetEvent ? `${targetEvent.artist} EN CONCERT` : 'Concert';
+
+      if (exists) {
+        showToast(
+          language === 'en'
+            ? `${label} removed from favorites.`
+            : `${label} retiré de vos favoris.`,
+          'info'
+        );
+      } else {
+        const reminderTs = targetEvent ? getConcertReminderTimestamp(targetEvent) : null;
+        const reminderHour = reminderTs ? formatTimeHHmm(reminderTs) : '';
+        const currentPerm = getBrowserNotificationPermission();
+
+        if (!notificationsEnabled) {
+          showToast(
+            language === 'en'
+              ? `${label} added to favorites. Enable alerts in Profile for 30-min reminders.`
+              : `${label} ajouté aux favoris. Activez les alertes dans Profil pour recevoir le rappel 30 min avant.`,
+            'success'
+          );
+        } else if (currentPerm === 'granted') {
+          showToast(
+            language === 'en'
+              ? `${label} added to favorites · Push alert scheduled 30 min before${reminderHour ? ` (${reminderHour})` : ''}.`
+              : `${label} ajouté aux favoris · Alerte push programmée 30 min avant${reminderHour ? ` (${reminderHour})` : ''}.`,
+            'success'
+          );
+        } else {
+          showToast(
+            language === 'en'
+              ? `${label} added to favorites · Reminder scheduled 30 min before. Authorize push alerts in Profile.`
+              : `${label} ajouté aux favoris · Rappel prévu 30 min avant. Autorisez les notifications dans Profil.`,
+            'success'
+          );
+        }
+      }
+    },
+    [favoriteEventIds, events, notificationsEnabled, language]
+  );
+
+  const sendTestNotification = useCallback(async (): Promise<boolean> => {
+    const sampleEvent =
+      events.find((e) => favoriteEventIds.includes(e.id)) || featuredEvent || events[0];
+    const title = sampleEvent
+      ? `LUMARÉEL · Rappel Concert (${sampleEvent.artist})`
+      : 'LUMARÉEL · Test de notification';
+    const body = sampleEvent
+      ? `Votre concert au ${sampleEvent.venue} commence dans 30 minutes (${sampleEvent.time || '20:00'}).`
+      : 'Les alertes locales 30 minutes avant vos concerts favoris fonctionnent parfaitement.';
+
+    const res = await dispatchLocalPushNotification({
+      title,
+      body,
+      tag: `lumareel-test-${Date.now()}`,
+      icon: '/assets/logo-lumareel.png',
+      onClick: () => {
+        if (sampleEvent) {
+          setSelectedEventSlug(sampleEvent.slug);
+          setCurrentPage('concert_detail');
+        }
+      },
+    });
+
+    if (res.deliveredViaBrowser) {
+      showToast(
+        language === 'en'
+          ? 'Test push notification sent to your device!'
+          : 'Notification push de test envoyée sur votre appareil !',
+        'success'
+      );
+      return true;
+    }
+
+    showToast(
+      language === 'en'
+        ? `In-app preview: "${body}" (Allow browser permission for system push alerts).`
+        : `Aperçu local : "${body}" (Autorisez les notifications navigateur pour les alertes système).`,
+      'info'
+    );
+    return false;
+  }, [events, favoriteEventIds, featuredEvent, language]);
+
   // Indicateurs de performance & Cloud DB
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [isLoadingOrders, setIsLoadingOrders] = useState(false);
@@ -330,54 +505,71 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     orders: 10000,    // 10 secondes pour les commandes du compte
   };
 
-  // Session utilisateur persistante (chargée depuis localStorage avec repli dynamique)
+  // Session utilisateur persistante (cache d'affichage uniquement, vérité vérifiée via GET /api/auth/me)
   const [currentUser, setCurrentUserState] = useState<User | null>(() => {
     const saved = readLocal<User | null>(STORAGE_KEYS.CURRENT_USER, null);
-    if (!saved) return null;
-    return { ...saved, role: String(saved.email || '').toLowerCase() === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer' };
+    if (!saved || !saved.id || !saved.email) return null;
+    return {
+      id: saved.id,
+      email: saved.email,
+      name: saved.name,
+      role: 'customer',
+      emailVerified: Boolean(saved.emailVerified),
+      createdAt: saved.createdAt || new Date().toISOString(),
+    };
   });
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
     let active = true;
-    const syncUser = async (userId?: string) => {
-      if (!userId) return; // Ne pas effacer la session locale si Supabase est inactif
+    clearLocalAuthToken();
+
+    const verifyCookieSession = async () => {
       try {
-        const { data: authData } = await supabase.auth.getUser();
-        const authUser = authData.user;
-        if (!authUser || authUser.id !== userId) return;
-        const email = (authUser.email || '').toLowerCase();
-        const isSuperAdmin = email === 'bienaodylan428@gmail.com';
-        const { data: profile } = await supabase.from('users').select('id,email,name,role,email_verified').eq('email', email).maybeSingle();
+        const res = await fetch('/api/auth/me', {
+          credentials: 'include',
+          headers: await getAuthHeaders(),
+        });
         if (!active) return;
-        const role = isSuperAdmin ? 'super_admin' : (profile?.role || 'customer');
-        const user = {
-          id: authUser.id,
-          email,
-          name: profile?.name || authUser.user_metadata?.name || (isSuperAdmin ? 'Dylan B.' : email.split('@')[0]),
-          role,
-          emailVerified: Boolean(authUser.email_confirmed_at) || isSuperAdmin,
-          createdAt: authUser.created_at,
-        } as User;
-        setCurrentUserState(user);
-        writeLocal(STORAGE_KEYS.CURRENT_USER, user);
-      } catch (err) {
-        console.warn('[Auth Sync]', err);
+        if (res.ok) {
+          const data = await res.json().catch(() => null);
+          if (data?.success && data.user) {
+            setCurrentUserState(data.user);
+            writeLocal(STORAGE_KEYS.CURRENT_USER, {
+              id: data.user.id,
+              email: data.user.email,
+              name: data.user.name,
+              role: data.user.role,
+              emailVerified: data.user.emailVerified,
+            });
+            return;
+          }
+        }
+        if (res.status === 401) {
+          setCurrentUserState(null);
+          localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        }
+      } catch {
+        // Ne pas déconnecter en cas de perte réseau transitoire
       }
     };
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user?.id) void syncUser(data.session.user.id);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user?.id) void syncUser(session.user.id);
-    });
-    return () => { active = false; listener.subscription.unsubscribe(); };
+
+    void verifyCookieSession();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const setCurrentUser = (user: User | null) => {
+    clearLocalAuthToken();
     setCurrentUserState(user);
     if (user) {
-      writeLocal(STORAGE_KEYS.CURRENT_USER, user);
+      writeLocal(STORAGE_KEYS.CURRENT_USER, {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        emailVerified: user.emailVerified,
+      });
     } else {
       try {
         localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
@@ -404,12 +596,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const refreshEvents = useCallback(async (force = false) => {
     const now = Date.now();
-    // Cache check : ne pas requêter si le cache est encore frais (sauf force refresh)
     if (!force && now - cacheTimestamps.current.events < CACHE_TTL_MS.events && events.length > 0) {
       return;
     }
 
-    // Requête déjà en cours : mutualisation pour éviter les requêtes doublons
     if (inFlightPromises.current.events) {
       return inFlightPromises.current.events;
     }
@@ -417,19 +607,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const fetchTask = async () => {
       setIsLoadingEvents(true);
       try {
-        if (isSupabaseConfigured) {
-          // Requête directe PostgreSQL haute performance via le Connection Pooler Supabase
+        // Source d'autorité SQLite / Express
+        const loaded = await fetchEventsFromBackend();
+        if (!loaded && isSupabaseConfigured) {
           const { data, error } = await supabase
             .from('events')
             .select('*')
             .order('date', { ascending: true });
-
-          if (error) {
-            console.warn('[Supabase] Erreur lecture events:', error.message);
-            setCloudSyncError(`Supabase: ${error.message}`);
-            // Fallback vers l'API Express si configurée
-            await fetchEventsFromBackend();
-          } else if (data && data.length > 0) {
+          if (!error && data) {
             const mapped = data.map(mapDbRowToEvent);
             setEvents(mapped);
             const feat = mapped.find((e) => e.isFeatured) || mapped[0];
@@ -437,18 +622,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             cacheTimestamps.current.events = Date.now();
             setIsCloudDbActive(true);
             setCloudSyncError(null);
-          } else {
-            // La base Cloud est la source de vérité, même lorsqu'elle ne contient aucun événement.
-            setEvents([]);
-            setFeaturedEvent(null);
-            writeLocal(STORAGE_KEYS.EVENTS, []);
-            cacheTimestamps.current.events = Date.now();
-            setIsCloudDbActive(true);
-            setCloudSyncError(null);
           }
-        } else {
-          // Supabase non configuré pour le moment : requête l'API Express
-          await fetchEventsFromBackend();
         }
       } catch (err: any) {
         console.warn('[Events] Erreur réseau:', err.message);
@@ -462,31 +636,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return inFlightPromises.current.events;
   }, [events.length]);
 
-  const fetchEventsFromBackend = async () => {
+  const fetchEventsFromBackend = async (): Promise<boolean> => {
     try {
       const res = await fetch('/api/events');
-      if (!res.ok) return;
+      if (!res.ok) return false;
       const data = await res.json();
       if (data.success && Array.isArray(data.events)) {
-        // Ne jamais fusionner avec le cache local : les données serveur font autorité.
         const serverEvents = data.events as ConcertEvent[];
         setEvents(serverEvents);
         writeLocal(STORAGE_KEYS.EVENTS, serverEvents);
         const feat = serverEvents.find((e) => e.isFeatured && e.status === 'published') || serverEvents.find((e) => e.status === 'published');
         setFeaturedEvent(feat || null);
         cacheTimestamps.current.events = Date.now();
+        setCloudSyncError(null);
+        return true;
       }
-    } catch {}
+      return false;
+    } catch {
+      return false;
+    }
   };
 
   const seedInitialEventsToSupabase = async () => {
     if (!isSupabaseConfigured) return;
     try {
-      const rows = INITIAL_EVENTS.map(mapEventToDbRow);
+      const rows = events.map(mapEventToDbRow);
       const { error } = await supabase.from('events').upsert(rows, { onConflict: 'id' });
       if (!error) {
-        setEvents(INITIAL_EVENTS);
-        setFeaturedEvent(INITIAL_EVENTS[0]);
+        setIsCloudDbActive(true);
       }
     } catch (e) {
       console.warn('Seeding initial events skipped:', e);
@@ -507,34 +684,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const previousEvents = events;
     const previousFeatured = featuredEvent;
     try {
-      if (isSupabaseConfigured) {
-        const dbRow = mapEventToDbRow(updatedEvent);
-        const { data, error } = await supabase.from('events')
-          .upsert(dbRow, { onConflict: 'id' }).select('*').single();
-        if (error) throw new Error(error.message);
-        const confirmedEvent = mapDbRowToEvent(data);
-        const next = previousEvents.some((event) => event.id === confirmedEvent.id)
-          ? previousEvents.map((event) => event.id === confirmedEvent.id ? confirmedEvent : event)
-          : [confirmedEvent, ...previousEvents];
-        setEvents(next);
-        writeLocal(STORAGE_KEYS.EVENTS, next);
-        setFeaturedEvent(confirmedEvent.isFeatured ? confirmedEvent : (previousFeatured?.id === confirmedEvent.id ? next.find((event) => event.isFeatured) || null : previousFeatured));
-      } else {
-        const response = await fetch(`/api/events/${updatedEvent.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedEvent),
-        });
-        if (!response.ok) throw new Error(`API événements : HTTP ${response.status}`);
-        const next = previousEvents.some((event) => event.id === updatedEvent.id)
-          ? previousEvents.map((event) => event.id === updatedEvent.id ? updatedEvent : event)
-          : [updatedEvent, ...previousEvents];
-        setEvents(next);
-        writeLocal(STORAGE_KEYS.EVENTS, next);
-        setFeaturedEvent(updatedEvent.isFeatured ? updatedEvent : previousFeatured);
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const response = await fetch(`/api/events/${encodeURIComponent(updatedEvent.id)}`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify(updatedEvent),
+      });
+      const resJson = await response.json().catch(() => null);
+      if (!response.ok || resJson?.success === false) {
+        throw new Error(resJson?.error || `API événements : HTTP ${response.status}`);
       }
+
+      const confirmedEvent: ConcertEvent = resJson?.event || updatedEvent;
+      const next = previousEvents.some((event) => event.id === confirmedEvent.id)
+        ? previousEvents.map((event) => (event.id === confirmedEvent.id ? confirmedEvent : event))
+        : [confirmedEvent, ...previousEvents];
+      setEvents(next);
+      writeLocal(STORAGE_KEYS.EVENTS, next);
+      setFeaturedEvent(
+        confirmedEvent.isFeatured
+          ? confirmedEvent
+          : previousFeatured?.id === confirmedEvent.id
+            ? next.find((event) => event.isFeatured) || null
+            : previousFeatured
+      );
+
+      // Miroir cloud optionnel si Supabase est connecté
+      if (isSupabaseConfigured) {
+        try {
+          const dbRow = mapEventToDbRow(confirmedEvent);
+          await supabase.from('events').upsert(dbRow, { onConflict: 'id' });
+          setIsCloudDbActive(true);
+        } catch (sbErr) {
+          console.warn('[Supabase event mirror warning]', sbErr);
+        }
+      }
+
       setCloudSyncError(null);
-      setIsCloudDbActive(isSupabaseConfigured);
       cacheTimestamps.current.events = Date.now();
       notifyCrossTabSync();
     } catch (err: any) {
@@ -548,13 +735,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const deleteEvent = async (eventId: string) => {
     const previousEvents = events;
-    if (isSupabaseConfigured) {
-      const { error } = await supabase.from('events').delete().eq('id', eventId);
-      if (error) throw new Error(`Suppression Supabase : ${error.message}`);
-    } else {
-      const response = await fetch(`/api/events/${eventId}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error(`API événements : HTTP ${response.status}`);
+    const headers = await getAuthHeaders();
+    const response = await fetch(`/api/events/${encodeURIComponent(eventId)}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers,
+    });
+    const resJson = await response.json().catch(() => null);
+    if (!response.ok && response.status !== 404) {
+      throw new Error(resJson?.error || `API événements : HTTP ${response.status}`);
     }
+
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.from('events').delete().eq('id', eventId);
+      } catch (sbErr) {
+        console.warn('[Supabase delete mirror warning]', sbErr);
+      }
+    }
+
     const next = previousEvents.filter((event) => event.id !== eventId);
     setEvents(next);
     writeLocal(STORAGE_KEYS.EVENTS, next);
@@ -564,7 +763,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // ============================================================================
-  // 2. GESTION DES ARCHIVES & MÉMOIRE D'ESSAI (SUPABASE CLOUD)
+  // 2. GESTION DES ARCHIVES (BASE SQLITE PRINCIPALE + MIROIR CLOUD OPTIONNEL)
   // ============================================================================
 
   const refreshArchives = useCallback(async (force = false) => {
@@ -579,26 +778,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const task = async () => {
       try {
-        if (isSupabaseConfigured) {
+        const loaded = await fetchArchivesFromBackend();
+        if (!loaded && isSupabaseConfigured) {
           const { data, error } = await supabase
             .from('archives')
             .select('*')
             .order('order_index', { ascending: true });
-
-          if (error) {
-            console.warn('[Supabase] Erreur lecture archives:', error.message);
-            setCloudSyncError(`Supabase archives: ${error.message}`);
-            throw new Error(error.message);
+          if (!error && data) {
+            const mappedArchives = data.map(mapDbRowToArchive);
+            setArchives(mappedArchives);
+            writeLocal(STORAGE_KEYS.ARCHIVES, mappedArchives);
+            cacheTimestamps.current.archives = Date.now();
+            setIsCloudDbActive(true);
           }
-
-          // Supabase est la source de vérité, y compris si la liste est vide.
-          const mappedArchives = (data || []).map(mapDbRowToArchive);
-          setArchives(mappedArchives);
-          writeLocal(STORAGE_KEYS.ARCHIVES, mappedArchives);
-          cacheTimestamps.current.archives = Date.now();
-          setIsCloudDbActive(true);
-        } else {
-          await fetchArchivesFromBackend();
         }
       } catch (err) {
         console.warn('[Archives] Fetch error:', err);
@@ -611,16 +803,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return inFlightPromises.current.archives;
   }, [archives.length]);
 
-  const fetchArchivesFromBackend = async () => {
+  const fetchArchivesFromBackend = async (): Promise<boolean> => {
     try {
       const res = await fetch('/api/archives');
-      if (!res.ok) return;
+      if (!res.ok) return false;
       const data = await res.json();
-      if (data.success && data.archives && data.archives.length > 0) {
+      if (data.success && Array.isArray(data.archives)) {
         setArchives(data.archives);
+        writeLocal(STORAGE_KEYS.ARCHIVES, data.archives);
         cacheTimestamps.current.archives = Date.now();
+        return true;
       }
-    } catch {}
+      return false;
+    } catch {
+      return false;
+    }
   };
 
   const saveArchive = async (archiveData: Partial<ArchiveProduction> & { title: string; coverImage: string }) => {
@@ -651,41 +848,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     cacheTimestamps.current.archives = 0;
 
     try {
-      if (isSupabaseConfigured) {
-        const row = mapArchiveToDbRow(newArchive);
-        const { data, error } = await supabase
-          .from('archives')
-          .upsert(row, { onConflict: 'id' })
-          .select('*')
-          .single();
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const response = await fetch('/api/archives', {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify(newArchive),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || data?.success === false) {
+        throw new Error(data?.error || `API archives : HTTP ${response.status}`);
+      }
+      const savedArchive: ArchiveProduction = data?.archive || newArchive;
+      setArchives((prev) => {
+        const next = [savedArchive, ...prev.filter((a) => a.id !== savedArchive.id)];
+        writeLocal(STORAGE_KEYS.ARCHIVES, next);
+        return next;
+      });
 
-        if (error) throw new Error(error.message);
-        const confirmed = mapDbRowToArchive(data);
-        setArchives((prev) => {
-          const next = [confirmed, ...prev.filter((a) => a.id !== confirmed.id)];
-          writeLocal(STORAGE_KEYS.ARCHIVES, next);
-          return next;
-        });
-        setCloudSyncError(null);
-        setIsCloudDbActive(true);
-        showToast('Archive enregistrée et confirmée dans Supabase.', 'success');
-      } else {
-        const response = await fetch('/api/archives', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newArchive),
-        });
-        if (!response.ok) throw new Error(`API archives : HTTP ${response.status}`);
-        const data = await response.json();
-        if (data.success === false) throw new Error(data.error || 'Échec de sauvegarde de l’archive.');
-        setArchives((prev) => {
-          const next = [newArchive, ...prev.filter((a) => a.id !== id)];
-          writeLocal(STORAGE_KEYS.ARCHIVES, next);
-          return next;
-        });
-        showToast('Archive enregistrée.', 'success');
+      if (isSupabaseConfigured) {
+        try {
+          const row = mapArchiveToDbRow(savedArchive);
+          await supabase.from('archives').upsert(row, { onConflict: 'id' });
+          setIsCloudDbActive(true);
+        } catch (sbErr) {
+          console.warn('[Supabase archive mirror warning]', sbErr);
+        }
       }
 
+      setCloudSyncError(null);
+      showToast('Archive enregistrée en base de données.', 'success');
       cacheTimestamps.current.archives = Date.now();
       notifyCrossTabSync();
     } catch (err: any) {
@@ -703,16 +895,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     cacheTimestamps.current.archives = 0;
 
     try {
-      if (isSupabaseConfigured) {
-        const { error } = await supabase.from('archives').delete().eq('id', id);
-        if (error) throw new Error(error.message);
-        setCloudSyncError(null);
-        showToast('Archive supprimée de Supabase.', 'success');
-      } else {
-        const response = await fetch(`/api/archives/${id}`, { method: 'DELETE' });
-        if (!response.ok) throw new Error(`API archives : HTTP ${response.status}`);
-        showToast('Archive supprimée.', 'success');
+      const headers = await getAuthHeaders();
+      const response = await fetch(`/api/archives/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers,
+      });
+      if (!response.ok && response.status !== 404) {
+        throw new Error(`API archives : HTTP ${response.status}`);
       }
+
+      if (isSupabaseConfigured) {
+        try {
+          await supabase.from('archives').delete().eq('id', id);
+        } catch (sbErr) {
+          console.warn('[Supabase archive delete warning]', sbErr);
+        }
+      }
+
+      setCloudSyncError(null);
+      showToast('Archive supprimée.', 'success');
 
       setArchives((prev) => {
         const next = prev.filter((a) => a.id !== id);
@@ -731,7 +933,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // ============================================================================
-  // 3. GESTION DES COMMANDES & BILLETS (SUPABASE POSTGRESQL MULTI-UTILISATEURS)
+  // 3. GESTION DES COMMANDES & BILLETS (BASE SQLITE + MIROIR OPTIONNEL)
   // ============================================================================
 
   const refreshCustomerOrders = useCallback(async () => {
@@ -741,8 +943,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsLoadingOrders(true);
 
     try {
-      if (isSupabaseConfigured) {
-        // Requête indexée par B-Tree sur customer_email (O(log N), < 5ms)
+      const loaded = await fetchCustomerOrdersFromBackend(email);
+      if (!loaded && isSupabaseConfigured) {
         const { data: ordersData, error: ordersErr } = await supabase
           .from('orders')
           .select('*')
@@ -750,7 +952,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           .order('created_at', { ascending: false });
 
         if (!ordersErr && ordersData && ordersData.length > 0) {
-          // Récupère les billets associés pour chaque commande
           const orderIds = ordersData.map((o) => o.id);
           const { data: ticketsData } = await supabase
             .from('tickets')
@@ -809,11 +1010,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setCustomerOrders(formattedOrders);
           writeLocal(STORAGE_KEYS.ORDERS, formattedOrders);
           cacheTimestamps.current.orders = Date.now();
-        } else {
-          await fetchCustomerOrdersFromBackend(email);
         }
-      } else {
-        await fetchCustomerOrdersFromBackend(email);
       }
     } catch (err) {
       console.warn('[Orders] Fetch error:', err);
@@ -822,27 +1019,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [currentUser?.email]);
 
-  const fetchCustomerOrdersFromBackend = async (email: string) => {
+  const fetchCustomerOrdersFromBackend = async (_email: string): Promise<boolean> => {
     try {
-      const res = await fetch(`/api/customer/orders?email=${encodeURIComponent(email)}`);
-      if (!res.ok) return;
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/customer/orders', {
+        credentials: 'include',
+        headers,
+      });
+      if (!res.ok) return false;
       const data = await res.json();
-      if (data.success && data.orders) {
+      if (data.success && Array.isArray(data.orders)) {
         setCustomerOrders(data.orders);
         writeLocal(STORAGE_KEYS.ORDERS, data.orders);
+        cacheTimestamps.current.orders = Date.now();
+        return true;
       }
-    } catch {}
+      return false;
+    } catch {
+      return false;
+    }
   };
 
   const addLocalOrder = async (newOrder: Order) => {
-    // 1. Mise à jour instantanée de l'état mémoire et persistance locale
+    // Mise à jour optimiste locale (la création & validation sont strictement côté serveur)
     setCustomerOrders((prev) => {
       const next = [newOrder, ...prev.filter((o) => o.id !== newOrder.id)];
       writeLocal(STORAGE_KEYS.ORDERS, next);
       return next;
     });
 
-    // Incrémente automatiquement les ventes réelles de la catégorie concernée
     setEvents((prev) => {
       const next = prev.map((ev) => {
         if (ev.id === newOrder.eventId) {
@@ -859,10 +1064,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return next;
     });
 
-    // 2. Écriture sécurisée dans Supabase Cloud
+    // 3. Synchronisation optionnelle vers Supabase Cloud
     if (isSupabaseConfigured) {
       try {
-        // Enregistre la commande
         const orderRow = {
           id: newOrder.id,
           reference: newOrder.reference,
@@ -890,7 +1094,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const { error: orderErr } = await supabase.from('orders').upsert(orderRow, { onConflict: 'id' });
         if (orderErr) throw new Error(orderErr.message);
 
-        // Enregistre les billets individuels avec leurs tokens cryptographiques
         if (newOrder.tickets && newOrder.tickets.length > 0) {
           const ticketRows = newOrder.tickets.map((t) => ({
             id: t.id,
@@ -911,28 +1114,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             issued_at: t.issuedAt,
           }));
 
-          const { error: tktErr } = await supabase.from('tickets').upsert(ticketRows, { onConflict: 'id' });
-          if (tktErr) console.warn('Supabase tickets error:', tktErr.message);
+          await supabase.from('tickets').upsert(ticketRows, { onConflict: 'id' });
         }
-
-        showToast('Commande et billets enregistrés dans la base centrale Supabase !', 'success');
       } catch (err: any) {
-        console.error('[Supabase Order Insert Error]', err);
+        console.warn('[Supabase Order Mirror Notice]', err);
       }
     }
-
-    // 3. Envoi au backend Express pour persistance miroir
-    try {
-      await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newOrder),
-      });
-    } catch {}
   };
 
   // ============================================================================
-  // 4. RÉGLAGES DE LA PLATEFORME (LOGO, MONOGRAMME, DEVISE DANS LE CLOUD)
+  // 4. RÉGLAGES DE LA PLATEFORME (LOGO, MONOGRAMME, DEVISE DANS SQLITE)
   // ============================================================================
 
   const refreshPlatformSettings = useCallback(async (force = false) => {
@@ -947,7 +1138,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const task = async () => {
       try {
-        if (isSupabaseConfigured) {
+        const loaded = await fetchSettingsFromBackend();
+        if (!loaded && isSupabaseConfigured) {
           const { data, error } = await supabase
             .from('platform_settings')
             .select('*')
@@ -967,11 +1159,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               socialLinks: data.social_links || {},
             });
             cacheTimestamps.current.settings = Date.now();
-          } else {
-            await fetchSettingsFromBackend();
           }
-        } else {
-          await fetchSettingsFromBackend();
         }
       } catch (e) {
         console.warn('[Settings] Fetch error:', e);
@@ -984,22 +1172,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return inFlightPromises.current.settings;
   }, []);
 
-  const fetchSettingsFromBackend = async () => {
+  const fetchSettingsFromBackend = async (): Promise<boolean> => {
     try {
-      const res = await fetch('/api/admin/settings');
-      if (!res.ok) return;
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/settings', {
+        credentials: 'include',
+        headers,
+      });
+      if (!res.ok) return false;
       const data = await res.json();
       if (data.success && data.settings) {
         setPlatformSettings((prev) => ({ ...prev, ...data.settings }));
         cacheTimestamps.current.settings = Date.now();
 
-        // Si des identifiants Supabase sont trouvés dans les paramètres, les configurer automatiquement
-        if (data.settings.supabaseUrl && data.settings.supabaseAnonKey && !isSupabaseConfigured) {
+        if (
+          data.settings.supabaseUrl &&
+          data.settings.supabaseAnonKey &&
+          !data.settings.supabaseUrl.includes('kupznytxykaesfqnngtb.supabase.co') &&
+          !isSupabaseConfigured
+        ) {
           configureSupabase(data.settings.supabaseUrl, data.settings.supabaseAnonKey);
           setIsCloudDbActive(true);
         }
+        return true;
       }
-    } catch {}
+      return false;
+    } catch {
+      return false;
+    }
   };
 
   const updatePlatformSettings = async (newSettings: Partial<PlatformSettings>) => {
@@ -1010,18 +1210,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPlatformSettings(mergedSettings);
     writeLocal(STORAGE_KEYS.SETTINGS, mergedSettings);
 
-    // 2. Sauvegarde sur le serveur Node.js et disque data/settings.json
+    // 2. Sauvegarde sur le serveur Node.js (SQLite + JSON miroir)
     try {
-      await fetch('/api/admin/settings', {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const res = await fetch('/api/admin/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers,
         body: JSON.stringify(mergedSettings),
       });
+      if (!res.ok) throw new Error(`API paramètres : HTTP ${res.status}`);
     } catch (serverErr) {
       console.warn('[Settings Disk Save Warning]', serverErr);
     }
 
-    // 3. Synchronisation optionnelle avec la base de données Supabase
+    // 3. Synchronisation optionnelle avec Supabase
     if (isSupabaseConfigured) {
       try {
         const dbRow: any = {
@@ -1048,50 +1251,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     notifyCrossTabSync();
   };
 
-  // Connexion directe à Supabase en 1 clic
-  const connectSupabaseDirectly = async (url: string, key: string) => {
-    const cleanUrl = url.trim();
-    const cleanKey = key.trim();
-
-    try {
-      const res = await fetch('/api/admin/supabase-config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ supabaseUrl: cleanUrl, supabaseAnonKey: cleanKey }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Erreur enregistrement config');
-      }
-
-      // Reconfigure le client Supabase en mémoire
-      configureSupabase(cleanUrl, cleanKey);
-      setIsCloudDbActive(true);
-
-      // Mesure de latence
-      const diag = await testSupabaseConnection(cleanUrl, cleanKey);
-
-      // Seeding des concerts initiaux si besoin
-      await seedInitialEventsToSupabase();
-
-      // Recharge tous les états
-      await refreshEvents(true);
-      await refreshArchives(true);
-      await refreshPlatformSettings(true);
-
-      notifyCrossTabSync();
-
-      return {
-        success: true,
-        message: `Base Supabase connectée avec succès ! (${diag.latencyMs}ms)`,
-        latencyMs: diag.latencyMs,
-      };
-    } catch (err: any) {
-      return {
-        success: false,
-        message: err.message || 'Échec de connexion Supabase.',
-      };
-    }
+  // Configuration Supabase gérée strictement via variables d'environnement serveur (.env)
+  const connectSupabaseDirectly = async (_url: string, _key: string) => {
+    return {
+      success: false,
+      message: 'La configuration Supabase s’effectue exclusivement côté serveur via variables d’environnement.',
+    };
   };
 
   // Chargement initial au montage de l'application
@@ -1153,6 +1318,119 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [currentUser?.email, refreshCustomerOrders]);
 
+  // ============================================================================
+  // PLANIFICATEUR DE NOTIFICATIONS PUSH LOCALES (30 MIN AVANT LE CONCERT)
+  // ============================================================================
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const markAsNotified = (eventId: string) => {
+      if (notifiedEventIdsRef.current.includes(eventId)) return;
+      const updated = [...notifiedEventIdsRef.current, eventId];
+      notifiedEventIdsRef.current = updated;
+      setNotifiedEventIds(updated);
+      writeLocal(STORAGE_KEYS.NOTIFIED_EVENTS, updated);
+    };
+
+    const fireConcertReminder = async (event: ConcertEvent) => {
+      if (notifiedEventIdsRef.current.includes(event.id)) return;
+      markAsNotified(event.id);
+
+      const startTs = parseConcertStartTimestamp(event.date, event.time);
+      const minsLeft = startTs
+        ? Math.max(1, Math.round((startTs - Date.now()) / 60000))
+        : 30;
+
+      const title =
+        language === 'en'
+          ? `LUMARÉEL · Starts in ${minsLeft} min: ${event.artist}`
+          : `LUMARÉEL · Dans ${minsLeft} min : ${event.artist} EN CONCERT`;
+      const body =
+        language === 'en'
+          ? `${event.venue} (${event.city}) · Show starts at ${event.time}. Prepare your ticket!`
+          : `${event.venue} (${event.city}) · Début à ${event.time}. Préparez votre billet !`;
+
+      await dispatchLocalPushNotification({
+        title,
+        body,
+        tag: `lumareel-concert-30m-${event.id}`,
+        icon: event.officialPoster || '/assets/logo-lumareel.png',
+        onClick: () => {
+          setSelectedEventSlug(event.slug);
+          setCurrentPage('concert_detail');
+        },
+      });
+
+      showToast(`${title} — ${event.venue}`, 'info');
+    };
+
+    const evaluateUpcomingFavorites = () => {
+      refreshNotificationPermission();
+      if (!notificationsEnabled || favoriteEventIds.length === 0) return;
+
+      const now = Date.now();
+      const favoritedEvents = events.filter((e) => favoriteEventIds.includes(e.id));
+
+      for (const evt of favoritedEvents) {
+        if (shouldTriggerReminderNow(evt, now, notifiedEventIdsRef.current)) {
+          void fireConcertReminder(evt);
+        }
+      }
+    };
+
+    // 1. Évaluation immédiate
+    evaluateUpcomingFavorites();
+
+    // 2. Planification par timer exact à T - 30 min pour les concerts favoris à venir
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    if (notificationsEnabled && favoriteEventIds.length > 0) {
+      const now = Date.now();
+      const MAX_TIMEOUT_MS = 2147483647; // Limite 32-bit de setTimeout (~24.8 jours)
+
+      events
+        .filter((e) => favoriteEventIds.includes(e.id) && !notifiedEventIdsRef.current.includes(e.id))
+        .forEach((evt) => {
+          const startTs = parseConcertStartTimestamp(evt.date, evt.time);
+          if (!startTs || startTs <= now) return;
+
+          const reminderTs = startTs - CONCERT_REMINDER_OFFSET_MS;
+          const delay = reminderTs - now;
+          if (delay > 0 && delay <= MAX_TIMEOUT_MS) {
+            const timer = setTimeout(() => {
+              evaluateUpcomingFavorites();
+            }, delay + 250);
+            timers.push(timer);
+          }
+        });
+    }
+
+    // 3. Vérification périodique (15s) et au retour au premier plan
+    const interval = setInterval(evaluateUpcomingFavorites, 15000);
+    const onVisibilityOrFocus = () => {
+      refreshNotificationPermission();
+      if (document.visibilityState === 'visible') {
+        evaluateUpcomingFavorites();
+      }
+    };
+
+    window.addEventListener('focus', onVisibilityOrFocus);
+    document.addEventListener('visibilitychange', onVisibilityOrFocus);
+
+    return () => {
+      timers.forEach((timerId) => clearTimeout(timerId));
+      clearInterval(interval);
+      window.removeEventListener('focus', onVisibilityOrFocus);
+      document.removeEventListener('visibilitychange', onVisibilityOrFocus);
+    };
+  }, [
+    events,
+    favoriteEventIds,
+    notificationsEnabled,
+    notificationPermission,
+    language,
+    refreshNotificationPermission,
+  ]);
+
   return (
     <AppContext.Provider
       value={{
@@ -1190,6 +1468,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         language,
         setLanguage,
         t,
+        favoriteEventIds,
+        toggleFavoriteEvent,
+        isFavoriteEvent,
+        notificationsEnabled,
+        setNotificationsEnabled,
+        notificationPermission,
+        refreshNotificationPermission,
+        requestNotificationPermission,
+        notifiedEventIds,
+        sendTestNotification,
         isLoadingEvents,
         isLoadingOrders,
         isCloudDbActive,

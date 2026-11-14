@@ -35,8 +35,8 @@ export const Navbar: React.FC = () => {
     { label: 'Mon compte', page: 'profile' },
   ];
 
-  // Masqué sur l'écran d'accueil splash ou pendant le contrôle vigile plein écran
-  if (currentPage === 'splash' || currentPage === 'gate_scanner') {
+  // Masqué sur l'écran d'accueil splash, la landing page Black Card ou pendant le contrôle vigile plein écran
+  if (currentPage === 'splash' || currentPage === 'gate_scanner' || currentPage === 'member_card' || currentPage === 'card') {
     return null;
   }
 

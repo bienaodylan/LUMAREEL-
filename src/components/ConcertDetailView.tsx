@@ -1,11 +1,28 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
-import { ArrowLeft, ChevronLeft, Calendar, MapPin, ShieldCheck, Ticket, Check, X } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, Calendar, MapPin, ShieldCheck, Ticket, Check, X, Heart, Bell, BellRing, BellOff } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
+import { getConcertReminderInfo } from '../utils/concertNotifications';
 
 export const ConcertDetailView: React.FC = () => {
-  const { events, selectedEventSlug, setCurrentPage, setCheckoutEvent, currentUser, setIsAuthModalOpen, language, t } = useApp();
+  const {
+    events,
+    selectedEventSlug,
+    setCurrentPage,
+    setCheckoutEvent,
+    currentUser,
+    setIsAuthModalOpen,
+    language,
+    t,
+    isFavoriteEvent,
+    toggleFavoriteEvent,
+    notificationsEnabled,
+    notificationPermission,
+    requestNotificationPermission,
+    notifiedEventIds,
+    showToast,
+  } = useApp();
 
   const event = events.find((e) => e.slug === selectedEventSlug) || events[0];
 
@@ -31,6 +48,32 @@ export const ConcertDetailView: React.FC = () => {
   const selectedCategory = event.categories.find((c) => c.id === selectedCategoryId) || event.categories[0];
   const remaining = selectedCategory ? selectedCategory.quota - selectedCategory.sold : 0;
   const totalPrice = selectedCategory ? selectedCategory.price * quantity : 0;
+  const isFavorited = isFavoriteEvent(event.id);
+  const reminderInfo = getConcertReminderInfo(
+    event,
+    notifiedEventIds,
+    notificationsEnabled,
+    notificationPermission
+  );
+
+  const handleEnablePushFromDetail = async () => {
+    const perm = await requestNotificationPermission();
+    if (perm === 'granted') {
+      showToast(
+        language === 'en'
+          ? 'Push notifications enabled! You will be alerted 30 minutes before the concert.'
+          : 'Notifications push activées ! Vous serez alerté 30 minutes avant le début du concert.',
+        'success'
+      );
+    } else if (perm === 'denied') {
+      showToast(
+        language === 'en'
+          ? 'Browser notifications are blocked. Open Profile Preferences to view unblock instructions.'
+          : 'Les notifications navigateur sont bloquées. Consultez vos Préférences dans Profil pour les débloquer.',
+        'info'
+      );
+    }
+  };
 
   const handleProceedToPurchase = () => {
     if (!currentUser) {
@@ -90,19 +133,88 @@ export const ConcertDetailView: React.FC = () => {
         <div className="lg:col-span-7 flex flex-col justify-between">
           
           <div>
-            {/* Header info pills sans catégorie musicale */}
-            <div className="flex flex-wrap items-center gap-2.5 text-xs font-agrandir-regular tracking-wider uppercase mb-3">
-              <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#aaa] text-[11px]">
-                {event.city}, {event.country}
-              </span>
-              <span className="px-3 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#d4af37] font-agrandir-semibold text-[11px]">
-                {event.status === 'published' ? t('detail.openBookings') : t('detail.salesSoon')}
-              </span>
+            {/* Header info pills & Favori Rappel 30 min */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs font-agrandir-regular tracking-wider uppercase mb-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[#aaa] text-[11px]">
+                  {event.city}, {event.country}
+                </span>
+                <span className="px-3 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#d4af37] font-agrandir-semibold text-[11px]">
+                  {event.status === 'published' ? t('detail.openBookings') : t('detail.salesSoon')}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => toggleFavoriteEvent(event.id)}
+                className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-[11px] font-agrandir-bold tracking-wider uppercase transition-all cursor-pointer active:scale-95 ${
+                  isFavorited
+                    ? 'bg-[#d4af37]/15 border-[#d4af37]/60 text-[#d4af37] shadow-[0_0_20px_rgba(212,175,55,0.2)]'
+                    : 'bg-white/5 border-white/15 text-neutral-300 hover:text-white hover:border-white/40'
+                }`}
+              >
+                <Heart className={`w-3.5 h-3.5 ${isFavorited ? 'fill-[#d4af37] text-[#d4af37]' : ''}`} />
+                <span>{isFavorited ? 'Dans mes favoris' : 'Ajouter aux favoris'}</span>
+              </button>
             </div>
 
             <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl md:text-6xl text-white tracking-tight uppercase leading-[1.02] mb-6 text-balance">
               {event.artist} EN CONCERT
             </h1>
+
+            {/* Bandeau d'état du rappel 30 minutes avant pour les concerts favoris */}
+            {isFavorited && (
+              <div className="mb-6 p-4 rounded-2xl bg-[#111111] border border-[#d4af37]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/35 flex items-center justify-center shrink-0 mt-0.5">
+                    {reminderInfo.status === 'paused' ? (
+                      <BellOff className="w-4 h-4 text-neutral-400" />
+                    ) : reminderInfo.status === 'scheduled' || reminderInfo.status === 'imminent' ? (
+                      <BellRing className="w-4 h-4 text-[#d4af37]" />
+                    ) : (
+                      <Bell className="w-4 h-4 text-[#d4af37]" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-agrandir-bold text-white uppercase tracking-wide">
+                      {reminderInfo.status === 'past'
+                        ? 'Concert passé'
+                        : reminderInfo.status === 'sent'
+                        ? 'Alerte 30 minutes envoyée'
+                        : reminderInfo.status === 'paused'
+                        ? 'Rappels en pause dans vos préférences'
+                        : `Rappel automatique prévu à ${reminderInfo.reminderTimeLabel}`}
+                    </div>
+                    <p className="text-[11px] text-neutral-400 mt-0.5 leading-snug">
+                      {reminderInfo.status === 'paused'
+                        ? 'Réactivez les alertes dans votre Profil pour être notifié 30 min avant le début.'
+                        : reminderInfo.status === 'scheduled_inapp' && notificationPermission !== 'granted'
+                        ? 'Autorisez les notifications push pour recevoir l’alerte même hors onglet (30 min avant).'
+                        : 'Vous recevrez une notification locale 30 minutes avant le début du concert.'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {notificationPermission === 'default' && notificationsEnabled && (
+                    <button
+                      type="button"
+                      onClick={handleEnablePushFromDetail}
+                      className="px-3.5 py-2 rounded-full bg-[#d4af37] hover:bg-[#e5c158] text-black font-agrandir-extrabold text-[10px] uppercase tracking-wider cursor-pointer transition-colors"
+                    >
+                      Autoriser le push
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage('profile')}
+                    className="px-3 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-[10px] font-agrandir-semibold text-neutral-200 uppercase tracking-wider cursor-pointer transition-colors"
+                  >
+                    Gérer
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Practical information grid with bold date and venue */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-5 sm:p-6 bg-[#0c0c0c] border border-white/10 rounded-2xl sm:rounded-3xl mb-8 text-xs font-agrandir-regular shadow-lg">

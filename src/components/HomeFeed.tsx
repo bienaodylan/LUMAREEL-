@@ -9,9 +9,12 @@ import {
   Image as ImageIcon,
   Newspaper,
   User,
-  Crown
+  Crown,
+  Heart,
+  Bell
 } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
+import { parseConcertStartTimestamp } from '../utils/concertNotifications';
 
 export const HomeFeed: React.FC = () => {
   const {
@@ -26,6 +29,8 @@ export const HomeFeed: React.FC = () => {
     showToast,
     language,
     t,
+    isFavoriteEvent,
+    toggleFavoriteEvent,
   } = useApp();
 
   // Carousel state
@@ -35,16 +40,8 @@ export const HomeFeed: React.FC = () => {
   const activeSlide = activeSlides[currentSlideIndex] || activeSlides[0];
 
 const calculateEventCountdown = (dateStr?: string, timeStr?: string) => {
-  if (!dateStr) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-  const safeTime = timeStr ? (timeStr.includes(':') ? timeStr : `${timeStr}:00`) : '18:00';
-  let targetDate = 0;
-  if (dateStr.includes('-')) {
-    const parts = dateStr.split('T')[0].split('-').map(Number);
-    const [h, min] = safeTime.split(':').map(Number);
-    targetDate = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1, h || 0, min || 0, 0).getTime();
-  } else {
-    targetDate = new Date(`${dateStr} ${safeTime}`).getTime();
-  }
+  const targetDate = parseConcertStartTimestamp(dateStr, timeStr);
+  if (!targetDate) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
   const now = Date.now();
   const diff = Math.max(0, targetDate - now);
   return {
@@ -264,6 +261,34 @@ const EventCardCountdown: React.FC<{
                     className="w-full h-full object-cover filter brightness-[0.95] group-hover:brightness-105 group-hover:scale-105 transition-all duration-500 ease-out" 
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+
+                  {/* Bouton Favori & Alerte 30 min */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavoriteEvent(event.id);
+                    }}
+                    aria-label={isFavoriteEvent(event.id) ? 'Retirer des favoris' : 'Ajouter aux favoris (alerte 30 min avant)'}
+                    title={isFavoriteEvent(event.id) ? 'Retirer des favoris' : 'Ajouter aux favoris · Rappel 30 min avant'}
+                    className={`absolute top-3 right-3 z-20 flex items-center gap-1.5 rounded-full backdrop-blur-md border transition-all duration-200 cursor-pointer active:scale-90 ${
+                      isFavoriteEvent(event.id)
+                        ? 'px-3 py-1.5 bg-black/85 border-[#d4af37]/70 text-[#d4af37] shadow-[0_0_16px_rgba(212,175,55,0.35)]'
+                        : 'p-2.5 bg-black/65 border-white/20 text-white/85 hover:text-white hover:border-white/50 hover:bg-black/80'
+                    }`}
+                  >
+                    <Heart
+                      className={`w-4 h-4 transition-transform ${
+                        isFavoriteEvent(event.id) ? 'fill-[#d4af37] text-[#d4af37] scale-105' : ''
+                      }`}
+                    />
+                    {isFavoriteEvent(event.id) && (
+                      <span className="text-[9px] font-agrandir-bold tracking-wider uppercase flex items-center gap-1">
+                        <Bell className="w-2.5 h-2.5" />
+                        -30M
+                      </span>
+                    )}
+                  </button>
                 </div>
 
                 {/* Les informations : Artiste EN CONCERT + Lieu et Date en gras */}

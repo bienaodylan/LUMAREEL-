@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useApp } from '../context/AppContext';
+import { getAuthHeaders } from '../utils/authSession';
+import { formatCsvCell } from '../utils/csvSanitizer';
 import {
   Shield,
   Camera,
@@ -212,37 +214,55 @@ export const ScannerView: React.FC = () => {
     playSound(type);
   };
 
-  const verifyTokenWithBackend = async (tokenToVerify: string, eventIdToVerify?: string) => {
-    if (!tokenToVerify || !tokenToVerify.trim()) {
+  const createScannerSession = async (tokenToVerify?: string, eventIdToVerify?: string) => {
+    if (tokenToVerify && tokenToVerify.trim() === 'SEC_SESSION_AUTHORIZED') {
       setAuthStatus('denied');
-      setDeniedReason('Accès Refusé. Ce lien est invalide ou a expiré.');
+      setDeniedReason('Jeton statique interdit.');
       return;
     }
 
     try {
       setAuthStatus('checking');
-
-      let url = `/api/verify-scanner-token?token=${encodeURIComponent(tokenToVerify.trim())}`;
-      if (eventIdToVerify) {
-        url += `&eventId=${encodeURIComponent(eventIdToVerify.trim())}`;
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const payload: Record<string, string> = {};
+      if (tokenToVerify && tokenToVerify.trim()) {
+        payload.token = tokenToVerify.trim();
+      }
+      if (eventIdToVerify && eventIdToVerify.trim()) {
+        payload.eventId = eventIdToVerify.trim();
       }
 
-      const res = await fetch(url);
-      const jsonResponse = await res.json();
-      const verified = res.ok && jsonResponse.valid === true;
+      const res = await fetch('/api/scanner/session', {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify(payload),
+      });
+      const jsonResponse = await res.json().catch(() => null);
 
-      if (verified && jsonResponse) {
+      if (res.ok && jsonResponse?.valid === true) {
         setAuthStatus('authorized');
-        setActiveToken(tokenToVerify);
+        setActiveToken('');
         if (jsonResponse.event) {
           setAuthorizedEvent(jsonResponse.event);
           setActiveEventId(jsonResponse.event.id);
+        } else if (jsonResponse.eventId) {
+          setActiveEventId(jsonResponse.eventId);
         }
+
+        // Retirer ?token= de la barre d'adresse pour éviter toute fuite dans l'historique/referrer
+        try {
+          const cleanUrl = new URL(window.location.href);
+          if (cleanUrl.searchParams.has('token')) {
+            cleanUrl.searchParams.delete('token');
+            window.history.replaceState({}, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+          }
+        } catch {}
       } else {
         setAuthStatus('denied');
         setDeniedReason(jsonResponse?.error || 'Accès Refusé. Ce lien est invalide ou a expiré.');
       }
-    } catch (err: any) {
+    } catch {
       setAuthStatus('denied');
       setDeniedReason('Impossible de joindre le serveur de sécurité.');
     }
@@ -258,10 +278,13 @@ export const ScannerView: React.FC = () => {
     if (urlEventId) setActiveEventId(urlEventId);
 
     if (urlToken && urlToken.trim()) {
-      setActiveToken(urlToken.trim());
-      verifyTokenWithBackend(urlToken.trim(), urlEventId || undefined);
-    } else if (currentUser?.role === 'super_admin' || currentUser?.role === 'gate_agent') {
-      verifyTokenWithBackend('SEC_SESSION_AUTHORIZED', urlEventId || undefined);
+      createScannerSession(urlToken.trim(), urlEventId || undefined);
+    } else if (
+      currentUser?.role === 'super_admin' ||
+      currentUser?.role === 'gate_agent' ||
+      currentUser?.role === 'box_office'
+    ) {
+      createScannerSession(undefined, urlEventId || undefined);
     } else {
       setAuthStatus('denied');
       setDeniedReason('Accès Refusé. Aucun lien magique d’accès vigile détecté.');
@@ -291,13 +314,14 @@ export const ScannerView: React.FC = () => {
 
     try {
       try {
+        const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
         const res = await fetch('/api/verify-ticket', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers,
           body: JSON.stringify({
             ticketId: ticketCode.trim(),
             token: ticketCode.trim(),
-            scannerToken: activeToken,
             eventId: activeEventId || authorizedEvent?.id,
             gateAgentId: agentName,
           }),
@@ -444,15 +468,16 @@ export const ScannerView: React.FC = () => {
     const agentName = currentUser?.name || 'Vigile LUMARÉEL (Contrôle)';
 
     try {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch('/api/membership/check-access', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers,
         body: JSON.stringify({
           cardIdentifier: identifier.trim(),
           eventId: activeEventId || authorizedEvent?.id || 'all_events',
           accessPointType: membershipZone,
           operatorId: agentName,
-          scannerToken: activeToken,
           scanMethod,
           hasConcertTicket: true,
         }),
@@ -539,11 +564,7 @@ export const ScannerView: React.FC = () => {
         'Motif / Remarque',
       ];
 
-      const escapeCSV = (val: string | undefined | null) => {
-        if (!val) return '""';
-        const str = String(val).replace(/"/g, '""').trim();
-        return `"${str}"`;
-      };
+      const escapeCSV = (val: string | undefined | null) => formatCsvCell(val ?? '');
 
       const rows = activityLog.map((item) => {
         const statusLabel =
@@ -565,7 +586,7 @@ export const ScannerView: React.FC = () => {
         ].join(';');
       });
 
-      const csvContent = [headers.map((h) => `"${h}"`).join(';'), ...rows].join('\r\n');
+      const csvContent = [headers.map((h) => formatCsvCell(h)).join(';'), ...rows].join('\r\n');
 
       const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -627,7 +648,12 @@ export const ScannerView: React.FC = () => {
         config,
         (decodedText) => {
           if (!isProcessingRef.current) {
-            if (scanMode === 'membership' || decodedText.startsWith('LMR_QR_') || decodedText.startsWith('LMR-2026')) {
+            if (
+              scanMode === 'membership' ||
+              decodedText.startsWith('LMR-BC1.') ||
+              decodedText.startsWith('LMR_QR_') ||
+              decodedText.startsWith('LMR-2026')
+            ) {
               handleVerifyMembership(decodedText, 'qr_code');
             } else {
               handleVerifyTicket(decodedText);
@@ -687,7 +713,12 @@ export const ScannerView: React.FC = () => {
       }
       const decodedText = await html5QrCodeRef.current.scanFile(file, true);
       if (decodedText) {
-        if (scanMode === 'membership' || decodedText.startsWith('LMR_QR_') || decodedText.startsWith('LMR-2026')) {
+        if (
+          scanMode === 'membership' ||
+          decodedText.startsWith('LMR-BC1.') ||
+          decodedText.startsWith('LMR_QR_') ||
+          decodedText.startsWith('LMR-2026')
+        ) {
           handleVerifyMembership(decodedText, 'qr_code');
         } else {
           handleVerifyTicket(decodedText);
@@ -710,7 +741,7 @@ export const ScannerView: React.FC = () => {
   const handleManualUnlockSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (manualTokenInput.trim()) {
-      verifyTokenWithBackend(manualTokenInput.trim());
+      createScannerSession(manualTokenInput.trim(), activeEventId || undefined);
     }
   };
 

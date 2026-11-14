@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import QRCode from 'qrcode';
 import { PrintTicketItem } from './pdfEngine';
+import { sanitizeSpreadsheetCell } from './csvSanitizer';
 
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -38,7 +39,7 @@ export async function exportPhysicalTicketsToExcel(tickets: PrintTicketItem[], f
     const row = sheet.getRow(rowNumber);
     row.height = 92;
     row.getCell(1).alignment = { vertical: 'middle', horizontal: 'center' };
-    row.getCell(2).value = ticket.serialNumber;
+    row.getCell(2).value = sanitizeSpreadsheetCell(ticket.serialNumber);
     row.getCell(2).font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FF111111' } };
     row.getCell(2).alignment = { vertical: 'middle', horizontal: 'center' };
     const border = { style: 'thin' as const, color: { argb: 'FFCCCCCC' } };

@@ -30,8 +30,16 @@ import {
   ChipInventoryItem,
   WalletTransaction,
 } from '../types';
+import { sqliteDb } from './sqliteDb';
+import {
+  generateDynamicCardQrToken,
+  generateOpaqueToken,
+  sha256Hex,
+  timingSafeEqualStr,
+  verifyDynamicCardQrToken,
+} from './security';
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+const DATA_DIR = path.resolve(process.env.LUMAREEL_DATA_DIR || path.join(process.cwd(), 'data'));
 const MEMBERSHIP_FILE = path.join(DATA_DIR, 'membership.json');
 
 interface MembershipStoreData {
@@ -89,6 +97,7 @@ export class MembershipService {
 
   constructor() {
     this.ensureDataDirectory();
+    const hadSqlite = Boolean(sqliteDb.getMembershipStore<MembershipStoreData>());
     this.loadFromDisk();
     if (this.editions.size === 0) {
       this.seedInitialFoundersEdition();
@@ -101,6 +110,22 @@ export class MembershipService {
     }
     if (this.chipInventory.size === 0) {
       this.seedInitialChipInventory();
+    }
+    if (!hadSqlite) {
+      this.saveToDisk();
+    }
+    this.syncWalletsToSqlite();
+  }
+
+  private syncWalletsToSqlite() {
+    for (const card of this.cards.values()) {
+      const initial = Math.max(0, Math.floor(Number(card.walletBalance) || 0));
+      sqliteDb.ensureWalletAccount(card.id, initial, card.walletCurrency || 'FCFA');
+      const acct = sqliteDb.getWalletAccount(card.id);
+      if (acct) {
+        card.walletBalance = acct.balance;
+        card.walletCurrency = acct.currency;
+      }
     }
   }
 
@@ -115,10 +140,13 @@ export class MembershipService {
   }
 
   private loadFromDisk() {
-    if (!fs.existsSync(MEMBERSHIP_FILE)) return;
     try {
-      const raw = fs.readFileSync(MEMBERSHIP_FILE, 'utf-8');
-      const data: MembershipStoreData = JSON.parse(raw);
+      let data = sqliteDb.getMembershipStore<MembershipStoreData>();
+      if (!data && fs.existsSync(MEMBERSHIP_FILE)) {
+        const raw = fs.readFileSync(MEMBERSHIP_FILE, 'utf-8');
+        data = JSON.parse(raw) as MembershipStoreData;
+      }
+      if (!data) return;
 
       (data.editions || []).forEach((e) => this.editions.set(e.id, e));
       (data.plans || []).forEach((p) => this.plans.set(p.id, p));
@@ -179,7 +207,7 @@ export class MembershipService {
         eventLogs: this.eventLogs.slice(-1000),
         lastAssignedSequence: this.lastAssignedSequence,
       };
-      fs.writeFileSync(MEMBERSHIP_FILE, JSON.stringify(data, null, 2), 'utf-8');
+      sqliteDb.saveMembershipStore(data);
     } catch (e) {
       console.error('[MembershipService] Error saving membership data:', e);
     }
@@ -329,7 +357,7 @@ export class MembershipService {
       eventTime: '19:30',
       venue: 'Hôtel Ivoire · Salon d’Honneur & Terrasse Lagunaire',
       city: 'Abidjan',
-      recipientEmail: 'bienaodylan428@gmail.com',
+      recipientEmail: (process.env.ADMIN_BOOTSTRAP_EMAIL || 'founders-member@lumareel.local').toLowerCase(),
       recipientName: 'Dylan Bienao',
       membershipRequired: true,
       editionCode: 'FOUNDERS_2026',
@@ -354,7 +382,7 @@ export class MembershipService {
       eventTime: '18:00',
       venue: 'LUMARÉEL Creative Studio · Cocody Danga',
       city: 'Abidjan',
-      recipientEmail: 'bienaodylan428@gmail.com',
+      recipientEmail: (process.env.ADMIN_BOOTSTRAP_EMAIL || 'founders-member@lumareel.local').toLowerCase(),
       recipientName: 'Dylan Bienao',
       membershipRequired: true,
       editionCode: 'FOUNDERS_2026',
@@ -606,11 +634,7 @@ export class MembershipService {
     const normalized = email.trim().toLowerCase();
     return Array.from(this.cards.values()).find((c) => {
       const cardEmail = c.cardholderEmail.toLowerCase().trim();
-      const isExact = cardEmail === normalized;
-      const isDylanAlias =
-        (normalized.startsWith('bienaodylan') || normalized === 'dylan@lumareel.com') &&
-        cardEmail.startsWith('bienaodylan');
-      return (isExact || isDylanAlias) && c.cardStatus !== 'revoked';
+      return cardEmail === normalized && c.cardStatus !== 'revoked';
     });
   }
 
@@ -659,10 +683,11 @@ export class MembershipService {
     card.chipEncodedBy = params.operatorId || 'Atelier Encodage LUMARÉEL (Vérifié)';
     card.chipLockStatus = 'locked_aes128';
     card.physicalCardStatus = 'ready_for_dispatch';
-    if (card.walletBalance === undefined) card.walletBalance = 205000;
+    if (card.walletBalance === undefined) card.walletBalance = 0;
     if (!card.walletCurrency) card.walletCurrency = 'FCFA';
     if (!card.clubVipLevel) card.clubVipLevel = 'FOUNDERS_BLACK_ELITE';
     card.updatedAt = now;
+    sqliteDb.ensureWalletAccount(card.id, card.walletBalance, card.walletCurrency);
 
     this.cards.set(card.id, card);
 
@@ -993,13 +1018,19 @@ export class MembershipService {
     return { card, log };
   }
 
-  // --- GESTION DU PORTEFEUILLE CLUB PRIVÉ (WALLET CASHLESS) ---
+  // --- GESTION DU PORTEFEUILLE CLUB PRIVÉ (WALLET CASHLESS ATOMIQUE SQLITE) ---
   public getWalletBalance(cardId: string): { balance: number; currency: string; card: MembershipCard } {
     const card = this.cards.get(cardId);
     if (!card) throw new Error(`Carte introuvable pour l'identifiant ${cardId}`);
+    const fallbackBalance = Math.max(0, Math.floor(Number(card.walletBalance) || 0));
+    sqliteDb.ensureWalletAccount(card.id, fallbackBalance, card.walletCurrency || 'FCFA');
+    const acct = sqliteDb.getWalletAccount(card.id)!;
+    card.walletBalance = acct.balance;
+    card.walletCurrency = acct.currency;
+    this.cards.set(card.id, card);
     return {
-      balance: card.walletBalance !== undefined ? card.walletBalance : 205000,
-      currency: card.walletCurrency || 'FCFA',
+      balance: acct.balance,
+      currency: acct.currency || 'FCFA',
       card,
     };
   }
@@ -1010,44 +1041,42 @@ export class MembershipService {
     paymentMethod?: string;
     operatorName?: string;
     location?: string;
-  }): { card: MembershipCard; transaction: WalletTransaction } {
+    idempotencyKey?: string;
+  }): { card: MembershipCard; transaction: WalletTransaction; deduplicated?: boolean } {
     const card = this.cards.get(params.cardId);
     if (!card) throw new Error(`Carte introuvable pour l'identifiant ${params.cardId}`);
 
-    if (params.amount <= 0) throw new Error('Le montant de recharge doit être strictement supérieur à 0.');
+    const amount = Math.floor(Number(params.amount));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Le montant de recharge doit être strictement supérieur à 0.');
+    }
 
-    const currentBalance = card.walletBalance !== undefined ? card.walletBalance : 205000;
-    const newBalance = currentBalance + params.amount;
-    const now = new Date().toISOString();
+    const fallbackBalance = Math.max(0, Math.floor(Number(card.walletBalance) || 0));
+    sqliteDb.ensureWalletAccount(card.id, fallbackBalance, card.walletCurrency || 'FCFA');
 
-    card.walletBalance = newBalance;
-    card.updatedAt = now;
-    this.cards.set(card.id, card);
-
-    const txId = `wtx_${crypto.randomBytes(6).toString('hex')}`;
-    const transaction: WalletTransaction = {
-      id: txId,
+    const res = sqliteDb.atomicWalletCredit({
       cardId: card.id,
       cardNumber: card.cardNumber,
       userId: card.userId,
       chipUid: card.chipUid,
-      type: 'credit_recharge',
-      amount: params.amount,
+      amount,
       currency: card.walletCurrency || 'FCFA',
-      balanceBefore: currentBalance,
-      balanceAfter: newBalance,
-      locationOrService: params.location || 'Caisse Conciergerie Club Privé',
+      location: params.location || 'Caisse Conciergerie Club Privé',
       terminalId: 'TPE-RECHARGE-ADMIN',
       operatorName: params.operatorName || 'Direction Club Privé',
-      status: 'completed',
-      reference: `RCH-${Date.now().toString().slice(-6)}`,
-      createdAt: now,
-    };
+      idempotencyKey: params.idempotencyKey,
+    });
 
-    this.walletTransactions.unshift(transaction);
-    this.saveToDisk();
+    card.walletBalance = res.balanceAfter;
+    card.updatedAt = new Date().toISOString();
+    this.cards.set(card.id, card);
 
-    return { card, transaction };
+    if (!res.deduplicated) {
+      this.walletTransactions.unshift(res.transaction);
+      this.saveToDisk();
+    }
+
+    return { card, transaction: res.transaction, deduplicated: res.deduplicated };
   }
 
   public chargeWallet(params: {
@@ -1057,7 +1086,8 @@ export class MembershipService {
     location: string;
     operatorName?: string;
     terminalId?: string;
-  }): { success: boolean; card: MembershipCard; transaction: WalletTransaction; balanceAfter: number } {
+    idempotencyKey?: string;
+  }): { success: boolean; card: MembershipCard; transaction: WalletTransaction; balanceAfter: number; deduplicated?: boolean } {
     let card: MembershipCard | undefined;
 
     if (params.cardId) {
@@ -1067,61 +1097,68 @@ export class MembershipService {
     }
 
     if (!card) {
-      throw new Error("Puce ou carte introuvable sur le réseau club.");
+      throw new Error('Puce ou carte introuvable sur le réseau club.');
     }
 
     if (card.cardStatus !== 'active') {
       throw new Error(`Transaction refusée : la carte est ${card.cardStatus.toUpperCase()} (Mise en opposition ou expirée).`);
     }
 
-    const currentBalance = card.walletBalance !== undefined ? card.walletBalance : 205000;
-    if (currentBalance < params.amount) {
-      throw new Error(
-        `Solde insuffisant : Solde actuel ${currentBalance.toLocaleString()} ${card.walletCurrency || 'FCFA'}, montant demandé ${params.amount.toLocaleString()} ${card.walletCurrency || 'FCFA'}.`
-      );
+    const amount = Math.floor(Number(params.amount));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Le montant de paiement doit être strictement positif.');
     }
 
-    const newBalance = currentBalance - params.amount;
-    const now = new Date().toISOString();
+    const fallbackBalance = Math.max(0, Math.floor(Number(card.walletBalance) || 0));
+    sqliteDb.ensureWalletAccount(card.id, fallbackBalance, card.walletCurrency || 'FCFA');
 
-    card.walletBalance = newBalance;
-    card.updatedAt = now;
-    this.cards.set(card.id, card);
-
-    const txId = `wtx_${crypto.randomBytes(6).toString('hex')}`;
-    const transaction: WalletTransaction = {
-      id: txId,
+    const res = sqliteDb.atomicWalletDebit({
       cardId: card.id,
       cardNumber: card.cardNumber,
       userId: card.userId,
       chipUid: card.chipUid,
-      type: 'debit_purchase',
-      amount: params.amount,
+      amount,
       currency: card.walletCurrency || 'FCFA',
-      balanceBefore: currentBalance,
-      balanceAfter: newBalance,
-      locationOrService: params.location,
+      location: params.location,
       terminalId: params.terminalId || 'TPE-BAR-VIP-01',
       operatorName: params.operatorName || 'Personnel Club Privé',
-      status: 'completed',
-      reference: `DEBIT-POS-${Date.now().toString().slice(-6)}`,
-      createdAt: now,
-    };
+      idempotencyKey: params.idempotencyKey,
+    });
 
-    this.walletTransactions.unshift(transaction);
-    this.saveToDisk();
+    card.walletBalance = res.balanceAfter;
+    card.updatedAt = new Date().toISOString();
+    this.cards.set(card.id, card);
+
+    if (!res.deduplicated) {
+      this.walletTransactions.unshift(res.transaction);
+      this.saveToDisk();
+    }
 
     return {
       success: true,
       card,
-      transaction,
-      balanceAfter: newBalance,
+      transaction: res.transaction,
+      balanceAfter: res.balanceAfter,
+      deduplicated: res.deduplicated,
     };
   }
 
   public getWalletTransactions(cardId?: string): WalletTransaction[] {
+    const ledger = sqliteDb.getWalletLedger(cardId);
+    if (ledger.length > 0) {
+      return ledger.map((row) => {
+        const card = this.cards.get(row.cardId);
+        return {
+          ...row,
+          cardNumber: card?.cardNumber || '',
+          userId: card?.userId || '',
+          chipUid: card?.chipUid,
+          status: 'completed',
+        };
+      });
+    }
     if (cardId) {
-      return this.walletTransactions.filter(t => t.cardId === cardId);
+      return this.walletTransactions.filter((t) => t.cardId === cardId);
     }
     return this.walletTransactions;
   }
@@ -1190,9 +1227,321 @@ export class MembershipService {
     return { rawToken, tokenRecord };
   }
 
+  public getMembershipOrderById(orderId: string): MembershipOrder | undefined {
+    return this.orders.get(orderId);
+  }
+
+  public sanitizeMembershipOrder(order: MembershipOrder): MembershipOrder {
+    const copy: any = { ...order };
+    delete copy.accessTokenHash;
+    return copy as MembershipOrder;
+  }
+
+  public verifyMembershipOrderAccess(
+    order: MembershipOrder,
+    accessToken?: string,
+    user?: { id: string; email: string; role: string }
+  ): boolean {
+    if (user) {
+      if (['super_admin', 'box_office'].includes(user.role)) return true;
+      if (order.userId && order.userId === user.id) return true;
+      const metaEmail = String((order as any).customerEmail || '').toLowerCase();
+      if (metaEmail && metaEmail === (user.email || '').toLowerCase()) return true;
+    }
+    const storedHash = (order as any).accessTokenHash;
+    if (accessToken && storedHash) {
+      return timingSafeEqualStr(sha256Hex(accessToken.trim()), storedHash);
+    }
+    return false;
+  }
+
   /**
-   * Émission officielle d'une adhésion LUMARÉEL CARD après confirmation du paiement.
-   * Crée la carte permanente, le jeton QR haute sécurité et la commande physique PVC.
+   * Création d'une demande d'admission (statut pending) avant paiement confirmé.
+   * Aucun montant n'est accepté du client : tarif issu strictement de la base.
+   */
+  public createPendingMembershipOrder(params: {
+    userId: string;
+    planId: string;
+    cardholderName: string;
+    cardholderEmail: string;
+    customerPhone?: string;
+    paymentMethod: string;
+    shippingAddress?: {
+      street: string;
+      city: string;
+      postalCode?: string;
+      country: string;
+      recipientName?: string;
+    };
+  }): { order: MembershipOrder; orderAccessToken: string } {
+    const plan = this.plans.get(params.planId);
+    if (!plan) throw new Error('Formule d’adhésion non valide.');
+
+    const edition = this.editions.get(plan.editionId);
+    if (!edition) throw new Error('Édition de membership non valide.');
+    if (edition.allocatedCount >= edition.quota) {
+      throw new Error(`Le quota strict de ${edition.quota} membres pour ${edition.name} a été atteint. Inscriptions closes.`);
+    }
+
+    const cleanEmail = params.cardholderEmail.trim().toLowerCase();
+    const existing = this.getCardByEmail(cleanEmail);
+    if (existing && existing.cardStatus === 'active') {
+      throw new Error(`Une adhésion active (${existing.cardNumber}) existe déjà pour cet email.`);
+    }
+
+    const now = new Date().toISOString();
+    const orderId = `mord_${crypto.randomBytes(8).toString('hex')}`;
+    const orderAccessToken = generateOpaqueToken(16);
+    const accessTokenHash = sha256Hex(orderAccessToken);
+
+    const order: MembershipOrder & {
+      accessTokenHash?: string;
+      customerName?: string;
+      customerEmail?: string;
+      customerPhone?: string;
+    } = {
+      id: orderId,
+      userId: params.userId,
+      planId: plan.id,
+      editionId: edition.id,
+      amount: plan.price,
+      currency: plan.currency,
+      orderReference: `ORD-LMR-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
+      paymentProvider: params.paymentMethod || 'geniuspay',
+      paymentMethod: params.paymentMethod || 'geniuspay',
+      paymentStatus: 'pending',
+      paymentReference: `gp_mbr_init_${crypto.randomBytes(8).toString('hex')}`,
+      orderStatus: 'pending',
+      shippingAddress: params.shippingAddress,
+      customerName: params.cardholderName.trim(),
+      customerEmail: cleanEmail,
+      customerPhone: params.customerPhone?.trim() || undefined,
+      accessTokenHash,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    this.orders.set(orderId, order);
+    this.saveToDisk();
+    return { order: this.sanitizeMembershipOrder(order), orderAccessToken };
+  }
+
+  /**
+   * Confirmation atomique de paiement d'adhésion et émission de la LUMARÉEL CARD.
+   * Exécutée uniquement après webhook GeniusPay vérifié ou endpoint sandbox (dev uniquement).
+   */
+  public confirmMembershipPaymentAndIssueCard(
+    orderId: string,
+    paymentReference?: string
+  ): {
+    card: MembershipCard;
+    qrToken: string;
+    physicalOrder?: MembershipPhysicalCardOrder;
+    order: MembershipOrder;
+    alreadyIssued?: boolean;
+  } {
+    return sqliteDb.runImmediateTransaction(() => {
+      const order = this.orders.get(orderId) as (MembershipOrder & {
+        customerName?: string;
+        customerEmail?: string;
+        customerPhone?: string;
+      }) | undefined;
+      if (!order) {
+        throw new Error('Commande d’adhésion introuvable.');
+      }
+
+      if (order.paymentStatus === 'completed') {
+        const existingCard = Array.from(this.cards.values()).find((c) => c.membershipOrderId === order.id);
+        if (!existingCard) {
+          throw new Error('Carte associée déjà émise introuvable.');
+        }
+        const existingPhys = Array.from(this.physicalOrders.values()).find((po) => po.cardId === existingCard.id);
+        return {
+          card: existingCard,
+          qrToken: existingCard.qrToken || '',
+          physicalOrder: existingPhys,
+          order: this.sanitizeMembershipOrder(order),
+          alreadyIssued: true,
+        };
+      }
+
+      if (order.paymentStatus !== 'pending') {
+        throw new Error(`Transition de paiement interdite depuis ${order.paymentStatus}.`);
+      }
+
+      if (paymentReference) {
+        for (const other of this.orders.values()) {
+          if (other.id !== order.id && other.paymentStatus === 'completed' && other.paymentReference === paymentReference) {
+            throw new Error('Référence de paiement déjà utilisée.');
+          }
+        }
+      }
+
+      const plan = order.planId ? this.plans.get(order.planId) : undefined;
+      if (!plan) throw new Error('Formule d’adhésion non valide.');
+
+      const edition = order.editionId ? this.editions.get(order.editionId) : undefined;
+      if (!edition) throw new Error('Édition de membership non valide.');
+
+      const cardholderEmail = (order.customerEmail || '').trim().toLowerCase();
+      const cardholderName = (order.customerName || 'Membre LUMARÉEL').trim();
+      if (!cardholderEmail) {
+        throw new Error('Adresse e-mail membre manquante sur la commande.');
+      }
+
+      const existing = this.getCardByEmail(cardholderEmail);
+      if (existing && existing.cardStatus === 'active') {
+        throw new Error(`Une adhésion active (${existing.cardNumber}) existe déjà pour cet email.`);
+      }
+
+      // Allocation atomique (lève une erreur avant toute mutation de carte si quota atteint)
+      const { sequence, cardNumber } = this.allocateNextCardSequence(edition.id);
+
+      const now = new Date();
+      const validFrom = now.toISOString();
+      const expiresDate = new Date(now.getTime() + plan.durationMonths * 30.5 * 24 * 3600 * 1000);
+      const expiresAt = expiresDate.toISOString();
+      const cardId = `crd_${crypto.randomBytes(8).toString('hex')}`;
+
+      order.paymentStatus = 'completed';
+      order.orderStatus = 'completed';
+      order.completedAt = validFrom;
+      order.updatedAt = validFrom;
+      if (paymentReference) order.paymentReference = paymentReference;
+      this.orders.set(order.id, order);
+
+      const { rawToken, tokenRecord } = this.generateSecureQrToken(cardId, 1);
+      this.qrTokens.set(tokenRecord.id, tokenRecord);
+
+      const card: MembershipCard = {
+        id: cardId,
+        userId: order.userId,
+        planId: plan.id,
+        editionId: edition.id,
+        membershipOrderId: order.id,
+        cardNumber,
+        cardSequence: sequence,
+        cardholderName,
+        cardholderEmail,
+        cardStatus: 'active',
+        issuedAt: validFrom,
+        validFrom,
+        expiresAt,
+        physicalCardStatus: 'approved',
+        qrToken: rawToken,
+        walletBalance: 0,
+        walletCurrency: 'FCFA',
+        createdAt: validFrom,
+        updatedAt: validFrom,
+      };
+      this.cards.set(cardId, card);
+      sqliteDb.ensureWalletAccount(cardId, 0, 'FCFA');
+
+      edition.allocatedCount += 1;
+      if (edition.allocatedCount >= edition.quota) {
+        edition.status = 'sold_out';
+      }
+      edition.updatedAt = validFrom;
+      this.editions.set(edition.id, edition);
+
+      const physicalOrderId = `pord_${crypto.randomBytes(8).toString('hex')}`;
+      const physicalOrder: MembershipPhysicalCardOrder = {
+        id: physicalOrderId,
+        cardId,
+        userId: order.userId,
+        orderNumber: `ORD-PVC-${sequence.toString().padStart(4, '0')}`,
+        cardNumber,
+        cardholderName,
+        cardholderEmail,
+        cardholderPhone: order.customerPhone,
+        editionName: edition.name,
+        shippingAddress: order.shippingAddress || {
+          street: 'Retrait en main propre / Salon VIP',
+          city: 'Abidjan',
+          country: 'Côte d’Ivoire',
+        },
+        productionStatus: 'approved',
+        reprintCount: 0,
+        reprintReasons: [],
+        historyNotes: [
+          {
+            timestamp: validFrom,
+            operator: 'Système Billetterie LUMARÉEL',
+            status: 'approved',
+            note: 'Paiement confirmé. Carte physique approuvée pour production immédiate en atelier.',
+          },
+        ],
+        requestedAt: validFrom,
+        approvedAt: validFrom,
+        createdAt: validFrom,
+        updatedAt: validFrom,
+      };
+      this.physicalOrders.set(physicalOrderId, physicalOrder);
+
+      const blankPvcItem = Array.from(this.inventory.values()).find(
+        (i) => i.itemType === 'blank_pvc_card'
+      );
+      if (blankPvcItem && blankPvcItem.availableQuantity > 0) {
+        blankPvcItem.reservedQuantity += 1;
+        blankPvcItem.availableQuantity = Math.max(0, blankPvcItem.totalQuantity - blankPvcItem.reservedQuantity);
+        blankPvcItem.updatedAt = validFrom;
+        this.inventory.set(blankPvcItem.id, blankPvcItem);
+      }
+
+      const activeBenefits = Array.from(this.benefits.values()).filter(
+        (b) => b.editionId === edition.id && b.status === 'active'
+      );
+      activeBenefits.forEach((b) => {
+        const entId = `ent_${crypto.randomBytes(6).toString('hex')}`;
+        const entitlement: MembershipEntitlement = {
+          id: entId,
+          cardId,
+          benefitId: b.id,
+          benefitName: b.name,
+          benefitType: b.benefitType,
+          quantity: b.perMemberLimit,
+          usedQuantity: 0,
+          validFrom,
+          validUntil: expiresAt,
+          status: 'available',
+          createdAt: validFrom,
+        };
+        this.entitlements.set(entId, entitlement);
+      });
+
+      const welcomeCredit = Math.max(0, Math.floor(Number(process.env.MEMBERSHIP_WELCOME_CREDIT_XOF ?? 5000)));
+      if (welcomeCredit > 0) {
+        this.rechargeWallet({
+          cardId: card.id,
+          amount: welcomeCredit,
+          paymentMethod: 'welcome_gift',
+          operatorName: 'LUMARÉEL Conciergerie',
+          location: 'Admission Founders Edition',
+          idempotencyKey: `welcome_${order.id}`,
+        });
+      }
+
+      this.logAdminEvent({
+        actorId: 'SYSTEM',
+        actionType: 'CARD_ISSUED',
+        entityType: 'membership_card',
+        entityId: cardId,
+        details: { cardNumber, cardholderName, sequence },
+      });
+
+      this.saveToDisk();
+
+      return {
+        card,
+        qrToken: rawToken,
+        physicalOrder,
+        order: this.sanitizeMembershipOrder(order),
+      };
+    });
+  }
+
+  /**
+   * Émission administrative directe ou héritée (uniquement appelable depuis workflow validé).
    */
   public issueMembershipCard(params: {
     userId: string;
@@ -1214,164 +1563,16 @@ export class MembershipService {
     qrToken: string;
     physicalOrder: MembershipPhysicalCardOrder;
   } {
-    const plan = this.plans.get(params.planId);
-    if (!plan) throw new Error('Formule d’adhésion non valide.');
-
-    const edition = this.editions.get(plan.editionId);
-    if (!edition) throw new Error('Édition de membership non valide.');
-
-    // Vérifier si un compte actif possède déjà une carte
-    const existing = this.getCardByEmail(params.cardholderEmail);
-    if (existing && existing.cardStatus === 'active') {
-      throw new Error(`Une adhésion active (${existing.cardNumber}) existe déjà pour cet email.`);
-    }
-
-    // 1. Allocation atomique du numéro permanent (max 100)
-    const { sequence, cardNumber } = this.allocateNextCardSequence(edition.id);
-
-    const now = new Date();
-    const validFrom = now.toISOString();
-    const expiresDate = new Date(now.getTime() + plan.durationMonths * 30.5 * 24 * 3600 * 1000);
-    const expiresAt = expiresDate.toISOString();
-
-    const cardId = `crd_${crypto.randomBytes(8).toString('hex')}`;
-    const orderId = `mord_${crypto.randomBytes(8).toString('hex')}`;
-
-    // 2. Enregistrer la commande financière
-    const order: MembershipOrder = {
-      id: orderId,
-      userId: params.userId,
-      planId: plan.id,
-      editionId: edition.id,
-      amount: plan.price,
-      currency: plan.currency,
-      orderReference: params.paymentReference || `ORD-LMR-${Date.now()}`,
-      paymentProvider: params.paymentMethod,
-      paymentMethod: params.paymentMethod,
-      paymentStatus: 'completed',
-      paymentReference: params.paymentReference || `PAY-LMR-${Date.now()}`,
-      orderStatus: 'completed',
-      shippingAddress: params.shippingAddress,
-      completedAt: validFrom,
-      createdAt: validFrom,
-      updatedAt: validFrom,
-    };
-    this.orders.set(orderId, order);
-
-    // 3. Génération du QR credential sécurisé (256 bits)
-    const { rawToken, tokenRecord } = this.generateSecureQrToken(cardId, 1);
-    this.qrTokens.set(tokenRecord.id, tokenRecord);
-
-    // 4. Création de la Carte Membre
-    const card: MembershipCard = {
-      id: cardId,
-      userId: params.userId,
-      planId: plan.id,
-      editionId: edition.id,
-      membershipOrderId: orderId,
-      cardNumber,
-      cardSequence: sequence,
-      cardholderName: params.cardholderName.trim(),
-      cardholderEmail: params.cardholderEmail.trim().toLowerCase(),
-      cardStatus: 'active',
-      issuedAt: validFrom,
-      validFrom,
-      expiresAt,
-      physicalCardStatus: 'approved',
-      qrToken: rawToken,
-      createdAt: validFrom,
-      updatedAt: validFrom,
-    };
-    this.cards.set(cardId, card);
-
-    // 5. Mise à jour de la jauge d'édition
-    edition.allocatedCount += 1;
-    if (edition.allocatedCount >= edition.quota) {
-      edition.status = 'sold_out';
-    }
-    edition.updatedAt = validFrom;
-    this.editions.set(edition.id, edition);
-
-    // 6. Création de la commande de carte physique dans l'atelier d'impression
-    const physicalOrderId = `pord_${crypto.randomBytes(8).toString('hex')}`;
-    const physicalOrder: MembershipPhysicalCardOrder = {
-      id: physicalOrderId,
-      cardId,
-      userId: params.userId,
-      orderNumber: `ORD-PVC-${sequence.toString().padStart(4, '0')}`,
-      cardNumber,
-      cardholderName: params.cardholderName.trim(),
-      cardholderEmail: params.cardholderEmail.trim().toLowerCase(),
-      cardholderPhone: params.customerPhone,
-      editionName: edition.name,
-      shippingAddress: params.shippingAddress || {
-        street: 'Retrait en main propre / Salon VIP',
-        city: 'Abidjan',
-        country: 'Côte d’Ivoire',
-      },
-      productionStatus: 'approved',
-      reprintCount: 0,
-      reprintReasons: [],
-      historyNotes: [
-        {
-          timestamp: validFrom,
-          operator: 'Système Billetterie LUMARÉEL',
-          status: 'approved',
-          note: 'Paiement confirmé. Carte physique approuvée pour production immédiate en atelier.',
-        },
-      ],
-      requestedAt: validFrom,
-      approvedAt: validFrom,
-      createdAt: validFrom,
-      updatedAt: validFrom,
-    };
-    this.physicalOrders.set(physicalOrderId, physicalOrder);
-
-    // 7. Décrémentation prévisionnelle d'une carte vierge de l'inventaire
-    const blankPvcItem = Array.from(this.inventory.values()).find(
-      (i) => i.itemType === 'blank_pvc_card'
+    const { order } = this.createPendingMembershipOrder(params);
+    const issued = this.confirmMembershipPaymentAndIssueCard(
+      order.id,
+      params.paymentReference || `PAY-LMR-${Date.now()}`
     );
-    if (blankPvcItem && blankPvcItem.availableQuantity > 0) {
-      blankPvcItem.reservedQuantity += 1;
-      blankPvcItem.availableQuantity = Math.max(0, blankPvcItem.totalQuantity - blankPvcItem.reservedQuantity);
-      blankPvcItem.updatedAt = validFrom;
-      this.inventory.set(blankPvcItem.id, blankPvcItem);
-    }
-
-    // 8. Attribution des privilèges par défaut
-    const activeBenefits = Array.from(this.benefits.values()).filter(
-      (b) => b.editionId === edition.id && b.status === 'active'
-    );
-    activeBenefits.forEach((b) => {
-      const entId = `ent_${crypto.randomBytes(6).toString('hex')}`;
-      const entitlement: MembershipEntitlement = {
-        id: entId,
-        cardId,
-        benefitId: b.id,
-        benefitName: b.name,
-        benefitType: b.benefitType,
-        quantity: b.perMemberLimit,
-        usedQuantity: 0,
-        validFrom,
-        validUntil: expiresAt,
-        status: 'available',
-        createdAt: validFrom,
-      };
-      this.entitlements.set(entId, entitlement);
-    });
-
-    // 9. Journal d'audit administratif
-    this.logAdminEvent({
-      actorId: 'SYSTEM',
-      actionType: 'CARD_ISSUED',
-      entityType: 'membership_card',
-      entityId: cardId,
-      details: { cardNumber, cardholderName: params.cardholderName, sequence },
-    });
-
-    this.saveToDisk();
-
-    return { card, qrToken: rawToken, physicalOrder };
+    return {
+      card: issued.card,
+      qrToken: issued.qrToken,
+      physicalOrder: issued.physicalOrder!,
+    };
   }
 
   // --- ACTIONS SUR LES CARTES : SUSPENDRE, RÉACTIVER, RÉVOQUER, ROTATION QR ---
@@ -1470,6 +1671,10 @@ export class MembershipService {
    * Applique le hachage SHA-256, la limitation de débit (rate limiting) et
    * renvoie des états distincts : VALID, EXPIRED, SUSPENDED, REVOKED, INVALID, SYSTEM_UNAVAILABLE.
    */
+  public getDynamicQrToken(card: MembershipCard): string {
+    return generateDynamicCardQrToken(card.id, card.qrToken || card.id);
+  }
+
   public verifyCardPublicly(rawToken: string, clientIp: string = 'unknown'): PublicCardVerificationResult {
     const cleanToken = (rawToken || '').trim();
 
@@ -1512,29 +1717,40 @@ export class MembershipService {
       this.verificationRateLimits.set(rateKey, { count: 1, windowStart: nowMs });
     }
 
-    // 2. Recherche par hachage SHA-256 du jeton secret
-    const tokenHash = crypto.createHash('sha256').update(cleanToken).digest('hex');
+    // 2. Détection jeton dynamique TOTP-HMAC (LMR-BC1...) ou hachage SHA-256
     let matchedToken: MembershipQrToken | null = null;
+    let matchedCard: MembershipCard | null = null;
 
-    for (const qt of this.qrTokens.values()) {
-      if (qt.tokenHash === tokenHash) {
-        matchedToken = qt;
-        break;
+    if (cleanToken.startsWith('LMR-BC1.')) {
+      const dynCheck = verifyDynamicCardQrToken(cleanToken, (cardId) => {
+        const c = this.cards.get(cardId);
+        return c ? c.qrToken || c.id : undefined;
+      });
+      if (dynCheck.valid && dynCheck.cardId) {
+        matchedCard = this.cards.get(dynCheck.cardId) || null;
       }
     }
 
-    // Fallback rétrocompatible si le jeton brut correspond directement à la carte
-    let matchedCard: MembershipCard | null = null;
-    if (matchedToken) {
-      matchedCard = this.cards.get(matchedToken.cardId) || null;
-      matchedToken.lastVerifiedAt = new Date().toISOString();
-      matchedToken.verificationCount += 1;
-    } else {
-      // Recherche directe si passé en token clair enregistré
-      for (const c of this.cards.values()) {
-        if (c.qrToken === cleanToken || c.cardNumber.toUpperCase() === cleanToken.toUpperCase()) {
-          matchedCard = c;
+    if (!matchedCard) {
+      const tokenHash = crypto.createHash('sha256').update(cleanToken).digest('hex');
+
+      for (const qt of this.qrTokens.values()) {
+        if (qt.tokenHash === tokenHash) {
+          matchedToken = qt;
           break;
+        }
+      }
+
+      if (matchedToken) {
+        matchedCard = this.cards.get(matchedToken.cardId) || null;
+        matchedToken.lastVerifiedAt = new Date().toISOString();
+        matchedToken.verificationCount += 1;
+      } else {
+        for (const c of this.cards.values()) {
+          if (c.qrToken === cleanToken || c.cardNumber.toUpperCase() === cleanToken.toUpperCase()) {
+            matchedCard = c;
+            break;
+          }
         }
       }
     }
@@ -1644,10 +1860,61 @@ export class MembershipService {
     let card: MembershipCard | null = null;
     const clean = (cardIdentifier || '').trim();
 
-    // 0. Recherche par UID de puce NFC / RFID physique
-    const chipMatch = this.getCardByChipUid(clean);
-    if (chipMatch) {
-      card = chipMatch;
+    // 0a. Jeton QR dynamique TOTP-HMAC (avec protection anti-rejeu)
+    if (clean.startsWith('LMR-BC1.')) {
+      const dynCheck = verifyDynamicCardQrToken(clean, (cardId) => {
+        const c = this.cards.get(cardId);
+        return c ? c.qrToken || c.id : undefined;
+      });
+      if (!dynCheck.valid || !dynCheck.cardId) {
+        this.recordScanLog({
+          eventId,
+          scanMethod,
+          verificationResult: 'DENIED',
+          rejectionReason: dynCheck.error || 'QR dynamique invalide ou expiré',
+          operatorId,
+          flaggedSuspicious: true,
+        });
+        return {
+          authorized: false,
+          cardStatus: 'revoked',
+          cardNumber: 'INCONNU',
+          cardholderName: 'Inconnu',
+          editionName: 'QR Dynamique Invalide',
+          zone: accessPointType,
+          reason: dynCheck.error || 'QR code dynamique expiré ou invalide.',
+        };
+      }
+      const freshNonce = sqliteDb.checkAndRecordReplayNonce(`bc_qr:${sha256Hex(clean)}`, 90);
+      if (!freshNonce) {
+        this.recordScanLog({
+          cardId: dynCheck.cardId,
+          eventId,
+          scanMethod,
+          verificationResult: 'DENIED',
+          rejectionReason: 'Rejeu de QR dynamique détecté',
+          operatorId,
+          flaggedSuspicious: true,
+        });
+        return {
+          authorized: false,
+          cardStatus: 'active',
+          cardNumber: this.cards.get(dynCheck.cardId)?.cardNumber || 'INCONNU',
+          cardholderName: this.cards.get(dynCheck.cardId)?.cardholderName || 'Inconnu',
+          editionName: 'Rejeu détecté',
+          zone: accessPointType,
+          reason: 'QR code dynamique déjà utilisé. Veuillez actualiser votre pass.',
+        };
+      }
+      card = this.cards.get(dynCheck.cardId) || null;
+    }
+
+    // 0b. Recherche par UID de puce NFC / RFID physique
+    if (!card) {
+      const chipMatch = this.getCardByChipUid(clean);
+      if (chipMatch) {
+        card = chipMatch;
+      }
     }
 
     // 1. Recherche par numéro de carte permanent ou identifiant
@@ -1893,6 +2160,48 @@ export class MembershipService {
     this.physicalOrders.set(orderId, order);
     this.saveToDisk();
     return order;
+  }
+
+  public getAllBenefits(): MembershipBenefit[] {
+    return Array.from(this.benefits.values());
+  }
+
+  public updatePhysicalCardStatus(
+    cardId: string,
+    physicalStatus: PhysicalCardProductionStatus,
+    trackingNumber?: string,
+    actorId: string = 'ADMIN'
+  ): MembershipCard {
+    const card = this.cards.get(cardId);
+    if (!card) throw new Error('Carte introuvable.');
+
+    const now = new Date().toISOString();
+    card.physicalCardStatus = physicalStatus;
+    if (trackingNumber !== undefined) {
+      card.physicalCardTrackingNumber = trackingNumber;
+    }
+    card.updatedAt = now;
+    this.cards.set(card.id, card);
+
+    for (const po of this.physicalOrders.values()) {
+      if (po.cardId === cardId) {
+        po.productionStatus = physicalStatus;
+        if (trackingNumber !== undefined) po.trackingNumber = trackingNumber;
+        po.updatedAt = now;
+        this.physicalOrders.set(po.id, po);
+      }
+    }
+
+    this.logAdminEvent({
+      actorId,
+      actionType: 'PHYSICAL_CARD_STATUS_UPDATED',
+      entityType: 'membership_card',
+      entityId: cardId,
+      details: { physicalStatus, trackingNumber },
+    });
+
+    this.saveToDisk();
+    return card;
   }
 
   // --- INVENTAIRE DE L'ATELIER ---
@@ -2711,7 +3020,8 @@ export class MembershipService {
         role: card ? 'Founders Member' : 'Client',
       },
       card: card || null,
-      qrToken: card?.qrToken,
+      qrToken: card ? this.getDynamicQrToken(card) : undefined,
+      staticQrToken: card?.qrToken,
       benefits,
       tickets,
       invitations,
@@ -2905,11 +3215,59 @@ export class MembershipService {
       }
     }
 
-    // 3. Détection type Carte de Membre LUMARÉEL (URL /card/verify/{token} ou LMR_SEC_...)
+    // 3. Détection type Carte de Membre LUMARÉEL (dynamique LMR-BC1..., URL /card/verify/{token} ou LMR_SEC_...)
     let tokenValue = raw;
     if (raw.includes('/card/verify/')) {
       const parts = raw.split('/card/verify/');
       tokenValue = parts[1]?.trim() || raw;
+    }
+
+    if (tokenValue.startsWith('LMR-BC1.')) {
+      const dynCheck = verifyDynamicCardQrToken(tokenValue, (cardId) => {
+        const c = this.cards.get(cardId);
+        return c ? c.qrToken || c.id : undefined;
+      });
+      if (!dynCheck.valid || !dynCheck.cardId) {
+        return {
+          status: 'ACCESS_DENIED',
+          targetType: 'membership',
+          scannedAt: now,
+          operatorId: operator,
+          flaggedAnomaly: true,
+          message: dynCheck.error || 'QR code dynamique expiré ou invalide.',
+        };
+      }
+      if (!sqliteDb.checkAndRecordReplayNonce(`bc_qr:${sha256Hex(tokenValue)}`, 90)) {
+        return {
+          status: 'ACCESS_DENIED',
+          targetType: 'membership',
+          scannedAt: now,
+          operatorId: operator,
+          flaggedAnomaly: true,
+          message: 'QR code dynamique déjà scanné (rejeu bloqué).',
+        };
+      }
+      const dynCard = this.cards.get(dynCheck.cardId);
+      if (dynCard && dynCard.cardStatus === 'active' && new Date(dynCard.expiresAt).getTime() >= Date.now()) {
+        return {
+          status: 'ACCESS_GRANTED',
+          targetType: 'membership',
+          holderName: dynCard.cardholderName,
+          reference: dynCard.cardNumber,
+          categoryOrEdition: 'FOUNDERS EDITION',
+          zone,
+          scannedAt: now,
+          operatorId: operator,
+          message: 'Accès autorisé · Pass Dynamique Vérifié',
+        };
+      }
+      return {
+        status: 'ACCESS_DENIED',
+        targetType: 'membership',
+        scannedAt: now,
+        operatorId: operator,
+        message: 'Carte inactive ou expirée.',
+      };
     }
 
     const tokenHash = crypto.createHash('sha256').update(tokenValue).digest('hex');

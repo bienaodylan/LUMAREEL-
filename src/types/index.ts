@@ -123,7 +123,8 @@ export interface Ticket {
   token: string; // Cryptographic validation token embedded in QR
   holderName: string;
   holderEmail: string;
-  status: 'valid' | 'used' | 'cancelled';
+  status: 'inactive' | 'valid' | 'used' | 'cancelled';
+  serialSig?: string;
   issuedAt: string;
   checkedInAt?: string;
   checkedInBy?: string;
@@ -758,6 +759,7 @@ export interface WalletOverview {
   };
   card: MembershipCard | null;
   qrToken?: string;
+  staticQrToken?: string;
   qrDataUrl?: string | null;
   benefits: Array<{ benefit: MembershipBenefit; entitlement?: MembershipEntitlement }>;
   tickets: Ticket[];

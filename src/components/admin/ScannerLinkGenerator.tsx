@@ -12,7 +12,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { ScannerToken } from '../../types';
-import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient';
+import { getAuthHeaders } from '../../utils/authSession';
 
 interface ScannerLinkGeneratorProps {
   eventId: string;
@@ -38,10 +38,8 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
     let isMounted = true;
     const fetchTokens = async () => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData.session?.access_token;
-        if (!isSupabaseConfigured || !accessToken) return;
-        const res = await fetch(`/api/events/${eventId}/scanner-tokens`, { headers: { Authorization: `Bearer ${accessToken}` } });
+        const headers = await getAuthHeaders();
+        const res = await fetch(`/api/events/${eventId}/scanner-tokens`, { credentials: 'include', headers });
         if (res.ok) {
           const data = await res.json();
           if (isMounted && data.success && data.tokens && data.tokens.length > 0) {
@@ -72,12 +70,11 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
       setIsGenerating(true);
       setCopied(false);
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      if (!isSupabaseConfigured || !accessToken) throw new Error('Connectez-vous avec un compte administrateur vérifié.');
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/events/${eventId}/scanner-tokens`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
+        credentials: 'include',
+        headers,
         body: JSON.stringify({
           createdBy: 'Direction LUMARÉEL CO.',
           eventTitle,
@@ -130,12 +127,11 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
     }
   };
 
-  const handleShareWhatsApp = () => {
-    if (!generatedUrl) return;
-    const message = `Bonjour, voici votre lien d’accès sécurisé au scanner de billets pour le concert "${artistName ? `${artistName} — ` : ''}${eventTitle}". Cliquez pour ouvrir la caméra et valider les entrées : ${generatedUrl}`;
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-  };
+  const whatsappShareUrl = generatedUrl
+    ? `https://api.whatsapp.com/send?text=${encodeURIComponent(
+        `Bonjour, voici votre lien d’accès sécurisé au scanner de billets pour le concert "${artistName ? `${artistName} — ` : ''}${eventTitle}". Cliquez pour ouvrir la caméra et valider les entrées : ${generatedUrl}`
+      )}`
+    : '#';
 
   return (
     <div className="p-6 sm:p-7 rounded-3xl bg-[#0c0c0c] border border-white/10 shadow-2xl space-y-6">
@@ -230,15 +226,16 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
               </button>
 
               {/* Button Partager sur WhatsApp */}
-              <button
-                type="button"
-                onClick={handleShareWhatsApp}
+              <a
+                href={whatsappShareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="px-5 py-3 rounded-2xl bg-[#25D366] hover:bg-[#20ba59] text-white font-agrandir-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-[0_0_15px_rgba(37,211,102,0.3)]"
                 title="Envoyer le lien directement par WhatsApp aux vigiles"
               >
                 <Send className="w-4 h-4" />
                 <span>WhatsApp</span>
-              </button>
+              </a>
             </div>
           </div>
 
