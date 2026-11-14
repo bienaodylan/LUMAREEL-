@@ -4,6 +4,7 @@ import { methodNotAllowed, publicDb, requireRole } from './_lib/supabase.js';
 
 
 import { INITIAL_ARCHIVES } from '../src/data/initialData.ts';
+import { handleAdminDataRoute } from './_lib/admin-data.js';
 
 const publicSettingsDefaults = {
   platformName: 'LUMARÉEL', tagline: 'CO.', logoMonogram: 'LR',
@@ -147,6 +148,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
 
   const route = typeof req.query.__route === 'string' ? req.query.__route : '';
+
+  if (['customer-orders', 'admin-orders', 'admin-overview', 'admin-emails'].includes(route)) {
+    return handleAdminDataRoute(req, res, route);
+  }
 
   if (route === 'settings') {
     if (req.method !== 'GET') return methodNotAllowed(res, ['GET']);
