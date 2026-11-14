@@ -194,7 +194,7 @@ export const AdminMembershipView: React.FC = () => {
             LUMARÉEL MEMBERSHIP
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Gestion des 100 membres Founders, des jetons QR révocables, des privilèges et des points de contrôle événementiels.
+            Gestion des membres, des jetons QR révocables, des privilèges et des points de contrôle événementiels.
           </p>
         </div>
 
@@ -259,11 +259,11 @@ export const AdminMembershipView: React.FC = () => {
                 <Crown className="w-4 h-4 text-[#d4af37]" />
               </div>
               <div className="font-mono text-2xl sm:text-3xl font-extrabold text-white">
-                {stats?.allocated || 0} <span className="text-base text-neutral-500 font-normal">/ {stats?.quota || 100}</span>
+                {stats?.allocated || 0} <span className="text-base text-neutral-500 font-normal">/ {stats?.quota ?? 0}</span>
               </div>
               <div className="text-[11px] text-neutral-400 flex items-center justify-between">
                 <span>Places restantes</span>
-                <strong className="text-[#d4af37] font-mono">{stats?.remainingQuota || 100}</strong>
+                <strong className="text-[#d4af37] font-mono">{stats?.remainingQuota ?? 0}</strong>
               </div>
             </div>
 
@@ -514,26 +514,26 @@ export const AdminMembershipView: React.FC = () => {
                   ÉDITION COMMERCIALE EN COURS
                 </span>
                 <h3 className="text-xl font-agrandir-extrabold uppercase text-white mt-1">
-                  {edition?.name || 'LUMARÉEL FOUNDERS EDITION'}
+                  {edition?.name || 'Aucune édition configurée'}
                 </h3>
               </div>
               <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                {edition?.status?.toUpperCase() || 'ACTIVE'}
+                {edition?.status?.toUpperCase() || 'NON CONFIGURÉE'}
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <span className="text-neutral-400 block mb-1">Code Édition</span>
-                <strong className="font-mono text-white text-sm">{edition?.editionCode || 'FOUNDERS_2026'}</strong>
+                <strong className="font-mono text-white text-sm">{edition?.editionCode || '—'}</strong>
               </div>
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <span className="text-neutral-400 block mb-1">Quota Strict</span>
-                <strong className="font-mono text-[#d4af37] text-sm">{edition?.quota || 100} membres max</strong>
+                <strong className="font-mono text-[#d4af37] text-sm">{edition?.quota ?? '—'} membres max</strong>
               </div>
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <span className="text-neutral-400 block mb-1">Cartes Émises</span>
-                <strong className="font-mono text-white text-sm">{edition?.allocatedCount || 0} / {edition?.quota || 100}</strong>
+                <strong className="font-mono text-white text-sm">{edition?.allocatedCount ?? 0} / {edition?.quota || 100}</strong>
               </div>
             </div>
           </div>
