@@ -9,6 +9,7 @@ import {
   ArrowRight,
   ExternalLink,
   Sparkles,
+  Heart,
 } from 'lucide-react';
 
 interface MonthGroup {
@@ -17,7 +18,7 @@ interface MonthGroup {
 }
 
 export const DiscoverView: React.FC = () => {
-  const { events, setSelectedEventSlug, setCurrentPage, setCheckoutEvent } = useApp();
+  const { events, setSelectedEventSlug, setCurrentPage, setCheckoutEvent, isFavoriteEvent, toggleFavoriteEvent } = useApp();
 
   const [search, setSearch] = useState('');
   const [selectedCity, setSelectedCity] = useState('all');
@@ -273,8 +274,24 @@ export const DiscoverView: React.FC = () => {
 
                       </div>
 
-                      {/* Right Action Button : Pill VIEW MORE matching screenshot */}
+                      {/* Right Action Buttons : Favori + Pill VIEW MORE */}
                       <div className="relative z-10 flex items-center justify-end sm:justify-center gap-3 shrink-0 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFavoriteEvent(event.id);
+                          }}
+                          aria-label={isFavoriteEvent(event.id) ? 'Retirer des favoris' : 'Ajouter aux favoris (rappel 30 min)'}
+                          title={isFavoriteEvent(event.id) ? 'Retirer des favoris' : 'Ajouter aux favoris · Rappel 30 min avant'}
+                          className={`p-3 rounded-full border backdrop-blur-md transition-all cursor-pointer active:scale-90 ${
+                            isFavoriteEvent(event.id)
+                              ? 'bg-[#d4af37]/15 border-[#d4af37]/60 text-[#d4af37]'
+                              : 'bg-white/10 hover:bg-white/20 border-white/20 text-white/80 hover:text-white'
+                          }`}
+                        >
+                          <Heart className={`w-4 h-4 ${isFavoriteEvent(event.id) ? 'fill-[#d4af37] text-[#d4af37]' : ''}`} />
+                        </button>
                         <button
                           onClick={() => handleSelectEvent(event)}
                           className="px-6 py-3 rounded-full bg-white/10 hover:bg-white text-white hover:text-black border border-white/20 font-agrandir-semibold text-xs tracking-widest uppercase flex items-center gap-2 backdrop-blur-md transition-all shadow-lg cursor-pointer"

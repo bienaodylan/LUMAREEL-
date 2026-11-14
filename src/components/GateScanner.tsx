@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { getAuthHeaders } from '../utils/authSession';
 import { QrCode, CheckCircle2, XCircle, AlertTriangle, Shield, Smartphone } from 'lucide-react';
 
 interface ScanHistoryItem {
@@ -26,9 +27,11 @@ export const GateScanner: React.FC = () => {
 
     setIsVerifying(true);
     try {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch('/api/tickets/verify-and-burn', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers,
         body: JSON.stringify({
           token: tokenToTest.trim(),
           eventId: selectedEventId,

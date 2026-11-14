@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { generatePersonalizedTicketEmail } from '../utils/emailTemplate';
 import { formatDateLong } from '../utils/dateUtils';
+import { getAuthHeaders } from '../utils/authSession';
 
 type CheckoutStep = 1 | 2 | 3 | 4;
 type PaymentOption = 'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'djamo' | 'card';
@@ -140,6 +141,7 @@ export const CheckoutModal: React.FC = () => {
   const [gatewayProcessing, setGatewayProcessing] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
+  const [createdOrderToken, setCreatedOrderToken] = useState<string>('');
   const [issuedTickets, setIssuedTickets] = useState<Ticket[]>([]);
   const [showEmailPreview, setShowEmailPreview] = useState<boolean>(false);
 
@@ -289,117 +291,81 @@ export const CheckoutModal: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      let order: Order | null = null;
-      let tickets: Ticket[] = [];
-      const customerFullPhone = paymentPhoneNumber 
+      const customerFullPhone = paymentPhoneNumber
         ? `${paymentDialCode} ${paymentPhoneNumber}`.trim()
         : (customerPhoneNumber ? `${customerDialCode} ${customerPhoneNumber}`.trim() : '');
 
-      // Essai de confirmation API côté serveur
-      try {
-        const primaryCat = categories.find((c) => (quantities[c.id] || 0) > 0) || categories[0];
-        const res = await fetch('/api/orders/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customerId: currentUser?.id || 'guest',
-            customerName,
-            customerEmail,
-            customerPhone: customerFullPhone,
-            eventId: checkoutEvent.id,
-            categoryId: primaryCat.id,
-            quantity: totalQuantity,
-          }),
-        });
+      const selectedItems = categories
+        .filter((c) => (quantities[c.id] || 0) > 0)
+        .map((c) => ({ categoryId: c.id, qty: quantities[c.id] }));
 
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.order) {
-            order = data.order;
-            const payRes = await fetch(`/api/orders/${data.order.id}/pay-sandbox`, { method: 'POST' });
-            if (payRes.ok) {
-              const payData = await payRes.json();
-              if (payData.success && payData.tickets) {
-                tickets = payData.tickets;
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Backend unavailable, generating client fallback order', err);
+      if (selectedItems.length === 0) {
+        throw new Error('Veuillez sélectionner au moins 1 billet.');
       }
 
-      // Si le backend direct n'est pas actif (ex: déploiement statique), émettre les billets certifiés client-side
-      if (!tickets || tickets.length === 0 || !order) {
-        const orderId = `ord_${Date.now()}`;
-        const orderRef = `LMR-${Math.floor(1000 + Math.random() * 9000)}`;
-        const generatedTickets: Ticket[] = [];
-
-        let tIndex = 1;
-        for (const cat of categories) {
-          const count = quantities[cat.id] || 0;
-          for (let i = 0; i < count; i++) {
-            generatedTickets.push({
-              id: `tkt_${Date.now()}_${tIndex}`,
-              orderId,
-              orderRef,
-              eventId: checkoutEvent.id,
-              eventTitle: checkoutEvent.title,
-              eventDate: checkoutEvent.date,
-              eventTime: checkoutEvent.time,
-              eventVenue: checkoutEvent.venue,
-              categoryId: cat.id,
-              categoryName: cat.name,
-              serialNumber: `LR-2026-${checkoutEvent.artist.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
-              token: `LUMAREEL:TKT:LR-2026-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-              holderName: `${customerName}${totalQuantity > 1 ? ` (${tIndex}/${totalQuantity})` : ''}`,
-              holderEmail: customerEmail,
-              status: 'valid',
-              issuedAt: new Date().toISOString(),
-            });
-            tIndex++;
-          }
-        }
-
-        tickets = generatedTickets;
-
-        const primaryCat = categories.find((c) => (quantities[c.id] || 0) > 0) || categories[0];
-        order = {
-          id: orderId,
-          reference: orderRef,
-          customerId: currentUser?.id || 'guest',
-          customerName,
-          customerEmail,
-          customerPhone: customerFullPhone,
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const res = await fetch('/api/orders/checkout', {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify({
           eventId: checkoutEvent.id,
-          eventTitle: checkoutEvent.title,
-          eventDate: checkoutEvent.date,
-          eventVenue: checkoutEvent.venue,
-          categoryId: primaryCat.id,
-          categoryName: primaryCat.name,
-          quantity: totalQuantity,
-          unitPrice: primaryCat.price,
-          totalAmount: finalTotalAmount,
-          currency: 'FCFA',
-          paymentStatus: 'completed',
-          paymentProvider: paymentMethod,
-          paymentRef: `${paymentMethod.toUpperCase()}_${Date.now()}`,
-          createdAt: new Date().toISOString(),
-          paidAt: new Date().toISOString(),
-          tickets: generatedTickets,
-        };
+          items: selectedItems,
+          buyer: {
+            name: customerName.trim(),
+            email: customerEmail.trim(),
+            phone: customerFullPhone || undefined,
+          },
+          paymentMethod,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success || !data?.order) {
+        throw new Error(data?.error || 'Impossible d’enregistrer votre commande sur le serveur.');
       }
 
-      // Finalisation et enregistrement
-      if (order) {
-        setCreatedOrder(order);
-        setIssuedTickets(tickets);
-        addLocalOrder(order);
+      const accessToken: string = String(data.orderAccessToken || '');
+      setCreatedOrderToken(accessToken);
+
+      const payHeaders = await getAuthHeaders({
+        'Content-Type': 'application/json',
+        ...(accessToken ? { 'X-Order-Token': accessToken } : {}),
+      });
+      const payRes = await fetch(`/api/orders/${encodeURIComponent(data.order.id)}/pay-sandbox`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: payHeaders,
+        body: JSON.stringify({ orderAccessToken: accessToken }),
+      });
+
+      if (payRes.status === 404) {
         setIsSimulatingGateway(false);
-        showToast(language === 'en' ? 'Payment confirmed! Tickets successfully issued.' : 'Paiement confirmé avec succès ! Vos billets certifiés sont émis.', 'success');
-        refreshEvents();
-        refreshCustomerOrders();
+        showToast(
+          `Commande ${data.order.reference} enregistrée. Finalisez le paiement via la passerelle officielle.`,
+          'info'
+        );
+        return;
       }
+
+      const payData = await payRes.json().catch(() => null);
+      if (!payRes.ok || !payData?.success || !Array.isArray(payData.tickets)) {
+        throw new Error(payData?.error || 'La confirmation de paiement a échoué.');
+      }
+
+      const confirmedOrder: Order = payData.order || data.order;
+      setCreatedOrder(confirmedOrder);
+      setIssuedTickets(payData.tickets);
+      addLocalOrder(confirmedOrder);
+      setIsSimulatingGateway(false);
+      showToast(
+        language === 'en'
+          ? 'Payment confirmed! Tickets successfully issued.'
+          : 'Paiement confirmé avec succès ! Vos billets certifiés sont émis.',
+        'success'
+      );
+      refreshEvents(true);
+      refreshCustomerOrders();
     } catch (err: any) {
       showToast(err.message || 'Une erreur inattendue est survenue.', 'error');
     } finally {
@@ -411,6 +377,7 @@ export const CheckoutModal: React.FC = () => {
   const handleClose = () => {
     setCheckoutEvent(null);
     setCreatedOrder(null);
+    setCreatedOrderToken('');
     setIssuedTickets([]);
     setStep(1);
     setIsSimulatingGateway(false);
@@ -1230,7 +1197,7 @@ export const CheckoutModal: React.FC = () => {
                         </div>
 
                         <a
-                          href={`/api/customer/tickets/${tkt.id}/print`}
+                          href={`/api/customer/tickets/${tkt.id}/print${createdOrderToken ? `?orderToken=${encodeURIComponent(createdOrderToken)}` : ''}`}
                           target="_blank"
                           rel="noreferrer"
                           className="px-4 py-2 border border-white/20 hover:border-white rounded-full bg-white/5 text-[#ccc] hover:text-white transition-all flex items-center gap-1.5 text-[11px] uppercase tracking-wider font-agrandir-semibold shrink-0 cursor-pointer"

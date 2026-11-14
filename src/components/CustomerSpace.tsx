@@ -143,7 +143,7 @@ export const CustomerSpace: React.FC = () => {
               {t('orders.headerTitle')}
             </h1>
             <div className="text-xs font-agrandir-regular text-[#aaa] mt-1.5 flex items-center gap-3">
-              <span>{t('orders.account')} <strong className="text-white">{currentUser?.email || 'bienaodylan428@gmail.com'}</strong></span>
+              <span>{t('orders.account')} <strong className="text-white">{currentUser?.email || 'Non connecté'}</strong></span>
               <span aria-hidden="true" className="text-white/30">·</span>
               <span className="text-emerald-400 font-agrandir-semibold">{t('orders.verified')}</span>
             </div>
@@ -565,7 +565,7 @@ export const CustomerSpace: React.FC = () => {
               </a>
 
               <a
-                href={`/api/customer/tickets/${selectedTicketForQr.token}/print`}
+                href={`/api/customer/tickets/${selectedTicketForQr.id}/print`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 py-2.5 px-3 bg-neutral-100 hover:bg-neutral-200 text-black border border-neutral-300 font-agrandir-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"

@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { PrintTicketItem } from '../utils/pdfEngine';
 import { exportPhysicalTicketsToExcel } from '../utils/physicalTicketExport';
-import { Printer, X, Loader2 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { Printer, X, Loader2, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatDateLongFrench } from '../utils/dateUtils';
+import { getAuthHeaders } from '../utils/authSession';
 
 /** Erreur définitive : inutile de réessayer automatiquement. */
 class FatalError extends Error {}
@@ -27,15 +27,11 @@ async function postPrintBatch(payload: Record<string, unknown>) {
     const controller = new AbortController();
     const timer = window.setTimeout(() => controller.abort(), 90000);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      if (!isSupabaseConfigured || !accessToken) throw new FatalError('Connectez-vous avec un compte administrateur autorisé avant de créer un lot.');
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const response = await fetch('/api/tickets/print-batch', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
+        credentials: 'include',
+        headers,
         body: JSON.stringify(payload),
         signal: controller.signal,
       });
@@ -87,10 +83,12 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
   const [quantity, setQuantity] = useState(10);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [createdBatch, setCreatedBatch] = useState<{ batchRef: string; count: number; activated: boolean } | null>(null);
+  const [isActivatingBatch, setIsActivatingBatch] = useState(false);
 
   // Identifiant de la demande en cours : réutilisé pour éviter les doublons
   const pendingRequestRef = useRef<{ key: string; id: string } | null>(null);
-  const batchCacheRef = useRef<{ key: string; tickets: Array<{ id: string; serialNumber: string; token: string }> } | null>(null);
+  const batchCacheRef = useRef<{ key: string; batchRef: string; tickets: Array<{ id: string; serialNumber: string; token: string }> } | null>(null);
 
   // Fermeture rapide avec la touche Échap
   useEffect(() => {
@@ -148,9 +146,10 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     setGenerationProgress(0);
 
     try {
-      // 2. Création et enregistrement du lot sur le serveur
+      // 2. Création et enregistrement du lot sur le serveur (statut initial inactive)
       const batchKey = `${selectedEvent.id}|${currentCategory.id}|${quantity}`;
       let registered = batchCacheRef.current?.key === batchKey ? batchCacheRef.current.tickets : null;
+      let batchRef = batchCacheRef.current?.key === batchKey ? batchCacheRef.current.batchRef : '';
       if (!registered) {
         if (pendingRequestRef.current?.key !== batchKey) {
           pendingRequestRef.current = { key: batchKey, id: makeRequestId() };
@@ -168,7 +167,8 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
           quantity,
         });
         registered = data.tickets as Array<{ id: string; serialNumber: string; token: string }>;
-        batchCacheRef.current = { key: batchKey, tickets: registered };
+        batchRef = String(data.batchRef || '');
+        batchCacheRef.current = { key: batchKey, batchRef, tickets: registered };
         pendingRequestRef.current = null;
       }
       setGenerationProgress(70);
@@ -183,7 +183,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
         artist: selectedEvent.artist,
         venue: selectedEvent.venue,
         dateStr,
-        ticketDesignUrl: '',
+        ticketDesignUrl: currentCategory.ticketImageUrl || '',
       }));
       setGenerationProgress(90);
 
@@ -192,12 +192,13 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
       const fileBaseName = `LUMAREEL_${safeArtist}_${quantity}BILLETS`;
       await exportPhysicalTicketsToExcel(generated, fileBaseName);
 
+      if (batchRef) {
+        setCreatedBatch({ batchRef, count: registered.length, activated: false });
+      }
       showToast(
-        `Lot de ${quantity} billets enregistré. Registre Excel des QR codes et numéros de série téléchargé.`,
+        `Lot de ${quantity} billets enregistré (statut inactif jusqu’à activation avant ouverture des portes).`,
         'success'
       );
-
-      onClose();
     } catch (error) {
       console.error(error);
       showToast(
@@ -207,6 +208,30 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
     } finally {
       setIsGenerating(false);
       setGenerationProgress(0);
+    }
+  };
+
+  const handleActivateCreatedBatch = async () => {
+    if (!createdBatch || createdBatch.activated || isActivatingBatch) return;
+    setIsActivatingBatch(true);
+    try {
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const res = await fetch(`/api/tickets/print-batch/${encodeURIComponent(createdBatch.batchRef)}/activate`, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success) {
+        setCreatedBatch({ ...createdBatch, activated: true });
+        showToast(data.message || `Lot ${createdBatch.batchRef} activé.`, 'success');
+      } else {
+        showToast(data?.error || 'Impossible d’activer ce lot.', 'error');
+      }
+    } catch {
+      showToast('Erreur réseau lors de l’activation du lot.', 'error');
+    } finally {
+      setIsActivatingBatch(false);
     }
   };
 
@@ -302,8 +327,37 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-[#141414] p-4 text-[11px] leading-relaxed text-neutral-300">
-            Le fichier Excel contient une seule feuille « Registre » avec deux colonnes : l’image du QR code et le numéro de série correspondant. Aucun verso, aucune planche d’impression et aucune autre donnée ne sont exportés.
+            Le fichier Excel contient une seule feuille « Registre » avec deux colonnes : l’image du QR code et le numéro de série correspondant. Par sécurité, les billets générés démarrent au statut <strong className="text-white">inactif</strong> jusqu’à activation pour l’entrée.
           </div>
+
+          {createdBatch && (
+            <div className={`rounded-2xl border p-4 space-y-3 ${createdBatch.activated ? 'border-emerald-500/40 bg-emerald-950/25' : 'border-amber-500/40 bg-amber-950/25'}`}>
+              <div className="flex items-center justify-between gap-2 text-xs">
+                <span className="font-agrandir-bold uppercase tracking-wider text-white">
+                  Lot {createdBatch.batchRef} ({createdBatch.count} billets)
+                </span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-agrandir-bold uppercase ${createdBatch.activated ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}`}>
+                  {createdBatch.activated ? 'Activé' : 'Inactif (bloqué à l’entrée)'}
+                </span>
+              </div>
+              {!createdBatch.activated ? (
+                <button
+                  type="button"
+                  onClick={handleActivateCreatedBatch}
+                  disabled={isActivatingBatch}
+                  className="w-full py-2.5 rounded-xl bg-[#d4af37] hover:bg-[#e5c04b] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isActivatingBatch ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                  <span>Activer le lot pour l’entrée</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-emerald-300 font-agrandir-semibold">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Les billets de ce lot sont maintenant valides pour le scan à l’entrée.</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Bouton blanc unique demandé : "Préparer 10 billets" */}
           <button

@@ -1,11 +1,11 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
-import { ArrowRight, Ticket } from 'lucide-react';
+import { ArrowRight, Ticket, Heart } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
 
 export const UpcomingConcerts: React.FC = () => {
-  const { events, setSelectedEventSlug, setCurrentPage, setCheckoutEvent, language, t } = useApp();
+  const { events, setSelectedEventSlug, setCurrentPage, setCheckoutEvent, language, t, isFavoriteEvent, toggleFavoriteEvent } = useApp();
 
   const handleSelectEvent = (event: ConcertEvent) => {
     setSelectedEventSlug(event.slug);
@@ -62,6 +62,21 @@ export const UpcomingConcerts: React.FC = () => {
                   <div className="absolute top-3 left-3 bg-black/80 backdrop-blur-md px-3 py-1 text-[10px] font-agrandir-semibold tracking-widest text-white uppercase rounded-full border border-white/15">
                     {t('upcoming.officialPoster')}
                   </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavoriteEvent(event.id);
+                    }}
+                    aria-label={isFavoriteEvent(event.id) ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                    className={`absolute top-3 right-3 p-2.5 rounded-full backdrop-blur-md border transition-all cursor-pointer active:scale-90 ${
+                      isFavoriteEvent(event.id)
+                        ? 'bg-black/85 border-[#d4af37]/70 text-[#d4af37]'
+                        : 'bg-black/65 border-white/20 text-white/85 hover:text-white hover:border-white/50'
+                    }`}
+                  >
+                    <Heart className={`w-4 h-4 ${isFavoriteEvent(event.id) ? 'fill-[#d4af37] text-[#d4af37]' : ''}`} />
+                  </button>
                 </div>
 
                 {/* Content & Details */}

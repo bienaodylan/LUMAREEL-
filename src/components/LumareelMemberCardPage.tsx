@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { LumareelWalletView } from './LumareelWalletView';
 import { LumareelCardLandingPage } from './LumareelCardLandingPage';
-import { supabase } from '../lib/supabaseClient';
+import { getAuthHeaders } from '../utils/authSession';
 import { ArrowLeft, Sparkles, Wallet } from 'lucide-react';
 
 /**
@@ -27,13 +27,12 @@ export const LumareelMemberCardPage: React.FC = () => {
       }
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const headers: Record<string, string> = {};
-        if (session?.access_token) {
-          headers['Authorization'] = `Bearer ${session.access_token}`;
-        }
+        const headers = await getAuthHeaders();
 
-        const response = await fetch(`/api/membership/my-card?email=${encodeURIComponent(currentUser.email)}`, { headers });
+        const response = await fetch('/api/membership/my-card', {
+          credentials: 'include',
+          headers,
+        });
         const result = await response.json();
         if (!alive) return;
 

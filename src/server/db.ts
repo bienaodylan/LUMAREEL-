@@ -18,25 +18,34 @@ import {
   PlatformSettings,
 } from '../types';
 import { generatePersonalizedTicketEmail } from '../utils/emailTemplate';
+import { sqliteDb, TicketDesignRecord, ContactInquiryRecord } from './sqliteDb';
+import {
+  generateOpaqueToken,
+  hashPasswordScrypt,
+  MIN_PASSWORD_LENGTH,
+  runDummyPasswordCheck,
+  sha256Hex,
+  signSerialIntegrity,
+  timingSafeEqualStr,
+  verifyPasswordWithUpgrade,
+} from './security';
 
 // Disk persistence data directory
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+const DATA_DIR = path.resolve(process.env.LUMAREEL_DATA_DIR || path.join(process.cwd(), 'data'));
 if (!fs.existsSync(DATA_DIR)) {
   try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
   } catch (e) {
     console.warn('Could not create data directory:', e);
   }
 }
 
-// Password Security & Verification (PBKDF2)
 export function hashPassword(password: string): string {
-  const salt = 'lumareel_salt_2026';
-  return crypto.pbkdf2Sync(password, salt, 1000, 32, 'sha256').toString('hex');
+  return hashPasswordScrypt(password);
 }
 
 export function verifyPassword(password: string, hash: string): boolean {
-  return hashPassword(password) === hash;
+  return verifyPasswordWithUpgrade(password, hash).valid;
 }
 
 // Curated atmospheric imagery fallbacks (high-definition SVG silhouettes and panoramic textures with zero broken links)
@@ -90,32 +99,187 @@ class LumareelDatabase {
 
   constructor() {
     this.seedInitialData();
-    this.loadUsersFromDisk();
-    this.loadEventsFromDisk();
-    this.loadArchivesFromDisk();
-    this.loadOrdersFromDisk();
-    this.loadEmailsFromDisk();
-    this.loadScannerTokensFromDisk();
-    this.loadSettingsFromDisk();
-    this.loadPrintTicketsFromDisk(); // Modification A1
+    this.hydrateFromSqliteOrMigrateJson();
+    this.bootstrapAdminFromEnv();
   }
 
-  // --- DISK PERSISTENCE ENGINE ---
-  private saveUsersToDisk() {
-    try {
-      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-      const seen = new Set<string>();
-      const list: User[] = [];
-      for (const u of this.users.values()) {
-        if (!seen.has(u.id)) {
-          seen.add(u.id);
-          list.push(u);
+  private bootstrapAdminFromEnv() {
+    const email = (process.env.ADMIN_BOOTSTRAP_EMAIL || '').trim().toLowerCase();
+    const password = process.env.ADMIN_BOOTSTRAP_PASSWORD || '';
+    const hasSuperAdmin = this.getAllUsers().some((u) => u.role === 'super_admin');
+    if (hasSuperAdmin || !email || password.length < 12) {
+      return;
+    }
+    const existing = this.users.get(email);
+    if (existing) {
+      return;
+    }
+    const adminUser: User = {
+      id: `usr_${crypto.randomBytes(6).toString('hex')}`,
+      email,
+      name: 'Administrateur LUMARÉEL',
+      role: 'super_admin',
+      emailVerified: true,
+      createdAt: new Date().toISOString(),
+      passwordHash: hashPasswordScrypt(password),
+    };
+    this.users.set(adminUser.id, adminUser);
+    this.users.set(adminUser.email, adminUser);
+    sqliteDb.upsertUser(adminUser);
+  }
+
+  private hydrateFromSqliteOrMigrateJson() {
+    // 1. Users
+    if (sqliteDb.hasRows('users')) {
+      for (const u of sqliteDb.getAllUsers()) {
+        this.users.set(u.id, u);
+        this.users.set(u.email.toLowerCase(), u);
+      }
+    } else {
+      this.loadUsersFromDisk();
+      this.syncUsersToSqlite();
+    }
+
+    // 2. Events & Ticket Designs
+    if (sqliteDb.hasRows('events')) {
+      this.events.clear();
+      for (const ev of sqliteDb.getAllEvents()) {
+        this.events.set(ev.id, ev);
+        if (ev.slug) this.events.set(ev.slug, ev);
+      }
+    } else {
+      this.loadEventsFromDisk();
+      for (const ev of this.getAllEvents()) {
+        sqliteDb.upsertEvent(ev);
+      }
+    }
+
+    // 3. Archives
+    if (sqliteDb.hasRows('archives')) {
+      this.archives.clear();
+      for (const arc of sqliteDb.getAllArchives()) {
+        this.archives.set(arc.id, arc);
+      }
+    } else {
+      this.loadArchivesFromDisk();
+      for (const arc of this.archives.values()) {
+        sqliteDb.upsertArchive(arc);
+      }
+    }
+
+    // 4. Works & Organizers
+    if (sqliteDb.hasRows('works')) {
+      this.works.clear();
+      for (const w of sqliteDb.getAllWorks()) {
+        this.works.set(w.id, w);
+      }
+    } else {
+      for (const w of this.works.values()) {
+        sqliteDb.upsertWork(w);
+      }
+    }
+    if (sqliteDb.hasRows('organizers')) {
+      for (const o of sqliteDb.getAllOrganizers()) {
+        this.organizers.set(o.id, o);
+      }
+    }
+
+    // 5. Orders & Tickets & Print Tickets
+    if (sqliteDb.hasRows('orders') || sqliteDb.hasRows('tickets')) {
+      for (const ord of sqliteDb.getAllOrders()) {
+        this.orders.set(ord.id, ord);
+        this.orders.set(ord.reference, ord);
+        if (ord.tickets) {
+          for (const t of ord.tickets) {
+            this.tickets.set(t.id, t);
+            this.tickets.set(t.token, t);
+          }
         }
       }
-      fs.writeFileSync(path.join(DATA_DIR, 'users.json'), JSON.stringify(list, null, 2), 'utf-8');
-    } catch (e) {
-      console.warn('Failed to save users to disk', e);
+      const printTickets = sqliteDb.getAllTickets(true);
+      this.printTicketList = printTickets;
+      for (const t of printTickets) {
+        this.tickets.set(t.id, t);
+        this.tickets.set(t.token, t);
+      }
+      for (const t of sqliteDb.getAllTickets(false)) {
+        this.tickets.set(t.id, t);
+        this.tickets.set(t.token, t);
+      }
+    } else {
+      this.loadOrdersFromDisk();
+      this.loadPrintTicketsFromDisk();
+      for (const ord of this.getAllOrders()) {
+        sqliteDb.upsertOrder(ord);
+      }
+      for (const t of this.printTicketList) {
+        sqliteDb.upsertTicket(t, true);
+      }
     }
+
+    // 6. Emails
+    if (sqliteDb.hasRows('emails')) {
+      this.emails = sqliteDb.getAllEmails();
+    } else {
+      this.loadEmailsFromDisk();
+      for (const em of this.emails) {
+        sqliteDb.insertEmail(em);
+      }
+    }
+
+    // 7. Scanner tokens & Check-in logs
+    if (sqliteDb.hasRows('scanner_tokens')) {
+      for (const st of sqliteDb.getAllScannerTokens()) {
+        this.scannerTokens.set(st.token, st);
+        this.scannerTokens.set(st.id, st);
+      }
+    } else {
+      this.loadScannerTokensFromDisk();
+      const seen = new Set<string>();
+      for (const st of this.scannerTokens.values()) {
+        if (!seen.has(st.id)) {
+          seen.add(st.id);
+          sqliteDb.upsertScannerToken(st);
+        }
+      }
+    }
+    if (sqliteDb.hasRows('check_in_logs')) {
+      this.checkInLogs = sqliteDb.getCheckInLogs(500);
+    }
+
+    // 8. Platform Settings
+    const sqlSettings = sqliteDb.getPlatformSettings();
+    if (sqlSettings) {
+      // Clear any legacy dead hardcoded Supabase URL if persisted earlier without explicit user action
+      if (sqlSettings.supabaseUrl && sqlSettings.supabaseUrl.includes('kupznytxykaesfqnngtb.supabase.co')) {
+        sqlSettings.supabaseUrl = '';
+        sqlSettings.supabaseAnonKey = '';
+        sqliteDb.savePlatformSettings(sqlSettings);
+      }
+      this.settings = { ...this.settings, ...sqlSettings };
+    } else {
+      this.loadSettingsFromDisk();
+      if (this.settings.supabaseUrl && this.settings.supabaseUrl.includes('kupznytxykaesfqnngtb.supabase.co')) {
+        this.settings.supabaseUrl = '';
+        this.settings.supabaseAnonKey = '';
+      }
+      sqliteDb.savePlatformSettings(this.settings);
+    }
+  }
+
+  private syncUsersToSqlite() {
+    const seen = new Set<string>();
+    for (const u of this.users.values()) {
+      if (!seen.has(u.id)) {
+        seen.add(u.id);
+        sqliteDb.upsertUser(u);
+      }
+    }
+  }
+
+  // --- DISK PERSISTENCE ENGINE (NO PII JSON WRITES) ---
+  private saveUsersToDisk() {
+    // SQLite is authoritative; avoid duplicating user PII/hashes in JSON files.
   }
 
   private loadUsersFromDisk() {
@@ -126,15 +290,6 @@ class LumareelDatabase {
         const list: User[] = JSON.parse(raw);
         if (Array.isArray(list) && list.length > 0) {
           for (const u of list) {
-            if (u.email && u.email.toLowerCase() === 'bienaodylan428@gmail.com') {
-              u.role = 'super_admin';
-              if (u.name && u.name.includes('Directeur')) {
-                u.name = 'Dylan B.';
-              }
-              if (!u.passwordHash) {
-                u.passwordHash = hashPassword('DylanAdmin2026!');
-              }
-            }
             this.users.set(u.id, u);
             this.users.set(u.email.toLowerCase(), u);
           }
@@ -203,13 +358,7 @@ class LumareelDatabase {
   }
 
   private saveOrdersToDisk() {
-    try {
-      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-      const list = this.getAllOrders();
-      fs.writeFileSync(path.join(DATA_DIR, 'orders.json'), JSON.stringify(list, null, 2), 'utf-8');
-    } catch (e) {
-      console.warn('Failed to save orders to disk', e);
-    }
+    // SQLite is authoritative; avoid duplicating customer PII in JSON files.
   }
 
   private loadOrdersFromDisk() {
@@ -237,13 +386,7 @@ class LumareelDatabase {
   }
 
   private saveScannerTokensToDisk() {
-    try {
-      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-      const list = Array.from(this.scannerTokens.values());
-      fs.writeFileSync(path.join(DATA_DIR, 'scanner_tokens.json'), JSON.stringify(list, null, 2), 'utf-8');
-    } catch (e) {
-      console.warn('Failed to save scanner tokens to disk', e);
-    }
+    // SQLite is authoritative
   }
 
   private loadScannerTokensFromDisk() {
@@ -264,12 +407,7 @@ class LumareelDatabase {
   }
 
   private saveSettingsToDisk() {
-    try {
-      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-      fs.writeFileSync(path.join(DATA_DIR, 'settings.json'), JSON.stringify(this.settings, null, 2), 'utf-8');
-    } catch (e) {
-      console.warn('Failed to save settings to disk', e);
-    }
+    // SQLite is authoritative
   }
 
   private loadSettingsFromDisk() {
@@ -288,12 +426,7 @@ class LumareelDatabase {
   }
 
   private saveEmailsToDisk() {
-    try {
-      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-      fs.writeFileSync(path.join(DATA_DIR, 'emails.json'), JSON.stringify(this.emails, null, 2), 'utf-8');
-    } catch (e) {
-      console.warn('Failed to save emails to disk', e);
-    }
+    // SQLite is authoritative
   }
 
   private loadEmailsFromDisk() {
@@ -317,25 +450,12 @@ class LumareelDatabase {
 
   public updateSettings(data: Partial<PlatformSettings>): PlatformSettings {
     this.settings = { ...this.settings, ...data };
-    this.saveSettingsToDisk();
+    sqliteDb.savePlatformSettings(this.settings);
     return { ...this.settings };
   }
 
   private seedInitialData() {
-    // 1. Initial Real Super Admin
-    const adminUser: User = {
-      id: 'usr_admin_01',
-      email: 'bienaodylan428@gmail.com',
-      name: 'Dylan B.',
-      role: 'super_admin',
-      emailVerified: true,
-      createdAt: '2026-01-10T00:00:00Z',
-      passwordHash: hashPassword('DylanAdmin2026!'),
-    };
-    this.users.set(adminUser.id, adminUser);
-    this.users.set(adminUser.email.toLowerCase(), adminUser);
-
-    // 2. Initial Partner Organizers (Mode réel : démarre vide)
+    // Users are loaded from SQLite or created explicitly via ADMIN_BOOTSTRAP_* env vars.
     this.organizers.clear();
 
     // 3. Featured Upcoming Concerts : Exact 4 Artists provided by user from official posters
@@ -712,11 +832,8 @@ class LumareelDatabase {
   }
 
   public getUserByEmail(email: string): User | undefined {
-    const user = this.users.get(email.toLowerCase());
-    if (user && user.email.toLowerCase() === 'bienaodylan428@gmail.com') {
-      user.role = 'super_admin';
-    }
-    return user;
+    if (!email) return undefined;
+    return this.users.get(email.trim().toLowerCase());
   }
 
   public sanitizeUser(user: User): User {
@@ -726,80 +843,110 @@ class LumareelDatabase {
 
   public authenticateUser(email: string, password: string): { success: boolean; user?: User; error?: string } {
     if (!email || !password) {
-      return { success: false, error: 'Email et mot de passe requis.' };
+      runDummyPasswordCheck(password || '');
+      return { success: false, error: 'Identifiants invalides.' };
     }
     const cleanEmail = email.trim().toLowerCase();
-    let user = this.getUserByEmail(cleanEmail);
+    const user = this.getUserByEmail(cleanEmail);
 
-    // Initialisation automatique du compte administrateur fondateur si première connexion
-    if (!user && cleanEmail === 'bienaodylan428@gmail.com') {
-      user = this.registerUser('Dylan B.', cleanEmail, 'super_admin', password);
-      return { success: true, user: this.sanitizeUser(user) };
+    if (!user || !user.passwordHash) {
+      runDummyPasswordCheck(password);
+      return { success: false, error: 'Identifiants invalides.' };
     }
 
-    if (!user) {
-      return { success: false, error: 'Aucun compte associé à cette adresse e-mail. Veuillez créer un compte.' };
+    const check = verifyPasswordWithUpgrade(password, user.passwordHash);
+    if (!check.valid) {
+      return { success: false, error: 'Identifiants invalides.' };
     }
 
-    const isFounder = cleanEmail === 'bienaodylan428@gmail.com';
-    const isMasterPassword =
-      password === 'DylanAdmin2026!' ||
-      password === 'Admin@Lumareel2026!' ||
-      password === 'Admin2026!' ||
-      password === 'Lumareel2026!';
-
-    if (user.passwordHash) {
-      if (verifyPassword(password, user.passwordHash) || (isFounder && isMasterPassword)) {
-        if (isFounder && !verifyPassword(password, user.passwordHash)) {
-          user.passwordHash = hashPassword(password);
-          this.saveUsersToDisk();
-        }
-        return { success: true, user: this.sanitizeUser(user) };
-      }
-      return { success: false, error: 'Mot de passe incorrect.' };
-    } else {
-      // Pour tout compte existant sans hash, enregistre le mot de passe fourni
-      user.passwordHash = hashPassword(password);
-      this.saveUsersToDisk();
-      return { success: true, user: this.sanitizeUser(user) };
+    if (check.needsUpgrade) {
+      user.passwordHash = hashPasswordScrypt(password);
+      sqliteDb.upsertUser(user);
     }
+
+    return { success: true, user: this.sanitizeUser(user) };
   }
 
-  public registerUser(name: string, email: string, role: User['role'] = 'customer', password?: string): User {
+  public registerCustomerAccount(
+    name: string,
+    email: string,
+    password: string
+  ): { created: boolean; user?: User; error?: string } {
     const cleanEmail = email.trim().toLowerCase();
-    const existing = this.getUserByEmail(cleanEmail);
-    if (existing) {
-      if (cleanEmail === 'bienaodylan428@gmail.com') {
-        existing.role = 'super_admin';
-        if (password) {
-          existing.passwordHash = hashPassword(password);
-          this.saveUsersToDisk();
-        }
-      } else if (password && !existing.passwordHash) {
-        existing.passwordHash = hashPassword(password);
-        this.saveUsersToDisk();
-      }
-      return existing;
+    if (!password || password.length < MIN_PASSWORD_LENGTH) {
+      return {
+        created: false,
+        error: `Le mot de passe doit comporter au moins ${MIN_PASSWORD_LENGTH} caractères.`,
+      };
     }
 
-    const isFounder = cleanEmail === 'bienaodylan428@gmail.com';
-    const assignedRole = isFounder ? 'super_admin' : role;
-    const assignedName = isFounder ? (name || 'Dylan B.') : name;
-    const defaultPassword = isFounder ? 'DylanAdmin2026!' : 'Lumareel2026!';
+    const existing = this.getUserByEmail(cleanEmail);
+    if (existing) {
+      runDummyPasswordCheck(password);
+      return { created: false };
+    }
 
     const user: User = {
       id: `usr_${crypto.randomBytes(6).toString('hex')}`,
       email: cleanEmail,
-      name: assignedName,
-      role: assignedRole,
+      name: name.trim(),
+      role: 'customer',
       emailVerified: true,
       createdAt: new Date().toISOString(),
-      passwordHash: hashPassword(password || defaultPassword),
+      passwordHash: hashPasswordScrypt(password),
     };
     this.users.set(user.id, user);
     this.users.set(user.email, user);
-    this.saveUsersToDisk();
-    return user;
+    sqliteDb.upsertUser(user);
+    return { created: true, user };
+  }
+
+  public createManagedUser(params: {
+    name: string;
+    email: string;
+    role: User['role'];
+    password: string;
+  }): { success: boolean; user?: User; error?: string } {
+    const cleanEmail = params.email.trim().toLowerCase();
+    if (!params.password || params.password.length < MIN_PASSWORD_LENGTH) {
+      return {
+        success: false,
+        error: `Le mot de passe doit comporter au moins ${MIN_PASSWORD_LENGTH} caractères.`,
+      };
+    }
+    if (this.getUserByEmail(cleanEmail)) {
+      return { success: false, error: 'Un compte existe déjà avec cette adresse e-mail.' };
+    }
+    const user: User = {
+      id: `usr_${crypto.randomBytes(6).toString('hex')}`,
+      email: cleanEmail,
+      name: params.name.trim(),
+      role: params.role,
+      emailVerified: true,
+      createdAt: new Date().toISOString(),
+      passwordHash: hashPasswordScrypt(params.password),
+    };
+    this.users.set(user.id, user);
+    this.users.set(user.email, user);
+    sqliteDb.upsertUser(user);
+    return { success: true, user: this.sanitizeUser(user) };
+  }
+
+  public verifyUserPassword(userId: string, password: string): boolean {
+    const user = this.users.get(userId);
+    if (!user || !user.passwordHash) return false;
+    return verifyPasswordWithUpgrade(password, user.passwordHash).valid;
+  }
+
+  public updateUserPassword(userId: string, newPassword: string): boolean {
+    const user = this.users.get(userId);
+    if (!user || !newPassword || newPassword.length < MIN_PASSWORD_LENGTH) return false;
+    user.passwordHash = hashPasswordScrypt(newPassword);
+    this.users.set(user.id, user);
+    this.users.set(user.email.toLowerCase(), user);
+    sqliteDb.upsertUser(user);
+    sqliteDb.revokeAllSessionsForUser(user.id);
+    return true;
   }
 
   public getAllUsers(): User[] {
@@ -814,12 +961,12 @@ class LumareelDatabase {
     return list;
   }
 
-  public deleteUser(idOrEmail: string): { success: boolean; error?: string } {
+  public deleteUser(idOrEmail: string, actorUserId?: string): { success: boolean; error?: string } {
     if (!idOrEmail) {
-      return { success: false, error: 'Identifiant ou e-mail manquant.' };
+      return { success: false, error: 'Identifiant manquant.' };
     }
     const clean = idOrEmail.trim().toLowerCase();
-    let targetUser: User | undefined = this.users.get(clean);
+    let targetUser: User | undefined = this.users.get(idOrEmail) || this.users.get(clean);
     if (!targetUser) {
       for (const u of this.users.values()) {
         if (u.id === idOrEmail || u.email.toLowerCase() === clean) {
@@ -833,14 +980,21 @@ class LumareelDatabase {
       return { success: false, error: 'Utilisateur introuvable.' };
     }
 
-    // Protection absolue du compte fondateur
-    if (targetUser.email.toLowerCase() === 'bienaodylan428@gmail.com') {
-      return { success: false, error: 'Le compte fondateur ne peut pas être supprimé.' };
+    if (actorUserId && actorUserId === targetUser.id) {
+      return { success: false, error: 'Impossible de supprimer votre propre compte depuis l’administration.' };
+    }
+
+    if (targetUser.role === 'super_admin') {
+      const superAdmins = this.getAllUsers().filter((u) => u.role === 'super_admin');
+      if (superAdmins.length <= 1) {
+        return { success: false, error: 'Impossible de supprimer le dernier super administrateur.' };
+      }
     }
 
     this.users.delete(targetUser.id);
     this.users.delete(targetUser.email.toLowerCase());
-    this.saveUsersToDisk();
+    sqliteDb.deleteUserById(targetUser.id);
+    sqliteDb.revokeAllSessionsForUser(targetUser.id);
     return { success: true };
   }
 
@@ -871,30 +1025,32 @@ class LumareelDatabase {
     const slug = eventData.slug || eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     
     const existing = this.events.get(id);
-    const event: ConcertEvent = {
+    const rawEvent: ConcertEvent = {
       id,
       slug,
       title: eventData.title,
-      subtitle: eventData.subtitle || '',
-      artist: eventData.artist || 'Artiste Non Défini',
-      date: eventData.date || '2026-12-01',
-      time: eventData.time || '20:30',
-      doorsOpen: eventData.doorsOpen || '19:30',
-      venue: eventData.venue || 'Pavillon LUMARÉEL',
-      city: eventData.city || 'Abidjan',
-      country: eventData.country || 'Côte d’Ivoire',
-      address: eventData.address || '',
-      description: eventData.description || '',
-      artistPortrait: eventData.artistPortrait || DEFAULT_IMAGES.nocturnePoster,
-      officialPoster: eventData.officialPoster || DEFAULT_IMAGES.nocturnePoster,
-      bannerImage: eventData.bannerImage || DEFAULT_IMAGES.nocturneBanner,
-      status: eventData.status || 'published',
-      isFeatured: !!eventData.isFeatured,
-      organizerType: eventData.organizerType || (eventData.organizerId ? 'partner' : 'lumareel'),
-      organizerName: eventData.organizerName || 'LUMARÉEL CO.',
-      organizerId: eventData.organizerId,
-      genre: eventData.genre || 'Concert Live',
-      platformFeePercent: eventData.platformFeePercent ?? (eventData.organizerType === 'partner' ? 5.0 : 0),
+      subtitle: eventData.subtitle ?? existing?.subtitle ?? '',
+      artist: eventData.artist || existing?.artist || 'Artiste Non Défini',
+      date: eventData.date || existing?.date || '2026-12-01',
+      time: eventData.time || existing?.time || '20:30',
+      doorsOpen: eventData.doorsOpen || existing?.doorsOpen || '19:30',
+      venue: eventData.venue || existing?.venue || 'Pavillon LUMARÉEL',
+      city: eventData.city || existing?.city || 'Abidjan',
+      country: eventData.country || existing?.country || 'Côte d’Ivoire',
+      address: eventData.address ?? existing?.address ?? '',
+      description: eventData.description ?? existing?.description ?? '',
+      artistPortrait: eventData.artistPortrait || existing?.artistPortrait || DEFAULT_IMAGES.nocturnePoster,
+      officialPoster: eventData.officialPoster || existing?.officialPoster || DEFAULT_IMAGES.nocturnePoster,
+      bannerImage: eventData.bannerImage || existing?.bannerImage || DEFAULT_IMAGES.nocturneBanner,
+      coverImage: eventData.coverImage ?? existing?.coverImage,
+      status: eventData.status || existing?.status || 'published',
+      isFeatured: eventData.isFeatured !== undefined ? !!eventData.isFeatured : !!existing?.isFeatured,
+      organizerType: eventData.organizerType || existing?.organizerType || (eventData.organizerId ? 'partner' : 'lumareel'),
+      organizerName: eventData.organizerName || existing?.organizerName || 'LUMARÉEL CO.',
+      organizerId: eventData.organizerId ?? existing?.organizerId,
+      genre: eventData.genre || existing?.genre || 'Concert Live',
+      platformFeePercent: eventData.platformFeePercent ?? existing?.platformFeePercent ?? (eventData.organizerType === 'partner' ? 5.0 : 0),
+      infoline: eventData.infoline ?? existing?.infoline,
       categories: eventData.categories && eventData.categories.length > 0 ? eventData.categories : (existing?.categories || [
         {
           id: `cat_${crypto.randomBytes(4).toString('hex')}`,
@@ -909,6 +1065,7 @@ class LumareelDatabase {
       ]),
     };
 
+    const event = sqliteDb.upsertEvent(rawEvent);
     this.events.set(event.id, event);
     this.events.set(event.slug, event);
     this.saveEventsToDisk();
@@ -917,9 +1074,18 @@ class LumareelDatabase {
 
   public updateEvent(id: string, updateData: Partial<ConcertEvent>): ConcertEvent | undefined {
     const existing = this.events.get(id);
-    if (!existing) return undefined;
+    if (!existing) {
+      if (updateData.title || updateData.artist) {
+        return this.saveEvent({
+          ...updateData,
+          id,
+          title: updateData.title || `${String(updateData.artist).toUpperCase()} EN CONCERT`,
+        });
+      }
+      return undefined;
+    }
 
-    const updated: ConcertEvent = {
+    const updatedRaw: ConcertEvent = {
       ...existing,
       ...updateData,
       id: existing.id,
@@ -927,6 +1093,10 @@ class LumareelDatabase {
       categories: updateData.categories && updateData.categories.length > 0 ? updateData.categories : existing.categories,
     };
 
+    if (existing.slug !== updatedRaw.slug) {
+      this.events.delete(existing.slug);
+    }
+    const updated = sqliteDb.upsertEvent(updatedRaw);
     this.events.set(updated.id, updated);
     this.events.set(updated.slug, updated);
     this.saveEventsToDisk();
@@ -938,8 +1108,62 @@ class LumareelDatabase {
     if (!existing) return false;
     this.events.delete(existing.id);
     this.events.delete(existing.slug);
+    sqliteDb.deleteEventById(existing.id);
     this.saveEventsToDisk();
     return true;
+  }
+
+  // Dedicated Ticket Designs (per concert & category)
+  public getTicketDesignsForEvent(eventId: string): TicketDesignRecord[] {
+    const existing = this.getEvent(eventId);
+    const resolvedId = existing ? existing.id : eventId;
+    return sqliteDb.getTicketDesignsForEvent(resolvedId);
+  }
+
+  public saveTicketDesign(
+    eventId: string,
+    categoryId: string,
+    imageUrl: string
+  ): { success: boolean; event?: ConcertEvent; design?: TicketDesignRecord; error?: string } {
+    const event = this.getEvent(eventId);
+    if (!event) {
+      return { success: false, error: 'Concert introuvable.' };
+    }
+    const cleanUrl = (imageUrl || '').trim();
+    if (!cleanUrl) {
+      return { success: false, error: 'URL ou image du design de billet requise.' };
+    }
+
+    const design = sqliteDb.upsertTicketDesign(event.id, categoryId, cleanUrl);
+    event.categories = event.categories.map((c) =>
+      c.id === categoryId ? { ...c, ticketImageUrl: cleanUrl } : c
+    );
+    sqliteDb.upsertEvent(event);
+    this.events.set(event.id, event);
+    this.events.set(event.slug, event);
+    this.saveEventsToDisk();
+    return { success: true, event, design };
+  }
+
+  public deleteTicketDesign(
+    eventId: string,
+    categoryId: string
+  ): { success: boolean; event?: ConcertEvent; error?: string } {
+    const event = this.getEvent(eventId);
+    if (!event) {
+      return { success: false, error: 'Concert introuvable.' };
+    }
+    sqliteDb.deleteTicketDesign(event.id, categoryId);
+    event.categories = event.categories.map((c) => {
+      if (c.id !== categoryId) return c;
+      const copy = { ...c };
+      delete copy.ticketImageUrl;
+      return copy;
+    });
+    this.events.set(event.id, event);
+    this.events.set(event.slug, event);
+    this.saveEventsToDisk();
+    return { success: true, event };
   }
 
   // News & Communiqués
@@ -983,6 +1207,7 @@ class LumareelDatabase {
       createdAt: new Date().toISOString(),
     };
     this.organizers.set(organizer.id, organizer);
+    sqliteDb.upsertOrganizer(organizer);
     return organizer;
   }
 
@@ -990,159 +1215,252 @@ class LumareelDatabase {
     return this.getAllEvents().filter(e => e.organizerId === organizerId);
   }
 
-  // Orders and Ticket Emission
+  // Orders and Ticket Emission (Server-authoritative pricing & transactional issuance)
   public createPendingOrder(params: {
     customerId: string;
     customerName: string;
     customerEmail: string;
     customerPhone?: string;
     eventId: string;
-    categoryId: string;
-    quantity: number;
-  }): { success: boolean; order?: Order; error?: string } {
+    items: Array<{ categoryId: string; qty: number }>;
+    paymentProvider?: string;
+  }): { success: boolean; order?: Order; orderAccessToken?: string; error?: string } {
     const event = this.getEvent(params.eventId);
     if (!event) return { success: false, error: 'Concert introuvable.' };
     if (event.status !== 'published') return { success: false, error: 'Cet événement n’est pas disponible à la vente.' };
 
-    const category = event.categories.find(c => c.id === params.categoryId);
-    if (!category) return { success: false, error: 'Catégorie de billet introuvable.' };
-
-    const available = category.quota - category.sold;
-    if (params.quantity <= 0 || params.quantity > 8) {
-      return { success: false, error: 'La quantité sélectionnée doit être comprise entre 1 et 8 billets.' };
-    }
-    if (params.quantity > available) {
-      return { success: false, error: `Quota insuffisant. Seuls ${available} billets restants dans cette catégorie.` };
+    if (!Array.isArray(params.items) || params.items.length === 0) {
+      return { success: false, error: 'Au moins une catégorie de billet est requise.' };
     }
 
+    let totalQuantity = 0;
+    let totalAmount = 0;
+    const normalizedItems: Array<{ categoryId: string; categoryName: string; quantity: number; price: number }> = [];
+
+    // Consolidate duplicate categoryIds if any
+    const requestedMap = new Map<string, number>();
+    for (const item of params.items) {
+      const qty = Number(item.qty);
+      if (!Number.isInteger(qty) || qty < 1) {
+        return { success: false, error: 'Quantité de billets invalide.' };
+      }
+      requestedMap.set(item.categoryId, (requestedMap.get(item.categoryId) || 0) + qty);
+    }
+
+    for (const [categoryId, qty] of requestedMap.entries()) {
+      const category = event.categories.find((c) => c.id === categoryId);
+      if (!category) return { success: false, error: 'Catégorie de billet introuvable.' };
+      const available = category.quota - category.sold;
+      if (qty > available) {
+        return { success: false, error: `Quota insuffisant. Seuls ${available} billets restants dans ${category.name}.` };
+      }
+      totalQuantity += qty;
+      totalAmount += Number(category.price) * qty;
+      normalizedItems.push({
+        categoryId: category.id,
+        categoryName: category.name,
+        quantity: qty,
+        price: Number(category.price),
+      });
+    }
+
+    if (totalQuantity < 1 || totalQuantity > 10) {
+      return { success: false, error: 'La quantité totale doit être comprise entre 1 et 10 billets par commande.' };
+    }
+
+    const primaryItem = normalizedItems[0];
     const orderRef = `LMR-${Math.floor(1000 + Math.random() * 9000)}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
     const orderId = `ord_${crypto.randomBytes(6).toString('hex')}`;
-    const totalAmount = category.price * params.quantity;
+    const orderAccessToken = generateOpaqueToken(16);
+    const orderAccessTokenHash = sha256Hex(orderAccessToken);
 
-    const order: Order = {
+    const order: Order & { accessTokenHash?: string } = {
       id: orderId,
       reference: orderRef,
-      customerId: params.customerId,
-      customerName: params.customerName,
-      customerEmail: params.customerEmail.toLowerCase(),
-      customerPhone: params.customerPhone,
+      customerId: params.customerId || 'guest',
+      customerName: params.customerName.trim(),
+      customerEmail: params.customerEmail.trim().toLowerCase(),
+      customerPhone: params.customerPhone?.trim() || undefined,
       eventId: event.id,
       eventTitle: event.title,
       eventDate: event.date,
       eventVenue: event.venue,
-      categoryId: category.id,
-      categoryName: category.name,
-      quantity: params.quantity,
-      unitPrice: category.price,
+      categoryId: primaryItem.categoryId,
+      categoryName: primaryItem.categoryName,
+      quantity: totalQuantity,
+      unitPrice: primaryItem.price,
       totalAmount,
-      currency: category.currency,
+      currency: event.categories.find((c) => c.id === primaryItem.categoryId)?.currency || 'FCFA',
       paymentStatus: 'pending',
-      paymentProvider: 'geniuspay',
+      paymentProvider: params.paymentProvider || 'geniuspay',
       paymentRef: `gp_init_${crypto.randomBytes(8).toString('hex')}`,
+      items: normalizedItems,
       createdAt: new Date().toISOString(),
+      accessTokenHash: orderAccessTokenHash,
     };
 
     this.orders.set(order.id, order);
-    this.saveOrdersToDisk(); // Modification A2
-    return { success: true, order };
+    this.orders.set(order.reference, order);
+    sqliteDb.upsertOrder(order);
+    return { success: true, order: this.sanitizeOrderForClient(order), orderAccessToken };
   }
 
-  // Confirm payment & atomic ticket emission (Idempotent!)
-  public confirmPaymentAndIssueTickets(orderId: string, paymentRef?: string): { success: boolean; order?: Order; tickets?: Ticket[]; error?: string } {
-    const order = this.orders.get(orderId);
-    if (!order) return { success: false, error: 'Commande introuvable.' };
+  public sanitizeOrderForClient(order: Order): Order {
+    const copy: any = { ...order };
+    delete copy.accessTokenHash;
+    return copy as Order;
+  }
 
-    // Idempotent safeguard: If already completed, return existing issued tickets
-    if (order.paymentStatus === 'completed') {
-      const existingTickets = this.getTicketsForOrder(order.id);
-      return { success: true, order, tickets: existingTickets };
+  public getOrderById(orderId: string): Order | undefined {
+    return this.orders.get(orderId);
+  }
+
+  public verifyOrderAccess(order: Order, accessToken?: string, user?: { id: string; email: string; role: string }): boolean {
+    if (user) {
+      if (['super_admin', 'box_office'].includes(user.role)) return true;
+      if (order.customerId && order.customerId !== 'guest' && order.customerId === user.id) return true;
+      if (order.customerEmail && order.customerEmail.toLowerCase() === (user.email || '').toLowerCase()) return true;
     }
-
-    const event = this.getEvent(order.eventId);
-    if (!event) return { success: false, error: 'Événement associé introuvable.' };
-
-    const category = event.categories.find(c => c.id === order.categoryId);
-    if (!category) return { success: false, error: 'Catégorie de billet introuvable.' };
-
-    // Atomically decrement quota
-    category.sold += order.quantity;
-    if (category.sold >= category.quota) {
-      const allSold = event.categories.every(c => c.sold >= c.quota);
-      if (allSold) event.status = 'sold_out';
+    const storedHash = (order as any).accessTokenHash;
+    if (accessToken && storedHash) {
+      return timingSafeEqualStr(sha256Hex(accessToken.trim()), storedHash);
     }
+    return false;
+  }
 
-    // Update order status
-    order.paymentStatus = 'completed';
-    order.paidAt = new Date().toISOString();
-    if (paymentRef) order.paymentRef = paymentRef;
+  // Confirm payment & atomic ticket emission inside SQLite transaction (Idempotent!)
+  public confirmPaymentAndIssueTickets(
+    orderId: string,
+    paymentRef?: string
+  ): { success: boolean; order?: Order; tickets?: Ticket[]; error?: string } {
+    return sqliteDb.runImmediateTransaction(() => {
+      const order = this.orders.get(orderId);
+      if (!order) return { success: false, error: 'Commande introuvable.' };
 
-    // Issue unique electronic tickets
-    const issuedTickets: Ticket[] = [];
-    const eventCode = event.title.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'LMR');
-
-    for (let i = 1; i <= order.quantity; i++) {
-      const ticketId = `tkt_${crypto.randomBytes(8).toString('hex')}`;
-      // Numéro de série unique : on retire au sort tant qu'il existe déjà (achat en ligne ou billet physique).
-      let serialNumber = '';
-      for (let attempt = 0; attempt < 200; attempt++) {
-        const candidate = `LMR-2026-${eventCode}-${Math.floor(1000 + Math.random() * 9000)}`;
-        let taken = false;
-        for (const existing of this.tickets.values()) {
-          if (existing.serialNumber === candidate) { taken = true; break; }
-        }
-        if (!taken && !issuedTickets.some((t) => t.serialNumber === candidate)) { serialNumber = candidate; break; }
+      // Idempotent safeguard: If already completed, return existing issued tickets (never mint twice)
+      if (order.paymentStatus === 'completed') {
+        const existingTickets = this.getTicketsForOrder(order.id);
+        return { success: true, order: this.sanitizeOrderForClient(order), tickets: existingTickets };
       }
-      if (!serialNumber) serialNumber = `LMR-2026-${eventCode}-${Date.now().toString().slice(-6)}${i}`;
-      const token = `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
 
-      const ticket: Ticket = {
-        id: ticketId,
-        orderId: order.id,
-        orderRef: order.reference,
-        eventId: event.id,
-        eventTitle: event.title,
-        eventDate: event.date,
-        eventTime: event.time,
-        eventVenue: event.venue,
-        categoryId: category.id,
-        categoryName: category.name,
-        serialNumber,
-        token,
-        holderName: `${order.customerName}${order.quantity > 1 ? ` (${i}/${order.quantity})` : ''}`,
-        holderEmail: order.customerEmail,
-        status: 'valid',
-        issuedAt: new Date().toISOString(),
-      };
+      // Only pending -> completed transition is permitted
+      if (order.paymentStatus !== 'pending') {
+        return { success: false, error: `Transition de statut interdite depuis ${order.paymentStatus}.` };
+      }
 
-      this.tickets.set(ticket.id, ticket);
-      this.tickets.set(ticket.token, ticket);
-      issuedTickets.push(ticket);
-    }
+      const event = this.getEvent(order.eventId);
+      if (!event) return { success: false, error: 'Événement associé introuvable.' };
 
-    order.tickets = issuedTickets;
+      const lineItems: Array<{ categoryId: string; categoryName: string; quantity: number }> =
+        Array.isArray(order.items) && order.items.length > 0 && (order.items[0] as any).categoryId
+          ? (order.items as any[]).map((it) => ({
+              categoryId: String(it.categoryId),
+              categoryName: String(it.categoryName || ''),
+              quantity: Number(it.quantity || 1),
+            }))
+          : [{ categoryId: order.categoryId, categoryName: order.categoryName, quantity: order.quantity }];
 
-    // Queue Personalized Transactional Confirmation Email
-    const personalizedEmail = generatePersonalizedTicketEmail(
-      order,
-      {
-        title: event.title,
-        artist: event.artist,
-        date: event.date,
-        time: event.time,
-        doorsOpen: event.doorsOpen,
-        venue: event.venue,
-        city: event.city,
-        officialPoster: event.officialPoster,
-        bannerImage: event.bannerImage,
-        infoline: event.infoline,
-      },
-      issuedTickets
-    );
+      for (const li of lineItems) {
+        const category = event.categories.find((c) => c.id === li.categoryId);
+        if (!category) return { success: false, error: 'Catégorie de billet introuvable.' };
+        if (category.sold + li.quantity > category.quota) {
+          return { success: false, error: `Quota insuffisant pour ${category.name}.` };
+        }
+      }
 
-    this.emails.unshift(personalizedEmail);
-    this.saveEmailsToDisk();
-    this.saveOrdersToDisk(); // Modification A3
-    return { success: true, order, tickets: issuedTickets };
+      // Atomically decrement quota
+      for (const li of lineItems) {
+        const category = event.categories.find((c) => c.id === li.categoryId)!;
+        category.sold += li.quantity;
+      }
+      if (event.categories.every((c) => c.sold >= c.quota)) {
+        event.status = 'sold_out';
+      }
+
+      // Update order status
+      order.paymentStatus = 'completed';
+      order.paidAt = new Date().toISOString();
+      if (paymentRef) order.paymentRef = paymentRef;
+
+      // Issue exact qty unique electronic tickets
+      const issuedTickets: Ticket[] = [];
+      const eventCode = event.title.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'LMR');
+      const totalQty = lineItems.reduce((sum, li) => sum + li.quantity, 0);
+      let globalIndex = 0;
+
+      for (const li of lineItems) {
+        const category = event.categories.find((c) => c.id === li.categoryId)!;
+        for (let i = 1; i <= li.quantity; i++) {
+          globalIndex++;
+          const ticketId = `tkt_${crypto.randomBytes(8).toString('hex')}`;
+          let serialNumber = '';
+          for (let attempt = 0; attempt < 200; attempt++) {
+            const candidate = `LMR-2026-${eventCode}-${Math.floor(1000 + Math.random() * 9000)}`;
+            let taken = false;
+            for (const existing of this.tickets.values()) {
+              if (existing.serialNumber === candidate) {
+                taken = true;
+                break;
+              }
+            }
+            if (!taken && !issuedTickets.some((t) => t.serialNumber === candidate)) {
+              serialNumber = candidate;
+              break;
+            }
+          }
+          if (!serialNumber) serialNumber = `LMR-2026-${eventCode}-${Date.now().toString().slice(-6)}${globalIndex}`;
+          const token = `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
+
+          const ticket: Ticket = {
+            id: ticketId,
+            orderId: order.id,
+            orderRef: order.reference,
+            eventId: event.id,
+            eventTitle: event.title,
+            eventDate: event.date,
+            eventTime: event.time,
+            eventVenue: event.venue,
+            categoryId: category.id,
+            categoryName: category.name,
+            serialNumber,
+            token,
+            holderName: `${order.customerName}${totalQty > 1 ? ` (${globalIndex}/${totalQty})` : ''}`,
+            holderEmail: order.customerEmail,
+            status: 'valid',
+            issuedAt: new Date().toISOString(),
+          };
+
+          this.tickets.set(ticket.id, ticket);
+          this.tickets.set(ticket.token, ticket);
+          issuedTickets.push(ticket);
+        }
+      }
+
+      order.tickets = issuedTickets;
+
+      const personalizedEmail = generatePersonalizedTicketEmail(
+        order,
+        {
+          title: event.title,
+          artist: event.artist,
+          date: event.date,
+          time: event.time,
+          doorsOpen: event.doorsOpen,
+          venue: event.venue,
+          city: event.city,
+          officialPoster: event.officialPoster,
+          bannerImage: event.bannerImage,
+          infoline: event.infoline,
+        },
+        issuedTickets
+      );
+
+      this.emails.unshift(personalizedEmail);
+      sqliteDb.insertEmail(personalizedEmail);
+      sqliteDb.upsertEvent(event);
+      sqliteDb.upsertOrder(order);
+      return { success: true, order: this.sanitizeOrderForClient(order), tickets: issuedTickets };
+    });
   }
 
   public getTicketsForOrder(orderId: string): Ticket[] {
@@ -1160,11 +1478,15 @@ class LumareelDatabase {
   public getOrdersForCustomer(customerEmail: string): Order[] {
     const emailNorm = customerEmail.toLowerCase();
     const result: Order[] = [];
+    const seen = new Set<string>();
     for (const ord of this.orders.values()) {
+      if (seen.has(ord.id)) continue;
+      seen.add(ord.id);
       if (ord.customerEmail.toLowerCase() === emailNorm) {
         // Attach tickets if completed
         if (ord.paymentStatus === 'completed') {
-          ord.tickets = this.getTicketsForOrder(ord.id);
+          const tks = this.getTicketsForOrder(ord.id);
+          if (tks.length > 0) ord.tickets = tks;
         }
         result.push(ord);
       }
@@ -1173,17 +1495,70 @@ class LumareelDatabase {
   }
 
   public getAllOrders(): Order[] {
-    const list = Array.from(this.orders.values());
-    for (const ord of list) {
+    const list: Order[] = [];
+    const seen = new Set<string>();
+    for (const ord of this.orders.values()) {
+      if (seen.has(ord.id)) continue;
+      seen.add(ord.id);
       if (ord.paymentStatus === 'completed') {
-        ord.tickets = this.getTicketsForOrder(ord.id);
+        const tks = this.getTicketsForOrder(ord.id);
+        if (tks.length > 0) ord.tickets = tks;
       }
+      list.push(ord);
     }
     return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   public getTicketByToken(tokenOrId: string): Ticket | undefined {
-    return this.tickets.get(tokenOrId);
+    const clean = (tokenOrId || '').trim();
+    if (!clean) return undefined;
+    return this.tickets.get(clean) || sqliteDb.getTicketByTokenOrSerial(clean) || undefined;
+  }
+
+  public atomicVerifyAndBurnTicket(params: {
+    tokenOrSerial: string;
+    targetEventId?: string;
+    gateAgentId: string;
+  }): {
+    outcome: 'VALID' | 'ALREADY_USED' | 'WRONG_EVENT' | 'INACTIVE' | 'CANCELLED' | 'INVALID_OR_NOT_FOUND';
+    ticket?: Ticket;
+    scannedAt?: string;
+  } {
+    const result = sqliteDb.atomicBurnTicket({
+      tokenOrSerial: params.tokenOrSerial,
+      targetEventId: params.targetEventId,
+      gateAgentId: params.gateAgentId,
+    });
+
+    if (result.ticket) {
+      this.tickets.set(result.ticket.id, result.ticket);
+      this.tickets.set(result.ticket.token, result.ticket);
+      const ord = this.orders.get(result.ticket.orderId);
+      if (ord && ord.tickets) {
+        const idx = ord.tickets.findIndex((t) => t.id === result.ticket!.id);
+        if (idx >= 0) {
+          ord.tickets[idx] = result.ticket;
+          sqliteDb.upsertOrder(ord);
+        }
+      }
+      if (result.outcome === 'VALID') {
+        this.saveOrdersToDisk();
+        this.savePrintTicketsToDisk();
+      }
+    }
+
+    const logEntry = {
+      id: `chk_${crypto.randomBytes(6).toString('hex')}`,
+      ticketId: result.ticket ? result.ticket.id : 'unknown',
+      eventId: params.targetEventId || result.ticket?.eventId || 'all_events',
+      gateAgentId: params.gateAgentId,
+      result: result.outcome,
+      timestamp: result.scannedAt || new Date().toISOString(),
+    };
+    this.checkInLogs.unshift(logEntry);
+    sqliteDb.insertCheckInLog(logEntry);
+
+    return result;
   }
 
   // Atomic Entry Gate Verification
@@ -1192,85 +1567,55 @@ class LumareelDatabase {
     targetEventId: string;
     gateAgentId: string;
   }): ScanVerificationResult {
-    const query = params.tokenOrSerial.trim();
-    // Look up by token or serial
-    let ticket: Ticket | undefined = this.tickets.get(query);
-    if (!ticket) {
-      for (const t of this.tickets.values()) {
-        if (t.serialNumber.toUpperCase() === query.toUpperCase() || t.token.toUpperCase() === query.toUpperCase()) {
-          ticket = t;
-          break;
-        }
-      }
-    }
-
-    const logEntry = {
-      id: `chk_${crypto.randomBytes(6).toString('hex')}`,
-      ticketId: ticket ? ticket.id : 'unknown',
-      eventId: params.targetEventId,
+    const atomic = this.atomicVerifyAndBurnTicket({
+      tokenOrSerial: params.tokenOrSerial,
+      targetEventId: params.targetEventId,
       gateAgentId: params.gateAgentId,
-      result: 'INVALID_OR_NOT_FOUND',
-      timestamp: new Date().toISOString(),
-    };
+    });
 
-    if (!ticket) {
-      this.checkInLogs.unshift(logEntry);
+    if (atomic.outcome === 'INVALID_OR_NOT_FOUND') {
       return {
         status: 'INVALID_OR_NOT_FOUND',
         message: 'Billet non reconnu dans le système LUMARÉEL. Vérifiez la source.',
       };
     }
-
-    // Verify Target Event Match
-    if (params.targetEventId && ticket.eventId !== params.targetEventId) {
-      logEntry.result = 'WRONG_EVENT';
-      this.checkInLogs.unshift(logEntry);
+    if (atomic.outcome === 'WRONG_EVENT' && atomic.ticket) {
       return {
         status: 'WRONG_EVENT',
-        message: `Erreur d'événement : ce billet est réservé pour "${ticket.eventTitle}", pas pour le concert actuellement scanné.`,
-        ticket,
+        message: `Erreur d'événement : ce billet est réservé pour "${atomic.ticket.eventTitle}", pas pour le concert actuellement scanné.`,
+        ticket: atomic.ticket,
       };
     }
-
-    // Verify Cancellation
-    if (ticket.status === 'cancelled') {
-      logEntry.result = 'CANCELLED';
-      this.checkInLogs.unshift(logEntry);
+    if (atomic.outcome === 'INACTIVE' && atomic.ticket) {
+      return {
+        status: 'CANCELLED',
+        message: 'Lot physique non encore activé. Activation administrateur requise avant entrée.',
+        ticket: atomic.ticket,
+      };
+    }
+    if (atomic.outcome === 'CANCELLED' && atomic.ticket) {
       return {
         status: 'CANCELLED',
         message: 'Billet annulé ou remboursé. Entrée strictement refusée.',
-        ticket,
+        ticket: atomic.ticket,
       };
     }
-
-    // Verify Already Used (Double Scan Prevention)
-    if (ticket.status === 'used') {
-      logEntry.result = 'ALREADY_USED';
-      this.checkInLogs.unshift(logEntry);
+    if (atomic.outcome === 'ALREADY_USED' && atomic.ticket) {
       return {
         status: 'ALREADY_USED',
         message: `Billet DÉJÀ VALIDÉ ! Entrée refusée pour risque de copie.`,
-        ticket,
+        ticket: atomic.ticket,
         previousCheckIn: {
-          checkedInAt: ticket.checkedInAt || 'Heure inconnue',
-          checkedInBy: ticket.checkedInBy || 'Agent non spécifié',
+          checkedInAt: atomic.ticket.checkedInAt || 'Heure inconnue',
+          checkedInBy: atomic.ticket.checkedInBy || 'Agent non spécifié',
         },
       };
     }
 
-    // Atomic Check-In Success
-    ticket.status = 'used';
-    ticket.checkedInAt = new Date().toISOString();
-    ticket.checkedInBy = params.gateAgentId;
-    this.persistTickets(); // Modification A4
-
-    logEntry.result = 'VALID';
-    this.checkInLogs.unshift(logEntry);
-
     return {
       status: 'VALID',
       message: `Entrée autorisée — Bienvenue chez LUMARÉEL CO.`,
-      ticket,
+      ticket: atomic.ticket,
     };
   }
 
@@ -1303,12 +1648,14 @@ class LumareelDatabase {
       orderIndex: data.orderIndex || existing?.orderIndex || (this.archives.size + 1),
     };
     this.archives.set(archive.id, archive);
+    sqliteDb.upsertArchive(archive);
     this.saveArchivesToDisk();
     return archive;
   }
 
   public deleteArchive(id: string): boolean {
     const res = this.archives.delete(id);
+    sqliteDb.deleteArchiveById(id);
     this.saveArchivesToDisk();
     return res;
   }
@@ -1335,7 +1682,7 @@ class LumareelDatabase {
       }
     }
 
-    for (const ord of this.orders.values()) {
+    for (const ord of this.getAllOrders()) {
       if (ord.paymentStatus === 'completed') {
         confirmedRevenueXof += ord.totalAmount;
         paidOrdersCount++;
@@ -1388,6 +1735,7 @@ class LumareelDatabase {
 
     this.scannerTokens.set(token, scannerToken);
     this.scannerTokens.set(id, scannerToken);
+    sqliteDb.upsertScannerToken(scannerToken);
     this.saveScannerTokensToDisk();
     return scannerToken;
   }
@@ -1395,25 +1743,6 @@ class LumareelDatabase {
   public verifyScannerToken(token: string, eventId?: string): { valid: boolean; token?: ScannerToken; error?: string; event?: ConcertEvent } {
     if (!token) {
       return { valid: false, error: 'Token manquant ou format invalide.' };
-    }
-
-    // Special static super-admin bypass token
-    if (token === 'SEC_SESSION_AUTHORIZED') {
-      const defaultEvt = (eventId ? this.getEvent(eventId) : null) || this.getFeaturedEvent() || this.getAllEvents()[0];
-      return {
-        valid: true,
-        event: defaultEvt,
-        token: {
-          id: 'sct_admin_session',
-          token: 'SEC_SESSION_AUTHORIZED',
-          eventId: defaultEvt?.id || '',
-          eventTitle: defaultEvt?.title || 'Contrôle Global',
-          artistName: defaultEvt?.artist || 'LUMARÉEL CO.',
-          createdAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + 86400000).toISOString(),
-          revoked: false,
-        },
-      };
     }
 
     const scannerToken = this.scannerTokens.get(token);
@@ -1486,6 +1815,21 @@ class LumareelDatabase {
   }
 
   public persistTickets() {
+    for (const ord of this.getAllOrders()) {
+      sqliteDb.upsertOrder(ord);
+    }
+    const seenPrint = new Set<string>();
+    for (const pt of this.printTicketList) {
+      seenPrint.add(pt.id);
+      sqliteDb.upsertTicket(pt, true);
+    }
+    const seenT = new Set<string>();
+    for (const t of this.tickets.values()) {
+      if (!seenT.has(t.id) && !seenPrint.has(t.id)) {
+        seenT.add(t.id);
+        sqliteDb.upsertTicket(t, false);
+      }
+    }
     this.saveOrdersToDisk();
     this.savePrintTicketsToDisk();
   }
@@ -1515,10 +1859,6 @@ class LumareelDatabase {
     const artistCode = event.artist.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'LMR';
     const issuedAt = new Date().toISOString();
 
-    // Numéros de série des billets physiques : préfixe « P » + 5 chiffres, séquence GLOBALE
-    // (tous événements confondus). Les achats en ligne n'utilisent jamais ce format
-    // (LMR-AAAA-XXX-0000, 4 chiffres, sans « P »), et on vérifie en plus qu'aucun numéro
-    // existant (en ligne ou physique) n'est réutilisé.
     const serialPrefix = `LMR-${new Date().getFullYear()}-${artistCode}-P`;
     const usedSerials = new Set<string>();
     for (const t of this.tickets.values()) usedSerials.add(t.serialNumber);
@@ -1550,10 +1890,11 @@ class LumareelDatabase {
         categoryId: category.id,
         categoryName: category.name,
         serialNumber,
+        serialSig: signSerialIntegrity(serialNumber),
         token: `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`,
         holderName: 'Billet physique',
         holderEmail: '',
-        status: 'valid',
+        status: 'inactive',
         issuedAt,
       });
     }
@@ -1562,13 +1903,61 @@ class LumareelDatabase {
       this.tickets.set(ticket.id, ticket);
       this.tickets.set(ticket.token, ticket);
       this.printTicketList.push(ticket);
+      sqliteDb.upsertTicket(ticket, true);
     }
     this.savePrintTicketsToDisk();
 
     return {
       success: true,
       batchRef,
-      tickets: created.map((t) => ({ id: t.id, serialNumber: t.serialNumber, token: t.token })),
+      tickets: created.map((t) => ({ id: t.id, serialNumber: t.serialNumber, token: t.token, status: t.status })),
+    };
+  }
+
+  public activatePrintBatch(batchRef: string): { success: boolean; batchRef: string; activatedCount: number } {
+    const res = sqliteDb.activatePrintBatch(batchRef);
+    const idSet = new Set(res.ticketIds);
+    for (const ticket of this.printTicketList) {
+      if (idSet.has(ticket.id)) {
+        ticket.status = 'valid';
+        this.tickets.set(ticket.id, ticket);
+        this.tickets.set(ticket.token, ticket);
+      }
+    }
+    this.savePrintTicketsToDisk();
+    return { success: res.activatedCount > 0, batchRef, activatedCount: res.activatedCount };
+  }
+
+  // Contact Inquiries
+  public saveContactInquiry(data: {
+    name: string;
+    email: string;
+    subject?: string;
+    organization?: string;
+    message: string;
+  }): ContactInquiryRecord {
+    const record: ContactInquiryRecord = {
+      id: `inq_${crypto.randomBytes(6).toString('hex')}`,
+      name: data.name.trim(),
+      email: data.email.trim().toLowerCase(),
+      subject: data.subject?.trim() || '',
+      organization: data.organization?.trim() || '',
+      message: data.message.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    sqliteDb.insertContactInquiry(record);
+    return record;
+  }
+
+  public getContactInquiries(): ContactInquiryRecord[] {
+    return sqliteDb.getContactInquiries();
+  }
+
+  public getDbStatus() {
+    return {
+      engine: 'sqlite',
+      file: sqliteDb.getDbPath(),
+      tables: sqliteDb.getStatsSummary(),
     };
   }
 }

@@ -40,9 +40,7 @@ export const Navbar: React.FC = () => {
     return null;
   }
 
-  const isSuperAdmin =
-    currentUser?.email?.toLowerCase() === 'bienaodylan428@gmail.com' ||
-    currentUser?.role === 'super_admin';
+  const isSuperAdmin = currentUser?.role === 'super_admin';
 
   return (
     <header

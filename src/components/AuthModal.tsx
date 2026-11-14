@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { X, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, KeyRound } from 'lucide-react';
+import { X, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck } from 'lucide-react';
 import { isValidRealEmail } from './CheckoutModal';
+import { clearLocalAuthToken, getAuthHeaders } from '../utils/authSession';
 
 export const AuthModal: React.FC = () => {
   const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, showToast, checkoutEvent, setCheckoutEvent } = useApp();
 
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [totpCode, setTotpCode] = useState('');
+  const [requires2fa, setRequires2fa] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
 
@@ -25,12 +28,13 @@ export const AuthModal: React.FC = () => {
 
     setIsResettingPassword(true);
     try {
-      if (isSupabaseConfigured) {
-        const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-          redirectTo: window.location.origin + '/',
-        });
-        if (error) throw error;
-      }
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify({ email: cleanEmail }),
+      }).catch(() => null);
       showToast('Si ce compte existe, un e-mail de réinitialisation a été envoyé.', 'success');
     } catch (err: any) {
       showToast(err.message || 'Impossible d’envoyer le lien de réinitialisation.', 'error');
@@ -41,6 +45,37 @@ export const AuthModal: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+
+    if (mode === 'reset') {
+      if (!resetToken.trim() || password.length < 10) {
+        showToast('Renseignez le jeton reçu et un nouveau mot de passe d’au moins 10 caractères.', 'error');
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const res = await fetch('/api/auth/reset-password', {
+          method: 'POST',
+          credentials: 'include',
+          headers,
+          body: JSON.stringify({ token: resetToken.trim(), newPassword: password }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Réinitialisation impossible.');
+        }
+        showToast('Mot de passe mis à jour. Connectez-vous avec vos nouveaux identifiants.', 'success');
+        setResetToken('');
+        setPassword('');
+        setMode('login');
+      } catch (err: any) {
+        showToast(err.message || 'Jeton invalide ou expiré.', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanEmail || !isValidRealEmail(cleanEmail)) {
@@ -48,8 +83,14 @@ export const AuthModal: React.FC = () => {
       return;
     }
 
-    if (!password || password.length < 6) {
-      showToast('Le mot de passe doit comporter au moins 6 caractères.', 'error');
+    const minPwdLen = mode === 'register' ? 10 : 6;
+    if (!password || password.length < minPwdLen) {
+      showToast(
+        mode === 'register'
+          ? 'Le mot de passe doit comporter au moins 10 caractères.'
+          : 'Veuillez saisir votre mot de passe.',
+        'error'
+      );
       return;
     }
 
@@ -59,76 +100,14 @@ export const AuthModal: React.FC = () => {
     }
 
     setIsLoading(true);
+    clearLocalAuthToken();
 
     try {
-      let authenticatedUser: any = null;
-
-      // 1. TENTATIVE AUTH SUPABASE DIRECTE (Si configuré et accessible)
-      if (isSupabaseConfigured) {
-        try {
-          if (mode === 'register') {
-            const { data, error } = await supabase.auth.signUp({
-              email: cleanEmail,
-              password,
-              options: { data: { name: name.trim() } },
-            });
-            if (error) {
-              // Si erreur d'inscription Supabase spécifique (ex: utilisateur déjà existant)
-              if (/already registered/i.test(error.message)) {
-                throw new Error('Un compte existe déjà avec cette adresse e-mail. Veuillez vous connecter.');
-              }
-              throw error;
-            }
-            if (data?.user) {
-              authenticatedUser = {
-                id: data.user.id,
-                email: data.user.email || cleanEmail,
-                name: name.trim() || cleanEmail.split('@')[0],
-                role: cleanEmail === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer',
-                emailVerified: Boolean(data.user.email_confirmed_at),
-                createdAt: data.user.created_at,
-              };
-            }
-          } else {
-            const { data, error } = await supabase.auth.signInWithPassword({
-              email: cleanEmail,
-              password,
-            });
-            if (error) {
-              if (/invalid login credentials/i.test(error.message)) {
-                // Mauvais identifiants sur Supabase : tester également le serveur local en cas de compte d'administration
-                console.warn('[Supabase Auth] Identifiants Supabase non reconnus, vérification serveur local...');
-              } else if (/email not confirmed/i.test(error.message)) {
-                throw new Error('Veuillez confirmer votre adresse e-mail avant de vous connecter.');
-              } else {
-                throw error;
-              }
-            } else if (data?.user) {
-              authenticatedUser = {
-                id: data.user.id,
-                email: data.user.email || cleanEmail,
-                name: String(data.user.user_metadata?.name || cleanEmail.split('@')[0]),
-                role: cleanEmail === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer',
-                emailVerified: Boolean(data.user.email_confirmed_at),
-                createdAt: data.user.created_at,
-              };
-            }
-          }
-        } catch (sbErr: any) {
-          console.warn('[Supabase Auth warning]', sbErr?.message || sbErr);
-          // Si l'erreur est un blocage explicite de confirmation d'e-mail ou utilisateur déjà existant
-          if (sbErr?.message && /confirm.*email|already registered/i.test(sbErr.message)) {
-            throw sbErr;
-          }
-        }
-      }
-
-      // 2. REPLI TRANSPARENT SUR LE SERVEUR D'AUTHENTIFICATION LOCAL LUMARÉEL
-      if (!authenticatedUser) {
-        const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
-        const res = await fetch(endpoint, {
+      if (mode === 'register') {
+        const res = await fetch('/api/auth/register', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          headers,
           body: JSON.stringify({
             email: cleanEmail,
             password,
@@ -137,17 +116,59 @@ export const AuthModal: React.FC = () => {
         });
 
         const data = await res.json();
-        if (!res.ok || !data.success || !data.user) {
-          throw new Error(data.error || 'Identifiants ou connexion invalide.');
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Inscription impossible.');
         }
-        authenticatedUser = data.user;
+
+        const meRes = await fetch('/api/auth/me', {
+          credentials: 'include',
+          headers: await getAuthHeaders(),
+        });
+        if (meRes.ok) {
+          const meData = await meRes.json().catch(() => null);
+          if (meData?.success && meData.user) {
+            setCurrentUser(meData.user);
+            setIsAuthModalOpen(false);
+            showToast(`Bienvenue, ${meData.user.name}. Compte créé et connecté.`, 'success');
+            if (checkoutEvent) setCheckoutEvent(checkoutEvent);
+            return;
+          }
+        }
+
+        showToast(data.message || 'Si ce compte peut être créé, votre inscription a bien été enregistrée.', 'info');
+        setMode('login');
+        return;
       }
 
-      // 3. ENREGISTREMENT ET ACTIVATION DE LA SESSION
-      setCurrentUser(authenticatedUser);
-      setIsAuthModalOpen(false);
+      const loginPayload: Record<string, string> = {
+        email: cleanEmail,
+        password,
+      };
+      if (requires2fa && totpCode.trim()) {
+        loginPayload.totpCode = totpCode.trim();
+      }
 
-      showToast(`Bienvenue, ${authenticatedUser.name}. Connexion réussie.`, 'success');
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify(loginPayload),
+      });
+
+      const data = await res.json();
+      if (res.status === 401 && data?.requires2fa) {
+        setRequires2fa(true);
+        throw new Error(data.error || 'Code d’authentification à deux facteurs (2FA) requis.');
+      }
+      if (!res.ok || !data.success || !data.user) {
+        throw new Error(data.error || 'Identifiants invalides.');
+      }
+
+      setRequires2fa(false);
+      setTotpCode('');
+      setCurrentUser(data.user);
+      setIsAuthModalOpen(false);
+      showToast(`Bienvenue, ${data.user.name}. Connexion réussie.`, 'success');
 
       if (checkoutEvent) setCheckoutEvent(checkoutEvent);
     } catch (err: any) {
@@ -186,12 +207,14 @@ export const AuthModal: React.FC = () => {
           )}
         </div>
         <h2 className="font-agrandir-extrabold text-2xl text-white uppercase tracking-tight mb-2">
-          {mode === 'login' ? 'CONNEXION' : 'CRÉER UN COMPTE'}
+          {mode === 'login' ? 'CONNEXION' : mode === 'register' ? 'CRÉER UN COMPTE' : 'RÉINITIALISER LE MOT DE PASSE'}
         </h2>
         <p className="text-[#888] text-xs mb-5">
           {mode === 'login'
             ? 'Accédez à vos billets officiels et commandes passées.'
-            : 'Créez votre compte en quelques secondes pour réserver vos places et recevoir vos billets sécurisés.'}
+            : mode === 'register'
+            ? 'Créez votre compte en quelques secondes pour réserver vos places et recevoir vos billets sécurisés.'
+            : 'Saisissez votre jeton de réinitialisation et choisissez un nouveau mot de passe robuste.'}
         </p>
 
         {/* Formulaire Authentification */}
@@ -215,37 +238,62 @@ export const AuthModal: React.FC = () => {
             </div>
           )}
 
-          <div>
-            <label className="block text-[10px] text-[#888] uppercase mb-1 font-agrandir-semibold">
-              ADRESSE E-MAIL
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-[#666] absolute left-3.5 top-3" />
+          {mode === 'reset' ? (
+            <div>
+              <label className="block text-[10px] text-[#888] uppercase mb-1 font-agrandir-semibold">
+                JETON DE RÉINITIALISATION
+              </label>
               <input
-                type="email"
+                type="text"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="votre.email@domaine.com"
-                className="w-full bg-[#161616] border border-white/15 rounded-2xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-white text-xs"
+                value={resetToken}
+                onChange={(e) => setResetToken(e.target.value)}
+                placeholder="Collez le jeton reçu par e-mail"
+                className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-2.5 text-white font-mono focus:outline-none focus:border-white text-xs"
               />
             </div>
-          </div>
+          ) : (
+            <div>
+              <label className="block text-[10px] text-[#888] uppercase mb-1 font-agrandir-semibold">
+                ADRESSE E-MAIL
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-[#666] absolute left-3.5 top-3" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="votre.email@domaine.com"
+                  className="w-full bg-[#161616] border border-white/15 rounded-2xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-white text-xs"
+                />
+              </div>
+            </div>
+          )}
 
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-[10px] text-[#888] uppercase font-agrandir-semibold">
-                MOT DE PASSE
+                {mode === 'reset' ? 'NOUVEAU MOT DE PASSE' : 'MOT DE PASSE'}
               </label>
               {mode === 'login' && (
-                <button
-                  type="button"
-                  onClick={handlePasswordReset}
-                  disabled={isResettingPassword}
-                  className="text-[10px] text-[#888] hover:text-[#d4af37] underline cursor-pointer transition-colors"
-                >
-                  {isResettingPassword ? 'Envoi...' : 'Mot de passe oublié ?'}
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handlePasswordReset}
+                    disabled={isResettingPassword}
+                    className="text-[10px] text-[#888] hover:text-[#d4af37] underline cursor-pointer transition-colors"
+                  >
+                    {isResettingPassword ? 'Envoi...' : 'Mot de passe oublié ?'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode('reset')}
+                    className="text-[10px] text-[#666] hover:text-white underline cursor-pointer transition-colors"
+                  >
+                    J’ai un jeton
+                  </button>
+                </div>
               )}
             </div>
             <div className="relative">
@@ -253,15 +301,37 @@ export const AuthModal: React.FC = () => {
               <input
                 type="password"
                 required
-                minLength={6}
+                minLength={mode === 'login' ? 6 : 10}
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
+                placeholder={mode === 'login' ? '••••••••••••' : '10 caractères minimum'}
                 className="w-full bg-[#161616] border border-white/15 rounded-2xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-white text-xs"
               />
             </div>
           </div>
+
+          {mode === 'login' && requires2fa && (
+            <div>
+              <label className="block text-[10px] text-[#d4af37] uppercase mb-1 font-agrandir-bold">
+                CODE 2FA (6 CHIFFRES)
+              </label>
+              <div className="relative">
+                <ShieldCheck className="w-4 h-4 text-[#d4af37] absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="\d{6}"
+                  maxLength={6}
+                  required
+                  value={totpCode}
+                  onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="123456"
+                  className="w-full bg-[#161616] border border-[#d4af37]/40 rounded-2xl pl-10 pr-4 py-2.5 text-white font-mono tracking-widest focus:outline-none focus:border-[#d4af37] text-xs"
+                />
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"
@@ -272,7 +342,13 @@ export const AuthModal: React.FC = () => {
               <span className="animate-pulse">Vérification en cours...</span>
             ) : (
               <>
-                <span>{mode === 'login' ? 'SE CONNECTER' : 'CONFIRMER L’INSCRIPTION'}</span>
+                <span>
+                  {mode === 'login'
+                    ? 'SE CONNECTER'
+                    : mode === 'register'
+                    ? 'CONFIRMER L’INSCRIPTION'
+                    : 'VALIDER LE NOUVEAU MOT DE PASSE'}
+                </span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </>
             )}

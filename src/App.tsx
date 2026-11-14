@@ -26,9 +26,7 @@ const MainApp: React.FC = () => {
   const { currentPage, toast, setCurrentPage, platformSettings, currentUser, setIsAuthModalOpen, showToast } = useApp();
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
-  const isSuperAdmin =
-    currentUser?.email?.toLowerCase() === 'bienaodylan428@gmail.com' ||
-    currentUser?.role === 'super_admin';
+  const isSuperAdmin = currentUser?.role === 'super_admin';
 
   return (
     <div className="min-h-screen w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative overflow-x-hidden">

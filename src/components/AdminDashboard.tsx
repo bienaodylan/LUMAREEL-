@@ -12,6 +12,7 @@ import { AdminEmailsView } from './admin/views/AdminEmailsView';
 import { AdminMembershipView } from './admin/views/AdminMembershipView';
 import { AdminWorkshopView } from './admin/views/AdminWorkshopView';
 import { TicketBatchPrintModal } from './TicketBatchPrintModal';
+import { getAuthHeaders } from '../utils/authSession';
 import { Plus, X } from 'lucide-react';
 
 const AdminDashboardContent: React.FC = () => {
@@ -54,10 +55,11 @@ const AdminDashboardContent: React.FC = () => {
   // Fetch admin stats, orders, and emails
   const fetchAdminData = async () => {
     try {
+      const headers = await getAuthHeaders();
       const [resStats, resOrders, resEmails] = await Promise.all([
-        fetch('/api/admin/overview'),
-        fetch('/api/admin/orders'),
-        fetch('/api/admin/emails'),
+        fetch('/api/admin/overview', { credentials: 'include', headers }),
+        fetch('/api/admin/orders', { credentials: 'include', headers }),
+        fetch('/api/admin/emails', { credentials: 'include', headers }),
       ]);
 
       const [dataStats, dataOrders, dataEmails] = await Promise.all([
