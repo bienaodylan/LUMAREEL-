@@ -954,7 +954,7 @@ export class MembershipService {
     this.cards.set(card.id, card);
 
     // Update inventory for new chip
-    let newChipItem = Array.from(this.chipInventory.values()).find(
+    const newChipItem = Array.from(this.chipInventory.values()).find(
       ci => ci.chipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === cleanNewUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
     );
     if (newChipItem) {
