@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { MembershipEdition, MembershipPlan, MembershipCard } from '../types';
-import { getAuthHeaders } from '../utils/authSession';
 import heroPortraitImg from '../assets/images/black_card_hero_portrait_1794664559137.jpg';
 import backstageFriendsImg from '../assets/images/backstage_friends_moment_1794664561231.jpg';
 import concertStageImg from '../assets/images/concert_stage_atmosphere_1794664559978.jpg';
@@ -111,11 +110,9 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
     try {
       setIsSubmitting(true);
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch('/api/membership/order', {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           planId: selectedPlan?.id || plans[0]?.id || 'plan_founders_annual',
           customerName: applicantName.trim(),
@@ -127,40 +124,17 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
             country: 'Côte d’Ivoire',
           },
           paymentMethod,
+          paymentReference: `DEMANDE-ADM-${Date.now()}`,
+          userId: currentUser?.id,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok || !data.success || !data.order?.id) {
+      if (!res.ok || !data.success) {
         throw new Error(data.error || 'Impossible de valider votre demande d’admission.');
       }
 
-      const orderToken = String(data.orderAccessToken || '');
-      const payHeaders = await getAuthHeaders({
-        'Content-Type': 'application/json',
-        ...(orderToken ? { 'X-Order-Token': orderToken } : {}),
-      });
-      const payRes = await fetch(`/api/membership/orders/${encodeURIComponent(data.order.id)}/pay-sandbox`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: payHeaders,
-        body: JSON.stringify({ orderAccessToken: orderToken }),
-      });
-
-      if (payRes.status === 404) {
-        showToast(
-          'Demande enregistrée. Veuillez finaliser le règlement auprès de votre passerelle de paiement.',
-          'info'
-        );
-        return;
-      }
-
-      const payData = await payRes.json();
-      if (!payRes.ok || !payData.success || !payData.card) {
-        throw new Error(payData.error || 'La confirmation de votre paiement d’adhésion a échoué.');
-      }
-
-      setIssuedResult({ card: payData.card });
+      setIssuedResult({ card: data.card });
       setWizardStep(5);
       showToast('Votre admission à la LUMARÉEL Black Card est confirmée.', 'success');
       fetchEditionAndPlans();

@@ -8,21 +8,6 @@ function projectConfig() {
   return { url, key };
 }
 
-export function userDbForToken(jwt: string): SupabaseClient {
-  const { url, key } = projectConfig();
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { Authorization: `Bearer ${jwt}` } },
-  });
-}
-
-export function serviceDb(): SupabaseClient {
-  const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').replace(/\/+$/, '');
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-  if (!url || !key) throw new Error('Configuration Supabase serveur manquante.');
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-}
-
 export function publicDb(): SupabaseClient {
   const { url, key } = projectConfig();
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -54,70 +39,15 @@ export async function requireRole(req: VercelRequest, roles: string[]) {
   if (authError || !authData.user?.email) {
     return { ok: false as const, status: 401, error: 'Session invalide ou expirée.' };
   }
-
-  // Do not let a password-only AAL1 session use privileged endpoints when
-  // this account has a verified second factor configured.
-  const { data: assurance, error: assuranceError } = await db.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (assuranceError) {
-    console.error('[auth] MFA assurance lookup:', assuranceError.message);
-    return { ok: false as const, status: 503, error: 'Vérification du niveau de sécurité indisponible.' };
-  }
-  if (assurance.nextLevel === 'aal2' && assurance.currentLevel !== 'aal2') {
-    return { ok: false as const, status: 401, error: 'Une authentification à deux facteurs est requise. Reconnectez-vous avec votre code.' };
-  }
-
-  // The database role is the source of truth. Never grant privileges from
-  // editable user metadata or from an email-only shortcut in a client request.
-  const { data: profile, error: profileError } = await db
-    .from('users')
-    .select('role, email_verified')
-    .eq('id', authData.user.id)
-    .maybeSingle();
-
-  if (profileError) {
-    console.error('[auth] profile role lookup:', profileError.message);
-    return { ok: false as const, status: 503, error: 'Vérification du profil administrateur indisponible.' };
-  }
-
-  const profileRole = profile?.email_verified ? String(profile.role || '') : '';
-  const isVerifiedOwner = authData.user.email?.toLowerCase() === 'bienaodylan428@gmail.com'
-    && Boolean(authData.user.email_confirmed_at);
-  const trustedRole = isVerifiedOwner ? 'super_admin' : profileRole;
-
-  const { data: rpcRole, error: roleError } = await db.rpc('lumareel_current_admin_role');
+  const { data: role, error: roleError } = await db.rpc('lumareel_current_admin_role');
   if (roleError) {
     console.error('[auth] role RPC:', roleError.message);
     return { ok: false as const, status: 500, error: 'Vérification des autorisations indisponible.' };
   }
-
-  if (!trustedRole || !roles.includes(trustedRole) || String(rpcRole || '') !== trustedRole) {
+  if (!role || !roles.includes(String(role))) {
     return { ok: false as const, status: 403, error: 'Accès non autorisé pour ce compte.' };
   }
-
-  return { ok: true as const, db, user: authData.user, profile: { ...profile, role: trustedRole, email_verified: true } };
-}
-
-export async function authenticatedUserDb(req: VercelRequest) {
-  const authorization = req.headers.authorization || '';
-  const jwt = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
-  if (!jwt) {
-    return { ok: false as const, status: 401, error: 'Session requise.' };
-  }
-  try {
-    const { url, key } = projectConfig();
-    const db = createClient(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false },
-      global: { headers: { Authorization: `Bearer ${jwt}` } },
-    });
-    const { data, error } = await db.auth.getUser(jwt);
-    if (error || !data.user) {
-      return { ok: false as const, status: 401, error: 'Session invalide ou expirée.' };
-    }
-    return { ok: true as const, db, user: data.user };
-  } catch (error: any) {
-    console.error('[auth] authenticated user lookup:', error?.message || error);
-    return { ok: false as const, status: 503, error: 'Service d’authentification temporairement indisponible.' };
-  }
+  return { ok: true as const, db, user: authData.user, profile: { role, email_verified: true } };
 }
 
 export function methodNotAllowed(res: VercelResponse, allowed: string[]) {

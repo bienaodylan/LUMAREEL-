@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../../context/AppContext';
-import { getAuthHeaders } from '../../../utils/authSession';
 import {
   MembershipCard,
   MembershipEdition,
@@ -64,7 +63,6 @@ export const AdminMembershipView: React.FC = () => {
   const [selectedCard, setSelectedCard] = useState<MembershipCard | null>(null);
   const [actionReason, setActionReason] = useState('');
   const [physicalTrackingInput, setPhysicalTrackingInput] = useState('');
-  const [rotatedQrToken, setRotatedQrToken] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -73,12 +71,11 @@ export const AdminMembershipView: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const headers = await getAuthHeaders();
       const [ovRes, cardsRes, plansRes, benefitsRes] = await Promise.all([
-        fetch('/api/membership/admin/overview', { credentials: 'include', headers }),
-        fetch('/api/membership/admin/cards', { credentials: 'include', headers }),
-        fetch('/api/membership/plans', { credentials: 'include', headers }),
-        fetch('/api/membership/benefits', { credentials: 'include', headers }),
+        fetch('/api/membership/admin/overview'),
+        fetch('/api/membership/admin/cards'),
+        fetch('/api/membership/plans'),
+        fetch('/api/membership/benefits'),
       ]);
 
       const [ovData, cardsData, plansData, benefitsData] = await Promise.all([
@@ -105,11 +102,9 @@ export const AdminMembershipView: React.FC = () => {
 
   const handleUpdateCardStatus = async (cardId: string, newStatus: 'active' | 'suspended' | 'revoked') => {
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/membership/admin/cards/${cardId}/status`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus, reason: actionReason || 'Décision administrative' }),
       });
       const data = await res.json();
@@ -125,11 +120,9 @@ export const AdminMembershipView: React.FC = () => {
 
   const handleUpdatePhysicalStatus = async (cardId: string, physicalStatus: 'in_production' | 'shipped' | 'delivered') => {
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/membership/admin/cards/${cardId}/physical-status`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ physicalStatus, trackingNumber: physicalTrackingInput.trim() }),
       });
       const data = await res.json();
@@ -145,18 +138,14 @@ export const AdminMembershipView: React.FC = () => {
 
   const handleRotateQrToken = async (cardId: string) => {
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/membership/admin/cards/${cardId}/rotate-token`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ actorId: 'ADMIN' }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || 'Erreur de rotation du jeton.');
-      if (!data.token || typeof data.token !== 'string') throw new Error('Le serveur n’a pas retourné le nouveau jeton.');
-      setRotatedQrToken(data.token);
-      showToast('Nouveau jeton QR généré. L’ancien jeton a été révoqué.', 'success');
+      showToast('Nouveau jeton QR généré. L’ancien jeton a été révoqué avec succès.', 'success');
       setSelectedCard(null);
       fetchDashboardData();
     } catch (err: any) {
@@ -194,7 +183,7 @@ export const AdminMembershipView: React.FC = () => {
             LUMARÉEL MEMBERSHIP
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Gestion des membres, des jetons QR révocables, des privilèges et des points de contrôle événementiels.
+            Gestion des 100 membres Founders, des jetons QR révocables, des privilèges et des points de contrôle événementiels.
           </p>
         </div>
 
@@ -259,11 +248,11 @@ export const AdminMembershipView: React.FC = () => {
                 <Crown className="w-4 h-4 text-[#d4af37]" />
               </div>
               <div className="font-mono text-2xl sm:text-3xl font-extrabold text-white">
-                {stats?.allocated || 0} <span className="text-base text-neutral-500 font-normal">/ {stats?.quota ?? 0}</span>
+                {stats?.allocated || 0} <span className="text-base text-neutral-500 font-normal">/ {stats?.quota || 100}</span>
               </div>
               <div className="text-[11px] text-neutral-400 flex items-center justify-between">
                 <span>Places restantes</span>
-                <strong className="text-[#d4af37] font-mono">{stats?.remainingQuota ?? 0}</strong>
+                <strong className="text-[#d4af37] font-mono">{stats?.remainingQuota || 100}</strong>
               </div>
             </div>
 
@@ -514,26 +503,26 @@ export const AdminMembershipView: React.FC = () => {
                   ÉDITION COMMERCIALE EN COURS
                 </span>
                 <h3 className="text-xl font-agrandir-extrabold uppercase text-white mt-1">
-                  {edition?.name || 'Aucune édition configurée'}
+                  {edition?.name || 'LUMARÉEL FOUNDERS EDITION'}
                 </h3>
               </div>
               <span className="px-3 py-1 rounded-full text-xs font-bold uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                {edition?.status?.toUpperCase() || 'NON CONFIGURÉE'}
+                {edition?.status?.toUpperCase() || 'ACTIVE'}
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <span className="text-neutral-400 block mb-1">Code Édition</span>
-                <strong className="font-mono text-white text-sm">{edition?.editionCode || '—'}</strong>
+                <strong className="font-mono text-white text-sm">{edition?.editionCode || 'FOUNDERS_2026'}</strong>
               </div>
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <span className="text-neutral-400 block mb-1">Quota Strict</span>
-                <strong className="font-mono text-[#d4af37] text-sm">{edition?.quota ?? '—'} membres max</strong>
+                <strong className="font-mono text-[#d4af37] text-sm">{edition?.quota || 100} membres max</strong>
               </div>
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <span className="text-neutral-400 block mb-1">Cartes Émises</span>
-                <strong className="font-mono text-white text-sm">{edition?.allocatedCount ?? 0} / {edition?.quota || 100}</strong>
+                <strong className="font-mono text-white text-sm">{edition?.allocatedCount || 0} / {edition?.quota || 100}</strong>
               </div>
             </div>
           </div>
@@ -707,22 +696,7 @@ export const AdminMembershipView: React.FC = () => {
         </div>
       )}
 
-      {rotatedQrToken && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-          <div className="w-full max-w-xl rounded-3xl border border-[#d4af37]/30 bg-[#101010] p-6 sm:p-8 space-y-5">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.2em] text-[#d4af37] font-bold">Sécurité Membership</div>
-              <h3 className="text-xl text-white font-agrandir-extrabold mt-1">Nouveau jeton QR</h3>
-              <p className="text-xs text-neutral-400 mt-2">Ce jeton est affiché une seule fois. Copiez-le et transmettez-le uniquement au service chargé de réencoder la carte.</p>
-            </div>
-            <div className="rounded-xl bg-black border border-white/10 p-4 font-mono text-xs text-white break-all select-text">{rotatedQrToken}</div>
-            <div className="flex flex-wrap justify-end gap-3">
-              <button type="button" onClick={() => { navigator.clipboard.writeText(rotatedQrToken).then(() => showToast('Jeton copié.', 'success')).catch(() => showToast('Copie impossible sur ce navigateur.', 'error')); }} className="px-4 py-2.5 rounded-xl bg-white text-black text-xs font-bold">Copier le jeton</button>
-              <button type="button" onClick={() => setRotatedQrToken(null)} className="px-4 py-2.5 rounded-xl border border-white/20 text-white text-xs font-bold">Fermer</button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
     </div>
   );

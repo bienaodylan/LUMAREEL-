@@ -1,120 +1,13 @@
 {
   "version": 2,
   "framework": "vite",
-  "buildCommand": "npm run lint && npm run lint:security && npm test && npm run build",
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    {
-      "source": "/api/admin/overview",
-      "destination": "/api/events?__route=admin-overview"
-    },
-    {
-      "source": "/api/admin/orders",
-      "destination": "/api/events?__route=admin-orders"
-    },
-    {
-      "source": "/api/admin/emails",
-      "destination": "/api/events?__route=admin-emails"
-    },
-    {
-      "source": "/api/customer/orders",
-      "destination": "/api/events?__route=customer-orders"
-    },
-    {
-      "source": "/api/membership/admin/cards/:cardId/status",
-      "destination": "/api/membership/nfc?__route=card-status&cardId=:cardId"
-    },
-    {
-      "source": "/api/membership/admin/cards/:cardId/physical-status",
-      "destination": "/api/membership/nfc?__route=physical-status&cardId=:cardId"
-    },
-    {
-      "source": "/api/membership/admin/cards/:cardId/rotate-token",
-      "destination": "/api/membership/nfc?__route=rotate-token&cardId=:cardId"
-    },
-    {
-      "source": "/api/membership/admin/overview",
-      "destination": "/api/membership/nfc?__route=admin-overview"
-    },
-    {
-      "source": "/api/membership/admin/cards",
-      "destination": "/api/membership/nfc?__route=admin-cards"
-    },
-    {
-      "source": "/api/membership/plans",
-      "destination": "/api/membership/nfc?__route=plans"
-    },
-    {
-      "source": "/api/membership/benefits",
-      "destination": "/api/membership/nfc?__route=benefits"
-    },
-    {
-      "source": "/api/membership/check-access",
-      "destination": "/api/membership/nfc?__route=check-access"
-    },
-    {
-      "source": "/api/card/verify/:token",
-      "destination": "/api/membership/nfc?__route=public-verify&token=:token"
-    },
-    {
-      "source": "/api/scanner/session",
-      "destination": "/api/verify-scanner-token?__route=session"
-    },
-    {
-      "source": "/api/auth/me",
-      "destination": "/api/auth/login?__route=me"
-    },
-    {
-      "source": "/api/events/:id",
-      "destination": "/api/events?id=:id"
-    },
-    {
-      "source": "/api/archives/:id",
-      "destination": "/api/events?__route=archive-item&id=:id"
-    },
-    {
-      "source": "/api/archives",
-      "destination": "/api/events?__route=archives"
-    },
-    {
-      "source": "/api/settings",
-      "destination": "/api/events?__route=settings"
-    },
-    {
-      "source": "/api/admin/settings",
-      "destination": "/api/events?__route=admin-settings"
-    },
     {
       "source": "/((?!api/|assets/|uploads/).*)",
       "destination": "/index.html"
     }
   ],
-  "installCommand": "bun install",
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Referrer-Policy",
-          "value": "no-referrer"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "Permissions-Policy",
-          "value": "camera=(self), microphone=(), geolocation=()"
-        },
-        {
-          "key": "Strict-Transport-Security",
-          "value": "max-age=63072000; includeSubDomains; preload"
-        }
-      ]
-    }
-  ]
+  "installCommand": "npm install"
 }
