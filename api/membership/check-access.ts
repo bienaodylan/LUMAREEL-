@@ -69,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: gate, error: gateError } = await db.from('scanner_tokens')
       .select('token,event_id,event_title,expires_at,is_revoked')
       .eq('token', scannerToken).eq('is_revoked', false).gt('expires_at', nowIso).maybeSingle();
-    if (gateError || !gate || (eventId !== 'all_events' && gate.event_id !== eventId)) {
+    if (gateError || !gate || gate.event_id !== eventId) {
       return res.status(403).json({ authorized: false, reason: 'Session de contrôle invalide, expirée ou non autorisée pour cet événement.', zone });
     }
 
