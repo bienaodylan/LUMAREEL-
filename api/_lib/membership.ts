@@ -246,8 +246,8 @@ async function handleMembershipAdmin(req: VercelRequest, res: VercelResponse, ro
     ]);
     const cardMap = new Map((recentCards.data || []).map((x: any) => [x.id, x]));
     const benefitMap = new Map((recentBenefits.data || []).map((x: any) => [x.id, x]));
-    const allocated = cards.length;
-    const quota = Number(activeEdition?.quota || 100);
+    const allocated = activeEdition ? cards.filter((card: any) => card.edition_id === activeEdition.id).length : 0;
+    const quota = Number(activeEdition?.quota || 0);
     const stats = {
       allocated, quota, remainingQuota: Math.max(0, quota - allocated),
       activeCards: cards.filter((x: any) => x.card_status === 'active').length,
