@@ -1235,8 +1235,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           logo_url: mergedSettings.logoUrl,
           currency: mergedSettings.currency,
           infoline: mergedSettings.infoline,
-          gate_token: mergedSettings.gateToken,
-          github_repo_url: mergedSettings.githubRepoUrl,
           updated_at: new Date().toISOString(),
         };
         await supabase.from('platform_settings').upsert(dbRow, { onConflict: 'id' });
