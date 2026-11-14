@@ -42,15 +42,35 @@ export const COUNTRIES_CATALOG: CountryOptionItem[] = [
 
 export const isValidRealEmail = (emailStr: string): boolean => {
   const email = emailStr.trim().toLowerCase();
-  if (!email || email.length < 5 || email.length > 254) return false;
-  const regex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
-  if (!regex.test(email)) return false;
+  if (email.length < 5 || email.length > 254) return false;
+
   const parts = email.split('@');
   if (parts.length !== 2) return false;
-  const domainParts = parts[1].split('.');
-  if (domainParts.length < 2) return false;
-  const tld = domainParts[domainParts.length - 1];
-  if (!tld || tld.length < 2) return false;
+  const [local, domain] = parts;
+  if (!local || local.length > 64 || !domain || domain.length > 253) return false;
+  if (local.startsWith('.') || local.endsWith('.') || local.includes('..')) return false;
+
+  const localSpecials = ".!#$%&'*+/=?^`{|}~-";
+  for (const char of local) {
+    const isLetter = char >= 'a' && char <= 'z';
+    const isDigit = char >= '0' && char <= '9';
+    if (!isLetter && !isDigit && !localSpecials.includes(char)) return false;
+  }
+
+  const labels = domain.split('.');
+  if (labels.length < 2 || labels[labels.length - 1].length < 2) return false;
+  for (const label of labels) {
+    if (!label || label.length > 63) return false;
+    const first = label[0];
+    const last = label[label.length - 1];
+    const isAlphaNumeric = (char: string) =>
+      (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9');
+    if (!isAlphaNumeric(first) || !isAlphaNumeric(last)) return false;
+    for (const char of label) {
+      if (!isAlphaNumeric(char) && char !== '-') return false;
+    }
+  }
+
   if (['test@test.com', 'a@a.com', 'test@example.com', 'fake@fake.com', 'mail@mail.com'].includes(email)) return false;
   return true;
 };

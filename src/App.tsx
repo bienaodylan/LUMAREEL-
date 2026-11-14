@@ -22,7 +22,7 @@ const LumareelMemberCardPage = lazy(() => import('./components/LumareelMemberCar
 const CardVerificationView = lazy(() => import('./components/CardVerificationView').then((m) => ({ default: m.CardVerificationView })));
 
 const MainApp: React.FC = () => {
-  const { currentPage, toast, platformSettings, currentUser } = useApp();
+  const { currentPage, toast, platformSettings } = useApp();
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
 
