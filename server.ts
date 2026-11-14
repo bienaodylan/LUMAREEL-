@@ -166,31 +166,52 @@ async function requireMemberAdmin(
   return resolved;
 }
 
-function getStorageUploadsDir(): string {
+async function getStorageUploadsDir(): Promise<string> {
   const dir = path.resolve(process.env.LUMAREEL_STORAGE_DIR || path.join(process.cwd(), 'storage', 'uploads'));
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-  }
-  if (process.env.LUMAREEL_STORAGE_DIR) {
-    return dir;
-  }
-  const legacyDir = path.resolve(process.cwd(), 'public', 'uploads');
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+
+  // Migrate legacy uploads without serving unverified files from public/.
+  const legacyDir = path.resolve(
+    process.env.LUMAREEL_LEGACY_UPLOADS_DIR || path.join(process.cwd(), 'public', 'uploads')
+  );
+  const quarantineDir = path.resolve(
+    process.env.LUMAREEL_QUARANTINE_DIR || path.join(path.dirname(dir), 'quarantine')
+  );
+
   if (fs.existsSync(legacyDir)) {
-    try {
-      for (const file of fs.readdirSync(legacyDir)) {
-        const src = path.join(legacyDir, file);
-        const dest = path.join(dir, file);
-        if (fs.statSync(src).isFile() && !fs.existsSync(dest)) {
-          fs.renameSync(src, dest);
+    for (const file of fs.readdirSync(legacyDir)) {
+      const src = path.join(legacyDir, file);
+      try {
+        const stat = fs.lstatSync(src);
+        if (!stat.isFile()) continue;
+
+        const original = fs.readFileSync(src);
+        const validated = await validateAndSanitizeImage(original);
+
+        if (validated.ok) {
+          const filename = crypto.randomUUID() + validated.ext;
+          const destination = path.join(dir, filename);
+          fs.writeFileSync(destination, validated.buffer, { mode: 0o600, flag: 'wx' });
+          fs.unlinkSync(src);
+        } else {
+          fs.mkdirSync(quarantineDir, { recursive: true, mode: 0o700 });
+          let quarantinedName = Date.now() + '-' + file;
+          let destination = path.join(quarantineDir, quarantinedName);
+          if (fs.existsSync(destination)) {
+            quarantinedName = crypto.randomUUID() + '-' + file;
+            destination = path.join(quarantineDir, quarantinedName);
+          }
+          fs.renameSync(src, destination);
         }
+      } catch (err) {
+        // Preserve the original file if inspection or migration fails.
+        console.error('[Uploads Migration] Fichier conservé, migration impossible:', file, err);
       }
-    } catch (err) {
-      console.warn('[Uploads Migration]', err);
     }
   }
+
   return dir;
 }
-
 export async function createApp() {
   assertBootSecurityConfig();
 
@@ -216,7 +237,7 @@ export async function createApp() {
     next();
   });
 
-  const storageUploadsDir = getStorageUploadsDir();
+  const storageUploadsDir = await getStorageUploadsDir();
 
   // Raw body route MUST be registered BEFORE express.json() for HMAC signature validation
   app.post(
