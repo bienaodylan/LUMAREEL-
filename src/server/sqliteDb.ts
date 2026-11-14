@@ -1096,7 +1096,6 @@ class LumareelSqliteStore {
               createdAt: existing.created_at,
             },
           };
-        }
       }
 
       this.ensureWalletAccount(params.cardId, 0, params.currency);
@@ -1208,7 +1207,6 @@ class LumareelSqliteStore {
               createdAt: existing.created_at,
             },
           };
-        }
       }
 
       this.ensureWalletAccount(params.cardId, 0, params.currency);
