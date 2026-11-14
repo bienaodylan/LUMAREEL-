@@ -1,4 +1,4 @@
-import { ConcertEvent } from '../types';
+import { ConcertEvent } from '../types/index.ts';
 
 /**
  * Délai d'alerte avant le début du concert : 30 minutes en millisecondes.
