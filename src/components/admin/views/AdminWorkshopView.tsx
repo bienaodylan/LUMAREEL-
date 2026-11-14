@@ -43,12 +43,8 @@ import {
   ChipInventoryItem,
   WalletTransaction,
 } from '../../../types';
-import { useApp } from '../../../context/AppContext';
-import { getAuthHeaders } from '../../../utils/authSession';
-import { formatCsvCell } from '../../../utils/csvSanitizer';
 
 export const AdminWorkshopView: React.FC = () => {
-  const { showToast } = useApp();
   const [activeTab, setActiveTab] = useState<'encoder' | 'pos' | 'inventory' | 'lifecycle' | 'logs'>('encoder');
 
   // Données principales
@@ -127,8 +123,7 @@ export const AdminWorkshopView: React.FC = () => {
 
   const fetchCards = async () => {
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/membership/admin/cards', { credentials: 'include', headers });
+      const res = await fetch('/api/membership/admin/cards');
       const data = await res.json();
       if (data.success && data.cards) {
         setCards(data.cards);
@@ -148,8 +143,7 @@ export const AdminWorkshopView: React.FC = () => {
 
   const fetchChipInventory = async () => {
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/membership/admin/inventory/chips', { credentials: 'include', headers });
+      const res = await fetch('/api/membership/admin/inventory/chips');
       const data = await res.json();
       if (data.success && data.chips) {
         setChipInventory(data.chips);
@@ -161,8 +155,7 @@ export const AdminWorkshopView: React.FC = () => {
 
   const fetchWalletTransactions = async () => {
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/membership/admin/wallet-transactions', { credentials: 'include', headers });
+      const res = await fetch('/api/membership/admin/wallet-transactions');
       const data = await res.json();
       if (data.success && data.transactions) {
         setWalletTransactions(data.transactions);
@@ -174,8 +167,7 @@ export const AdminWorkshopView: React.FC = () => {
 
   const fetchLogs = async () => {
     try {
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/membership/admin/chip-logs', { credentials: 'include', headers });
+      const res = await fetch('/api/membership/admin/chip-logs');
       const data = await res.json();
       if (data.success && data.logs) {
         setLogs(data.logs);
@@ -222,11 +214,9 @@ export const AdminWorkshopView: React.FC = () => {
     setEncodeSuccessMessage(null);
 
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/membership/cards/${selectedCardId}/encode-chip`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chipUid: detectedChipUid.trim().toUpperCase(),
           chipType: 'NXP_DESFire_EV3',
@@ -264,11 +254,9 @@ export const AdminWorkshopView: React.FC = () => {
     setPosSuccessReceipt(null);
 
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch('/api/membership/pos/charge', {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cardId: posCardId,
           amount: Number(posAmount),
@@ -298,11 +286,9 @@ export const AdminWorkshopView: React.FC = () => {
     setRechargeSuccess(null);
 
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/membership/admin/cards/${rechargeCardId}/wallet/recharge`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: Number(rechargeAmount),
           paymentMethod: 'Carte Bancaire / Espèces',
@@ -328,11 +314,9 @@ export const AdminWorkshopView: React.FC = () => {
 
     setIsAddingChip(true);
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch('/api/membership/admin/inventory/chips', {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chipUid: newChipUidInput.trim().toUpperCase(),
           batchNumber: newChipBatchInput.trim().toUpperCase(),
@@ -343,10 +327,9 @@ export const AdminWorkshopView: React.FC = () => {
       const data = await res.json();
       if (res.ok && data.success) {
         setNewChipUidInput('');
-        showToast('Puce enregistrée en stock.', 'success');
         await fetchChipInventory();
       } else {
-        showToast(data.error || 'Erreur lors de l\'enregistrement de la puce.', 'error');
+        alert(data.error || 'Erreur lors de l\'enregistrement de la puce.');
       }
     } finally {
       setIsAddingChip(false);
@@ -365,11 +348,9 @@ export const AdminWorkshopView: React.FC = () => {
     }));
 
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch('/api/membership/admin/inventory/chips/batch-import', {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items }),
       });
       const data = await res.json();
@@ -388,11 +369,9 @@ export const AdminWorkshopView: React.FC = () => {
     if (!revokeModalCard) return;
     setIsRevoking(true);
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/membership/admin/cards/${revokeModalCard.id}/revoke-chip`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           reason: revokeReason,
           notes: revokeNotes,
@@ -414,11 +393,9 @@ export const AdminWorkshopView: React.FC = () => {
     if (!replaceModalCard || !replaceNewChipUid.trim()) return;
     setIsReplacing(true);
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/membership/admin/cards/${replaceModalCard.id}/replace-chip`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           newChipUid: replaceNewChipUid.trim().toUpperCase(),
           reason: replaceReason,
@@ -428,10 +405,9 @@ export const AdminWorkshopView: React.FC = () => {
       if (res.ok && data.success) {
         setReplaceModalCard(null);
         setReplaceNewChipUid('');
-        showToast('Nouvelle puce associée avec succès.', 'success');
         await Promise.all([fetchCards(), fetchChipInventory(), fetchLogs()]);
       } else {
-        showToast(data.error || 'Erreur lors du remplacement de la puce.', 'error');
+        alert(data.error || 'Erreur lors du remplacement de la puce.');
       }
     } finally {
       setIsReplacing(false);
@@ -459,22 +435,22 @@ export const AdminWorkshopView: React.FC = () => {
     const rows = logs.map((l) => {
       const d = l.details || {};
       return [
-        formatCsvCell(l.id),
-        formatCsvCell(l.createdAt),
-        formatCsvCell(d.cardNumber || ''),
-        formatCsvCell(d.cardholderName || ''),
-        formatCsvCell(d.cardholderEmail || ''),
-        formatCsvCell(d.chipUid || ''),
-        formatCsvCell(d.chipType || 'NXP_DESFire_EV3'),
-        formatCsvCell(d.action || l.actionType),
-        formatCsvCell(l.actorId || ''),
-        formatCsvCell(d.terminal || ''),
-        formatCsvCell(d.lockStatus || 'locked_aes128'),
-        formatCsvCell(d.verificationStatus || 'VERIFIED_ACTIVE'),
+        `"${l.id}"`,
+        `"${l.createdAt}"`,
+        `"${d.cardNumber || ''}"`,
+        `"${(d.cardholderName || '').replace(/"/g, '""')}"`,
+        `"${d.cardholderEmail || ''}"`,
+        `"${d.chipUid || ''}"`,
+        `"${d.chipType || 'NXP_DESFire_EV3'}"`,
+        `"${d.action || l.actionType}"`,
+        `"${(l.actorId || '').replace(/"/g, '""')}"`,
+        `"${(d.terminal || '').replace(/"/g, '""')}"`,
+        `"${d.lockStatus || 'locked_aes128'}"`,
+        `"${d.verificationStatus || 'VERIFIED_ACTIVE'}"`
       ].join(';');
     });
 
-    const csvContent = '\uFEFF' + [headers.map((h) => formatCsvCell(h)).join(';'), ...rows].join('\r\n');
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows].join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');

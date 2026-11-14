@@ -1,27 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { MembershipEdition, MembershipPlan, MembershipCard } from '../types';
-import heroPortraitImg from '../assets/images/black_card_hero_portrait_1794664559137.jpg';
-import backstageFriendsImg from '../assets/images/backstage_friends_moment_1794664561231.jpg';
-import concertStageImg from '../assets/images/concert_stage_atmosphere_1794664559978.jpg';
+import { DigitalMembershipCard } from './DigitalMembershipCard';
 import {
-  ArrowRight,
-  Check,
-  CheckCircle2,
-  ChevronRight,
-  Globe,
-  Lock,
-  QrCode,
-  Quote,
-  Radio,
-  RotateCw,
+  CreditCard,
   ShieldCheck,
-  Smartphone,
+  Zap,
+  Sparkles,
+  Lock,
+  ArrowRight,
+  Crown,
+  CheckCircle2,
+  Box,
+  RotateCw,
+  Coins,
   Ticket,
-  User,
-  Wallet,
-  Wifi,
+  ChevronRight,
   X,
+  Star,
+  Volume2,
+  Bell,
+  User,
+  Check,
+  Radio,
+  Flame,
+  Award,
+  Calendar,
+  Compass,
+  KeyRound,
+  Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -36,21 +43,18 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   hasActiveCard = false,
   activeCardNumber,
 }) => {
-  const { currentUser, setCurrentPage, setIsAuthModalOpen, showToast } = useApp();
+  const { currentUser, setCurrentPage, showToast } = useApp();
 
-  // Édition & formules backend
+  // Edition & Plans data
   const [edition, setEdition] = useState<MembershipEdition | null>(null);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Personnalisation en direct de la carte
-  const [customName, setCustomName] = useState(currentUser?.name || '');
-  const [isEditingCardName, setIsEditingCardName] = useState(false);
+  // Live personalization name
+  const [customName, setCustomName] = useState(currentUser?.name || 'AURELIA VANCE');
 
-  // Modale d'information légale / produit (pour liens du footer)
-  const [infoModal, setInfoModal] = useState<{ title: string; body: string } | null>(null);
-
-  // Tunnel de commande / d'admission en plusieurs étapes
+  // Multi-step Admission Wizard
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [applicantName, setApplicantName] = useState(currentUser?.name || '');
@@ -60,9 +64,13 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const [applicantAddress, setApplicantAddress] = useState('Cocody Danga');
   const [musicInterest, setMusicInterest] = useState('Afrobeats & Live Acoustic');
   const [referralCode, setReferralCode] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'wave' | 'orange_money' | 'mtn_momo' | 'djamo' | 'card'>('card');
+  const [paymentMethod, setPaymentMethod] = useState<'wave' | 'orange_money' | 'mtn_momo' | 'djamo' | 'card'>('wave');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [issuedResult, setIssuedResult] = useState<{ card: MembershipCard } | null>(null);
+  const [issuedResult, setIssuedResult] = useState<{ card: MembershipCard; qrDataUrl: string } | null>(null);
+
+  // Interactive Vault token rotation animation
+  const [isTokenActive, setIsTokenActive] = useState(false);
+  const [tokenCounter, setTokenCounter] = useState(84);
 
   useEffect(() => {
     fetchEditionAndPlans();
@@ -80,6 +88,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
   const fetchEditionAndPlans = async () => {
     try {
+      setLoading(true);
       const res = await fetch('/api/membership/editions');
       const data = await res.json();
       if (data.success) {
@@ -91,12 +100,14 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       }
     } catch (err) {
       console.error('Error fetching membership data:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
   const openAdmissionWizard = (plan?: MembershipPlan) => {
     if (plan) setSelectedPlan(plan);
-    setApplicantName((customName.trim() || currentUser?.name || 'ELENA V. MOREAU').toUpperCase());
+    setApplicantName(customName.trim() || currentUser?.name || '');
     setApplicantEmail(currentUser?.email || '');
     setWizardStep(1);
     setIsWizardOpen(true);
@@ -105,7 +116,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const handleCompleteAdmission = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!applicantName.trim() || !applicantEmail.trim()) {
-      showToast('Please enter your full name and email address.', 'error');
+      showToast('Veuillez renseigner votre nom complet et votre adresse e-mail.', 'error');
       return;
     }
 
@@ -120,27 +131,27 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
           customerEmail: applicantEmail.trim(),
           customerPhone: applicantPhone.trim(),
           shippingAddress: {
-            street: applicantAddress.trim() || 'Express Delivery',
+            street: applicantAddress.trim() || 'Livraison à domicile',
             city: applicantCity.trim() || 'Abidjan',
-            country: 'Global',
+            country: 'Côte d’Ivoire',
           },
           paymentMethod,
-          paymentReference: `LMR-BLK-${Date.now()}`,
+          paymentReference: `DEMANDE-ADM-${Date.now()}`,
           userId: currentUser?.id,
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Unable to process your Black Card order.');
+        throw new Error(data.error || 'Impossible de valider votre demande d’admission.');
       }
 
-      setIssuedResult({ card: data.card });
+      setIssuedResult({ card: data.card, qrDataUrl: data.qrDataUrl });
       setWizardStep(5);
-      showToast('Your LUMARÉEL Black Card order is confirmed.', 'success');
+      showToast('Félicitations ! Votre admission à la LUMARÉEL Black Card a été confirmée.', 'success');
       fetchEditionAndPlans();
     } catch (err: any) {
-      showToast(err.message || 'Error while processing your order.', 'error');
+      showToast(err.message || 'Erreur lors du traitement de votre admission.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -151,895 +162,691 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const remaining = Math.max(0, quota - allocated);
   const isSoldOut = remaining === 0 || edition?.status === 'sold_out';
 
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Preview card model for 3D card component
+  const previewCard: MembershipCard = {
+    id: 'crd_black_card_preview',
+    userId: currentUser?.id || 'usr_preview',
+    planId: selectedPlan?.id || 'plan_founders_annual',
+    editionId: edition?.id || 'ed_founders_2026',
+    cardNumber: `LMR-2026-00${String(allocated + 1).padStart(2, '0')}`,
+    cardSequence: allocated + 1,
+    cardholderName: customName.trim() || 'AURELIA VANCE',
+    cardholderEmail: applicantEmail || 'aurelia@lumareel.com',
+    cardStatus: 'active',
+    issuedAt: new Date().toISOString(),
+    validFrom: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
+    physicalCardStatus: 'approved',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
 
-  const cardDisplayName = (customName.trim() || 'ELENA V. MOREAU').toUpperCase();
-  const engravedPlaceholderName = customName.trim() ? customName.trim().toUpperCase() : 'YOUR NAME HERE';
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
 
   return (
-    <div className="w-full min-h-screen bg-[#050505] text-[#F5F5F5] font-agrandir-regular selection:bg-[#D4B475] selection:text-black">
-
+    <div className="w-full min-h-screen bg-[#050505] text-[#EDEDED] font-agrandir-regular selection:bg-[#d4af37] selection:text-black">
+      
       {/* ========================================================================= */}
-      {/* 1. TOP NAVIGATION BAR (EXACT MATCH TO MOCKUP, DARK MODE)                  */}
+      {/* 1. TOP HEADER (LUMARÉEL BLACK CARD · NOTIFICATIONS · AVATAR)              */}
       {/* ========================================================================= */}
-      <header className="sticky top-0 z-30 w-full bg-[#050505]/90 backdrop-blur-md border-b border-white/[0.08]">
-        <div className="max-w-[1140px] mx-auto px-5 sm:px-8 h-16 flex items-center justify-between gap-6">
+      <header className="w-full border-b border-white/5 bg-[#050505]/90 backdrop-blur-md sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+          
+          {/* Brand Wordmark with subtle gold icon */}
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 flex items-center justify-center rounded-md bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#d4af37]">
+              <Crown className="w-4 h-4 text-[#d4af37]" />
+            </div>
+            <div className="leading-none text-left">
+              <div className="font-agrandir-extrabold text-sm tracking-wider uppercase text-white">
+                LUMARÉEL
+              </div>
+              <div className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
+                BLACK CARD
+              </div>
+            </div>
+          </div>
 
-          {/* Brand Zone */}
-          <button
-            type="button"
-            onClick={() => scrollToSection('hero-section')}
-            className="flex items-center gap-2 cursor-pointer shrink-0 whitespace-nowrap"
-          >
-            <span className="font-agrandir-extrabold text-base sm:text-lg tracking-[0.06em] text-white uppercase">
-              LUMARÉEL
-            </span>
-            <span className="px-2 py-0.5 rounded bg-[#141414] border border-[#D4B475]/30 text-[9px] font-mono tracking-[0.16em] text-[#D4B475] uppercase">
-              BLACK
-            </span>
-          </button>
-
-          {/* Center Nav Links */}
-          <nav className="hidden md:flex items-center gap-7 text-[13px] text-[#A3A3A3] font-medium">
-            <button
-              type="button"
-              onClick={() => scrollToSection('hero-section')}
-              className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              The Card
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('how-it-works')}
-              className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              How it Works
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('benefits-section')}
-              className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              Benefits
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollToSection('get-black-card')}
-              className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              Get Black Card
-            </button>
-          </nav>
-
-          {/* Right Action Zone */}
-          <div className="flex items-center gap-3 shrink-0">
-            {hasActiveCard && onGoToWallet ? (
+          {/* Quick status & Actions */}
+          <div className="flex items-center gap-3">
+            {hasActiveCard && onGoToWallet && (
               <button
                 type="button"
                 onClick={onGoToWallet}
-                className="hidden sm:inline-flex items-center gap-1.5 text-xs text-[#D4B475] hover:text-white transition-colors whitespace-nowrap cursor-pointer"
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#d4af37]/15 hover:bg-[#d4af37]/25 border border-[#d4af37]/35 text-[10px] font-agrandir-bold text-[#d4af37] uppercase tracking-wider transition-all cursor-pointer"
               >
-                <Wallet className="w-3.5 h-3.5" />
-                <span>Wallet ({activeCardNumber || 'Active'})</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => (currentUser ? setCurrentPage('profile') : setIsAuthModalOpen(true))}
-                className="hidden sm:inline-block text-xs text-[#CCCCCC] hover:text-white transition-colors whitespace-nowrap cursor-pointer px-2 py-1.5"
-              >
-                {currentUser ? currentUser.name.split(' ')[0] : 'Sign In'}
+                <span>Mon Pass Actif ({activeCardNumber || 'Membre'})</span>
               </button>
             )}
 
             <button
               type="button"
-              onClick={() => openAdmissionWizard(plans[0])}
-              disabled={isSoldOut}
-              className="px-4 sm:px-5 py-2.5 rounded-full bg-white hover:bg-[#D4B475] text-[#050505] font-agrandir-bold text-xs transition-colors whitespace-nowrap shrink-0 cursor-pointer disabled:opacity-40"
+              onClick={() => showToast('Vous êtes à jour dans vos notifications de membre.', 'info')}
+              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-neutral-300 hover:text-white transition-colors cursor-pointer relative"
+              aria-label="Notifications"
             >
-              Get Your Black Card
+              <Bell className="w-4 h-4 text-neutral-300" />
+              <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] absolute top-2 right-2" />
             </button>
 
-            <button
-              type="button"
-              onClick={() => (currentUser ? setCurrentPage('profile') : setIsAuthModalOpen(true))}
-              aria-label="Account"
-              className="w-9 h-9 rounded-full bg-[#141414] border border-white/15 hover:border-[#D4B475]/50 flex items-center justify-center text-white transition-colors shrink-0 cursor-pointer"
-            >
-              <User className="w-4 h-4" />
-            </button>
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-[#d4af37]/40 bg-gradient-to-br from-neutral-800 to-black flex items-center justify-center text-xs font-agrandir-bold text-[#d4af37]">
+              {currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'AV'}
+            </div>
           </div>
-
         </div>
       </header>
 
       {/* ========================================================================= */}
-      {/* 2. HERO SECTION — SPLIT 2-COLUMN LAYOUT WITH PHOTO MOSAIC & CARD OVERLAY  */}
+      {/* 2. HERO SECTION — "YOUR WORLD. YOUR ACCESS." (DESIGN EXACT DE L'IMAGE)    */}
       {/* ========================================================================= */}
-      <section id="hero-section" className="pt-12 pb-20 sm:pt-16 sm:pb-24">
-        <div className="max-w-[1140px] mx-auto px-5 sm:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-10 items-center">
+      <section className="relative pt-12 pb-16 sm:pt-16 sm:pb-24 border-b border-white/5 text-center overflow-hidden">
+        {/* Warm golden ambient glow */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[340px] bg-[#d4af37]/12 blur-[130px] pointer-events-none rounded-full" />
 
-            {/* Left Column */}
-            <div className="lg:col-span-6 space-y-6 text-left">
-              {/* Top Kicker Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#111111] border border-white/10 text-[10px] font-mono tracking-[0.14em] text-[#D4D4D4] uppercase">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#C8FF3D]" />
-                <span>THE PHYSICAL PASS FOR MUSIC LOVERS</span>
-              </div>
-
-              {/* Hero Display Title */}
-              <h1 className="text-[44px] sm:text-[56px] lg:text-[60px] font-agrandir-extrabold uppercase tracking-tight leading-[0.96] text-white text-balance">
-                YOUR DIGITAL <br />
-                WORLD. <span className="text-[#D4B475]">IN YOUR</span> <br />
-                <span className="text-[#D4B475]">HANDS.</span>
-              </h1>
-
-              {/* Subtitle */}
-              <p className="text-[14px] sm:text-[15px] text-[#9A9A9A] font-light leading-relaxed max-w-[430px]">
-                Your Lumaréel concerts, orders, and digital activities, represented by one beautiful physical card. Pure tactile luxury crafted for the live-stage generation.
-              </p>
-
-              {/* CTA Buttons */}
-              <div className="pt-1 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => openAdmissionWizard(plans[0])}
-                  disabled={isSoldOut}
-                  className="px-6 py-3.5 rounded-full bg-white hover:bg-[#D4B475] text-[#050505] font-agrandir-bold text-xs tracking-wide transition-colors cursor-pointer whitespace-nowrap shrink-0 disabled:opacity-40"
-                >
-                  {isSoldOut ? 'Edition Sold Out' : 'Get Your Black Card'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => scrollToSection('benefits-section')}
-                  className="px-6 py-3.5 rounded-full bg-[#121212] hover:bg-[#1B1B1B] border border-white/15 text-white font-agrandir-semibold text-xs tracking-wide transition-colors cursor-pointer whitespace-nowrap shrink-0"
-                >
-                  Discover the Benefits
-                </button>
-              </div>
-
-              {/* 01 02 03 Synchronized Stat Strip */}
-              <div className="pt-3 flex items-center gap-3">
-                <div className="flex items-center -space-x-1.5">
-                  <span className="w-6 h-6 rounded-full bg-[#1F1F1F] border border-[#050505] flex items-center justify-center text-[9px] font-mono font-bold text-[#A3A3A3]">
-                    01
-                  </span>
-                  <span className="w-6 h-6 rounded-full bg-[#E5E5E5] border border-[#050505] flex items-center justify-center text-[9px] font-mono font-bold text-[#050505]">
-                    02
-                  </span>
-                  <span className="w-6 h-6 rounded-full bg-[#D4B475] border border-[#050505] flex items-center justify-center text-[9px] font-mono font-bold text-[#050505]">
-                    03
-                  </span>
-                </div>
-                <span className="text-xs text-[#888888]">
-                  Synchronized with 42,000+ member concert libraries globally
-                </span>
-              </div>
-            </div>
-
-            {/* Right Column: Bento Photo Collage + Overlapping Black Card */}
-            <div className="lg:col-span-6 relative lg:pl-6">
-              <div className="relative rounded-[28px] bg-[#111111] border border-white/10 p-2.5 shadow-[0_32px_90px_rgba(0,0,0,0.85)]">
-
-                {/* 3-Photo Mosaic Grid */}
-                <div className="grid grid-cols-12 gap-2 h-[340px] sm:h-[400px]">
-                  <div className="col-span-5 flex flex-col gap-2">
-                    <div className="flex-1 rounded-2xl overflow-hidden bg-[#181818]">
-                      <img
-                        src={concertStageImg}
-                        alt="Live concert lighting"
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover brightness-90"
-                      />
-                    </div>
-                    <div className="flex-1 rounded-2xl overflow-hidden bg-[#181818]">
-                      <img
-                        src={backstageFriendsImg}
-                        alt="Members enjoying live venue lounge"
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover brightness-90"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="col-span-7 rounded-2xl overflow-hidden bg-[#181818]">
-                    <img
-                      src={heroPortraitImg}
-                      alt="Lumaréel Black Card member evening"
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover object-top brightness-90"
-                    />
-                  </div>
-                </div>
-
-                {/* Bottom Bar Inside Photo Frame */}
-                <div className="mt-2 rounded-xl bg-[#181818] border border-white/[0.08] px-4 py-3 flex items-center justify-end">
-                  <span className="text-[10px] font-mono tracking-[0.18em] text-[#C8FF3D] uppercase">
-                    VERIFIED
-                  </span>
-                </div>
-              </div>
-
-              {/* Overlapping Floating Physical Black Card (Bottom-Left) */}
-              <div className="relative sm:absolute sm:-left-4 sm:-bottom-4 mt-5 sm:mt-0 w-full max-w-[300px] mx-auto sm:mx-0">
-                <div
-                  className="w-full rounded-[18px] bg-gradient-to-br from-[#1F1F1D] via-[#0D0D0C] to-[#040404] border border-white/20 p-5 shadow-[0_28px_70px_rgba(0,0,0,0.95)] relative overflow-hidden"
-                  style={{ aspectRatio: '85.6 / 53.98' }}
-                >
-                  {/* Subtle metallic sheen */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.04] to-transparent pointer-events-none" />
-
-                  <div className="relative z-10 h-full flex flex-col justify-between text-left">
-                    {/* Card Top Row */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-agrandir-extrabold text-xs tracking-[0.08em] text-white uppercase">
-                          LUMARÉEL
-                        </span>
-                        <span className="text-[8px] font-mono text-[#D4B475] uppercase tracking-wider">
-                          BLACK
-                        </span>
-                      </div>
-                      <div className="w-6 h-6 rounded-full border border-white/15 bg-white/5 flex items-center justify-center">
-                        <Globe className="w-3 h-3 text-[#CCCCCC]" />
-                      </div>
-                    </div>
-
-                    {/* EMV Gold Chip + Label */}
-                    <div className="flex items-center gap-3 my-auto">
-                      <div className="w-9 h-7 rounded-[5px] bg-gradient-to-br from-[#F0DB9B] via-[#C8A65C] to-[#8C6D2F] border border-black/40 p-1 grid grid-cols-3 gap-0.5 shadow-inner shrink-0">
-                        <div className="border-r border-b border-black/30" />
-                        <div className="border-b border-black/30" />
-                        <div className="border-l border-b border-black/30" />
-                        <div className="border-r border-black/30" />
-                        <div className="bg-black/15" />
-                        <div className="border-l border-black/30" />
-                      </div>
-                      <span className="text-[8px] font-mono tracking-[0.18em] text-[#9A9A9A] uppercase">
-                        PHYSICAL PASS
-                      </span>
-                    </div>
-
-                    {/* Card Bottom Row */}
-                    <div className="flex items-end justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="text-[7px] font-mono text-[#777777] uppercase tracking-[0.18em]">
-                          PASS HOLDER
-                        </div>
-                        <div className="text-[11px] font-agrandir-bold text-white uppercase tracking-wider truncate mt-0.5">
-                          {cardDisplayName}
-                        </div>
-                      </div>
-
-                      <div className="text-right shrink-0">
-                        <div className="text-[7px] font-mono text-[#C8FF3D] uppercase tracking-wider">
-                          SYNCED
-                        </div>
-                        <div className="text-[10px] font-mono text-[#CCCCCC] tabular-nums mt-0.5">
-                          #9841-82
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 relative z-10 space-y-6">
+          
+          {/* Subtle Tag Indicator */}
+          <div className="inline-flex items-center gap-2 text-[10px] font-agrandir-bold tracking-[0.25em] text-[#d4af37] uppercase">
+            <span className="w-2 h-2 rounded-full bg-[#d4af37]" />
+            <span>PRÉSENTATION DE LA LUMARÉEL BLACK CARD</span>
           </div>
+
+          {/* Headline Monumental */}
+          <h1 className="text-4xl sm:text-6xl font-agrandir-extrabold uppercase tracking-tight text-white leading-[1.05]">
+            VOTRE MONDE. <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f5e6b3] to-[#d4af37]">
+              VOTRE ACCÈS.
+            </span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-sm sm:text-base text-neutral-300 font-light leading-relaxed max-w-xl mx-auto">
+            Bien plus qu’une carte. Votre passerelle exclusive vers des concerts inoubliables, des accès coulisses privilégiés et l'hospitalité privée d'un cercle d'initiés.
+          </p>
+
+          {/* Two Prominent Action Buttons (Couleurs Noir, Blanc, Or) */}
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
+            <button
+              type="button"
+              onClick={() => scrollToSection('section-card-showcase')}
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-[#d4af37] via-[#e5c04b] to-[#d4af37] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all duration-300 shadow-[0_0_25px_rgba(212,175,55,0.35)] hover:brightness-110 active:scale-95 cursor-pointer"
+            >
+              DÉCOUVRIR LA CARTE
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openAdmissionWizard(plans[0])}
+              className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/20 text-white font-agrandir-extrabold text-xs tracking-wider uppercase transition-all duration-300 hover:border-[#d4af37]/60 active:scale-95 cursor-pointer"
+            >
+              DEMANDER MON ADMISSION
+            </button>
+          </div>
+
+          {/* 3D Black Card Visual & Label */}
+          <div id="section-card-showcase" className="pt-8 sm:pt-10 flex flex-col items-center">
+            <div className="w-full max-w-[420px]">
+              <DigitalMembershipCard card={previewCard} />
+            </div>
+
+            {/* Label caption underneath */}
+            <div className="mt-4 inline-flex items-center gap-2 text-[10px] font-mono tracking-widest text-neutral-400 uppercase">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37]" />
+              <span>COMPOSITE NOIR PROFOND & OR · 16G</span>
+            </div>
+
+            {/* Live Name Input to personalize */}
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs">
+              <span className="text-[11px] text-neutral-500">Personnaliser votre gravure :</span>
+              <input
+                type="text"
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value.toUpperCase())}
+                placeholder="VOTRE NOM"
+                maxLength={28}
+                className="bg-black/60 border-b border-[#d4af37]/50 text-[#d4af37] text-xs font-mono uppercase px-2 py-0.5 outline-hidden tracking-widest"
+              />
+            </div>
+          </div>
+
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* 3. HOW IT WORKS — "Your digital experiences, made physical."              */}
+      {/* 3. SECTION "BACKSTAGE SOCIETY" / "MADE FOR THE MOMENTS THAT MATTER"       */}
       {/* ========================================================================= */}
-      <section id="how-it-works" className="py-12 sm:py-16">
-        <div className="max-w-[1140px] mx-auto px-5 sm:px-8">
-          <div className="rounded-[32px] bg-[#0B0B0B] border border-white/[0.08] p-6 sm:p-12 lg:p-14 space-y-10">
-
-            {/* Section Header */}
-            <div className="max-w-xl space-y-3 text-left">
-              <div className="text-[10px] font-mono tracking-[0.2em] text-[#888888] uppercase">
-                HOW IT WORKS
-              </div>
-              <h2 className="text-3xl sm:text-[38px] font-agrandir-extrabold tracking-tight text-white leading-[1.08]">
-                Your digital experiences, <br />
-                made physical.
-              </h2>
-              <p className="text-xs sm:text-sm text-[#9A9A9A] font-light leading-relaxed">
-                The Lumaréel Black Card is the physical representation of your digital concert purchases and activities on Lumaréel. It binds your digital ticket purchases, stage orders, and priority check-ins into one piece of tactile craftsmanship.
-              </p>
-            </div>
-
-            {/* Top Bento Row: Digital Ticket Sync (7 cols) + Laser-Etched Backplate (5 cols) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 text-left">
-
-              {/* Left Card: Digital Concert Ticket Sync */}
-              <div className="lg:col-span-7 rounded-3xl bg-[#131313] border border-white/[0.08] p-6 sm:p-7 flex flex-col justify-between space-y-5">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#1C1C1C] border border-white/10 flex items-center justify-center text-[#CCCCCC] shrink-0">
-                      <Smartphone className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs sm:text-sm font-agrandir-bold text-white">
-                        Digital Concert Ticket Sync
-                      </div>
-                      <div className="text-[11px] text-[#888888]">
-                        Live wallet synchronicity
-                      </div>
-                    </div>
-                  </div>
-
-                  <span className="px-2.5 py-1 rounded-full bg-[#C8FF3D]/15 border border-[#C8FF3D]/30 text-[9px] font-mono tracking-widest text-[#C8FF3D] uppercase whitespace-nowrap">
-                    TAP &amp; GO
-                  </span>
-                </div>
-
-                {/* Inner Active Concert Order Box */}
-                <div className="rounded-2xl bg-[#090909] border border-white/[0.08] p-5 space-y-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <div className="text-[9px] font-mono tracking-[0.18em] text-[#777777] uppercase">
-                        ACTIVE CONCERT ORDER
-                      </div>
-                      <div className="text-base sm:text-lg font-agrandir-bold text-white mt-1">
-                        The Neon Horizon World Tour
-                      </div>
-                    </div>
-                    <div className="w-9 h-9 rounded-lg bg-[#161616] border border-white/10 flex items-center justify-center text-[#D4B475] shrink-0">
-                      <QrCode className="w-4 h-4" />
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-white/[0.06] grid grid-cols-3 gap-3">
-                    <div>
-                      <div className="text-[8px] font-mono text-[#777777] uppercase tracking-wider">
-                        GATE
-                      </div>
-                      <div className="text-xs font-semibold text-white mt-0.5">
-                        South Arch 04
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[8px] font-mono text-[#777777] uppercase tracking-wider">
-                        TIER
-                      </div>
-                      <div className="text-xs font-semibold text-white mt-0.5">
-                        VIP Soundstage
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[8px] font-mono text-[#777777] uppercase tracking-wider">
-                        VERIFIED
-                      </div>
-                      <div className="text-xs font-semibold text-[#C8FF3D] mt-0.5 inline-flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#C8FF3D]" />
-                        <span>Active</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <p className="text-xs text-[#888888] font-light leading-relaxed">
-                  Purchased a concert pass on your mobile device? The second your reservation confirms, your physical card is updated via our cryptographic cloud registry.
-                </p>
-              </div>
-
-              {/* Right Card: Laser-Etched Backplate */}
-              <div className="lg:col-span-5 rounded-3xl bg-[#070707] border border-white/15 p-6 sm:p-7 flex flex-col justify-between space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-mono tracking-[0.18em] text-[#D4B475] uppercase">
-                      TACTILE VERIFICATION
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-[#141414] border border-white/10 text-[9px] font-mono text-[#888888]">
-                      1:1
-                    </span>
-                  </div>
-
-                  <h3 className="text-xl sm:text-2xl font-agrandir-extrabold text-white tracking-tight">
-                    Laser-Etched Backplate
-                  </h3>
-
-                  <p className="text-xs sm:text-[13px] text-[#9A9A9A] font-light leading-relaxed">
-                    Flip the card to reveal your precision laser-etched dynamic QR tag and integrated high-frequency NFC chip for instant turnstile tap-through.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-[#131313] border border-white/10 p-4 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-white text-[#050505] flex items-center justify-center shrink-0">
-                      <QrCode className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-agrandir-bold text-white">
-                        Venue Gate Access
-                      </div>
-                      <div className="text-[10px] text-[#888888]">
-                        Zero lag verification
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-sm font-mono font-bold text-[#C8FF3D] tabular-nums">
-                    0.2s
-                  </span>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Bottom 2-Column Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-left">
-
-              <div className="rounded-2xl bg-[#131313] border border-white/[0.08] p-6 flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-[#1C1C1C] border border-white/10 flex items-center justify-center text-[#D4B475] shrink-0">
-                  <Quote className="w-4 h-4" />
-                </div>
-                <div className="space-y-1.5">
-                  <h4 className="text-sm font-agrandir-bold text-white">
-                    Effortless Account Sync
-                  </h4>
-                  <p className="text-xs text-[#9A9A9A] font-light leading-relaxed">
-                    Instantly linked to your Lumaréel account. Every festival, gig, acoustic session, and VIP reservation synchronizes effortlessly without manual activation.
-                  </p>
-                </div>
-              </div>
-
-              <div className="rounded-2xl bg-[#131313] border border-white/[0.08] p-6 flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-[#1C1C1C] border border-white/10 flex items-center justify-center text-[#D4B475] shrink-0">
-                  <ShieldCheck className="w-4 h-4" />
-                </div>
-                <div className="space-y-1.5">
-                  <h4 className="text-sm font-agrandir-bold text-white">
-                    Pure Live-Music Pass
-                  </h4>
-                  <p className="text-xs text-[#9A9A9A] font-light leading-relaxed">
-                    Not a credit or debit card. No credit checks, no recurring interest, and no statements. Designed purely to bridge your live music memories and stage access.
-                  </p>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
+      <section className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 border-b border-white/5">
+        <div className="space-y-4 mb-8 text-left">
+          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
+            CERCLE PRIVÉ & HOSPITALITÉ
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold uppercase text-white leading-tight">
+            Façonnée pour les moments qui comptent.
+          </h2>
+          <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-2xl">
+            De la première note au rappel final, vivez l’intensité musicale et l'art de recevoir partagés entre initiés.
+          </p>
         </div>
-      </section>
 
-      {/* ========================================================================= */}
-      {/* 4. SIMPLE PRIVILEGES — "Three ways your card elevates your live music."   */}
-      {/* ========================================================================= */}
-      <section id="benefits-section" className="py-16 sm:py-24">
-        <div className="max-w-[1140px] mx-auto px-5 sm:px-8 space-y-12">
+        {/* Atmosphere Photo Showcase with overlay */}
+        <div className="relative overflow-hidden border border-white/10 mb-8 aspect-video sm:aspect-21/9 bg-neutral-900">
+          <img
+            src="/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.30_0f827a3a.jpeg"
+            alt="Concert Society LUMARÉEL"
+            className="w-full h-full object-cover brightness-90 contrast-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+        </div>
 
-          <div className="text-center max-w-xl mx-auto space-y-3">
-            <div className="text-[10px] font-mono tracking-[0.2em] text-[#888888] uppercase">
-              SIMPLE PRIVILEGES
-            </div>
-            <h2 className="text-3xl sm:text-[40px] font-agrandir-extrabold tracking-tight text-white leading-[1.08] text-balance">
-              Three ways your card elevates your live music.
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-
-            {/* Card 01 */}
-            <div className="rounded-3xl bg-[#0D0D0D] border border-white/[0.08] p-6 sm:p-7 flex flex-col justify-between space-y-6">
-              <div className="space-y-2.5">
-                <div className="text-3xl font-agrandir-extrabold text-[#D4B475] tabular-nums">
-                  01
-                </div>
-                <h3 className="text-lg font-agrandir-extrabold uppercase tracking-tight text-white">
-                  YOUR CONCERTS
-                </h3>
-                <p className="text-xs sm:text-[13px] text-[#9A9A9A] font-light leading-relaxed">
-                  Keep your concert purchases and digital orders connected to your personal card. Flash it at partner venue bars for order pickups.
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-[#141414] border border-white/[0.08] overflow-hidden">
-                <div className="h-36 w-full overflow-hidden">
-                  <img
-                    src={concertStageImg}
-                    alt="Main stage concert access"
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="px-3.5 py-2.5 flex items-center justify-between text-[11px]">
-                  <span className="inline-flex items-center gap-1.5 font-medium text-white">
-                    <Ticket className="w-3.5 h-3.5 text-[#D4B475]" />
-                    <span>Main Stage Access</span>
-                  </span>
-                  <span className="text-[#888888]">Instant Tap</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 02 */}
-            <div className="rounded-3xl bg-[#0D0D0D] border border-white/[0.08] p-6 sm:p-7 flex flex-col justify-between space-y-6">
-              <div className="space-y-2.5">
-                <div className="text-3xl font-agrandir-extrabold text-white tabular-nums">
-                  02
-                </div>
-                <h3 className="text-lg font-agrandir-extrabold uppercase tracking-tight text-white">
-                  ONE PERSONAL CARD
-                </h3>
-                <p className="text-xs sm:text-[13px] text-[#9A9A9A] font-light leading-relaxed">
-                  A physical representation of your digital Lumaréel activities. Anodized matte titanium composite engineered to withstand venue crowds.
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-[#141414] border border-white/[0.08] p-4 space-y-3">
-                <div className="flex items-center justify-between text-[9px] font-mono">
-                  <span className="inline-flex items-center gap-1.5 text-[#D4B475] uppercase tracking-wider">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#D4B475]" />
-                    <span>CUSTOM MONOGRAM</span>
-                  </span>
-                  <span className="text-[#777777] uppercase">LMR-TITAN</span>
-                </div>
-
+        {/* 3 Interactive Feature Rows (Open layout, non-rounded blocks) */}
+        <div className="divide-y divide-white/10 border-t border-b border-white/10 text-left">
+          {[
+            { label: 'Votre prochain concert inoubliable', sub: 'Accès réservé aux productions majeures & festivals d’élite' },
+            { label: 'Des expériences gravées dans les mémoires', sub: 'Salons VIP, dégustations privées et loges réservées' },
+            { label: 'Une communauté réunie autour de votre passion', sub: 'Rencontrez des créateurs, artistes et amateurs exigeants' },
+          ].map((item, idx) => (
+            <div
+              key={idx}
+              onClick={() => openAdmissionWizard(plans[0])}
+              className="py-4 sm:py-5 flex items-center justify-between group hover:bg-white/[0.02] px-2 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37]" />
                 <div>
-                  <div className="text-[8px] font-mono text-[#777777] uppercase tracking-widest">
-                    ENGRAVED EDITION
+                  <div className="text-sm sm:text-base font-agrandir-bold text-white group-hover:text-[#d4af37] transition-colors">
+                    {item.label}
                   </div>
-                  <div className="text-sm font-agrandir-extrabold text-white uppercase tracking-wide mt-0.5 truncate">
-                    {cardDisplayName}
+                  <div className="text-[11px] text-neutral-400 font-light">
+                    {item.sub}
                   </div>
                 </div>
-
-                <div className="pt-2.5 border-t border-white/[0.08] flex items-center justify-between text-[10px]">
-                  <span className="text-[#888888] tabular-nums">Weight: 18.2g</span>
-                  <span className="text-[#C8FF3D] font-mono">Haptic Chip Active</span>
-                </div>
               </div>
+              <ChevronRight className="w-4 h-4 text-neutral-500 group-hover:text-[#d4af37] group-hover:translate-x-1 transition-all" />
             </div>
-
-            {/* Card 03 */}
-            <div className="rounded-3xl bg-[#0D0D0D] border border-white/[0.08] p-6 sm:p-7 flex flex-col justify-between space-y-6">
-              <div className="space-y-2.5">
-                <div className="text-3xl font-agrandir-extrabold text-[#C8FF3D] tabular-nums">
-                  03
-                </div>
-                <h3 className="text-lg font-agrandir-extrabold uppercase tracking-tight text-white">
-                  EXCLUSIVE BENEFITS
-                </h3>
-                <p className="text-xs sm:text-[13px] text-[#9A9A9A] font-light leading-relaxed">
-                  Enjoy additional advantages associated with owning a Lumaréel Black Card. Early soundcheck entrance, private mezzanine access, and partner perks.
-                </p>
-              </div>
-
-              <div className="rounded-2xl bg-[#141414] border border-white/[0.08] overflow-hidden">
-                <div className="h-36 w-full overflow-hidden">
-                  <img
-                    src={backstageFriendsImg}
-                    alt="Companion mezzanine perks"
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="px-3.5 py-2.5 flex items-center justify-between text-[11px]">
-                  <span className="inline-flex items-center gap-1.5 font-medium text-white">
-                    <Radio className="w-3.5 h-3.5 text-[#D4B475]" />
-                    <span>Companion Mezzanine</span>
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-[#D4B475]/20 text-[#D4B475] text-[9px] font-mono uppercase">
-                    PERK
-                  </span>
-                </div>
-              </div>
-            </div>
-
-          </div>
+          ))}
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* 5. OWN THE PIECE — "MAKE IT YOURS."                                      */}
+      {/* 4. SECTION "DUAL ARCHITECTURE" / "ONE CARD. A WORLD OF POSSIBILITIES."   */}
       {/* ========================================================================= */}
-      <section id="get-black-card" className="py-12 sm:py-16">
-        <div className="max-w-[1140px] mx-auto px-5 sm:px-8">
-          <div className="rounded-[32px] bg-[#0B0B0B] border border-white/[0.08] p-6 sm:p-12 lg:p-14">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-
-              {/* Left Column: Physical Card Preview + Brushed Titanium Note */}
-              <div className="lg:col-span-5 flex flex-col items-center space-y-4">
-                <div
-                  onClick={() => setIsEditingCardName(true)}
-                  title="Click to preview your custom engraved name"
-                  className="w-full max-w-[360px] rounded-[22px] bg-gradient-to-br from-[#1F1F1D] via-[#0D0D0C] to-[#040404] border border-[#D4B475]/35 p-6 sm:p-7 shadow-[0_30px_80px_rgba(0,0,0,0.95)] relative overflow-hidden cursor-pointer group transition-transform duration-200 hover:-translate-y-0.5"
-                  style={{ aspectRatio: '85.6 / 53.98' }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/[0.05] to-transparent pointer-events-none" />
-
-                  <div className="relative z-10 h-full flex flex-col justify-between text-left">
-                    {/* Top Row */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-agrandir-extrabold text-sm sm:text-base tracking-[0.08em] text-white uppercase">
-                          LUMARÉEL
-                        </span>
-                        <span className="px-2 py-0.5 rounded bg-[#D4B475]/20 border border-[#D4B475]/30 text-[8px] font-mono text-[#D4B475] uppercase tracking-wider">
-                          PASS
-                        </span>
-                      </div>
-                      <div className="w-7 h-7 rounded-full border border-white/15 bg-white/5 flex items-center justify-center">
-                        <Wifi className="w-3.5 h-3.5 text-[#D4B475] rotate-90" />
-                      </div>
-                    </div>
-
-                    {/* EMV Chip + Core Serial */}
-                    <div className="flex items-center gap-3.5 my-auto">
-                      <div className="w-10 h-8 rounded-[6px] bg-gradient-to-br from-[#F0DB9B] via-[#C8A65C] to-[#8C6D2F] border border-black/40 p-1 grid grid-cols-3 gap-0.5 shadow-inner shrink-0">
-                        <div className="border-r border-b border-black/30" />
-                        <div className="border-b border-black/30" />
-                        <div className="border-l border-b border-black/30" />
-                        <div className="border-r border-black/30" />
-                        <div className="bg-black/15" />
-                        <div className="border-l border-black/30" />
-                      </div>
-                      <div>
-                        <div className="text-[8px] font-mono text-[#888888] uppercase tracking-[0.16em]">
-                          ENCRYPTED TACTILE CORE
-                        </div>
-                        <div className="text-xs font-mono text-white tracking-widest tabular-nums mt-0.5">
-                          0042 • 8821 • 9102
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom Row */}
-                    <div className="flex items-end justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="text-[7px] font-mono text-[#777777] uppercase tracking-[0.18em]">
-                          PHYSICAL EDITION
-                        </div>
-                        <div className="text-xs font-agrandir-extrabold text-white uppercase tracking-wider truncate mt-0.5">
-                          {engravedPlaceholderName}
-                        </div>
-                      </div>
-
-                      <div className="w-7 h-7 rounded-full border border-white/10 bg-white/5 flex items-center justify-center shrink-0">
-                        <ShieldCheck className="w-3.5 h-3.5 text-[#888888]" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Live Monogram Editor (toggled on click) */}
-                {isEditingCardName && (
-                  <div className="w-full max-w-[360px] flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={customName}
-                      onChange={(e) => setCustomName(e.target.value.toUpperCase())}
-                      placeholder="TYPE YOUR ENGRAVED NAME"
-                      maxLength={24}
-                      autoFocus
-                      className="flex-1 px-3.5 py-2 rounded-xl bg-[#141414] border border-[#D4B475]/50 text-xs font-mono text-white uppercase tracking-wider outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setIsEditingCardName(false)}
-                      className="px-3 py-2 rounded-xl bg-white text-black text-xs font-bold cursor-pointer"
-                    >
-                      Done
-                    </button>
-                  </div>
-                )}
-
-                <div className="flex items-center justify-center gap-5 text-[11px] text-[#888888]">
-                  <span className="inline-flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#D4B475]" />
-                    <span>Brushed Titanium</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Radio className="w-3.5 h-3.5 text-[#D4B475]" />
-                    <span>NFC &amp; QR Integrated</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Right Column: Title, Pricing Card & Primary CTA */}
-              <div className="lg:col-span-7 space-y-5 text-left">
-                <div className="inline-block px-3 py-1 rounded-full bg-[#151515] border border-white/10 text-[9px] font-mono tracking-[0.18em] text-[#D4B475] uppercase">
-                  OWN THE PIECE
-                </div>
-
-                <h2 className="text-3xl sm:text-[42px] font-agrandir-extrabold uppercase tracking-tight text-white leading-none">
-                  MAKE IT YOURS.
-                </h2>
-
-                <p className="text-xs sm:text-sm text-[#9A9A9A] font-light leading-relaxed max-w-lg">
-                  Get your Lumaréel Black Card and bring your digital concert experiences into the physical world. Crafted from brushed anodized titanium precision meets instant live-stage access.
-                </p>
-
-                {/* Pricing Summary Box */}
-                <div className="rounded-2xl bg-[#131313] border border-white/[0.08] p-5 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-mono tracking-[0.14em] text-[#CCCCCC] uppercase">
-                      LUMARÉEL BLACK CARD — PHYSICAL EDITION
-                    </span>
-                    <span className="px-2.5 py-0.5 rounded bg-[#C8FF3D]/15 border border-[#C8FF3D]/30 text-[9px] font-mono tracking-wider text-[#C8FF3D] uppercase whitespace-nowrap">
-                      READY TO SHIP
-                    </span>
-                  </div>
-
-                  <div className="flex items-baseline justify-between gap-4">
-                    <div className="flex items-baseline gap-1.5">
-                      <span className="text-3xl sm:text-4xl font-agrandir-extrabold text-white tabular-nums">
-                        $49
-                      </span>
-                      <span className="text-xs font-mono text-[#888888] uppercase">
-                        USD
-                      </span>
-                    </div>
-
-                    <span className="text-[10px] font-mono tracking-wider text-[#D4D4D4] uppercase">
-                      FREE GLOBAL EXPRESS
-                    </span>
-                  </div>
-
-                  <div className="text-[11px] text-[#777777]">
-                    One-time purchase • No recurring subscription or banking fees
-                  </div>
-                </div>
-
-                {/* Primary CTA Button */}
-                <button
-                  type="button"
-                  onClick={() => openAdmissionWizard(plans[0])}
-                  disabled={isSoldOut}
-                  className="w-full py-4 px-6 rounded-full bg-white hover:bg-[#D4B475] text-[#050505] font-agrandir-extrabold text-xs tracking-[0.12em] uppercase inline-flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-40"
-                >
-                  <span>GET YOUR BLACK CARD</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-
-                <div className="flex items-center gap-2 text-[11px] text-[#777777]">
-                  <Lock className="w-3.5 h-3.5 text-[#888888] shrink-0" />
-                  <span>
-                    Direct checkout. Ships in 2–3 business days. No application or approval process required.
-                  </span>
-                </div>
-              </div>
-
-            </div>
-          </div>
+      <section className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 border-b border-white/5 text-center">
+        <div className="space-y-4 mb-10">
+          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
+            EXPÉRIENCE HYBRIDE
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold uppercase text-white leading-tight">
+            Une carte. Un monde de possibilités.
+          </h2>
+          <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-xl mx-auto">
+            L'alliance parfaite entre une carte physique d'exception et un pass digital synchronisé en temps réel sur votre smartphone.
+          </p>
         </div>
-      </section>
 
-      {/* ========================================================================= */}
-      {/* 6. FOOTER (EXACT MATCH TO MOCKUP, DARK MODE)                              */}
-      {/* ========================================================================= */}
-      <footer className="mt-12 border-t border-white/[0.08] bg-[#050505] pt-14 pb-28 md:pb-10 text-left">
-        <div className="max-w-[1140px] mx-auto px-5 sm:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8">
-
-            <div className="lg:col-span-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="font-agrandir-extrabold text-base tracking-[0.06em] text-white uppercase">
-                  LUMARÉEL
-                </span>
-                <span className="px-2 py-0.5 rounded bg-[#141414] border border-[#D4B475]/30 text-[9px] font-mono tracking-[0.16em] text-[#D4B475] uppercase">
-                  BLACK
-                </span>
-              </div>
-              <p className="text-xs text-[#888888] font-light leading-relaxed max-w-xs">
-                Physical card for your digital concert world. Pure architectural titanium precision meets instant live-stage access.
-              </p>
-            </div>
-
-            <div className="lg:col-span-2 space-y-2.5 text-xs">
-              <div className="font-semibold text-white">Product</div>
-              <button
-                type="button"
-                onClick={() => scrollToSection('hero-section')}
-                className="block text-[#888888] hover:text-white transition-colors cursor-pointer"
-              >
-                The Card
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentPage('client_space')}
-                className="block text-[#888888] hover:text-white transition-colors cursor-pointer"
-              >
-                Concert Orders
-              </button>
-            </div>
-
-            <div className="lg:col-span-2 space-y-2.5 text-xs">
-              <div className="font-semibold text-white">Company</div>
-              <button
-                type="button"
-                onClick={() => setCurrentPage('about')}
-                className="block text-[#888888] hover:text-white transition-colors cursor-pointer"
-              >
-                About
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentPage('contact')}
-                className="block text-[#888888] hover:text-white transition-colors cursor-pointer"
-              >
-                Contact
-              </button>
-            </div>
-
-            <div className="lg:col-span-3 space-y-2.5 text-xs">
-              <div className="font-semibold text-white">Legal &amp; Privacy</div>
-              <button
-                type="button"
-                onClick={() =>
-                  setInfoModal({
-                    title: 'Terms of Membership',
-                    body: 'Your LUMARÉEL Black Card is a physical and digital live-event pass bound to your verified LUMARÉEL account. It carries no credit line, recurring debt, or interest charges.',
-                  })
-                }
-                className="block text-[#888888] hover:text-white transition-colors cursor-pointer"
-              >
-                Terms
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setInfoModal({
-                    title: 'Privacy & Registry Security',
-                    body: 'Ticket tokens and NFC identifiers are cryptographically signed and never shared with third-party advertisers. You may revoke or reissue a lost card anytime from your profile.',
-                  })
-                }
-                className="block text-[#888888] hover:text-white transition-colors cursor-pointer"
-              >
-                Privacy
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  setInfoModal({
-                    title: 'Concierge & Support',
-                    body: 'Need help pairing your physical card or checking shipping status? Contact our dedicated member desk 24/7 via your LUMARÉEL account.',
-                  })
-                }
-                className="block text-[#888888] hover:text-white transition-colors cursor-pointer"
-              >
-                Help
-              </button>
-            </div>
-
+        {/* The Digital Pass Vault (Exactement comme dans la maquette envoyée) */}
+        <div className="max-w-md mx-auto text-left border border-white/15 bg-[#0a0a0a] p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+          
+          {/* Top Pass Status */}
+          <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-5 text-[10px] font-mono uppercase tracking-widest">
+            <span className="flex items-center gap-1.5 text-neutral-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37]" />
+              <span>COFFRE PASS DIGITAL</span>
+            </span>
+            <span className="text-[#d4af37] font-bold">ACCÈS ACTIF</span>
           </div>
 
-          <div className="mt-12 pt-6 border-t border-white/[0.06] flex flex-wrap items-center justify-between gap-4 text-[11px] text-[#666666]">
-            <span>© 2025 LUMARÉEL Card Inc. All rights reserved.</span>
-            <span className="inline-flex items-center gap-2 text-[#888888]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#C8FF3D]" />
-              <span>Global Stage Network Active</span>
+          {/* Pass Holder Identification */}
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div>
+              <span className="text-[9px] font-mono uppercase tracking-widest text-neutral-500 block">
+                TITULAIRE DU PASS VIP
+              </span>
+              <h3 className="text-lg sm:text-xl font-agrandir-extrabold uppercase text-white tracking-wide">
+                {customName.trim() || 'AURELIA VANCE'}
+              </h3>
+            </div>
+            <span className="px-3 py-1 bg-[#d4af37] text-black font-agrandir-bold text-[9px] tracking-wider uppercase">
+              MEMBRE FONDATEUR
             </span>
           </div>
+
+          {/* Active Engagement Details */}
+          <div className="mb-6 space-y-1">
+            <span className="text-[9px] font-mono uppercase tracking-widest text-neutral-500 block">
+              PROCHAINE IMMERSION CONFIRMÉE
+            </span>
+            <div className="font-agrandir-bold text-sm text-[#f5e6b3] uppercase">
+              AREEL FESTIVAL · SCÈNE PRINCIPALE VIP
+            </div>
+            <div className="text-[11px] text-neutral-400 font-light">
+              Lounge Soundstage · Tunnel Artistes · Loge Privée
+            </div>
+          </div>
+
+          {/* Interactive Dynamic Rotating Security Token */}
+          <div
+            onClick={() => {
+              setIsTokenActive(true);
+              setTokenCounter((c) => (c + 1) % 99);
+              setTimeout(() => setIsTokenActive(false), 2000);
+            }}
+            className="p-4 bg-black border border-white/10 flex items-center justify-between cursor-pointer group hover:border-[#d4af37]/40 transition-colors mb-6"
+          >
+            <div className="flex items-center gap-3">
+              {/* Dynamic Animated Token Icon */}
+              <div className="w-11 h-11 bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
+                <KeyRound className={`w-5 h-5 ${isTokenActive ? 'text-emerald-400 animate-spin' : 'text-[#d4af37]'}`} />
+              </div>
+              <div>
+                <div className="text-xs font-agrandir-bold text-white uppercase tracking-wider">
+                  {isTokenActive ? 'JETON VALIDÉ · ACCÈS LIBÉRÉ' : 'TOUCHER POUR PRÉSENTER LE PASS'}
+                </div>
+                <div className="text-[10px] text-neutral-400 font-mono">
+                  Jeton dynamique de sécurité #{tokenCounter} · Synchronisé
+                </div>
+              </div>
+            </div>
+
+            <Volume2 className="w-4 h-4 text-neutral-500 group-hover:text-[#d4af37]" />
+          </div>
+
+          {/* 3 Verified Active Perks */}
+          <div className="space-y-2.5 pt-1 border-t border-white/10 text-xs">
+            <div className="flex items-center gap-2 text-neutral-300">
+              <Zap className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Coupe-file immédiat aux entrées</span>
+            </div>
+            <div className="flex items-center gap-2 text-neutral-300">
+              <Crown className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Bar privé & consommations offertes</span>
+            </div>
+            <div className="flex items-center gap-2 text-neutral-300">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Accueil personnalisé & vestiaire VIP</span>
+            </div>
+          </div>
+
         </div>
-      </footer>
+      </section>
 
       {/* ========================================================================= */}
-      {/* 7. ORDER / PERSONALIZATION WIZARD MODAL                                   */}
+      {/* 5. SECTION "EXCLUSIVE PRIVILEGES" / "ARCHITECTED FOR ELITE ACCESS"        */}
+      {/* ========================================================================= */}
+      <section className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 border-b border-white/5">
+        <div className="space-y-4 mb-10 text-left">
+          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
+            PRIVILÈGES D'EXCEPTION
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold uppercase text-white leading-tight">
+            Architecturée pour un accès sans compromis.
+          </h2>
+          <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-xl">
+            L'élégance d'un club privé où chaque événement se transforme en moment sur-mesure.
+          </p>
+        </div>
+
+        {/* Feature Stream (Open editorial layout, non-rounded blocks) */}
+        <div className="space-y-6 text-left">
+          
+          {/* Feature 01 */}
+          <div className="p-6 sm:p-8 border border-white/10 bg-[#080808] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono tracking-widest text-[#d4af37] uppercase">01 · ACCÈS</span>
+              <Ticket className="w-4 h-4 text-[#d4af37]" />
+            </div>
+            <h3 className="text-xl font-agrandir-bold text-white uppercase">Accès Prioritaire Mondial</h3>
+            <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed">
+              Débloquez les préventes de billetterie 48 heures avant l'ouverture générale pour tous les concerts et festivals majeurs.
+            </p>
+            <div className="pt-2">
+              <div className="w-full h-1 bg-white/10 overflow-hidden">
+                <div className="w-full h-full bg-[#d4af37]" />
+              </div>
+              <div className="text-[10px] font-mono text-neutral-400 mt-1">100% de placement garanti pour les membres</div>
+            </div>
+          </div>
+
+          {/* Feature 02 */}
+          <div className="p-6 sm:p-8 border border-white/10 bg-[#080808] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono tracking-widest text-[#d4af37] uppercase">02 · SUR-MESURE</span>
+              <Sparkles className="w-4 h-4 text-[#d4af37]" />
+            </div>
+            <h3 className="text-xl font-agrandir-bold text-white uppercase">Salons & Loges d'Artistes</h3>
+            <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed">
+              Accès direct aux balances acoustiques, aux coulisses privées et aux salons VIP réservés avec service de conciergerie sur place.
+            </p>
+            <button
+              type="button"
+              onClick={() => openAdmissionWizard(plans[0])}
+              className="inline-flex items-center gap-2 text-xs font-agrandir-bold text-[#d4af37] hover:underline uppercase pt-1 cursor-pointer"
+            >
+              <span>Demander l'accès Conciergerie</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Feature 03 */}
+          <div className="p-6 sm:p-8 border border-white/10 bg-[#080808] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono tracking-widest text-[#d4af37] uppercase">03 · RÉPERTOIRE</span>
+              <Award className="w-4 h-4 text-[#d4af37]" />
+            </div>
+            <h3 className="text-xl font-agrandir-bold text-white uppercase">Votre Collection de Concerts</h3>
+            <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed">
+              Tous vos pass de concert, accès coulisses et enregistrements exclusifs réunis dans un coffre personnel unique.
+            </p>
+            <div className="pt-2 flex items-center gap-8 text-xs font-mono">
+              <div>
+                <strong className="text-lg text-white font-agrandir-bold block">14</strong>
+                <span className="text-[10px] text-neutral-500 uppercase">Événements Prévus 2026</span>
+              </div>
+              <div>
+                <strong className="text-lg text-[#d4af37] font-agrandir-bold block">100%</strong>
+                <span className="text-[10px] text-neutral-500 uppercase">Privilège Garanti</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature 04 & 05 in 2-columns */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="p-6 border border-white/10 bg-[#080808] space-y-2">
+              <div className="text-[10px] font-mono text-[#d4af37] uppercase">04 · COFFRE</div>
+              <h4 className="font-agrandir-bold text-base text-white uppercase">Portefeuille Sans Contact</h4>
+              <p className="text-xs text-neutral-400 font-light leading-relaxed">
+                Réglez vos consommations par simple effleurement, rechargez en un instant avec 0% de frais.
+              </p>
+            </div>
+
+            <div className="p-6 border border-white/10 bg-[#080808] space-y-2">
+              <div className="text-[10px] font-mono text-[#d4af37] uppercase">05 · STATUT</div>
+              <h4 className="font-agrandir-bold text-base text-white uppercase">Accompagnant Inclus</h4>
+              <p className="text-xs text-neutral-400 font-light leading-relaxed">
+                Faites profiter un proche de votre coupe-file et de vos accès aux salons VIP lors de chaque soirée.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 6. SECTION "LIVE SONIC CULTURE" / "CLOSER TO THE MUSIC" (FULL BLEED)      */}
+      {/* ========================================================================= */}
+      <section className="relative py-24 sm:py-32 overflow-hidden border-b border-white/5 text-center">
+        {/* Full-bleed background concert image with dark overlay scrim */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/assets/aistudio/10cbcb7f-470c-4343-9740-e8c87192025d_5b981144.jpeg"
+            alt="Live Concert LUMARÉEL"
+            className="w-full h-full object-cover brightness-[0.45] contrast-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/80" />
+        </div>
+
+        <div className="relative z-10 max-w-2xl mx-auto px-4 sm:px-6 space-y-6">
+          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
+            IMMERSION SCÉNIQUE DIRECTE
+          </span>
+
+          <h2 className="text-3xl sm:text-5xl font-agrandir-extrabold uppercase text-white leading-tight">
+            Au plus près de la musique. <br />
+            Au plus près de l'émotion.
+          </h2>
+
+          <p className="text-xs sm:text-sm text-neutral-300 font-light leading-relaxed max-w-lg mx-auto">
+            Votre passion pour la scène mérite un point de vue sans compromis. Élevez chaque instant avec un accueil d’exception.
+          </p>
+
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => openAdmissionWizard(plans[0])}
+              className="px-8 py-3.5 rounded-full bg-[#d4af37] hover:bg-[#e5c04b] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all shadow-xl cursor-pointer hover:scale-105"
+            >
+              EXPLORER LES EXPÉRIENCES MEMBRES
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 7. SECTION "DOSSIER D'ADMISSION" / "THE BLACK TIER"                       */}
+      {/* ========================================================================= */}
+      <section className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 border-b border-white/5 text-center">
+        <div className="space-y-4 mb-10">
+          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
+            DOSSIER D'ADMISSION
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold uppercase text-white leading-tight">
+            Votre nouveau chapitre commence ici.
+          </h2>
+          <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-xl mx-auto">
+            Découvrez la Black Card LUMARÉEL et demandez votre admission à une expérience exclusive alliant musique, prestige et conciergerie privée.
+          </p>
+        </div>
+
+        {/* The Black Tier Summary Box */}
+        <div className="max-w-lg mx-auto border border-white/20 bg-[#090909] p-7 sm:p-8 text-left space-y-6 shadow-2xl">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div>
+              <h3 className="font-agrandir-extrabold text-lg text-white uppercase tracking-wider">
+                LE CERCLE BLACK TIER
+              </h3>
+              <span className="text-[10px] font-mono text-[#d4af37] uppercase tracking-widest">
+                SÉLECTION SUR CANDIDATURE
+              </span>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/40 flex items-center justify-center text-[#d4af37]">
+              <Crown className="w-5 h-5 text-[#d4af37]" />
+            </div>
+          </div>
+
+          {/* Checklist */}
+          <div className="space-y-3 text-xs">
+            {[
+              'Carte physique 16g en composite noir mat et gravure dorée',
+              'Conciergerie privée et accueil VIP dédié 24/7',
+              'Portefeuille électronique sans contact intégré avec +5 000 FCFA offerts',
+              'Accès aux loges privées et salons VIP réservés',
+              'Coupe-file permanent pour vous et un accompagnant privilégié',
+            ].map((text, idx) => (
+              <div key={idx} className="flex items-start gap-2.5">
+                <Check className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
+                <span className="text-neutral-200 font-light leading-relaxed">{text}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Price & Primary Action */}
+          <div className="pt-2 border-t border-white/10">
+            <div className="flex items-baseline justify-between mb-4">
+              <span className="text-xs text-neutral-400 uppercase">Tarif annuel</span>
+              <div className="text-right">
+                <span className="text-xl font-agrandir-extrabold text-[#d4af37] font-mono">150 000 FCFA</span>
+                <span className="text-[10px] text-neutral-500 block uppercase font-mono">Valable 12 mois</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => openAdmissionWizard(plans[0])}
+              className="w-full py-4 rounded-full bg-[#d4af37] hover:bg-[#e6c14c] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all shadow-[0_0_25px_rgba(212,175,55,0.35)] cursor-pointer hover:scale-[1.02] active:scale-95"
+            >
+              DEMANDER MON ADMISSION
+            </button>
+
+            <div className="text-[10px] text-neutral-500 text-center mt-3 font-mono">
+              Admission délivrée après revue du comité · Demandes traitées avec une stricte confidentialité
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 8. SECTION "THREE-STAGE PATHWAY" / "HOW TO JOIN"                          */}
+      {/* ========================================================================= */}
+      <section className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 border-b border-white/5 text-left">
+        <div className="space-y-4 mb-10">
+          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
+            PARCOURS EN 3 ÉTAPES
+          </span>
+          <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold uppercase text-white leading-tight">
+            Comment nous rejoindre.
+          </h2>
+          <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-xl">
+            Un parcours d'admission fluide et confidentiel, conçu pour une intégration immédiate :
+          </p>
+        </div>
+
+        <div className="space-y-6">
+          {[
+            {
+              num: '01',
+              title: 'Découvrir',
+              desc: 'Explorez l’écosystème Black Card, les privilèges scéniques et les accès réservés au cercle d’initiés.',
+            },
+            {
+              num: '02',
+              title: 'Candidater',
+              desc: 'Remplissez votre dossier d’admission confidentiel avec vos préférences de placement et vos coordonnées de remise.',
+            },
+            {
+              num: '03',
+              title: 'Recevoir sa Carte',
+              desc: 'Débloquez immédiatement votre Pass Digital et recevez votre carte physique gravée sous coffret de prestige scellé.',
+            },
+          ].map((item, idx) => (
+            <div key={idx} className="p-6 border border-white/10 bg-[#080808] flex items-start gap-5">
+              <div className="w-12 h-12 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/35 flex items-center justify-center font-agrandir-extrabold text-[#d4af37] text-lg font-mono shrink-0">
+                {item.num}
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-lg font-agrandir-bold text-white uppercase">{item.title}</h4>
+                <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed">
+                  {item.desc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 9. SECTION "YOUR EXPERIENCE DESERVES AN UPGRADE" (CLOSING STATEMENT)      */}
+      {/* ========================================================================= */}
+      <section className="py-20 sm:py-28 max-w-3xl mx-auto px-4 sm:px-6 text-center space-y-6">
+        <div className="w-14 h-14 rounded-full bg-white/5 border border-[#d4af37]/40 flex items-center justify-center text-[#d4af37] mx-auto shadow-xl">
+          <Star className="w-6 h-6 text-[#d4af37] fill-[#d4af37]" />
+        </div>
+
+        <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold uppercase text-white leading-tight">
+          Votre expérience mérite ce qu'il y a de mieux.
+        </h2>
+
+        <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-lg mx-auto">
+          Rejoignez le cercle d'initiés de la LUMARÉEL Black Card et accédez à une dimension où la musique se vit sans contrainte.
+        </p>
+
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
+          <button
+            type="button"
+            onClick={() => openAdmissionWizard(plans[0])}
+            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#d4af37] hover:bg-[#e6c14c] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all shadow-xl cursor-pointer hover:scale-105 active:scale-95"
+          >
+            DEMANDER MON ADMISSION
+          </button>
+
+          <button
+            type="button"
+            onClick={() => scrollToSection('section-card-showcase')}
+            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/20 text-white font-agrandir-bold text-xs tracking-wider uppercase transition-all cursor-pointer"
+          >
+            EXPLORER L'EXPÉRIENCE
+          </button>
+        </div>
+
+        <div className="pt-8 text-[10px] font-mono tracking-[0.25em] text-neutral-500 uppercase">
+          LUMARÉEL CO. — CLUB PRIVÉ & PRODUCTIONS D'ÉLITE — EST. 2024
+        </div>
+      </section>
+
+      {/* ========================================================================= */}
+      {/* 10. BOTTOM NAVIGATION BAR (COMME DANS LE DESIGN DE L'IMAGE)               */}
+      {/* ========================================================================= */}
+      <nav className="border-t border-white/10 bg-[#060606] py-3 px-4 sm:px-6 sticky bottom-0 z-30">
+        <div className="max-w-md mx-auto flex items-center justify-between text-neutral-400 text-[10px] font-agrandir-bold uppercase">
+          <button
+            type="button"
+            onClick={() => scrollToSection('section-card-showcase')}
+            className="flex flex-col items-center gap-1 hover:text-[#d4af37] transition-colors cursor-pointer text-[#d4af37]"
+          >
+            <CreditCard className="w-4 h-4" />
+            <span>La Carte</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => scrollToSection('section-card-showcase')}
+            className="flex flex-col items-center gap-1 hover:text-[#d4af37] transition-colors cursor-pointer"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Expérience</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => scrollToSection('section-card-showcase')}
+            className="flex flex-col items-center gap-1 hover:text-[#d4af37] transition-colors cursor-pointer"
+          >
+            <Crown className="w-4 h-4" />
+            <span>Privilèges</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => openAdmissionWizard(plans[0])}
+            className="flex flex-col items-center gap-1 hover:text-[#d4af37] transition-colors cursor-pointer"
+          >
+            <Award className="w-4 h-4" />
+            <span>Adhésion</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (hasActiveCard && onGoToWallet) onGoToWallet();
+              else openAdmissionWizard(plans[0]);
+            }}
+            className="flex flex-col items-center gap-1 hover:text-[#d4af37] transition-colors cursor-pointer"
+          >
+            <Lock className="w-4 h-4" />
+            <span>Coffre</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* ========================================================================= */}
+      {/* 11. PROCESSUS D'INSCRIPTION FLUIDE EN PLUSIEURS ÉTAPES (MODALE WIZARD)   */}
       {/* ========================================================================= */}
       <AnimatePresence>
         {isWizardOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
             <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 12 }}
+              initial={{ opacity: 0, scale: 0.96, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 12 }}
-              transition={{ duration: 0.2 }}
-              className="relative w-full max-w-xl rounded-[28px] bg-[#0E0E0E] border border-white/15 p-6 sm:p-8 shadow-2xl my-8 text-left"
+              exit={{ opacity: 0, scale: 0.96, y: 15 }}
+              transition={{ duration: 0.22 }}
+              className="relative w-full max-w-xl bg-[#0a0a0a] border border-[#d4af37]/40 p-6 sm:p-8 shadow-2xl my-8 text-left"
             >
+              {/* Header de la modale */}
               <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
                 <div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-[#D4B475]">
-                    BLACK CARD ORDER · STEP {wizardStep} / 5
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-[#d4af37]">
+                    DOSSIER D'ADMISSION · ÉTAPE {wizardStep} / 5
                   </span>
                   <h3 className="font-agrandir-extrabold text-lg text-white uppercase mt-0.5">
                     LUMARÉEL Black Card
@@ -1049,40 +856,40 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 <button
                   type="button"
                   onClick={() => setIsWizardOpen(false)}
-                  className="w-8 h-8 rounded-full border border-white/15 bg-white/5 hover:bg-white/15 flex items-center justify-center text-neutral-400 hover:text-white transition-colors cursor-pointer"
-                  aria-label="Close"
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                  aria-label="Fermer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Progress Bar */}
+              {/* Step indicator bar */}
               <div className="grid grid-cols-5 gap-2 mb-6">
                 {[1, 2, 3, 4, 5].map((s) => (
                   <div
                     key={s}
-                    className={`h-1 rounded-full transition-all duration-300 ${
-                      wizardStep >= s ? 'bg-[#D4B475]' : 'bg-white/10'
+                    className={`h-1 transition-all duration-300 ${
+                      wizardStep >= s ? 'bg-[#d4af37]' : 'bg-white/10'
                     }`}
                   />
                 ))}
               </div>
 
-              {/* Step 1 */}
+              {/* Étape 1 : Personnalisation de la Gravure */}
               {wizardStep === 1 && (
                 <div className="space-y-5">
                   <div>
                     <h4 className="text-base font-agrandir-bold text-white uppercase">
-                      1. Laser Engraving Monogram
+                      1. Personnalisation de votre Gravure
                     </h4>
-                    <p className="text-xs text-[#9A9A9A] font-light mt-1">
-                      Your full name is laser-etched onto your brushed titanium Black Card.
+                    <p className="text-xs text-neutral-400 font-light mt-1">
+                      Votre nom sera gravé au laser doré sur la surface noir mat de votre Black Card physique.
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
-                      Name to engrave on card *
+                    <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
+                      Nom complet à graver sur la carte *
                     </label>
                     <input
                       type="text"
@@ -1091,29 +898,29 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         setApplicantName(e.target.value.toUpperCase());
                         setCustomName(e.target.value.toUpperCase());
                       }}
-                      placeholder="ELENA V. MOREAU"
+                      placeholder="EX : AURELIA VANCE"
                       required
-                      className="w-full px-4 py-3 rounded-xl bg-black border border-white/20 focus:border-[#D4B475] text-white font-mono text-sm uppercase tracking-wider outline-none"
+                      className="w-full px-4 py-3 bg-black border border-white/20 focus:border-[#d4af37] text-white font-mono text-sm uppercase tracking-wider outline-hidden"
                     />
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-[#141414] border border-white/10 flex items-center justify-between gap-4">
+                  <div className="p-4 bg-white/5 border border-[#d4af37]/40 flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] font-mono text-[#D4B475] uppercase tracking-wider block">
-                        Physical Edition
+                      <span className="text-[10px] font-agrandir-bold text-[#d4af37] uppercase tracking-wider block">
+                        Formule Sélectionnée
                       </span>
                       <strong className="text-sm font-agrandir-bold text-white uppercase">
-                        {selectedPlan?.name || 'LUMARÉEL Black Card — Titanium'}
+                        {selectedPlan?.name || 'Black Card Annuelle (12 mois)'}
                       </strong>
-                      <p className="text-[11px] text-[#9A9A9A] font-light">
-                        Engraved card + Dynamic QR + NFC chip + Express shipping
+                      <p className="text-[11px] text-neutral-400 font-light">
+                        Carte physique composite noir & or + Pass Digital + Salons VIP + Coupe-file
                       </p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-lg font-agrandir-extrabold text-white font-mono tabular-nums">
-                        $49 USD
+                    <div className="text-right">
+                      <div className="text-lg font-agrandir-extrabold text-[#d4af37] font-mono">
+                        150 000 FCFA
                       </div>
-                      <span className="text-[9px] text-[#888888] uppercase">One-time purchase</span>
+                      <span className="text-[9px] text-neutral-400 uppercase">Valable 1 an</span>
                     </div>
                   </div>
 
@@ -1122,45 +929,45 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                       type="button"
                       disabled={!applicantName.trim()}
                       onClick={() => setWizardStep(2)}
-                      className="px-6 py-3 rounded-full bg-white hover:bg-[#D4B475] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-40 transition-colors"
+                      className="px-6 py-3 rounded-full bg-[#d4af37] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-40"
                     >
-                      <span>Continue to Shipping</span>
+                      <span>Continuer vers mes coordonnées</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Step 2 */}
+              {/* Étape 2 : Coordonnées & Livraison */}
               {wizardStep === 2 && (
                 <div className="space-y-5">
                   <div>
                     <h4 className="text-base font-agrandir-bold text-white uppercase">
-                      2. Account &amp; Global Express Shipping
+                      2. Coordonnées & Expédition
                     </h4>
-                    <p className="text-xs text-[#9A9A9A] font-light mt-1">
-                      Your card automatically links to this account email. Ships free in 2–3 business days.
+                    <p className="text-xs text-neutral-400 font-light mt-1">
+                      Votre Pass Digital sera rattaché à cet e-mail. Le coffret physique sera livré à cette adresse.
                     </p>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
-                        Email Address *
+                      <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
+                        Adresse e-mail *
                       </label>
                       <input
                         type="email"
                         value={applicantEmail}
                         onChange={(e) => setApplicantEmail(e.target.value)}
-                        placeholder="you@domain.com"
+                        placeholder="votre.email@domaine.com"
                         required
-                        className="w-full px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#D4B475] text-white text-xs outline-none"
+                        className="w-full px-4 py-2.5 bg-black border border-white/20 focus:border-[#d4af37] text-white text-xs outline-hidden"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
-                        Phone Number *
+                      <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
+                        Téléphone Mobile *
                       </label>
                       <input
                         type="tel"
@@ -1168,35 +975,35 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         onChange={(e) => setApplicantPhone(e.target.value)}
                         placeholder="+225 07 00 00 00 00"
                         required
-                        className="w-full px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#D4B475] text-white text-xs outline-none"
+                        className="w-full px-4 py-2.5 bg-black border border-white/20 focus:border-[#d4af37] text-white text-xs outline-hidden"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
-                        City *
+                      <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
+                        Ville *
                       </label>
                       <input
                         type="text"
                         value={applicantCity}
                         onChange={(e) => setApplicantCity(e.target.value)}
-                        placeholder="Abidjan / Paris"
-                        className="w-full px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#D4B475] text-white text-xs outline-none"
+                        placeholder="Abidjan"
+                        className="w-full px-4 py-2.5 bg-black border border-white/20 focus:border-[#d4af37] text-white text-xs outline-hidden"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
-                        Street Address *
+                      <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
+                        Quartier / Adresse de remise *
                       </label>
                       <input
                         type="text"
                         value={applicantAddress}
                         onChange={(e) => setApplicantAddress(e.target.value)}
-                        placeholder="Delivery street & suite"
-                        className="w-full px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#D4B475] text-white text-xs outline-none"
+                        placeholder="Cocody, Zone 4, Plateau..."
+                        className="w-full px-4 py-2.5 bg-black border border-white/20 focus:border-[#d4af37] text-white text-xs outline-hidden"
                       />
                     </div>
                   </div>
@@ -1205,62 +1012,62 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     <button
                       type="button"
                       onClick={() => setWizardStep(1)}
-                      className="text-xs text-[#9A9A9A] hover:text-white cursor-pointer"
+                      className="text-xs text-neutral-400 hover:text-white cursor-pointer"
                     >
-                      Back
+                      Retour
                     </button>
 
                     <button
                       type="button"
                       disabled={!applicantEmail.trim() || !applicantPhone.trim()}
                       onClick={() => setWizardStep(3)}
-                      className="px-6 py-3 rounded-full bg-white hover:bg-[#D4B475] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-40 transition-colors"
+                      className="px-6 py-3 rounded-full bg-[#d4af37] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-40"
                     >
-                      <span>Sync Preferences</span>
+                      <span>Préférences Membre</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Step 3 */}
+              {/* Étape 3 : Profil & Parrainage */}
               {wizardStep === 3 && (
                 <div className="space-y-5">
                   <div>
                     <h4 className="text-base font-agrandir-bold text-white uppercase">
-                      3. Live Stage Preferences
+                      3. Préférences Musicales & Parrainage
                     </h4>
-                    <p className="text-xs text-[#9A9A9A] font-light mt-1">
-                      Tailor your priority soundcheck and mezzanine perks.
+                    <p className="text-xs text-neutral-400 font-light mt-1">
+                      Aidez notre conciergerie à vous adresser les invitations qui vous correspondent.
                     </p>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
-                      Primary Concert Interest
+                    <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
+                      Genre musical de prédilection
                     </label>
                     <select
                       value={musicInterest}
                       onChange={(e) => setMusicInterest(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#D4B475] text-white text-xs outline-none cursor-pointer"
+                      className="w-full px-4 py-2.5 bg-black border border-white/20 focus:border-[#d4af37] text-white text-xs outline-hidden cursor-pointer"
                     >
-                      <option value="Afrobeats & Live Acoustic">Afrobeats, Amapiano &amp; Live Acoustic</option>
-                      <option value="Jazz, Soul & R&B">Jazz, Soul &amp; Private R&amp;B Sessions</option>
-                      <option value="Stadium Tours & Festivals">Stadium Tours &amp; Global Festivals</option>
-                      <option value="VIP Mezzanine & Lounges">VIP Mezzanine &amp; Backstage Lounges</option>
+                      <option value="Afrobeats & Live Acoustic">Afrobeats, Amapiano & Live Acoustique</option>
+                      <option value="Jazz, Soul & R&B">Jazz, Soul & Soirées R&B Privées</option>
+                      <option value="Grands Concerts & Festivals">Grands Concerts & Événements Festifs</option>
+                      <option value="Loges VIP & Dégustations">Loges VIP & Expériences Privées</option>
                     </select>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
-                      Partner / Promo Code (Optional)
+                    <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
+                      Code de parrainage (Optionnel)
                     </label>
                     <input
                       type="text"
                       value={referralCode}
                       onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                      placeholder="EX: LUMAREEL-2026"
-                      className="w-full px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#D4B475] text-white font-mono text-xs uppercase tracking-wider outline-none"
+                      placeholder="EX : BLACK-VIP-2026"
+                      className="w-full px-4 py-2.5 bg-black border border-white/20 focus:border-[#d4af37] text-white font-mono text-xs uppercase tracking-wider outline-hidden"
                     />
                   </div>
 
@@ -1268,71 +1075,78 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     <button
                       type="button"
                       onClick={() => setWizardStep(2)}
-                      className="text-xs text-[#9A9A9A] hover:text-white cursor-pointer"
+                      className="text-xs text-neutral-400 hover:text-white cursor-pointer"
                     >
-                      Back
+                      Retour
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setWizardStep(4)}
-                      className="px-6 py-3 rounded-full bg-white hover:bg-[#D4B475] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
+                      className="px-6 py-3 rounded-full bg-[#d4af37] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer"
                     >
-                      <span>Continue to Checkout</span>
+                      <span>Règlement Sécurisé</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Step 4 */}
+              {/* Étape 4 : Règlement Sécurisé */}
               {wizardStep === 4 && (
                 <form onSubmit={handleCompleteAdmission} className="space-y-5">
                   <div>
                     <h4 className="text-base font-agrandir-bold text-white uppercase">
-                      4. Direct Checkout
+                      4. Règlement Sécurisé & Activation
                     </h4>
-                    <p className="text-xs text-[#9A9A9A] font-light mt-1">
-                      Select your payment method to activate instant digital sync and ship your titanium card.
+                    <p className="text-xs text-neutral-400 font-light mt-1">
+                      Choisissez votre moyen de paiement sécurisé pour finaliser votre adhésion.
                     </p>
                   </div>
 
+                  {/* Payment Method Selector */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {[
-                      { id: 'card', label: 'Card', desc: 'Visa / Mastercard' },
-                      { id: 'wave', label: 'Wave', desc: '0% fee' },
-                      { id: 'orange_money', label: 'Orange Money', desc: 'Instant' },
-                      { id: 'mtn_momo', label: 'MTN MoMo', desc: 'Instant' },
-                      { id: 'djamo', label: 'Djamo', desc: 'Virtual / Physical' },
+                      { id: 'wave', label: 'Wave', desc: '0% de frais', icon: '🌊' },
+                      { id: 'orange_money', label: 'Orange Money', desc: 'CI & UEMOA', icon: '🟠' },
+                      { id: 'mtn_momo', label: 'MTN MoMo', desc: 'Instantané', icon: '🟡' },
+                      { id: 'djamo', label: 'Djamo', desc: 'Carte / Visa', icon: '💳' },
+                      { id: 'card', label: 'Carte Bancaire', desc: 'Visa / Mastercard', icon: '🔒' },
                     ].map((m) => (
                       <button
                         key={m.id}
                         type="button"
                         onClick={() => setPaymentMethod(m.id as any)}
-                        className={`p-3.5 rounded-2xl border text-left transition-colors cursor-pointer ${
+                        className={`p-3 border text-left transition-all cursor-pointer ${
                           paymentMethod === m.id
-                            ? 'bg-[#D4B475]/15 border-[#D4B475] text-white'
-                            : 'bg-white/5 border-white/10 text-[#9A9A9A] hover:border-white/25'
+                            ? 'bg-[#d4af37]/20 border-[#d4af37] text-white'
+                            : 'bg-white/5 border-white/10 text-neutral-400 hover:border-white/20'
                         }`}
                       >
+                        <div className="text-lg mb-1">{m.icon}</div>
                         <div className="font-agrandir-bold text-xs text-white uppercase">{m.label}</div>
-                        <div className="text-[10px] text-[#888888] font-mono mt-0.5">{m.desc}</div>
+                        <div className="text-[10px] text-neutral-400 font-mono">{m.desc}</div>
                       </button>
                     ))}
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-black border border-white/15 space-y-2 text-xs">
-                    <div className="flex justify-between text-[#9A9A9A]">
-                      <span>LUMARÉEL Black Card — Physical Edition</span>
-                      <span className="font-mono text-white tabular-nums">$49.00 USD</span>
+                  {/* Summary Box */}
+                  <div className="p-4 bg-black border border-white/15 space-y-2 text-xs">
+                    <div className="flex justify-between text-neutral-400">
+                      <span>Adhésion LUMARÉEL Black Card (1 an)</span>
+                      <span className="font-mono text-white">150 000 FCFA</span>
                     </div>
-                    <div className="flex justify-between text-[#9A9A9A]">
-                      <span>Free Global Express Shipping</span>
-                      <span className="text-[#C8FF3D] font-mono">Included</span>
+                    <div className="flex justify-between text-neutral-400">
+                      <span>Carte physique 16g composite & or</span>
+                      <span className="text-emerald-400 font-mono">Incluse</span>
+                    </div>
+                    <div className="flex justify-between text-neutral-400">
+                      <span>Crédit de bienvenue offert</span>
+                      <span className="text-[#d4af37] font-mono">+5 000 FCFA offerts</span>
                     </div>
                     <div className="border-t border-white/10 pt-2 flex justify-between font-agrandir-extrabold text-sm text-white">
                       <span>Total</span>
-                      <span className="text-[#D4B475] font-mono tabular-nums">$49.00 USD</span>
+                      <span className="text-[#d4af37] font-mono">150 000 FCFA</span>
                     </div>
                   </div>
 
@@ -1340,24 +1154,24 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     <button
                       type="button"
                       onClick={() => setWizardStep(3)}
-                      className="text-xs text-[#9A9A9A] hover:text-white cursor-pointer"
+                      className="text-xs text-neutral-400 hover:text-white cursor-pointer"
                     >
-                      Back
+                      Retour
                     </button>
 
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="px-7 py-3.5 rounded-full bg-white hover:bg-[#D4B475] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-colors"
+                      className="px-8 py-3.5 rounded-full bg-[#d4af37] hover:bg-[#e6c14c] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
                     >
                       {isSubmitting ? (
                         <>
                           <RotateCw className="w-4 h-4 animate-spin text-black" />
-                          <span>Processing...</span>
+                          <span>Activation en cours...</span>
                         </>
                       ) : (
                         <>
-                          <span>Confirm Order</span>
+                          <span>Valider & Rejoindre le Cercle</span>
                           <Check className="w-4 h-4 text-black" />
                         </>
                       )}
@@ -1366,41 +1180,41 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 </form>
               )}
 
-              {/* Step 5 */}
+              {/* Étape 5 : Confirmation */}
               {wizardStep === 5 && issuedResult && (
                 <div className="text-center space-y-5 py-4">
-                  <div className="w-14 h-14 rounded-full border border-[#C8FF3D] bg-[#C8FF3D]/15 text-[#C8FF3D] flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-7 h-7" />
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto shadow-2xl">
+                    <CheckCircle2 className="w-8 h-8" />
                   </div>
 
                   <div className="space-y-2">
-                    <span className="text-[10px] font-mono tracking-widest text-[#C8FF3D] uppercase">
-                      ORDER CONFIRMED
+                    <span className="text-[10px] font-mono tracking-widest text-[#d4af37] uppercase">
+                      ADMISSION CONFIRMÉE & SCELLÉE
                     </span>
                     <h3 className="text-2xl font-agrandir-extrabold uppercase text-white">
-                      YOUR BLACK CARD IS SYNCED
+                      BIENVENUE DANS LA BLACK CARD
                     </h3>
-                    <p className="text-xs text-[#9A9A9A] font-light max-w-md mx-auto">
-                      Your card ID <strong>{issuedResult.card.cardNumber}</strong> is now synchronized with your concert library and queued for express shipping.
+                    <p className="text-xs text-neutral-300 font-light max-w-md mx-auto">
+                      Votre identifiant permanent officiel est <strong>{issuedResult.card.cardNumber}</strong>. Votre pass numérique est immédiatement disponible et crédité d'un bonus de bienvenue de 5 000 FCFA.
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-black border border-white/15 max-w-md mx-auto text-left space-y-2 text-xs">
+                  <div className="p-4 bg-black border border-[#d4af37]/40 max-w-md mx-auto text-left space-y-2 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-[#9A9A9A]">Engraved Name</span>
+                      <span className="text-neutral-400">Titulaire</span>
                       <strong className="text-white uppercase font-mono">{issuedResult.card.cardholderName}</strong>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#9A9A9A]">Card Number</span>
-                      <strong className="text-[#D4B475] font-mono tabular-nums">{issuedResult.card.cardNumber}</strong>
+                      <span className="text-neutral-400">Numéro de carte</span>
+                      <strong className="text-[#d4af37] font-mono">{issuedResult.card.cardNumber}</strong>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-[#9A9A9A]">Shipping</span>
-                      <span className="text-[#C8FF3D] font-mono">2–3 Business Days</span>
+                      <span className="text-neutral-400">Coffret physique</span>
+                      <span className="text-emerald-400 font-mono">En cours de préparation sous écrin</span>
                     </div>
                   </div>
 
-                  <div className="pt-4 flex justify-center">
+                  <div className="pt-4 flex flex-wrap justify-center gap-4">
                     <button
                       type="button"
                       onClick={() => {
@@ -1408,51 +1222,14 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         if (onGoToWallet) onGoToWallet();
                         else setCurrentPage('member_card');
                       }}
-                      className="px-8 py-3.5 rounded-full bg-white hover:bg-[#D4B475] text-black font-agrandir-extrabold text-xs uppercase tracking-wider cursor-pointer transition-colors"
+                      className="px-8 py-3.5 rounded-full bg-[#d4af37] text-black font-agrandir-extrabold text-xs uppercase tracking-wider cursor-pointer hover:bg-white transition-all shadow-xl"
                     >
-                      Open My Black Card Wallet
+                      Accéder à mon Pass & Portefeuille
                     </button>
                   </div>
                 </div>
               )}
 
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* ========================================================================= */}
-      {/* 8. LEGAL / SUPPORT INFO MODAL                                             */}
-      {/* ========================================================================= */}
-      <AnimatePresence>
-        {infoModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              className="w-full max-w-md rounded-3xl bg-[#0E0E0E] border border-white/15 p-6 space-y-4 text-left"
-            >
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-agrandir-bold text-white">{infoModal.title}</h3>
-                <button
-                  type="button"
-                  onClick={() => setInfoModal(null)}
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-neutral-400 hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <p className="text-xs text-[#9A9A9A] leading-relaxed">{infoModal.body}</p>
-              <div className="flex justify-end pt-2">
-                <button
-                  type="button"
-                  onClick={() => setInfoModal(null)}
-                  className="px-5 py-2 rounded-full bg-white text-black text-xs font-bold cursor-pointer"
-                >
-                  Close
-                </button>
-              </div>
             </motion.div>
           </div>
         )}

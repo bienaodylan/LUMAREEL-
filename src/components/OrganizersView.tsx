@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent, TicketCategory } from '../types';
-import { getAuthHeaders } from '../utils/authSession';
 import {
   ShieldCheck,
   Cpu,
@@ -65,11 +64,9 @@ export const OrganizersView: React.FC = () => {
     }
 
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch('/api/organizers/register', {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(regForm),
       });
       const data = await res.json();
@@ -122,11 +119,9 @@ export const OrganizersView: React.FC = () => {
     };
 
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch('/api/events', {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const data = await res.json();

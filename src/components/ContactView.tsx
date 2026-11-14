@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { getAuthHeaders } from '../utils/authSession';
 import { Mail, Send, CheckCircle2, Loader2 } from 'lucide-react';
 
 export const ContactView: React.FC = () => {
@@ -26,11 +25,9 @@ export const ContactView: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch('/api/contact', {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 

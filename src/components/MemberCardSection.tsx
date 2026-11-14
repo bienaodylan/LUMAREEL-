@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { getAuthHeaders } from '../utils/authSession';
+import { supabase } from '../lib/supabaseClient';
 import { MembershipCard, MembershipBenefit, MembershipEntitlement, Ticket, Order } from '../types';
 import {
   ShieldCheck,
@@ -56,17 +56,14 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
 
   const fetchMyCard = async () => {
     if (!currentUser?.email) {
-      setCard(null);
       setLoading(false);
       return;
     }
     try {
       setLoading(true);
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/membership/my-card', {
-        credentials: 'include',
-        headers,
-      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { setCard(null); return; }
+      const res = await fetch('/api/membership/my-card', { headers: { Authorization: `Bearer ${session.access_token}` } });
       const data = await res.json();
       if (data.success && data.hasCard) {
         setCard(data.card);
@@ -86,12 +83,11 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
     if (!card) return;
     try {
       setIsRotatingToken(true);
-      if (!currentUser) throw new Error('Session utilisateur requise.');
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Session utilisateur requise.');
       const res = await fetch(`/api/membership/admin/cards/${card.id}/rotate-token`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({}),
       });
       const data = await res.json();
@@ -111,12 +107,11 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
     if (!card) return;
     try {
       setIsRedeeming(benefitId);
-      if (!currentUser) throw new Error('Session utilisateur requise.');
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error('Session utilisateur requise.');
       const res = await fetch('/api/membership/redeem-benefit', {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
           cardId: card.id,
           benefitId,

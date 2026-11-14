@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../../context/AppContext';
-import { getAuthHeaders } from '../../../utils/authSession';
 import {
   MembershipCard,
   MembershipEdition,
@@ -72,12 +71,11 @@ export const AdminMembershipView: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const headers = await getAuthHeaders();
       const [ovRes, cardsRes, plansRes, benefitsRes] = await Promise.all([
-        fetch('/api/membership/admin/overview', { credentials: 'include', headers }),
-        fetch('/api/membership/admin/cards', { credentials: 'include', headers }),
-        fetch('/api/membership/plans', { credentials: 'include', headers }),
-        fetch('/api/membership/benefits', { credentials: 'include', headers }),
+        fetch('/api/membership/admin/overview'),
+        fetch('/api/membership/admin/cards'),
+        fetch('/api/membership/plans'),
+        fetch('/api/membership/benefits'),
       ]);
 
       const [ovData, cardsData, plansData, benefitsData] = await Promise.all([
@@ -104,11 +102,9 @@ export const AdminMembershipView: React.FC = () => {
 
   const handleUpdateCardStatus = async (cardId: string, newStatus: 'active' | 'suspended' | 'revoked') => {
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/membership/admin/cards/${cardId}/status`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus, reason: actionReason || 'Décision administrative' }),
       });
       const data = await res.json();
@@ -124,11 +120,9 @@ export const AdminMembershipView: React.FC = () => {
 
   const handleUpdatePhysicalStatus = async (cardId: string, physicalStatus: 'in_production' | 'shipped' | 'delivered') => {
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/membership/admin/cards/${cardId}/physical-status`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ physicalStatus, trackingNumber: physicalTrackingInput.trim() }),
       });
       const data = await res.json();
@@ -144,11 +138,9 @@ export const AdminMembershipView: React.FC = () => {
 
   const handleRotateQrToken = async (cardId: string) => {
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/membership/admin/cards/${cardId}/rotate-token`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ actorId: 'ADMIN' }),
       });
       const data = await res.json();
