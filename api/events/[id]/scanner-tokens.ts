@@ -2,6 +2,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireRole, methodNotAllowed } from '../../_lib/supabase.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Cache-Control', 'private, no-store');
+  res.setHeader('Pragma', 'no-cache');
   try {
     const auth = await requireRole(req, ['super_admin', 'box_office']);
     if (!auth.ok) return res.status(auth.status).json({ success: false, error: auth.error });
