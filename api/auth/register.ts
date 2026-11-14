@@ -9,10 +9,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const email = String(req.body?.email || '').trim().toLowerCase();
-    const name = String(req.body?.name || '').trim();
+    const name = String(req.body?.name || '').normalize('NFKC').replace(/\s+/gu, ' ').trim();
     const password = String(req.body?.password || '');
-    if (!email || !name || password.length < 6) {
-      return res.status(400).json({ success: false, error: 'Nom, e-mail et mot de passe (6 car. min.) requis.' });
+    const letters = name.match(/\p{L}/gu) || [];
+    const words = name.split(/\s+/u).filter(Boolean);
+    const compactName = name.replace(/[\s.'’_-]/gu, '').toLocaleLowerCase();
+    const repeatedCharacterName = compactName.length >= 3 && new Set(Array.from(compactName)).size === 1;
+    const repeatedSingleLetterName = words.length >= 3 &&
+      words.every((word) => Array.from(word).length === 1 && word.toLocaleLowerCase() === words[0].toLocaleLowerCase());
+
+    if (
+      !email ||
+      email.length > 200 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email) ||
+      !name ||
+      name.length > 120 ||
+      letters.length < 2 ||
+      repeatedCharacterName ||
+      repeatedSingleLetterName ||
+      password.length < 10 ||
+      password.length > 200
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nom complet crédible, e-mail valide et mot de passe de 10 caractères minimum requis.',
+      });
     }
 
     try {
