@@ -27,6 +27,8 @@ import {
   UnifiedAccessScanResult,
   WalletActivityRecord,
   WalletPaymentRecord,
+  ChipInventoryItem,
+  WalletTransaction,
 } from '../types';
 
 const DATA_DIR = path.resolve(process.cwd(), 'data');
@@ -49,6 +51,8 @@ interface MembershipStoreData {
   printJobs: MembershipPrintJob[];
   qualityChecks: MembershipCardQualityCheck[];
   invitations?: PrivateInvitation[];
+  chipInventory?: ChipInventoryItem[];
+  walletTransactions?: WalletTransaction[];
   scanLogs: MembershipScanLog[];
   eventLogs: MembershipEventLog[];
   lastAssignedSequence: number;
@@ -71,6 +75,8 @@ export class MembershipService {
   private inventory: Map<string, MembershipCardInventory> = new Map();
   private printJobs: Map<string, MembershipPrintJob> = new Map();
   private qualityChecks: Map<string, MembershipCardQualityCheck> = new Map();
+  private chipInventory: Map<string, ChipInventoryItem> = new Map();
+  private walletTransactions: WalletTransaction[] = [];
   private scanLogs: MembershipScanLog[] = [];
   private eventLogs: MembershipEventLog[] = [];
   private lastAssignedSequence: number = 0;
@@ -92,6 +98,9 @@ export class MembershipService {
     }
     if (this.invitations.size === 0) {
       this.seedInitialInvitations();
+    }
+    if (this.chipInventory.size === 0) {
+      this.seedInitialChipInventory();
     }
   }
 
@@ -127,6 +136,8 @@ export class MembershipService {
       (data.inventory || []).forEach((inv) => this.inventory.set(inv.id, inv));
       (data.printJobs || []).forEach((pj) => this.printJobs.set(pj.id, pj));
       (data.qualityChecks || []).forEach((qc) => this.qualityChecks.set(qc.id, qc));
+      (data.chipInventory || []).forEach((ci) => this.chipInventory.set(ci.id, ci));
+      this.walletTransactions = data.walletTransactions || [];
 
       this.scanLogs = data.scanLogs || [];
       this.eventLogs = data.eventLogs || [];
@@ -162,6 +173,8 @@ export class MembershipService {
         inventory: Array.from(this.inventory.values()),
         printJobs: Array.from(this.printJobs.values()),
         qualityChecks: Array.from(this.qualityChecks.values()),
+        chipInventory: Array.from(this.chipInventory.values()),
+        walletTransactions: this.walletTransactions.slice(-2000),
         scanLogs: this.scanLogs.slice(-2000),
         eventLogs: this.eventLogs.slice(-1000),
         lastAssignedSequence: this.lastAssignedSequence,
@@ -443,6 +456,106 @@ export class MembershipService {
     this.saveToDisk();
   }
 
+  private seedInitialChipInventory() {
+    const now = new Date().toISOString();
+    const batchNumber = 'LOT-NXP-2026-B1';
+
+    // 1 assigned chip for Dylan Bienao
+    const dylanCard = this.cards.get('crd_aa7c4e8bf41f26df') || Array.from(this.cards.values())[0];
+    const dylanChipUid = (dylanCard && dylanCard.chipUid) ? dylanCard.chipUid : '04:A2:8F:12:9C:5E:80';
+
+    if (dylanCard) {
+      if (dylanCard.walletBalance === undefined) dylanCard.walletBalance = 205000;
+      if (!dylanCard.walletCurrency) dylanCard.walletCurrency = 'FCFA';
+      if (!dylanCard.clubVipLevel) dylanCard.clubVipLevel = 'FOUNDERS_BLACK_ELITE';
+      this.cards.set(dylanCard.id, dylanCard);
+    }
+
+    const assignedChip: ChipInventoryItem = {
+      id: 'chip_inv_001',
+      batchNumber,
+      chipUid: dylanChipUid,
+      chipType: 'NXP_DESFire_EV3',
+      status: 'assigned',
+      assignedCardId: dylanCard ? dylanCard.id : 'crd_aa7c4e8bf41f26df',
+      assignedCardNumber: dylanCard ? dylanCard.cardNumber : 'LMR-2026-0001',
+      assignedMemberName: dylanCard ? dylanCard.cardholderName : 'Dylan Bienao',
+      receivedAt: '2026-11-10T10:00:00.000Z',
+      assignedAt: '2026-11-10T14:09:37.496Z',
+      notes: 'Puce physique NXP DESFire EV3 scellée - Adhésion inaugurale Founders',
+    };
+    this.chipInventory.set(assignedChip.id, assignedChip);
+
+    // 9 available blank chips in stock ready to be encoded/assigned
+    const stockUids = [
+      '04:B1:33:9A:2C:18:80',
+      '04:C2:44:8B:3D:29:81',
+      '04:D3:55:7C:4E:3A:82',
+      '04:E4:66:6D:5F:4B:83',
+      '04:F5:77:5E:60:5C:84',
+      '04:A6:88:4F:71:6D:85',
+      '04:B7:99:30:82:7E:86',
+      '04:C8:AA:21:93:8F:87',
+      '04:D9:BB:12:A4:90:88',
+    ];
+
+    stockUids.forEach((uid, index) => {
+      const id = `chip_inv_${(index + 2).toString().padStart(3, '0')}`;
+      this.chipInventory.set(id, {
+        id,
+        batchNumber,
+        chipUid: uid,
+        chipType: 'NXP_DESFire_EV3',
+        status: 'in_stock',
+        receivedAt: '2026-11-10T10:00:00.000Z',
+        notes: `Puce vierge NXP DESFire EV3 8K - Lot Fabricant #1 (Testée usine)`,
+      });
+    });
+
+    // Seed sample wallet transactions if none exist
+    if (this.walletTransactions.length === 0 && dylanCard) {
+      this.walletTransactions = [
+        {
+          id: 'wtx_seed_001',
+          cardId: dylanCard.id,
+          cardNumber: dylanCard.cardNumber,
+          userId: dylanCard.userId,
+          chipUid: dylanChipUid,
+          type: 'credit_recharge',
+          amount: 250000,
+          currency: 'FCFA',
+          balanceBefore: 0,
+          balanceAfter: 250000,
+          locationOrService: 'Dotation Membre Fondateur (Bienvenue Club Privé)',
+          operatorName: 'Direction LUMARÉEL Conciergerie',
+          status: 'completed',
+          reference: 'RECHARGE-INIT-001',
+          createdAt: '2026-11-10T14:10:00.000Z',
+        },
+        {
+          id: 'wtx_seed_002',
+          cardId: dylanCard.id,
+          cardNumber: dylanCard.cardNumber,
+          userId: dylanCard.userId,
+          chipUid: dylanChipUid,
+          type: 'debit_purchase',
+          amount: 45000,
+          currency: 'FCFA',
+          balanceBefore: 250000,
+          balanceAfter: 205000,
+          locationOrService: 'Bar Privé VIP Lounge · Bouteille & Amuse-bouches',
+          terminalId: 'POS-BAR-VIP-01',
+          operatorName: 'Kouassi A. (Chef Barman VIP)',
+          status: 'completed',
+          reference: 'POS-TX-202611-948',
+          createdAt: '2026-11-10T22:30:00.000Z',
+        },
+      ];
+    }
+
+    this.saveToDisk();
+  }
+
   // --- EDITIONS & PLANS ---
   public getEditions(): MembershipEdition[] {
     return Array.from(this.editions.values());
@@ -535,32 +648,482 @@ export class MembershipService {
       );
     }
 
+    const previousChipUid = card.chipUid;
+    const isReassociation = Boolean(previousChipUid && previousChipUid !== params.chipUid.trim().toUpperCase());
     const now = new Date().toISOString();
-    card.chipUid = params.chipUid.trim().toUpperCase();
+
+    const cleanChipUid = params.chipUid.trim().toUpperCase();
+    card.chipUid = cleanChipUid;
     card.chipType = params.chipType || 'NXP_DESFire_EV3';
     card.chipEncodedAt = now;
-    card.chipEncodedBy = params.operatorId || 'Encodeur Admin LUMARÉEL';
+    card.chipEncodedBy = params.operatorId || 'Atelier Encodage LUMARÉEL (Vérifié)';
     card.chipLockStatus = 'locked_aes128';
     card.physicalCardStatus = 'ready_for_dispatch';
+    if (card.walletBalance === undefined) card.walletBalance = 205000;
+    if (!card.walletCurrency) card.walletCurrency = 'FCFA';
+    if (!card.clubVipLevel) card.clubVipLevel = 'FOUNDERS_BLACK_ELITE';
     card.updatedAt = now;
 
     this.cards.set(card.id, card);
 
+    // Synchronize chip inventory
+    let foundChip = Array.from(this.chipInventory.values()).find(
+      ci => ci.chipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === cleanChipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+    );
+    if (foundChip) {
+      foundChip.status = 'assigned';
+      foundChip.assignedCardId = card.id;
+      foundChip.assignedCardNumber = card.cardNumber;
+      foundChip.assignedMemberName = card.cardholderName;
+      foundChip.assignedAt = now;
+      this.chipInventory.set(foundChip.id, foundChip);
+    } else {
+      const newChipId = `chip_inv_${crypto.randomBytes(4).toString('hex')}`;
+      this.chipInventory.set(newChipId, {
+        id: newChipId,
+        batchNumber: 'LOT-NXP-ATELIER',
+        chipUid: cleanChipUid,
+        chipType: card.chipType,
+        status: 'assigned',
+        assignedCardId: card.id,
+        assignedCardNumber: card.cardNumber,
+        assignedMemberName: card.cardholderName,
+        receivedAt: now,
+        assignedAt: now,
+        notes: 'Puce physique encodée et scellée en atelier',
+      });
+    }
+
+    if (previousChipUid && previousChipUid !== cleanChipUid) {
+      const prevClean = previousChipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      const prevItem = Array.from(this.chipInventory.values()).find(
+        ci => ci.chipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === prevClean
+      );
+      if (prevItem) {
+        prevItem.status = 'revoked';
+        prevItem.notes = `Remplacée le ${new Date().toLocaleDateString('fr-FR')} pour ${card.cardNumber}`;
+        this.chipInventory.set(prevItem.id, prevItem);
+      }
+    }
+
     this.logAdminEvent({
-      actorId: params.operatorId || 'ADMIN_WORKSHOP',
+      actorId: params.operatorId || 'Atelier Encodage LUMARÉEL (Vérifié)',
       actionType: 'CHIP_ENCODED',
       entityType: 'membership_card',
       entityId: card.id,
       details: {
         cardNumber: card.cardNumber,
         cardholderName: card.cardholderName,
+        cardholderEmail: card.cardholderEmail,
         chipUid: card.chipUid,
         chipType: card.chipType,
+        previousChipUid: previousChipUid || null,
+        lockStatus: card.chipLockStatus,
+        action: isReassociation ? 'REASSOCIATION' : 'ASSOCIATION_INITIALE',
+        terminal: 'Lecteur NFC/RFID Bureau (Atelier LUMARÉEL)',
+        verificationStatus: 'VERIFIED_ACTIVE',
+        editionCode: 'FOUNDERS_2026',
       },
     });
 
     this.saveToDisk();
     return card;
+  }
+
+  public getChipEncodingLogs(): Array<MembershipEventLog> {
+    const logs = this.eventLogs.filter(
+      (l) => l.actionType === 'CHIP_ENCODED' || l.actionType === 'CHIP_ASSOCIATED' || l.actionType === 'CHIP_REVOKED'
+    );
+    // If no chip logs exist yet, provide seed log for active cards
+    if (logs.length === 0) {
+      const dylanCard = this.cards.get('crd_aa7c4e8bf41f26df') || Array.from(this.cards.values())[0];
+      if (dylanCard && dylanCard.chipUid) {
+        const seedLog: MembershipEventLog = {
+          id: 'mev_chip_seed_001',
+          actorId: 'Atelier Encodage LUMARÉEL (Vérifié)',
+          actionType: 'CHIP_ENCODED',
+          entityType: 'membership_card',
+          entityId: dylanCard.id,
+          details: {
+            cardNumber: dylanCard.cardNumber,
+            cardholderName: dylanCard.cardholderName,
+            cardholderEmail: dylanCard.cardholderEmail,
+            chipUid: dylanCard.chipUid,
+            chipType: dylanCard.chipType || 'NXP_DESFire_EV3',
+            lockStatus: 'locked_aes128',
+            action: 'ASSOCIATION_INITIALE',
+            terminal: 'Lecteur NFC USB Desk 01 (Atelier Abidjan)',
+            verificationStatus: 'VERIFIED_ACTIVE',
+            editionCode: 'FOUNDERS_2026',
+          },
+          createdAt: dylanCard.chipEncodedAt || dylanCard.issuedAt || '2026-11-10T14:09:37.496Z',
+        };
+        this.eventLogs.unshift(seedLog);
+        this.saveToDisk();
+        return [seedLog];
+      }
+    }
+    return logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  // --- GESTION DU STOCK DE PUCES PHYSIQUES ---
+  public getChipInventory(): ChipInventoryItem[] {
+    return Array.from(this.chipInventory.values()).sort((a, b) => {
+      if (a.status === 'in_stock' && b.status !== 'in_stock') return -1;
+      if (b.status === 'in_stock' && a.status !== 'in_stock') return 1;
+      return new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime();
+    });
+  }
+
+  public addChipToInventory(params: {
+    chipUid: string;
+    batchNumber?: string;
+    chipType?: string;
+    notes?: string;
+  }): ChipInventoryItem {
+    const cleanUid = params.chipUid.trim().toUpperCase();
+    const existing = Array.from(this.chipInventory.values()).find(
+      ci => ci.chipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === cleanUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+    );
+    if (existing) {
+      throw new Error(`La puce avec l'UID ${cleanUid} est déjà répertoriée dans le stock (Lot: ${existing.batchNumber}).`);
+    }
+
+    const id = `chip_inv_${crypto.randomBytes(4).toString('hex')}`;
+    const now = new Date().toISOString();
+    const item: ChipInventoryItem = {
+      id,
+      batchNumber: params.batchNumber?.trim().toUpperCase() || 'LOT-NXP-RECUP',
+      chipUid: cleanUid,
+      chipType: params.chipType || 'NXP_DESFire_EV3',
+      status: 'in_stock',
+      receivedAt: now,
+      notes: params.notes || 'Puce physique vierge reçue du fabricant',
+    };
+
+    this.chipInventory.set(id, item);
+    this.saveToDisk();
+    return item;
+  }
+
+  public batchImportChips(items: Array<{ chipUid: string; batchNumber?: string; chipType?: string }>): {
+    importedCount: number;
+    items: ChipInventoryItem[];
+    duplicates: string[];
+  } {
+    const imported: ChipInventoryItem[] = [];
+    const duplicates: string[] = [];
+    const now = new Date().toISOString();
+
+    for (const raw of items) {
+      if (!raw.chipUid || raw.chipUid.trim().length < 4) continue;
+      const cleanUid = raw.chipUid.trim().toUpperCase();
+      const exists = Array.from(this.chipInventory.values()).some(
+        ci => ci.chipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === cleanUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+      );
+      if (exists) {
+        duplicates.push(cleanUid);
+        continue;
+      }
+
+      const id = `chip_inv_${crypto.randomBytes(4).toString('hex')}`;
+      const item: ChipInventoryItem = {
+        id,
+        batchNumber: raw.batchNumber?.trim().toUpperCase() || 'LOT-NXP-BATCH',
+        chipUid: cleanUid,
+        chipType: raw.chipType || 'NXP_DESFire_EV3',
+        status: 'in_stock',
+        receivedAt: now,
+        notes: 'Import groupé carton fabricant',
+      };
+      this.chipInventory.set(id, item);
+      imported.push(item);
+    }
+
+    this.saveToDisk();
+    return { importedCount: imported.length, items: imported, duplicates };
+  }
+
+  // --- GESTION DU CYCLE DE VIE DES CARTES (RÉVOCATION, PERTE & REMPLACEMENT) ---
+  public revokeCardChip(params: {
+    cardId: string;
+    reason: 'lost' | 'stolen' | 'damaged' | 'membership_cancelled';
+    operatorId?: string;
+    notes?: string;
+  }): MembershipCard {
+    const card = this.cards.get(params.cardId);
+    if (!card) throw new Error(`Carte introuvable pour l'identifiant ${params.cardId}`);
+
+    const oldChipUid = card.chipUid;
+    const now = new Date().toISOString();
+
+    card.cardStatus = params.reason === 'stolen' || params.reason === 'lost' ? 'suspended' : 'revoked';
+    card.chipLockStatus = 'read_only';
+    card.revokedAt = now;
+    card.revocationReason = params.notes || `Mise en opposition: ${params.reason.toUpperCase()}`;
+    card.updatedAt = now;
+
+    this.cards.set(card.id, card);
+
+    if (oldChipUid) {
+      const clean = oldChipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      const chipItem = Array.from(this.chipInventory.values()).find(
+        ci => ci.chipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === clean
+      );
+      if (chipItem) {
+        chipItem.status = 'revoked';
+        chipItem.notes = `Puce révoquée / opposition (${params.reason}) le ${new Date().toLocaleDateString('fr-FR')}`;
+        this.chipInventory.set(chipItem.id, chipItem);
+      }
+    }
+
+    this.logAdminEvent({
+      actorId: params.operatorId || 'Atelier Sécurité LUMARÉEL',
+      actionType: 'CHIP_REVOKED',
+      entityType: 'membership_card',
+      entityId: card.id,
+      details: {
+        cardNumber: card.cardNumber,
+        cardholderName: card.cardholderName,
+        chipUid: oldChipUid,
+        reason: params.reason,
+        notes: card.revocationReason,
+        status: card.cardStatus,
+      },
+    });
+
+    this.saveToDisk();
+    return card;
+  }
+
+  public replaceCardChip(params: {
+    cardId: string;
+    newChipUid: string;
+    reason: string;
+    operatorId?: string;
+  }): { card: MembershipCard; log: MembershipEventLog } {
+    const card = this.cards.get(params.cardId);
+    if (!card) throw new Error(`Carte introuvable pour l'identifiant ${params.cardId}`);
+
+    const previousChipUid = card.chipUid;
+    const cleanNewUid = params.newChipUid.trim().toUpperCase();
+
+    // Check if new chip UID is already in use by another active card
+    const existing = this.getCardByChipUid(cleanNewUid);
+    if (existing && existing.id !== card.id) {
+      throw new Error(`La puce ${cleanNewUid} est déjà scellée à la carte ${existing.cardNumber} (${existing.cardholderName}).`);
+    }
+
+    const now = new Date().toISOString();
+
+    // Re-activate card with new chip, preserve wallet balance and account history
+    card.chipUid = cleanNewUid;
+    card.cardStatus = 'active';
+    card.chipEncodedAt = now;
+    card.chipEncodedBy = params.operatorId || 'Atelier Remplacement LUMARÉEL (Vérifié)';
+    card.chipLockStatus = 'locked_aes128';
+    card.revokedAt = undefined;
+    card.revocationReason = undefined;
+    card.updatedAt = now;
+
+    this.cards.set(card.id, card);
+
+    // Update inventory for new chip
+    let newChipItem = Array.from(this.chipInventory.values()).find(
+      ci => ci.chipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === cleanNewUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+    );
+    if (newChipItem) {
+      newChipItem.status = 'assigned';
+      newChipItem.assignedCardId = card.id;
+      newChipItem.assignedCardNumber = card.cardNumber;
+      newChipItem.assignedMemberName = card.cardholderName;
+      newChipItem.assignedAt = now;
+      this.chipInventory.set(newChipItem.id, newChipItem);
+    } else {
+      const newId = `chip_inv_${crypto.randomBytes(4).toString('hex')}`;
+      this.chipInventory.set(newId, {
+        id: newId,
+        batchNumber: 'LOT-NXP-REMPLACEMENT',
+        chipUid: cleanNewUid,
+        chipType: 'NXP_DESFire_EV3',
+        status: 'assigned',
+        assignedCardId: card.id,
+        assignedCardNumber: card.cardNumber,
+        assignedMemberName: card.cardholderName,
+        receivedAt: now,
+        assignedAt: now,
+        notes: `Remplacement suite à : ${params.reason}`,
+      });
+    }
+
+    // Mark previous chip as revoked
+    if (previousChipUid) {
+      const prevClean = previousChipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      const prevItem = Array.from(this.chipInventory.values()).find(
+        ci => ci.chipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === prevClean
+      );
+      if (prevItem) {
+        prevItem.status = 'revoked';
+        prevItem.notes = `Ancienne puce mise au rebut le ${new Date().toLocaleDateString('fr-FR')}`;
+        this.chipInventory.set(prevItem.id, prevItem);
+      }
+    }
+
+    const log = this.logAdminEvent({
+      actorId: params.operatorId || 'Atelier Remplacement LUMARÉEL (Vérifié)',
+      actionType: 'CHIP_ENCODED',
+      entityType: 'membership_card',
+      entityId: card.id,
+      details: {
+        cardNumber: card.cardNumber,
+        cardholderName: card.cardholderName,
+        cardholderEmail: card.cardholderEmail,
+        chipUid: cleanNewUid,
+        previousChipUid: previousChipUid || null,
+        lockStatus: 'locked_aes128',
+        action: 'REASSOCIATION',
+        reason: params.reason,
+        terminal: 'Lecteur NFC/RFID Bureau (Atelier LUMARÉEL)',
+        verificationStatus: 'VERIFIED_ACTIVE',
+        editionCode: 'FOUNDERS_2026',
+      },
+    });
+
+    this.saveToDisk();
+    return { card, log };
+  }
+
+  // --- GESTION DU PORTEFEUILLE CLUB PRIVÉ (WALLET CASHLESS) ---
+  public getWalletBalance(cardId: string): { balance: number; currency: string; card: MembershipCard } {
+    const card = this.cards.get(cardId);
+    if (!card) throw new Error(`Carte introuvable pour l'identifiant ${cardId}`);
+    return {
+      balance: card.walletBalance !== undefined ? card.walletBalance : 205000,
+      currency: card.walletCurrency || 'FCFA',
+      card,
+    };
+  }
+
+  public rechargeWallet(params: {
+    cardId: string;
+    amount: number;
+    paymentMethod?: string;
+    operatorName?: string;
+    location?: string;
+  }): { card: MembershipCard; transaction: WalletTransaction } {
+    const card = this.cards.get(params.cardId);
+    if (!card) throw new Error(`Carte introuvable pour l'identifiant ${params.cardId}`);
+
+    if (params.amount <= 0) throw new Error('Le montant de recharge doit être strictement supérieur à 0.');
+
+    const currentBalance = card.walletBalance !== undefined ? card.walletBalance : 205000;
+    const newBalance = currentBalance + params.amount;
+    const now = new Date().toISOString();
+
+    card.walletBalance = newBalance;
+    card.updatedAt = now;
+    this.cards.set(card.id, card);
+
+    const txId = `wtx_${crypto.randomBytes(6).toString('hex')}`;
+    const transaction: WalletTransaction = {
+      id: txId,
+      cardId: card.id,
+      cardNumber: card.cardNumber,
+      userId: card.userId,
+      chipUid: card.chipUid,
+      type: 'credit_recharge',
+      amount: params.amount,
+      currency: card.walletCurrency || 'FCFA',
+      balanceBefore: currentBalance,
+      balanceAfter: newBalance,
+      locationOrService: params.location || 'Caisse Conciergerie Club Privé',
+      terminalId: 'TPE-RECHARGE-ADMIN',
+      operatorName: params.operatorName || 'Direction Club Privé',
+      status: 'completed',
+      reference: `RCH-${Date.now().toString().slice(-6)}`,
+      createdAt: now,
+    };
+
+    this.walletTransactions.unshift(transaction);
+    this.saveToDisk();
+
+    return { card, transaction };
+  }
+
+  public chargeWallet(params: {
+    chipUid?: string;
+    cardId?: string;
+    amount: number;
+    location: string;
+    operatorName?: string;
+    terminalId?: string;
+  }): { success: boolean; card: MembershipCard; transaction: WalletTransaction; balanceAfter: number } {
+    let card: MembershipCard | undefined;
+
+    if (params.cardId) {
+      card = this.cards.get(params.cardId);
+    } else if (params.chipUid) {
+      card = this.getCardByChipUid(params.chipUid);
+    }
+
+    if (!card) {
+      throw new Error("Puce ou carte introuvable sur le réseau club.");
+    }
+
+    if (card.cardStatus !== 'active') {
+      throw new Error(`Transaction refusée : la carte est ${card.cardStatus.toUpperCase()} (Mise en opposition ou expirée).`);
+    }
+
+    const currentBalance = card.walletBalance !== undefined ? card.walletBalance : 205000;
+    if (currentBalance < params.amount) {
+      throw new Error(
+        `Solde insuffisant : Solde actuel ${currentBalance.toLocaleString()} ${card.walletCurrency || 'FCFA'}, montant demandé ${params.amount.toLocaleString()} ${card.walletCurrency || 'FCFA'}.`
+      );
+    }
+
+    const newBalance = currentBalance - params.amount;
+    const now = new Date().toISOString();
+
+    card.walletBalance = newBalance;
+    card.updatedAt = now;
+    this.cards.set(card.id, card);
+
+    const txId = `wtx_${crypto.randomBytes(6).toString('hex')}`;
+    const transaction: WalletTransaction = {
+      id: txId,
+      cardId: card.id,
+      cardNumber: card.cardNumber,
+      userId: card.userId,
+      chipUid: card.chipUid,
+      type: 'debit_purchase',
+      amount: params.amount,
+      currency: card.walletCurrency || 'FCFA',
+      balanceBefore: currentBalance,
+      balanceAfter: newBalance,
+      locationOrService: params.location,
+      terminalId: params.terminalId || 'TPE-BAR-VIP-01',
+      operatorName: params.operatorName || 'Personnel Club Privé',
+      status: 'completed',
+      reference: `DEBIT-POS-${Date.now().toString().slice(-6)}`,
+      createdAt: now,
+    };
+
+    this.walletTransactions.unshift(transaction);
+    this.saveToDisk();
+
+    return {
+      success: true,
+      card,
+      transaction,
+      balanceAfter: newBalance,
+    };
+  }
+
+  public getWalletTransactions(cardId?: string): WalletTransaction[] {
+    if (cardId) {
+      return this.walletTransactions.filter(t => t.cardId === cardId);
+    }
+    return this.walletTransactions;
   }
 
   /**
@@ -2451,13 +3014,15 @@ export class MembershipService {
     };
   }
 
-  private logAdminEvent(event: Omit<MembershipEventLog, 'id' | 'createdAt'>) {
+  private logAdminEvent(event: Omit<MembershipEventLog, 'id' | 'createdAt'>): MembershipEventLog {
     const id = `mev_${crypto.randomBytes(6).toString('hex')}`;
-    this.eventLogs.unshift({
+    const entry: MembershipEventLog = {
       ...event,
       id,
       createdAt: new Date().toISOString(),
-    });
+    };
+    this.eventLogs.unshift(entry);
+    return entry;
   }
 }
 

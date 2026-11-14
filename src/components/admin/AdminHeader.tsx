@@ -8,7 +8,6 @@ interface AdminHeaderProps {
   eventSubTab?: string;
   onOpenMobileMenu: () => void;
   onCreateEventClick?: () => void;
-  onNavigateScanner?: () => void;
   onNavigatePublic?: () => void;
   onOpenBatchPrint?: () => void;
 }
@@ -19,7 +18,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
   eventSubTab,
   onOpenMobileMenu,
   onCreateEventClick,
-  onNavigateScanner,
   onNavigatePublic,
   onOpenBatchPrint,
 }) => {
@@ -27,6 +25,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
     switch (currentSection) {
       case 'overview':
         return 'Tableau de bord';
+      case 'workshop':
+        return 'Cartes Club & Encodage Puces (NFC/RFID)';
+      case 'membership':
+        return 'Adhésions & Membres';
       case 'events':
         return 'Concerts & Événements';
       case 'orders':
@@ -35,8 +37,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
         return 'Archives & CMS Vidéo';
       case 'emails':
         return 'Journal Transactionnel';
-      case 'settings':
-        return 'Paramètres';
       default:
         return 'Administration';
     }
@@ -110,16 +110,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           </button>
         )}
 
-        {onNavigateScanner && (
-          <button
-            onClick={onNavigateScanner}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-agrandir-semibold text-white transition-colors cursor-pointer"
-            title="Ouvrir le terminal vigile"
-          >
-            <QrCode className="w-3.5 h-3.5 text-[#d4af37]" />
-            <span>Scanner Portes</span>
-          </button>
-        )}
+
 
         {onCreateEventClick && (
           <button

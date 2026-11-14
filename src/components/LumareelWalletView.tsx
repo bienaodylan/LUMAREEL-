@@ -555,12 +555,12 @@ export const LumareelWalletView: React.FC = () => {
 
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="px-3.5 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-agrandir-bold uppercase">
-                        ● Puce NFC / RFID Active
+                        ● Sans Contact Actif
                       </span>
 
                       <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-[#d4af37]">
                         <Radio className="w-3.5 h-3.5 text-[#d4af37]" />
-                        <span>UID : {wallet.card.chipUid || '04:A2:8F:12:9C:5E:80'}</span>
+                        <span>Passage Instantané Autorisé</span>
                       </span>
                     </div>
                   </div>

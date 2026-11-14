@@ -11,7 +11,7 @@ export const DesktopSidebar: React.FC = () => {
     {label:'Accueil',page:'home',icon:Home},
     {label:'Mes commandes',page:'client_space',icon:Ticket},
     {label:'Archives',page:'archive',icon:Archive},
-    {label:'Ma carte',page:'member_card',icon:CreditCard},
+    {label:'Black Card',page:'member_card',icon:CreditCard},
     {label:'Mon compte',page:'profile',icon:UserRound},
   ];
   const go = (page:PageView) => setCurrentPage(page);

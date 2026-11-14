@@ -9,9 +9,7 @@ import { AdminEventWorkspace } from './admin/views/AdminEventWorkspace';
 import { AdminOrdersView } from './admin/views/AdminOrdersView';
 import { AdminArchivesView } from './admin/views/AdminArchivesView';
 import { AdminEmailsView } from './admin/views/AdminEmailsView';
-import { AdminSettingsView } from './admin/views/AdminSettingsView';
 import { AdminMembershipView } from './admin/views/AdminMembershipView';
-import { AdminPhysicalCardsView } from './admin/views/AdminPhysicalCardsView';
 import { AdminWorkshopView } from './admin/views/AdminWorkshopView';
 import { TicketBatchPrintModal } from './TicketBatchPrintModal';
 import { Plus, X } from 'lucide-react';
@@ -219,7 +217,6 @@ const AdminDashboardContent: React.FC = () => {
                 }
               : undefined
           }
-          onNavigateScanner={() => setCurrentPage('gate_scanner')}
           onNavigatePublic={() => setCurrentPage('home')}
           onOpenBatchPrint={() => handleOpenBatchPrint()}
         />
@@ -260,14 +257,12 @@ const AdminDashboardContent: React.FC = () => {
                 />
               )}
 
-              {currentSection === 'membership' && (
-                <AdminMembershipView />
-              )}
-
-              {currentSection === 'physicalCards' && <AdminPhysicalCardsView />}
-
               {currentSection === 'workshop' && (
                 <AdminWorkshopView />
+              )}
+
+              {currentSection === 'membership' && (
+                <AdminMembershipView />
               )}
 
               {currentSection === 'events' && (
@@ -294,10 +289,6 @@ const AdminDashboardContent: React.FC = () => {
 
               {currentSection === 'emails' && (
                 <AdminEmailsView emails={emails} />
-              )}
-
-              {currentSection === 'settings' && (
-                <AdminSettingsView showToast={showToast} />
               )}
             </>
           )}

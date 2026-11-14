@@ -39,7 +39,7 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 
-type AdminMembershipSubTab = 'overview' | 'members' | 'editions' | 'benefits' | 'readers' | 'scans';
+type AdminMembershipSubTab = 'overview' | 'members' | 'editions' | 'benefits';
 
 export const AdminMembershipView: React.FC = () => {
   const { showToast } = useApp();
@@ -53,8 +53,6 @@ export const AdminMembershipView: React.FC = () => {
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [cards, setCards] = useState<MembershipCard[]>([]);
   const [benefits, setBenefits] = useState<MembershipBenefit[]>([]);
-  const [readers, setReaders] = useState<MembershipReader[]>([]);
-  const [scanLogs, setScanLogs] = useState<MembershipScanLog[]>([]);
   const [redemptions, setRedemptions] = useState<MembershipRedemption[]>([]);
 
   // Search & Filter
@@ -66,12 +64,6 @@ export const AdminMembershipView: React.FC = () => {
   const [actionReason, setActionReason] = useState('');
   const [physicalTrackingInput, setPhysicalTrackingInput] = useState('');
 
-  // Reader creation state
-  const [isAddReaderOpen, setIsAddReaderOpen] = useState(false);
-  const [newReaderName, setNewReaderName] = useState('');
-  const [newReaderIdent, setNewReaderIdent] = useState('');
-  const [newReaderType, setNewReaderType] = useState<'mobile_android' | 'fixed_gate'>('mobile_android');
-
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -79,22 +71,18 @@ export const AdminMembershipView: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [ovRes, cardsRes, plansRes, benefitsRes, readersRes, logsRes] = await Promise.all([
+      const [ovRes, cardsRes, plansRes, benefitsRes] = await Promise.all([
         fetch('/api/membership/admin/overview'),
         fetch('/api/membership/admin/cards'),
         fetch('/api/membership/plans'),
         fetch('/api/membership/benefits'),
-        fetch('/api/membership/admin/readers'),
-        fetch('/api/membership/admin/scan-logs?limit=50'),
       ]);
 
-      const [ovData, cardsData, plansData, benefitsData, readersData, logsData] = await Promise.all([
+      const [ovData, cardsData, plansData, benefitsData] = await Promise.all([
         ovRes.json(),
         cardsRes.json(),
         plansRes.json(),
         benefitsRes.json(),
-        readersRes.json(),
-        logsRes.json(),
       ]);
 
       if (ovData.success) {
@@ -105,8 +93,6 @@ export const AdminMembershipView: React.FC = () => {
       if (cardsData.success) setCards(cardsData.cards || []);
       if (plansData.success) setPlans(plansData.plans || []);
       if (benefitsData.success) setBenefits(benefitsData.benefits || []);
-      if (readersData.success) setReaders(readersData.readers || []);
-      if (logsData.success) setScanLogs(logsData.logs || []);
     } catch (err) {
       console.error('Error fetching admin membership data:', err);
     } finally {
@@ -167,35 +153,6 @@ export const AdminMembershipView: React.FC = () => {
     }
   };
 
-  const handleRegisterReader = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newReaderName.trim() || !newReaderIdent.trim()) {
-      showToast('Nom et identifiant matériel requis.', 'error');
-      return;
-    }
-    try {
-      const res = await fetch('/api/membership/admin/readers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          readerName: newReaderName.trim(),
-          readerIdentifier: newReaderIdent.trim().toUpperCase(),
-          readerType: newReaderType,
-          hardwareModel: 'Lecteur Imager 2D USB Haute Précision',
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Erreur lors de l’ajout du terminal.');
-      showToast('Terminal enregistré avec succès.', 'success');
-      setIsAddReaderOpen(false);
-      setNewReaderName('');
-      setNewReaderIdent('');
-      fetchDashboardData();
-    } catch (err: any) {
-      showToast(err.message, 'error');
-    }
-  };
-
   // Filtered Cards
   const filteredCards = cards.filter((c) => {
     const matchesStatus = statusFilter === 'all' || c.cardStatus === statusFilter;
@@ -249,8 +206,6 @@ export const AdminMembershipView: React.FC = () => {
           { id: 'members' as AdminMembershipSubTab, label: 'Membres & Cartes', count: cards.length, icon: Users },
           { id: 'editions' as AdminMembershipSubTab, label: 'Éditions & Formules', icon: Layers },
           { id: 'benefits' as AdminMembershipSubTab, label: 'Catalogue Avantages', icon: Crown },
-          { id: 'readers' as AdminMembershipSubTab, label: 'Terminaux & Lecteurs', count: readers.length, icon: Radio },
-          { id: 'scans' as AdminMembershipSubTab, label: 'Journal des Scans', count: scanLogs.length, icon: Activity },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeSubTab === tab.id;
@@ -333,62 +288,60 @@ export const AdminMembershipView: React.FC = () => {
               </div>
             </div>
 
-            {/* KPI 4 : Contrôles d'Accès aux Portes */}
+            {/* KPI 4 : Puces Sécurisées Scellées */}
             <div className="p-5 rounded-2xl bg-[#0e0e0e] border border-white/10 space-y-2">
               <div className="flex items-center justify-between text-xs text-neutral-400">
-                <span className="font-agrandir-bold uppercase tracking-wider">Scans aux Entrées</span>
-                <Radio className="w-4 h-4 text-blue-400" />
+                <span className="font-agrandir-bold uppercase tracking-wider">Puces NXP Scellées</span>
+                <Radio className="w-4 h-4 text-emerald-400" />
               </div>
-              <div className="font-mono text-2xl sm:text-3xl font-extrabold text-white">
-                {stats?.totalScans || 0}
+              <div className="font-mono text-2xl sm:text-3xl font-extrabold text-emerald-400">
+                {cards.filter(c => c.chipUid).length}
               </div>
               <div className="text-[11px] text-neutral-400 flex items-center justify-between">
-                <span>Autorisés / Refusés</span>
-                <span className="font-mono">
-                  <span className="text-emerald-400">{stats?.authorizedScans || 0}</span> / <span className="text-rose-400">{stats?.deniedScans || 0}</span>
-                </span>
+                <span>Sans contact DESFire</span>
+                <span className="text-[#d4af37] font-mono font-bold">13.56 MHz</span>
               </div>
             </div>
 
           </div>
 
-          {/* Deux colonnes : Derniers scans de passage & Dernières consommations */}
+          {/* Deux colonnes : Dernières Adhésions Membres & Dernières consommations de privilèges */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            {/* Derniers scans de passage */}
+            {/* Dernières Adhésions & Activations de Cartes */}
             <div className="p-6 rounded-2xl bg-[#0d0d0d] border border-white/10 space-y-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-[#d4af37]" />
-                  <h3 className="font-agrandir-bold text-sm text-white uppercase">Derniers Passages Portes</h3>
+                  <Users className="w-4 h-4 text-[#d4af37]" />
+                  <h3 className="font-agrandir-bold text-sm text-white uppercase">Dernières Adhésions Membres</h3>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setActiveSubTab('scans')}
-                  className="text-xs text-[#d4af37] hover:underline"
+                  onClick={() => setActiveSubTab('members')}
+                  className="text-xs text-[#d4af37] hover:underline cursor-pointer"
                 >
-                  Voir tout
+                  Voir tous les membres
                 </button>
               </div>
 
-              {scanLogs.length === 0 ? (
-                <p className="text-xs text-neutral-500 py-6 text-center">Aucun scan enregistré pour le moment.</p>
+              {cards.length === 0 ? (
+                <p className="text-xs text-neutral-500 py-6 text-center">Aucun membre enregistré pour le moment.</p>
               ) : (
                 <div className="space-y-2.5">
-                  {scanLogs.slice(0, 5).map((log) => (
-                    <div key={log.id} className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between text-xs">
+                  {cards.slice(0, 5).map((card) => (
+                    <div key={card.id} className="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between text-xs">
                       <div>
-                        <div className="font-mono font-bold text-white">{log.cardNumber || 'Jeton Inconnu'}</div>
-                        <div className="text-[10px] text-neutral-400">{log.cardholderName || 'Non identifié'} · {log.scanMethod.toUpperCase()}</div>
+                        <div className="font-mono font-bold text-white">{card.cardNumber}</div>
+                        <div className="text-[10px] text-neutral-400">{card.cardholderName} · {card.cardholderEmail}</div>
                       </div>
                       <div className="text-right">
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                          log.verificationResult === 'AUTHORIZED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                          card.cardStatus === 'active' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-300'
                         }`}>
-                          {log.verificationResult}
+                          {card.cardStatus === 'active' ? 'Active' : 'En attente'}
                         </span>
-                        <div className="text-[9px] text-neutral-500 font-mono mt-0.5">
-                          {new Date(log.scannedAt).toLocaleTimeString('fr-FR')}
+                        <div className="text-[9px] text-[#d4af37] font-mono mt-0.5">
+                          {card.chipUid || 'Sans puce'}
                         </div>
                       </div>
                     </div>
@@ -629,107 +582,7 @@ export const AdminMembershipView: React.FC = () => {
         </div>
       )}
 
-      {/* --- ONGLET 5 : SCANNERS 2D & STATIONS D'ACCÈS --- */}
-      {activeSubTab === 'readers' && (
-        <div className="space-y-6 animate-fadeIn">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-sm font-agrandir-bold uppercase text-white tracking-wider">
-                Parc des Scanners &amp; Bornes d'Accès
-              </h3>
-              <p className="text-xs text-neutral-400">Douchettes 2D USB, caméras mobiles et portillons QR</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsAddReaderOpen(true)}
-              className="px-4 py-2 rounded-xl bg-[#d4af37] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-1.5 hover:bg-[#e5c04b] transition-colors cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Enregistrer un terminal</span>
-            </button>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {readers.map((r) => (
-              <div key={r.id} className="p-5 rounded-2xl bg-[#0c0c0c] border border-white/10 space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-mono text-xs font-bold text-[#d4af37]">{r.readerIdentifier}</span>
-                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-400">
-                    {r.readerStatus}
-                  </span>
-                </div>
-                <div className="font-agrandir-bold text-sm text-white uppercase">{r.readerName}</div>
-                <div className="text-[11px] text-neutral-400">{r.hardwareModel}</div>
-                <div className="border-t border-white/10 pt-2 text-[10px] font-mono text-neutral-500">
-                  Dernière synchro : {r.lastSeenAt ? new Date(r.lastSeenAt).toLocaleString('fr-FR') : 'Jamais'}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* --- ONGLET 6 : JOURNAL DES SCANS & CONTRÔLES --- */}
-      {activeSubTab === 'scans' && (
-        <div className="space-y-4 animate-fadeIn">
-          <div className="rounded-2xl border border-white/10 bg-[#0c0c0c] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-white/10 bg-white/5 text-[10px] uppercase font-mono tracking-wider text-neutral-400">
-                    <th className="py-3 px-4">Horodatage</th>
-                    <th className="py-3 px-4">Carte Scannée</th>
-                    <th className="py-3 px-4">Titulaire</th>
-                    <th className="py-3 px-4">Méthode</th>
-                    <th className="py-3 px-4">Résultat</th>
-                    <th className="py-3 px-4">Motif / Zone</th>
-                    <th className="py-3 px-4">Opérateur</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5">
-                  {scanLogs.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="py-8 text-center text-neutral-500">
-                        Aucun scan enregistré.
-                      </td>
-                    </tr>
-                  ) : (
-                    scanLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-white/5">
-                        <td className="py-3 px-4 font-mono text-neutral-400">
-                          {new Date(log.scannedAt).toLocaleTimeString('fr-FR')}
-                        </td>
-                        <td className="py-3 px-4 font-mono font-bold text-[#d4af37]">
-                          {log.cardNumber || 'Inconnu'}
-                        </td>
-                        <td className="py-3 px-4 text-white">{log.cardholderName || 'Non identifié'}</td>
-                        <td className="py-3 px-4 font-mono text-[10px] text-neutral-400 uppercase">
-                          {log.scanMethod}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                            log.verificationResult === 'AUTHORIZED'
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                          }`}>
-                            {log.verificationResult}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-neutral-400 text-[11px]">
-                          {log.rejectionReason || 'Accès validé'}
-                        </td>
-                        <td className="py-3 px-4 text-neutral-500 font-mono text-[10px]">
-                          {log.operatorId}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* MODAL GESTION DÉTAILLÉE D'UNE CARTE */}
       {selectedCard && (
@@ -843,80 +696,7 @@ export const AdminMembershipView: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL ENREGISTREMENT TERMINAL */}
-      {isAddReaderOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-          <div className="w-full max-w-md bg-[#0e0e0e] border border-white/20 rounded-3xl p-6 sm:p-8 space-y-5 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <h3 className="font-agrandir-extrabold text-base text-white uppercase">
-                ENREGISTRER UN SCANNER 2D / BORNE
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsAddReaderOpen(false)}
-                className="w-7 h-7 rounded-full bg-white/10 text-white flex items-center justify-center cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
 
-            <form onSubmit={handleRegisterReader} className="space-y-4">
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
-                  Nom du scanner / borne *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newReaderName}
-                  onChange={(e) => setNewReaderName(e.target.value)}
-                  placeholder="Ex : Douchette 2D USB Porte VIP 01"
-                  className="w-full bg-[#161616] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#d4af37]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
-                  Identifiant technique matériel *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newReaderIdent}
-                  onChange={(e) => setNewReaderIdent(e.target.value)}
-                  placeholder="Ex : LMR-2D-02"
-                  className="w-full bg-[#161616] border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#d4af37] font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
-                  Type de scanner
-                </label>
-                <select
-                  value={newReaderType}
-                  onChange={(e) => setNewReaderType(e.target.value as any)}
-                  className="w-full bg-[#161616] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none"
-                >
-                  <option value="usb_2d_barcode">Scanner 2D USB / Douchette</option>
-                  <option value="mobile_camera">Caméra Mobile / Smartphone</option>
-                  <option value="fixed_gate_qr">Portillon Fixe / Tourniquet QR</option>
-                  <option value="pos_desk">Guichet Billetterie / Desk</option>
-                </select>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  className="w-full py-3 rounded-full bg-[#d4af37] text-black font-agrandir-bold text-xs uppercase tracking-wider cursor-pointer hover:bg-[#e5c04b]"
-                >
-                  Enregistrer le lecteur
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
     </div>
   );

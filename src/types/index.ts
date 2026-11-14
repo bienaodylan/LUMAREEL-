@@ -329,9 +329,45 @@ export interface MembershipCard {
   chipEncodedAt?: string;
   chipEncodedBy?: string;
   chipLockStatus?: 'unlocked' | 'locked_aes128' | 'read_only';
+  walletBalance?: number; // Solde portefeuille club (ex: 250000 FCFA ou 380 EUR)
+  walletCurrency?: string; // 'FCFA' | 'EUR' | 'USD'
+  clubVipLevel?: string; // 'FOUNDERS_BLACK' | 'GOLD_PRIVILEGE' | 'DIAMOND_MEMBER'
   qrToken?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ChipInventoryItem {
+  id: string;
+  batchNumber: string; // ex: "LOT-NXP-2026-B1"
+  chipUid: string; // ex: "04:A2:8F:12:9C:5E:80"
+  chipType: string; // 'NXP_DESFire_EV3'
+  status: 'in_stock' | 'assigned' | 'defective' | 'quarantined' | 'revoked';
+  assignedCardId?: string;
+  assignedCardNumber?: string;
+  assignedMemberName?: string;
+  receivedAt: string;
+  assignedAt?: string;
+  notes?: string;
+}
+
+export interface WalletTransaction {
+  id: string;
+  cardId: string;
+  cardNumber: string;
+  userId: string;
+  chipUid?: string;
+  type: 'credit_recharge' | 'debit_purchase' | 'debit_club_entry' | 'refund';
+  amount: number;
+  currency: string;
+  balanceBefore: number;
+  balanceAfter: number;
+  locationOrService: string; // ex: "Bar Privé Lounge", "Restaurant VIP", "Vestiaire", "Recharge CB"
+  terminalId?: string; // ex: "TPE-BAR-01", "TABLETTE-CONCIERGE"
+  operatorName?: string;
+  status: 'completed' | 'declined' | 'refunded';
+  reference: string;
+  createdAt: string;
 }
 
 export type PhysicalCardProductionStatus =

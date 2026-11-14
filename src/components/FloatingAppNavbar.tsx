@@ -21,7 +21,7 @@ export const FloatingAppNavbar: React.FC = () => {
     { page: 'home', label: 'Accueil', icon: Home },
     { page: 'client_space', label: 'Mes commandes', icon: Ticket },
     { page: 'archive', label: 'Archives', icon: Film },
-    { page: 'member_card', label: 'Ma carte', icon: CreditCard },
+    { page: 'member_card', label: 'Black Card', icon: CreditCard },
     { page: 'profile', label: 'Mon compte', icon: User },
   ];
 

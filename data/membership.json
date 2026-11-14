@@ -6,12 +6,12 @@
       "editionCode": "FOUNDERS_2026",
       "description": "Adhésion annuelle inaugurale et prestigieuse limitée strictement à 100 membres d’élite. Numéro permanent gravé, puce sécurisée NXP MIFARE DESFire EV3 et privilèges exclusifs pour la saison 2026-2027.",
       "quota": 100,
-      "allocatedCount": 1,
+      "allocatedCount": 2,
       "startsAt": "2026-11-10T14:09:28.858Z",
       "endsAt": "2027-11-10T14:09:28.859Z",
       "status": "active",
       "createdAt": "2026-11-10T14:09:28.858Z",
-      "updatedAt": "2026-11-10T14:09:37.496Z"
+      "updatedAt": "2026-11-11T22:46:14.784Z"
     }
   ],
   "plans": [
@@ -46,6 +46,23 @@
         "editionCode": "FOUNDERS_2026"
       },
       "createdAt": "2026-11-10T14:09:37.496Z"
+    },
+    {
+      "id": "mord_b55d9ae3a3ca6844",
+      "userId": "usr_16074d33a4a8",
+      "planId": "plan_founders_annual",
+      "editionId": "ed_founders_2026",
+      "amount": 150000,
+      "currency": "FCFA",
+      "orderReference": "PAY-WAVE-1794437174784",
+      "paymentProvider": "wave",
+      "paymentMethod": "wave",
+      "paymentStatus": "completed",
+      "paymentReference": "PAY-WAVE-1794437174784",
+      "orderStatus": "completed",
+      "completedAt": "2026-11-11T22:46:14.784Z",
+      "createdAt": "2026-11-11T22:46:14.784Z",
+      "updatedAt": "2026-11-11T22:46:14.784Z"
     }
   ],
   "cards": [
@@ -63,15 +80,82 @@
       "issuedAt": "2026-11-10T14:09:37.496Z",
       "validFrom": "2026-11-10T14:09:37.496Z",
       "expiresAt": "2027-11-11T14:09:37.496Z",
-      "physicalCardStatus": "in_production",
+      "physicalCardStatus": "ready_for_dispatch",
       "chipUid": "04:A2:8F:12:9C:5E:80",
       "chipType": "NXP_DESFire_EV3",
-      "chipEncodedAt": "2026-11-10T14:09:37.496Z",
-      "chipEncodedBy": "Atelier Encodage LUMARÉEL",
+      "chipEncodedAt": "2026-11-11T13:57:40.578Z",
+      "chipEncodedBy": "Atelier Encodage LUMARÉEL (Vérifié)",
       "chipLockStatus": "locked_aes128",
-      "qrToken": "LMR_QR_CA87C35BCD693F3B7B4EE74EB6B944AA",
+      "walletBalance": 190000,
+      "walletCurrency": "FCFA",
+      "clubVipLevel": "FOUNDERS_BLACK_ELITE",
       "createdAt": "2026-11-10T14:09:37.496Z",
-      "updatedAt": "2026-11-10T14:09:37.496Z"
+      "updatedAt": "2026-11-11T22:04:55.856Z"
+    },
+    {
+      "id": "crd_pending_marc_002",
+      "userId": "usr_marc_kouassi_2026",
+      "planId": "plan_founders_annual",
+      "editionId": "ed_founders_2026",
+      "cardNumber": "LMR-2026-0002",
+      "cardSequence": 2,
+      "cardholderName": "Marc-Antoine Kouassi",
+      "cardholderEmail": "marc.kouassi@example.com",
+      "cardStatus": "pending",
+      "issuedAt": "2026-11-11T09:15:00.000Z",
+      "validFrom": "2026-11-11T09:15:00.000Z",
+      "expiresAt": "2027-11-11T09:15:00.000Z",
+      "physicalCardStatus": "in_production",
+      "walletBalance": 150000,
+      "walletCurrency": "FCFA",
+      "clubVipLevel": "FOUNDERS_MEMBER",
+      "createdAt": "2026-11-11T09:15:00.000Z",
+      "updatedAt": "2026-11-11T09:15:00.000Z"
+    },
+    {
+      "id": "crd_active_sarah_003",
+      "userId": "usr_sarah_toure_2026",
+      "planId": "plan_founders_annual",
+      "editionId": "ed_founders_2026",
+      "cardNumber": "LMR-2026-0003",
+      "cardSequence": 3,
+      "cardholderName": "Sarah Touré",
+      "cardholderEmail": "sarah.toure@example.com",
+      "cardStatus": "active",
+      "issuedAt": "2026-11-11T10:30:00.000Z",
+      "validFrom": "2026-11-11T10:30:00.000Z",
+      "expiresAt": "2027-11-11T10:30:00.000Z",
+      "physicalCardStatus": "ready_for_dispatch",
+      "chipUid": "04:B1:33:9A:2C:18:80",
+      "chipType": "NXP_DESFire_EV3",
+      "chipEncodedAt": "2026-11-11T11:00:00.000Z",
+      "chipEncodedBy": "Atelier Encodage LUMARÉEL (Vérifié)",
+      "chipLockStatus": "locked_aes128",
+      "walletBalance": 320000,
+      "walletCurrency": "FCFA",
+      "clubVipLevel": "FOUNDERS_GOLD",
+      "createdAt": "2026-11-11T10:30:00.000Z",
+      "updatedAt": "2026-11-11T11:00:00.000Z"
+    },
+    {
+      "id": "crd_0e5c897fd878946e",
+      "userId": "usr_16074d33a4a8",
+      "planId": "plan_founders_annual",
+      "editionId": "ed_founders_2026",
+      "membershipOrderId": "mord_b55d9ae3a3ca6844",
+      "cardNumber": "LMR-2026-0004",
+      "cardSequence": 4,
+      "cardholderName": "Dylan Tester",
+      "cardholderEmail": "test.admission@lumareel.ci",
+      "cardStatus": "active",
+      "issuedAt": "2026-11-11T22:46:14.784Z",
+      "validFrom": "2026-11-11T22:46:14.784Z",
+      "expiresAt": "2027-11-12T22:46:14.784Z",
+      "physicalCardStatus": "approved",
+      "qrToken": "LMR_SEC_3f5a16cb2b4bee2b0c5504e5357a03bc233ed834f2879b25c3b0e77074af83fa",
+      "createdAt": "2026-11-11T22:46:14.784Z",
+      "updatedAt": "2026-11-11T22:46:14.786Z",
+      "walletBalance": 210000
     }
   ],
   "qrTokens": [
@@ -81,6 +165,17 @@
       "tokenHash": "8f18d606211298c30fdcb6d64cf4426f97bb3047df00b97e7fead2fa25cf3c09",
       "tokenVersion": 1,
       "createdAt": "2026-11-10T14:09:37.496Z"
+    },
+    {
+      "id": "qrt_84106e7ccd01426d",
+      "cardId": "crd_0e5c897fd878946e",
+      "tokenHash": "66e95d2c1dcf57cc929a5c7c8d39523fa4d41222f88489862bc052faadcb4423",
+      "tokenPrefix": "LMR_SEC_",
+      "tokenVersion": 1,
+      "isCurrent": true,
+      "status": "active",
+      "issuedAt": "2026-11-11T22:46:14.785Z",
+      "verificationCount": 0
     }
   ],
   "benefits": [
@@ -241,6 +336,84 @@
       "validUntil": "2027-11-11T14:09:37.496Z",
       "status": "available",
       "createdAt": "2026-11-10T14:09:37.496Z"
+    },
+    {
+      "id": "ent_7466e9a703dd",
+      "cardId": "crd_0e5c897fd878946e",
+      "benefitId": "ben_cd8d804bb7c9",
+      "benefitName": "Prévente Privée Exclusive",
+      "benefitType": "private_presale",
+      "quantity": 10,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-11T22:46:14.784Z",
+      "validUntil": "2027-11-12T22:46:14.784Z",
+      "status": "available",
+      "createdAt": "2026-11-11T22:46:14.784Z"
+    },
+    {
+      "id": "ent_470230c7b5b5",
+      "cardId": "crd_0e5c897fd878946e",
+      "benefitId": "ben_29e64741a179",
+      "benefitName": "Coupe-File & Accueil Prioritaire",
+      "benefitType": "priority_access",
+      "quantity": 50,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-11T22:46:14.784Z",
+      "validUntil": "2027-11-12T22:46:14.784Z",
+      "status": "available",
+      "createdAt": "2026-11-11T22:46:14.784Z"
+    },
+    {
+      "id": "ent_550ec20935dc",
+      "cardId": "crd_0e5c897fd878946e",
+      "benefitId": "ben_76eaadf625ca",
+      "benefitName": "Accès VIP & Espaces Réservés",
+      "benefitType": "vip_lounge",
+      "quantity": 20,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-11T22:46:14.784Z",
+      "validUntil": "2027-11-12T22:46:14.784Z",
+      "status": "available",
+      "createdAt": "2026-11-11T22:46:14.784Z"
+    },
+    {
+      "id": "ent_8d0ef51634c9",
+      "cardId": "crd_0e5c897fd878946e",
+      "benefitId": "ben_da9fe6d59dd4",
+      "benefitName": "Expérience Rencontre Artistes & Immersion Scénique",
+      "benefitType": "artist_experience",
+      "quantity": 2,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-11T22:46:14.784Z",
+      "validUntil": "2027-11-12T22:46:14.784Z",
+      "status": "available",
+      "createdAt": "2026-11-11T22:46:14.784Z"
+    },
+    {
+      "id": "ent_98fc0f489f47",
+      "cardId": "crd_0e5c897fd878946e",
+      "benefitId": "ben_644ffed3123a",
+      "benefitName": "Tarif Préférentiel Membre (-15%)",
+      "benefitType": "preferential_rate",
+      "quantity": 100,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-11T22:46:14.784Z",
+      "validUntil": "2027-11-12T22:46:14.784Z",
+      "status": "available",
+      "createdAt": "2026-11-11T22:46:14.784Z"
+    },
+    {
+      "id": "ent_d879d1d1204c",
+      "cardId": "crd_0e5c897fd878946e",
+      "benefitId": "ben_e4a5bd35b601",
+      "benefitName": "Coffret Physique Collector & Surprise Annuelle",
+      "benefitType": "gift_surprise",
+      "quantity": 1,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-11T22:46:14.784Z",
+      "validUntil": "2027-11-12T22:46:14.784Z",
+      "status": "available",
+      "createdAt": "2026-11-11T22:46:14.784Z"
     }
   ],
   "redemptions": [],
@@ -308,21 +481,53 @@
     }
   ],
   "accessPoints": [],
-  "physicalOrders": [],
+  "physicalOrders": [
+    {
+      "id": "pord_d174c9451c08444d",
+      "cardId": "crd_0e5c897fd878946e",
+      "userId": "usr_16074d33a4a8",
+      "orderNumber": "ORD-PVC-0004",
+      "cardNumber": "LMR-2026-0004",
+      "cardholderName": "Dylan Tester",
+      "cardholderEmail": "test.admission@lumareel.ci",
+      "cardholderPhone": "+2250700000000",
+      "editionName": "LUMARÉEL FOUNDERS EDITION",
+      "shippingAddress": {
+        "street": "Retrait en main propre / Salon VIP",
+        "city": "Abidjan",
+        "country": "Côte d’Ivoire"
+      },
+      "productionStatus": "approved",
+      "reprintCount": 0,
+      "reprintReasons": [],
+      "historyNotes": [
+        {
+          "timestamp": "2026-11-11T22:46:14.784Z",
+          "operator": "Système Billetterie LUMARÉEL",
+          "status": "approved",
+          "note": "Paiement confirmé. Carte physique approuvée pour production immédiate en atelier."
+        }
+      ],
+      "requestedAt": "2026-11-11T22:46:14.784Z",
+      "approvedAt": "2026-11-11T22:46:14.784Z",
+      "createdAt": "2026-11-11T22:46:14.784Z",
+      "updatedAt": "2026-11-11T22:46:14.784Z"
+    }
+  ],
   "inventory": [
     {
       "itemName": "Cartes PVC Noires Mates CR-80 (0.76mm)",
       "itemType": "blank_pvc_card",
       "sku": "PVC-CR80-BLK-MATTE",
       "totalQuantity": 250,
-      "reservedQuantity": 1,
-      "availableQuantity": 249,
+      "reservedQuantity": 2,
+      "availableQuantity": 248,
       "minThresholdAlert": 20,
       "unit": "cartes",
       "notes": "PVC vierge noir mat teinté dans la masse pour gravure & impression recto/verso.",
       "id": "inv_fbca272c0863",
       "lastRestockedAt": "2026-11-10T14:33:27.392Z",
-      "updatedAt": "2026-11-10T14:33:27.392Z"
+      "updatedAt": "2026-11-11T22:46:14.784Z"
     },
     {
       "itemName": "Ruban Doré Chaud Métallique (Gold Foil)",
@@ -397,8 +602,230 @@
   ],
   "printJobs": [],
   "qualityChecks": [],
+  "chipInventory": [
+    {
+      "id": "chip_inv_001",
+      "batchNumber": "LOT-NXP-2026-B1",
+      "chipUid": "04:A2:8F:12:9C:5E:80",
+      "chipType": "NXP_DESFire_EV3",
+      "status": "assigned",
+      "assignedCardId": "crd_aa7c4e8bf41f26df",
+      "assignedCardNumber": "LMR-2026-0001",
+      "assignedMemberName": "Dylan Bienao",
+      "receivedAt": "2026-11-10T10:00:00.000Z",
+      "assignedAt": "2026-11-10T14:09:37.496Z",
+      "notes": "Puce physique NXP DESFire EV3 scellée - Adhésion inaugurale Founders"
+    },
+    {
+      "id": "chip_inv_002",
+      "batchNumber": "LOT-NXP-2026-B1",
+      "chipUid": "04:B1:33:9A:2C:18:80",
+      "chipType": "NXP_DESFire_EV3",
+      "status": "in_stock",
+      "receivedAt": "2026-11-10T10:00:00.000Z",
+      "notes": "Puce vierge NXP DESFire EV3 8K - Lot Fabricant #1 (Testée usine)"
+    },
+    {
+      "id": "chip_inv_003",
+      "batchNumber": "LOT-NXP-2026-B1",
+      "chipUid": "04:C2:44:8B:3D:29:81",
+      "chipType": "NXP_DESFire_EV3",
+      "status": "in_stock",
+      "receivedAt": "2026-11-10T10:00:00.000Z",
+      "notes": "Puce vierge NXP DESFire EV3 8K - Lot Fabricant #1 (Testée usine)"
+    },
+    {
+      "id": "chip_inv_004",
+      "batchNumber": "LOT-NXP-2026-B1",
+      "chipUid": "04:D3:55:7C:4E:3A:82",
+      "chipType": "NXP_DESFire_EV3",
+      "status": "in_stock",
+      "receivedAt": "2026-11-10T10:00:00.000Z",
+      "notes": "Puce vierge NXP DESFire EV3 8K - Lot Fabricant #1 (Testée usine)"
+    },
+    {
+      "id": "chip_inv_005",
+      "batchNumber": "LOT-NXP-2026-B1",
+      "chipUid": "04:E4:66:6D:5F:4B:83",
+      "chipType": "NXP_DESFire_EV3",
+      "status": "in_stock",
+      "receivedAt": "2026-11-10T10:00:00.000Z",
+      "notes": "Puce vierge NXP DESFire EV3 8K - Lot Fabricant #1 (Testée usine)"
+    },
+    {
+      "id": "chip_inv_006",
+      "batchNumber": "LOT-NXP-2026-B1",
+      "chipUid": "04:F5:77:5E:60:5C:84",
+      "chipType": "NXP_DESFire_EV3",
+      "status": "in_stock",
+      "receivedAt": "2026-11-10T10:00:00.000Z",
+      "notes": "Puce vierge NXP DESFire EV3 8K - Lot Fabricant #1 (Testée usine)"
+    },
+    {
+      "id": "chip_inv_007",
+      "batchNumber": "LOT-NXP-2026-B1",
+      "chipUid": "04:A6:88:4F:71:6D:85",
+      "chipType": "NXP_DESFire_EV3",
+      "status": "in_stock",
+      "receivedAt": "2026-11-10T10:00:00.000Z",
+      "notes": "Puce vierge NXP DESFire EV3 8K - Lot Fabricant #1 (Testée usine)"
+    },
+    {
+      "id": "chip_inv_008",
+      "batchNumber": "LOT-NXP-2026-B1",
+      "chipUid": "04:B7:99:30:82:7E:86",
+      "chipType": "NXP_DESFire_EV3",
+      "status": "in_stock",
+      "receivedAt": "2026-11-10T10:00:00.000Z",
+      "notes": "Puce vierge NXP DESFire EV3 8K - Lot Fabricant #1 (Testée usine)"
+    },
+    {
+      "id": "chip_inv_009",
+      "batchNumber": "LOT-NXP-2026-B1",
+      "chipUid": "04:C8:AA:21:93:8F:87",
+      "chipType": "NXP_DESFire_EV3",
+      "status": "in_stock",
+      "receivedAt": "2026-11-10T10:00:00.000Z",
+      "notes": "Puce vierge NXP DESFire EV3 8K - Lot Fabricant #1 (Testée usine)"
+    },
+    {
+      "id": "chip_inv_010",
+      "batchNumber": "LOT-NXP-2026-B1",
+      "chipUid": "04:D9:BB:12:A4:90:88",
+      "chipType": "NXP_DESFire_EV3",
+      "status": "in_stock",
+      "receivedAt": "2026-11-10T10:00:00.000Z",
+      "notes": "Puce vierge NXP DESFire EV3 8K - Lot Fabricant #1 (Testée usine)"
+    }
+  ],
+  "walletTransactions": [
+    {
+      "id": "wtx_96ee92a50a5f",
+      "cardId": "crd_0e5c897fd878946e",
+      "cardNumber": "LMR-2026-0004",
+      "userId": "usr_16074d33a4a8",
+      "type": "credit_recharge",
+      "amount": 5000,
+      "currency": "FCFA",
+      "balanceBefore": 205000,
+      "balanceAfter": 210000,
+      "locationOrService": "Admission Founders Edition",
+      "terminalId": "TPE-RECHARGE-ADMIN",
+      "operatorName": "LUMARÉEL Conciergerie",
+      "status": "completed",
+      "reference": "RCH-174786",
+      "createdAt": "2026-11-11T22:46:14.786Z"
+    },
+    {
+      "id": "wtx_0a57d6db0d58",
+      "cardId": "crd_aa7c4e8bf41f26df",
+      "cardNumber": "LMR-2026-0001",
+      "userId": "usr_814a4ba4f57b",
+      "chipUid": "04:A2:8F:12:9C:5E:80",
+      "type": "debit_purchase",
+      "amount": 15000,
+      "currency": "FCFA",
+      "balanceBefore": 205000,
+      "balanceAfter": 190000,
+      "locationOrService": "Bar Privé VIP Lounge",
+      "terminalId": "TPE-BAR-VIP-01",
+      "operatorName": "Service Bar / Restauration Club",
+      "status": "completed",
+      "reference": "DEBIT-POS-695856",
+      "createdAt": "2026-11-11T22:04:55.856Z"
+    },
+    {
+      "id": "wtx_seed_001",
+      "cardId": "crd_aa7c4e8bf41f26df",
+      "cardNumber": "LMR-2026-0001",
+      "userId": "usr_814a4ba4f57b",
+      "chipUid": "04:A2:8F:12:9C:5E:80",
+      "type": "credit_recharge",
+      "amount": 250000,
+      "currency": "FCFA",
+      "balanceBefore": 0,
+      "balanceAfter": 250000,
+      "locationOrService": "Dotation Membre Fondateur (Bienvenue Club Privé)",
+      "operatorName": "Direction LUMARÉEL Conciergerie",
+      "status": "completed",
+      "reference": "RECHARGE-INIT-001",
+      "createdAt": "2026-11-10T14:10:00.000Z"
+    },
+    {
+      "id": "wtx_seed_002",
+      "cardId": "crd_aa7c4e8bf41f26df",
+      "cardNumber": "LMR-2026-0001",
+      "userId": "usr_814a4ba4f57b",
+      "chipUid": "04:A2:8F:12:9C:5E:80",
+      "type": "debit_purchase",
+      "amount": 45000,
+      "currency": "FCFA",
+      "balanceBefore": 250000,
+      "balanceAfter": 205000,
+      "locationOrService": "Bar Privé VIP Lounge · Bouteille & Amuse-bouches",
+      "terminalId": "POS-BAR-VIP-01",
+      "operatorName": "Kouassi A. (Chef Barman VIP)",
+      "status": "completed",
+      "reference": "POS-TX-202611-948",
+      "createdAt": "2026-11-10T22:30:00.000Z"
+    }
+  ],
   "scanLogs": [],
   "eventLogs": [
+    {
+      "actorId": "SYSTEM",
+      "actionType": "CARD_ISSUED",
+      "entityType": "membership_card",
+      "entityId": "crd_0e5c897fd878946e",
+      "details": {
+        "cardNumber": "LMR-2026-0004",
+        "cardholderName": "Dylan Tester",
+        "sequence": 4
+      },
+      "id": "mev_a98dc9e55763",
+      "createdAt": "2026-11-11T22:46:14.785Z"
+    },
+    {
+      "actorId": "Atelier Encodage LUMARÉEL (Vérifié)",
+      "actionType": "CHIP_ENCODED",
+      "entityType": "membership_card",
+      "entityId": "crd_aa7c4e8bf41f26df",
+      "details": {
+        "cardNumber": "LMR-2026-0001",
+        "cardholderName": "Dylan Bienao",
+        "cardholderEmail": "bienaodylan428@gmail.com",
+        "chipUid": "04:A2:8F:12:9C:5E:80",
+        "chipType": "NXP_DESFire_EV3",
+        "previousChipUid": "04:A2:8F:12:9C:5E:80",
+        "lockStatus": "locked_aes128",
+        "action": "ASSOCIATION_INITIALE",
+        "terminal": "Lecteur NFC/RFID Bureau (Atelier LUMARÉEL)",
+        "verificationStatus": "VERIFIED_ACTIVE",
+        "editionCode": "FOUNDERS_2026"
+      },
+      "id": "mev_d92343565057",
+      "createdAt": "2026-11-11T13:57:40.578Z"
+    },
+    {
+      "id": "mev_chip_seed_001",
+      "actorId": "Atelier Encodage LUMARÉEL (Vérifié)",
+      "actionType": "CHIP_ENCODED",
+      "entityType": "membership_card",
+      "entityId": "crd_aa7c4e8bf41f26df",
+      "details": {
+        "cardNumber": "LMR-2026-0001",
+        "cardholderName": "Dylan Bienao",
+        "cardholderEmail": "bienaodylan428@gmail.com",
+        "chipUid": "04:A2:8F:12:9C:5E:80",
+        "chipType": "NXP_DESFire_EV3",
+        "lockStatus": "locked_aes128",
+        "action": "ASSOCIATION_INITIALE",
+        "terminal": "Lecteur NFC USB Desk 01 (Atelier Abidjan)",
+        "verificationStatus": "VERIFIED_ACTIVE",
+        "editionCode": "FOUNDERS_2026"
+      },
+      "createdAt": "2026-11-10T14:09:37.496Z"
+    },
     {
       "id": "mev_d806d44067f3",
       "actorId": "SYSTEM",
@@ -413,5 +840,5 @@
       "createdAt": "2026-11-10T14:09:37.497Z"
     }
   ],
-  "lastAssignedSequence": 1
+  "lastAssignedSequence": 4
 }

@@ -226,16 +226,16 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
             </div>
           </div>
 
-          {/* Badges d'état de la puce sans contact */}
+          {/* Badges d'état sans contact */}
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <div className="px-5 py-2.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2">
               <Radio className="w-4 h-4 text-emerald-400" />
-              <span>Passage Sans Contact Activé (NFC / RFID)</span>
+              <span>Passage Sans Contact Activé</span>
             </div>
 
             <div className="px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 text-xs font-mono flex items-center gap-2">
-              <Cpu className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span>UID : <strong className="text-white">{card.chipUid || '04:A2:8F:12:9C:5E:80'}</strong></span>
+              <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Sécurité Matérielle Scellée</span>
             </div>
           </div>
         </div>

@@ -18,7 +18,7 @@ import {
   Cpu
 } from 'lucide-react';
 
-export type AdminSection = 'overview' | 'membership' | 'workshop' | 'events' | 'orders' | 'archives' | 'emails' | 'settings' | 'physicalCards';
+export type AdminSection = 'overview' | 'workshop' | 'membership' | 'events' | 'orders' | 'archives' | 'emails';
 
 interface AdminSidebarProps {
   currentSection: AdminSection;
@@ -58,22 +58,16 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       badge: null,
     },
     {
+      id: 'workshop' as AdminSection,
+      label: 'Cartes Club & Encodage Puces',
+      icon: Cpu,
+      badge: 'DESFire',
+    },
+    {
       id: 'membership' as AdminSection,
-      label: 'LUMARÉEL CARD',
+      label: 'Adhésions & Membres',
       icon: Crown,
       badge: '100',
-    },
-    {
-      id: 'physicalCards' as AdminSection,
-      label: 'Cartes physiques & NFC',
-      icon: Radio,
-      badge: 'NFC',
-    },
-    {
-      id: 'workshop' as AdminSection,
-      label: 'Encodeur Puces NFC / RFID',
-      icon: Cpu,
-      badge: 'NFC',
     },
     {
       id: 'events' as AdminSection,
@@ -97,12 +91,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       id: 'emails' as AdminSection,
       label: 'Journal Transactionnel',
       icon: Mail,
-      badge: null,
-    },
-    {
-      id: 'settings' as AdminSection,
-      label: 'Paramètres Généraux',
-      icon: Settings,
       badge: null,
     },
   ];
