@@ -2,6 +2,26 @@ import { createHash } from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireRole, methodNotAllowed, serviceDb } from '../../_lib/supabase.js';
 
+const publicVerificationLimits = new Map<string, { windowStart: number; count: number }>();
+
+function allowPublicVerification(ipAddress: string): boolean {
+  const key = createHash('sha256').update(ipAddress || 'unknown').digest('hex').slice(0, 20);
+  const now = Date.now();
+  const current = publicVerificationLimits.get(key);
+  if (!current || now - current.windowStart >= 60_000) {
+    publicVerificationLimits.set(key, { windowStart: now, count: 1 });
+  } else {
+    current.count += 1;
+    if (current.count > 40) return false;
+  }
+  if (publicVerificationLimits.size > 5000) {
+    for (const [entryKey, entry] of publicVerificationLimits) {
+      if (now - entry.windowStart >= 60_000) publicVerificationLimits.delete(entryKey);
+    }
+  }
+  return true;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'private, no-store');
   res.setHeader('Pragma', 'no-cache');
@@ -13,6 +33,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({
         valid: false, outcome: 'INVALID', status: 'NOT_FOUND',
         message: 'Jeton QR invalide.',
+      });
+    }
+
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const clientIp = (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor || '').split(',')[0].trim()
+      || req.socket.remoteAddress
+      || 'unknown';
+    if (!allowPublicVerification(clientIp)) {
+      return res.status(429).json({
+        valid: false, outcome: 'SYSTEM_UNAVAILABLE', status: 'NOT_FOUND',
+        message: 'Trop de tentatives de vérification. Veuillez patienter une minute.',
       });
     }
 
