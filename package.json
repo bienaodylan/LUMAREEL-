@@ -58,9 +58,10 @@
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.28.2",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@types/supertest": "^7.2.1"
   },
   "engines": {
-    "node": ">=22.5.0"
+    "node": "22.x"
   }
 }
