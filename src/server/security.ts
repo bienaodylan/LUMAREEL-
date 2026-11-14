@@ -9,12 +9,9 @@ export const MIN_PASSWORD_LENGTH = 10;
 
 export function assertBootSecurityConfig(): void {
   const secret = process.env.SESSION_SECRET || '';
-
-  // Fail closed in every environment: never create a predictable or ephemeral
-  // session-signing key automatically. Configure SESSION_SECRET explicitly.
   if (!secret || secret.length < 32) {
     console.error(
-      '[FATAL SECURITY CONFIG] SESSION_SECRET doit être défini et contenir au moins 32 caractères dans tous les environnements. Arrêt du serveur.'
+      '[FATAL SECURITY CONFIG] SESSION_SECRET doit être défini et contenir au moins 32 caractères. Arrêt du serveur.'
     );
     process.exit(1);
   }
