@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { requireRole, methodNotAllowed, serviceDb } from '../../_lib/supabase.js';
-import { handleMembershipRoute } from '../_lib.js';
+import { handleMembershipRoute } from '../../_lib/membership.js';
 
 const publicVerificationLimits = new Map<string, { windowStart: number; count: number }>();
 
