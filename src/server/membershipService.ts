@@ -692,7 +692,7 @@ export class MembershipService {
     this.cards.set(card.id, card);
 
     // Synchronize chip inventory
-    let foundChip = Array.from(this.chipInventory.values()).find(
+    const foundChip = Array.from(this.chipInventory.values()).find(
       ci => ci.chipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() === cleanChipUid.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
     );
     if (foundChip) {
