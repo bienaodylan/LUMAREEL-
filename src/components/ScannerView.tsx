@@ -483,6 +483,7 @@ export const ScannerView: React.FC = () => {
           eventId: activeEventId || authorizedEvent?.id || 'all_events',
           accessPointType: membershipZone,
           operatorId: agentName,
+          scannerToken,
           scanMethod,
           hasConcertTicket: true,
         }),
