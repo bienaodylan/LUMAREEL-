@@ -107,7 +107,7 @@ export const CardVerificationView: React.FC<{ token?: string; onBack?: () => voi
             type="text"
             value={tokenInput}
             onChange={(e) => setTokenInput(e.target.value)}
-            placeholder="Saisissez un jeton QR ou numéro (ex: LMR-2026-0001)..."
+            placeholder="Saisissez le jeton QR sécurisé de la carte..."
             className="flex-1 min-w-0 bg-transparent px-4 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none font-mono"
           />
           <button

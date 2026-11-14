@@ -5,6 +5,10 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/card/verify/:token",
+      "destination": "/api/membership/nfc?__route=public-verify&token=:token"
+    },
+    {
       "source": "/api/scanner/session",
       "destination": "/api/verify-scanner-token?__route=session"
     },
