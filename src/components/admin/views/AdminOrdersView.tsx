@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Order } from '../../../types';
 import { Search, ShoppingBag, Download, Eye, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { formatCsvCell } from '../../../utils/csvSanitizer';
 
 interface AdminOrdersViewProps {
   orders: Order[];
@@ -8,7 +9,7 @@ interface AdminOrdersViewProps {
 
 export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({ orders }) => {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending' | 'refunded'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'pending' | 'failed' | 'refunded'>('all');
 
   const filteredOrders = orders.filter((ord) => {
     const q = search.toLowerCase();
@@ -29,6 +30,23 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({ orders }) => {
     .filter((o) => o.paymentStatus === 'completed')
     .reduce((acc, o) => acc + o.totalAmount, 0);
 
+  const handleExport = () => {
+    const columns = ['Référence', 'Client', 'Email', 'Téléphone', 'Concert', 'Catégorie', 'Quantité', 'Montant', 'Devise', 'Statut', 'Prestataire', 'Référence paiement', 'Créée le', 'Payée le'];
+    const rows = filteredOrders.map((order) => [
+      order.reference, order.customerName, order.customerEmail, order.customerPhone || '',
+      order.eventTitle, order.categoryName, order.quantity, order.totalAmount, order.currency,
+      order.paymentStatus, order.paymentProvider, order.paymentRef, order.createdAt, order.paidAt || '',
+    ]);
+    const csv = [columns, ...rows].map((row) => row.map((cell) => formatCsvCell(cell)).join(';')).join('\\n');
+    const blob = new Blob(['\\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `lumareel-commandes-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6 select-none">
       
@@ -43,10 +61,15 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({ orders }) => {
           </h1>
         </div>
 
-        <div className="bg-[#0c0c0c] border border-white/10 rounded-2xl px-5 py-3 text-right">
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={handleExport} disabled={filteredOrders.length === 0} className="inline-flex items-center gap-2 px-4 py-3 rounded-xl border border-white/15 text-xs font-agrandir-semibold text-white hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed">
+            <Download className="w-4 h-4" /> Exporter CSV
+          </button>
+          <div className="bg-[#0c0c0c] border border-white/10 rounded-2xl px-5 py-3 text-right">
           <div className="text-[10px] text-[#888] uppercase font-agrandir-semibold">Volume Total Encaissé</div>
           <div className="font-agrandir-extrabold text-xl text-white">
             {totalVolume.toLocaleString()} <span className="text-xs text-[#d4af37]">FCFA</span>
+          </div>
           </div>
         </div>
       </div>
@@ -73,6 +96,18 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({ orders }) => {
             }`}
           >
             Confirmées ({orders.filter(o => o.paymentStatus === 'completed').length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('failed')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-agrandir-semibold transition-all cursor-pointer whitespace-nowrap ${statusFilter === 'failed' ? 'bg-white text-black font-agrandir-extrabold' : 'text-[#888] hover:text-white hover:bg-white/5'}`}
+          >
+            Échouées ({orders.filter(o => o.paymentStatus === 'failed').length})
+          </button>
+          <button
+            onClick={() => setStatusFilter('refunded')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-agrandir-semibold transition-all cursor-pointer whitespace-nowrap ${statusFilter === 'refunded' ? 'bg-white text-black font-agrandir-extrabold' : 'text-[#888] hover:text-white hover:bg-white/5'}`}
+          >
+            Remboursées ({orders.filter(o => o.paymentStatus === 'refunded').length})
           </button>
           <button
             onClick={() => setStatusFilter('pending')}
@@ -152,9 +187,13 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({ orders }) => {
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-agrandir-bold uppercase ${
                         ord.paymentStatus === 'completed'
                           ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          : ord.paymentStatus === 'pending'
+                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          : ord.paymentStatus === 'refunded'
+                          ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20'
+                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                       }`}>
-                        {ord.paymentStatus === 'completed' ? 'Payé' : 'En attente'}
+                        {ord.paymentStatus === 'completed' ? 'Payé' : ord.paymentStatus === 'pending' ? 'En attente' : ord.paymentStatus === 'refunded' ? 'Remboursé' : 'Échoué'}
                       </span>
                     </td>
 
