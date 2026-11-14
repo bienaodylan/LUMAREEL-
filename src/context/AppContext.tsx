@@ -1142,7 +1142,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (!loaded && isSupabaseConfigured) {
           const { data, error } = await supabase
             .from('platform_settings')
-            .select('*')
+            .select('platform_name, tagline, logo_monogram, logo_url, currency, infoline, social_links')
             .eq('id', 1)
             .single();
 
@@ -1154,8 +1154,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               logoUrl: data.logo_url || '',
               currency: data.currency || 'FCFA',
               infoline: data.infoline || '+225 01 53 508 210',
-              gateToken: data.gate_token || 'VIGILE_AUTH_LMR_2026',
-              githubRepoUrl: data.github_repo_url || '',
+              gateToken: '',
+              githubRepoUrl: '',
               socialLinks: data.social_links || {},
             });
             cacheTimestamps.current.settings = Date.now();
@@ -1224,27 +1224,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('[Settings Disk Save Warning]', serverErr);
     }
 
-    // 3. Synchronisation optionnelle avec Supabase
-    if (isSupabaseConfigured) {
-      try {
-        const dbRow: any = {
-          id: 1,
-          platform_name: mergedSettings.platformName,
-          tagline: mergedSettings.tagline,
-          logo_monogram: mergedSettings.logoMonogram,
-          logo_url: mergedSettings.logoUrl,
-          currency: mergedSettings.currency,
-          infoline: mergedSettings.infoline,
-          updated_at: new Date().toISOString(),
-        };
-        await supabase.from('platform_settings').upsert(dbRow, { onConflict: 'id' });
-        setCloudSyncError(null);
-        setIsCloudDbActive(true);
-      } catch (sbErr) {
-        console.warn('[Settings Supabase Sync Notice]', sbErr);
-      }
-    }
-
+    // 3. Le serveur est l’unique voie d’écriture vers les paramètres cloud.
     cacheTimestamps.current.settings = Date.now();
     notifyCrossTabSync();
   };
