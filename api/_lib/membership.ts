@@ -1,6 +1,6 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { authenticatedUserDb, methodNotAllowed, requireRole, serviceDb } from '../_lib/supabase.js';
+import { authenticatedUserDb, methodNotAllowed, requireRole, serviceDb } from './supabase.js';
 
 export async function requireMembershipAdmin(req: VercelRequest, res: VercelResponse) {
   const auth = await requireRole(req, ['super_admin']);
