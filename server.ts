@@ -429,7 +429,7 @@ export async function createApp() {
 
   async function saveSanitizedImageFile(file: Express.Multer.File): Promise<{ url: string; filename: string }> {
     const validated = await validateAndSanitizeImage(file.buffer);
-    if (!validated.ok) {
+    if (validated.ok === false) {
       throw new Error(validated.error);
     }
     const filename = `${crypto.randomUUID()}${validated.ext}`;
