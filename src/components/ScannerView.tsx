@@ -283,7 +283,6 @@ export const ScannerView: React.FC = () => {
       createScannerSession(urlToken.trim(), urlEventId || undefined);
     } else if (
       currentUser?.role === 'super_admin' ||
-      currentUser?.role === 'gate_agent' ||
       currentUser?.role === 'box_office'
     ) {
       createScannerSession(undefined, urlEventId || undefined);
