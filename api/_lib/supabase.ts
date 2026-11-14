@@ -47,6 +47,18 @@ export async function requireRole(req: VercelRequest, roles: string[]) {
   if (authError || !authData.user?.email) {
     return { ok: false as const, status: 401, error: 'Session invalide ou expirée.' };
   }
+
+  // Do not let a password-only AAL1 session use privileged endpoints when
+  // this account has a verified second factor configured.
+  const { data: assurance, error: assuranceError } = await db.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (assuranceError) {
+    console.error('[auth] MFA assurance lookup:', assuranceError.message);
+    return { ok: false as const, status: 503, error: 'Vérification du niveau de sécurité indisponible.' };
+  }
+  if (assurance.nextLevel === 'aal2' && assurance.currentLevel !== 'aal2') {
+    return { ok: false as const, status: 401, error: 'Une authentification à deux facteurs est requise. Reconnectez-vous avec votre code.' };
+  }
+
   // The database role is the source of truth. Never grant privileges from
   // editable user metadata or from an email-only shortcut in a client request.
   const { data: profile, error: profileError } = await db
