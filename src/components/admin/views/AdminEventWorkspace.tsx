@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ConcertEvent, Order, TicketCategory } from '../../../types';
 import { 
   ArrowLeft, 
@@ -24,7 +24,6 @@ import {
   Printer
 } from 'lucide-react';
 import { uploadAdminImage } from '../../../utils/uploadAdminImage';
-import { getAuthHeaders } from '../../../utils/authSession';
 import { ScannerLinkGenerator } from '../ScannerLinkGenerator';
 
 export type EventSubTab = 'overview' | 'details' | 'media' | 'tickets' | 'orders' | 'analytics' | 'settings';
@@ -55,13 +54,6 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  // Sync incoming event updates when admin hasn't unsaved local changes
-  useEffect(() => {
-    if (!isDirty) {
-      setFormData({ ...event });
-    }
-  }, [event, isDirty]);
-
   // Filter orders for this event
   const eventOrders = orders.filter((o) => o.eventId === event.id || o.eventTitle === event.title);
 
@@ -86,7 +78,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
       setIsSaving(true);
       await onSaveEvent(formData);
       setIsDirty(false);
-      showToast(`Concert "${formData.artist}" enregistré en base de données !`, 'success');
+      showToast(`Concert "${formData.artist}" enregistré et mis à jour en direct !`, 'success');
     } catch (err: any) {
       showToast(err.message || 'Erreur lors de la sauvegarde.', 'error');
     } finally {
@@ -97,88 +89,34 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
   // Direct image file upload handler for visual assets
   const handleUploadVisual = async (field: 'officialPoster' | 'artistPortrait' | 'bannerImage', file: File) => {
     try {
-      const fileUrl = await uploadAdminImage(file, `events/${formData.id}`);
+      const fileUrl = await uploadAdminImage(file, `events/${event.id}`);
       const updated = { ...formData, [field]: fileUrl };
       setFormData(updated);
       setIsDirty(true);
       await onSaveEvent(updated);
       setIsDirty(false);
-      showToast('Visuel téléversé et enregistré en base de données.', 'success');
+      showToast('Image téléversée et sauvegardée dans Supabase.', 'success');
     } catch (err: any) {
       showToast(err.message || "Échec du téléversement de l'image.", 'error');
     }
   };
 
-  const persistCategoryTicketDesign = async (catId: string, imageUrl: string) => {
-    const cleanUrl = imageUrl.trim();
-    const updated: ConcertEvent = {
-      ...formData,
-      categories: formData.categories.map((category) =>
-        category.id === catId ? { ...category, ticketImageUrl: cleanUrl } : category
-      ),
-    };
-    setFormData(updated);
-
-    // Sauvegarde explicite sur l'événement + table SQLite ticket_designs
-    await onSaveEvent(updated);
-    try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
-      const res = await fetch(
-        `/api/events/${encodeURIComponent(formData.id)}/categories/${encodeURIComponent(catId)}/ticket-design`,
-        {
-          method: 'PUT',
-          credentials: 'include',
-          headers,
-          body: JSON.stringify({ ticketImageUrl: cleanUrl }),
-        }
-      );
-      if (res.ok) {
-        const data = await res.json().catch(() => null);
-        if (data?.event) {
-          setFormData(data.event);
-        }
-      }
-    } catch {}
-    setIsDirty(false);
-  };
-
   const handleCategoryTicketImageUpload = async (catId: string, file: File) => {
     try {
-      const fileUrl = await uploadAdminImage(file, `events/${formData.id}/tickets`);
-      await persistCategoryTicketDesign(catId, fileUrl);
-      showToast('Design du billet enregistré directement en base de données.', 'success');
-    } catch (err: any) {
-      showToast(err.message || "Échec de l'import du design du billet.", 'error');
-    }
-  };
-
-  const handleDeleteCategoryTicketDesign = async (catId: string) => {
-    try {
-      const headers = await getAuthHeaders();
-      const res = await fetch(
-        `/api/events/${encodeURIComponent(formData.id)}/categories/${encodeURIComponent(catId)}/ticket-design`,
-        {
-          method: 'DELETE',
-          credentials: 'include',
-          headers,
-        }
-      );
-      const data = await res.json().catch(() => null);
-      const updated: ConcertEvent = data?.event || {
+      const fileUrl = await uploadAdminImage(file, `events/${event.id}/tickets`);
+      const updated = {
         ...formData,
-        categories: formData.categories.map((category) => {
-          if (category.id !== catId) return category;
-          const copy = { ...category };
-          delete copy.ticketImageUrl;
-          return copy;
-        }),
+        categories: formData.categories.map((category) =>
+          category.id === catId ? { ...category, ticketImageUrl: fileUrl } : category
+        ),
       };
       setFormData(updated);
+      setIsDirty(true);
       await onSaveEvent(updated);
       setIsDirty(false);
-      showToast('Design du billet retiré de la base de données.', 'info');
+      showToast('Design du billet téléversé et sauvegardé.', 'success');
     } catch (err: any) {
-      showToast(err.message || 'Impossible de supprimer ce design.', 'error');
+      showToast(err.message || "Échec de l'import du design du billet.", 'error');
     }
   };
 
@@ -862,7 +800,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                     </div>
                   </div>
 
-                  {/* ZONE D'IMPORT ET PERSISTANCE DU DESIGN DU BILLET PAR CATÉGORIE */}
+                  {/* NOUVEAU : ZONE D'IMPORT DU DESIGN DU BILLET PAR CATÉGORIE */}
                   <div className="sm:col-span-3 pt-3 border-t border-white/5 mt-3">
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-[10px] font-agrandir-semibold uppercase text-[#888]">
@@ -872,7 +810,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                         Format recommandé : 1536 × 548 px
                       </span>
                     </div>
-                    <div className="flex flex-col lg:flex-row lg:items-end gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-end gap-4">
                       {cat.ticketImageUrl ? (
                         <div className="w-48 aspect-[1536/548] rounded-lg overflow-hidden border border-white/20 shrink-0 bg-black">
                            <img src={cat.ticketImageUrl} alt="Aperçu Billet" className="w-full h-full object-cover" />
@@ -883,44 +821,23 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                            <span className="text-[9px] uppercase font-bold">Aucun design (1536 × 548)</span>
                         </div>
                       )}
-
-                      <div className="flex-1 flex flex-col sm:flex-row sm:items-center gap-2">
+                      
+                      <label className="py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-agrandir-semibold text-[10px] uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors w-full sm:w-auto">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{cat.ticketImageUrl ? 'Changer le design du billet' : 'Importer une image'}</span>
                         <input
-                          type="text"
-                          value={cat.ticketImageUrl || ''}
-                          onChange={(e) => handleCategoryChange(cat.id, 'ticketImageUrl', e.target.value)}
-                          placeholder="URL du design (/uploads/...) ou importer un fichier"
-                          className="flex-1 bg-[#181818] border border-white/10 rounded-xl px-3 py-2 text-[11px] text-neutral-300 font-mono focus:outline-none focus:border-white"
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleCategoryTicketImageUpload(cat.id, file);
+                          }}
                         />
-                        <label className="py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-agrandir-semibold text-[10px] uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors shrink-0">
-                          <Upload className="w-3.5 h-3.5" />
-                          <span>{cat.ticketImageUrl ? 'Changer le design' : 'Importer une image'}</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              e.target.value = '';
-                              if (file) handleCategoryTicketImageUpload(cat.id, file);
-                            }}
-                          />
-                        </label>
-                        {cat.ticketImageUrl && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteCategoryTicketDesign(cat.id)}
-                            className="py-2.5 px-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 text-[10px] font-agrandir-bold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-                            title="Retirer le design enregistré"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            <span>Retirer</span>
-                          </button>
-                        )}
-                      </div>
+                      </label>
                     </div>
                   </div>
-                  {/* FIN ZONE DESIGN BILLET */}
+                  {/* FIN NOUVEAU */}
                   
                 </div>
               );

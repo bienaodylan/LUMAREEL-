@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getAuthHeaders } from '../utils/authSession';
+import { supabase } from '../lib/supabaseClient';
 import { useApp } from '../context/AppContext';
 import {
   WalletOverview,
@@ -93,12 +93,9 @@ export const LumareelWalletView: React.FC = () => {
   const fetchWalletOverview = async () => {
     try {
       setLoading(true);
-      if (!currentUser) { setWallet(null); return; }
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/wallet/overview', {
-        credentials: 'include',
-        headers,
-      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) { setWallet(null); return; }
+      const res = await fetch('/api/wallet/overview', { headers: { Authorization: `Bearer ${session.access_token}` } });
       const data = await res.json();
       if (data.success && data.overview) {
         setWallet(data.overview);
@@ -139,11 +136,9 @@ export const LumareelWalletView: React.FC = () => {
   // Respond to invitation
   const handleRespondInvitation = async (invitationId: string, response: 'accepted' | 'declined') => {
     try {
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/wallet/invitations/${invitationId}/respond`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ response }),
       });
       const data = await res.json();
@@ -167,11 +162,9 @@ export const LumareelWalletView: React.FC = () => {
     if (!wallet?.card) return;
     try {
       setIsRedeemingBenefitId(benefitId);
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch('/api/membership/redeem-benefit', {
         method: 'POST',
-        credentials: 'include',
-        headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           cardId: wallet.card.id,
           benefitId,
@@ -196,12 +189,10 @@ export const LumareelWalletView: React.FC = () => {
     if (!wallet?.card) return;
     try {
       setIsRotatingCardToken(true);
-      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
       const res = await fetch(`/api/membership/admin/cards/${wallet.card.id}/rotate-token`, {
         method: 'POST',
-        credentials: 'include',
-        headers,
-        body: JSON.stringify({}),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actorId: currentUser?.email || 'USER' }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -1112,7 +1103,7 @@ export const LumareelWalletView: React.FC = () => {
                 Nom complet (Identité nominative certifiée)
               </label>
               <div className="p-3.5 rounded-xl bg-black border border-white/15 text-sm font-agrandir-bold text-white">
-                {wallet?.user.name || currentUser?.name || 'Membre LUMARÉEL'}
+                {wallet?.user.name || currentUser?.name || 'Dylan Bienao'}
               </div>
             </div>
 
@@ -1121,7 +1112,7 @@ export const LumareelWalletView: React.FC = () => {
                 Adresse e-mail officielle
               </label>
               <div className="p-3.5 rounded-xl bg-black border border-white/15 text-sm font-mono text-white">
-                {wallet?.user.email || currentUser?.email || 'Non connecté'}
+                {wallet?.user.email || currentUser?.email || 'bienaodylan428@gmail.com'}
               </div>
             </div>
 

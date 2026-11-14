@@ -26,7 +26,9 @@ const MainApp: React.FC = () => {
   const { currentPage, toast, setCurrentPage, platformSettings, currentUser, setIsAuthModalOpen, showToast } = useApp();
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
-  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isSuperAdmin =
+    currentUser?.email?.toLowerCase() === 'bienaodylan428@gmail.com' ||
+    currentUser?.role === 'super_admin';
 
   return (
     <div className="min-h-screen w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative overflow-x-hidden">
@@ -35,7 +37,7 @@ const MainApp: React.FC = () => {
       {!isAdminOrScanner && <><Navbar /><DesktopSidebar /></>}
 
       {/* Dynamic View Router avec transition de page fluide et espacement optimisé */}
-      <main className={`flex-1 w-full relative z-10 ${!isAdminOrScanner ? `${currentPage === 'member_card' || currentPage === 'card' ? 'pb-0' : 'pb-8 sm:pb-12'} md:pl-[244px]` : ''}`}>
+      <main className={`flex-1 w-full relative z-10 ${!isAdminOrScanner ? 'pb-8 sm:pb-12 md:pl-[244px]' : ''}`}>
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPage}
@@ -66,8 +68,8 @@ const MainApp: React.FC = () => {
       {/* Barre de Navigation Flottante Style Instagram (Translucide en pilule) */}
       {!isAdminOrScanner && <FloatingAppNavbar />}
 
-      {/* Pied de page public en gris (masqué sur la landing page Black Card qui possède son propre footer) */}
-      {!isAdminOrScanner && currentPage !== 'member_card' && currentPage !== 'card' && (
+      {/* Pied de page public en gris avec logo transparent, texte AREEL GROUPE et icônes noires transparentes */}
+      {!isAdminOrScanner && (
         <footer className="relative z-10 w-full border-t border-white/10 bg-[#161616] py-8 px-4 sm:px-10 text-xs font-agrandir-regular text-[#888] mb-16 md:mb-0">
           <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
             <div>
