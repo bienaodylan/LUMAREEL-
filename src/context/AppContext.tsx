@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { User, ConcertEvent, Order, Ticket, ArchiveProduction, PlatformSettings } from '../types';
-import { INITIAL_EVENTS, INITIAL_NEWS, INITIAL_ORDERS, INITIAL_ARCHIVES } from '../data/initialData';
+import { INITIAL_EVENTS, INITIAL_NEWS, INITIAL_ORDERS, INITIAL_ARCHIVES } from '../data/initialData.ts';
 import { convertToYouTubeEmbed } from '../utils/mediaUtils';
 import { supabase, isSupabaseConfigured, configureSupabase, testSupabaseConnection } from '../lib/supabaseClient';
 import { clearLocalAuthToken, getAuthHeaders } from '../utils/authSession';
