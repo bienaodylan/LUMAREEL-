@@ -5,6 +5,30 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/auth/me",
+      "destination": "/api/auth/login?__route=me"
+    },
+    {
+      "source": "/api/events/:id",
+      "destination": "/api/events?id=:id"
+    },
+    {
+      "source": "/api/archives/:id",
+      "destination": "/api/events?__route=archive-item&id=:id"
+    },
+    {
+      "source": "/api/archives",
+      "destination": "/api/events?__route=archives"
+    },
+    {
+      "source": "/api/settings",
+      "destination": "/api/events?__route=settings"
+    },
+    {
+      "source": "/api/admin/settings",
+      "destination": "/api/events?__route=admin-settings"
+    },
+    {
       "source": "/((?!api/|assets/|uploads/).*)",
       "destination": "/index.html"
     }
