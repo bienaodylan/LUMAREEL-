@@ -1,36 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { MembershipEdition, MembershipPlan, MembershipCard } from '../types';
-import { DigitalMembershipCard } from './DigitalMembershipCard';
 import {
-  CreditCard,
-  ShieldCheck,
-  Zap,
-  Sparkles,
-  Lock,
   ArrowRight,
-  Crown,
-  CheckCircle2,
-  Box,
-  RotateCw,
-  Coins,
-  Ticket,
-  ChevronRight,
-  X,
-  Star,
-  Volume2,
-  Bell,
-  User,
   Check,
+  CheckCircle2,
+  ChevronRight,
+  CreditCard,
+  Lock,
+  QrCode,
   Radio,
-  Flame,
-  Award,
-  Calendar,
-  Compass,
-  KeyRound,
-  Shield
+  RotateCw,
+  ShieldCheck,
+  Smartphone,
+  Sparkles,
+  Ticket,
+  User,
+  Wifi,
+  X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+import heroLoungeTopImg from '../assets/images/black_card_hero_lounge_top_1794694901310.jpg';
+import heroPortraitLeftImg from '../assets/images/black_card_hero_portrait_left_1794694901752.jpg';
+import heroNightTallImg from '../assets/images/black_card_hero_night_tall_1794694902515.jpg';
+import concertsCrowdImg from '../assets/images/black_card_concerts_crowd_1794694902084.jpg';
+import vipMezzanineImg from '../assets/images/black_card_vip_mezzanine_1794694903429.jpg';
 
 interface LumareelCardLandingPageProps {
   onGoToWallet?: () => void;
@@ -43,7 +38,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   hasActiveCard = false,
   activeCardNumber,
 }) => {
-  const { currentUser, setCurrentPage, showToast } = useApp();
+  const { currentUser, events, setCurrentPage, setIsAuthModalOpen, showToast } = useApp();
 
   // Edition & Plans data
   const [edition, setEdition] = useState<MembershipEdition | null>(null);
@@ -52,7 +47,17 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const [loading, setLoading] = useState(true);
 
   // Live personalization name
-  const [customName, setCustomName] = useState(currentUser?.name || 'AURELIA VANCE');
+  const [customName, setCustomName] = useState(
+    currentUser?.name ? currentUser.name.toUpperCase() : 'ELENA V. MOREAU'
+  );
+
+  // Interactive card & gate simulator state
+  const [isShowcaseFlipped, setIsShowcaseFlipped] = useState(false);
+  const [isTokenActive, setIsTokenActive] = useState(false);
+  const [tapLatency, setTapLatency] = useState('0.2s');
+
+  // Image load fallback tracking
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
   // Multi-step Admission Wizard
   const [isWizardOpen, setIsWizardOpen] = useState(false);
@@ -64,22 +69,23 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const [applicantAddress, setApplicantAddress] = useState('Cocody Danga');
   const [musicInterest, setMusicInterest] = useState('Afrobeats & Live Acoustic');
   const [referralCode, setReferralCode] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'wave' | 'orange_money' | 'mtn_momo' | 'djamo' | 'card'>('wave');
+  const [paymentMethod, setPaymentMethod] = useState<
+    'wave' | 'orange_money' | 'mtn_momo' | 'djamo' | 'card'
+  >('wave');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [issuedResult, setIssuedResult] = useState<{ card: MembershipCard; qrDataUrl: string } | null>(null);
-
-  // Interactive Vault token rotation animation
-  const [isTokenActive, setIsTokenActive] = useState(false);
-  const [tokenCounter, setTokenCounter] = useState(84);
+  const [issuedResult, setIssuedResult] = useState<{
+    card: MembershipCard;
+    qrDataUrl: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchEditionAndPlans();
   }, []);
 
   useEffect(() => {
-    if (currentUser?.name && !applicantName) {
-      setApplicantName(currentUser.name);
-      setCustomName(currentUser.name);
+    if (currentUser?.name) {
+      if (!applicantName) setApplicantName(currentUser.name.toUpperCase());
+      setCustomName(currentUser.name.toUpperCase());
     }
     if (currentUser?.email && !applicantEmail) {
       setApplicantEmail(currentUser.email);
@@ -107,7 +113,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
   const openAdmissionWizard = (plan?: MembershipPlan) => {
     if (plan) setSelectedPlan(plan);
-    setApplicantName(customName.trim() || currentUser?.name || '');
+    setApplicantName(customName.trim() || currentUser?.name?.toUpperCase() || '');
     setApplicantEmail(currentUser?.email || '');
     setWizardStep(1);
     setIsWizardOpen(true);
@@ -148,705 +154,1006 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
       setIssuedResult({ card: data.card, qrDataUrl: data.qrDataUrl });
       setWizardStep(5);
-      showToast('Félicitations ! Votre admission à la LUMARÉEL Black Card a été confirmée.', 'success');
+      showToast('Félicitations ! Votre LUMARÉEL Black Card est activée.', 'success');
       fetchEditionAndPlans();
     } catch (err: any) {
-      showToast(err.message || 'Erreur lors du traitement de votre admission.', 'error');
+      showToast(err.message || 'Erreur lors du traitement de votre demande.', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const quota = edition?.quota || 100;
-  const allocated = edition?.allocatedCount || 14;
-  const remaining = Math.max(0, quota - allocated);
-  const isSoldOut = remaining === 0 || edition?.status === 'sold_out';
-
-  // Preview card model for 3D card component
-  const previewCard: MembershipCard = {
-    id: 'crd_black_card_preview',
-    userId: currentUser?.id || 'usr_preview',
-    planId: selectedPlan?.id || 'plan_founders_annual',
-    editionId: edition?.id || 'ed_founders_2026',
-    cardNumber: `LMR-2026-00${String(allocated + 1).padStart(2, '0')}`,
-    cardSequence: allocated + 1,
-    cardholderName: customName.trim() || 'AURELIA VANCE',
-    cardholderEmail: applicantEmail || 'aurelia@lumareel.com',
-    cardStatus: 'active',
-    issuedAt: new Date().toISOString(),
-    validFrom: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + 365 * 24 * 3600 * 1000).toISOString(),
-    physicalCardStatus: 'approved',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+  const triggerTapSimulation = () => {
+    setIsTokenActive(true);
+    setTapLatency('0.18s');
+    setTimeout(() => {
+      setIsTokenActive(false);
+      setTapLatency('0.2s');
+    }, 1800);
   };
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  return (
-    <div className="w-full min-h-screen bg-[#050505] text-[#EDEDED] font-agrandir-regular selection:bg-[#d4af37] selection:text-black">
-      
-      {/* ========================================================================= */}
-      {/* 1. TOP HEADER (LUMARÉEL BLACK CARD · NOTIFICATIONS · AVATAR)              */}
-      {/* ========================================================================= */}
-      <header className="w-full border-b border-white/5 bg-[#050505]/90 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          
-          {/* Brand Wordmark with subtle gold icon */}
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 flex items-center justify-center rounded-md bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#d4af37]">
-              <Crown className="w-4 h-4 text-[#d4af37]" />
-            </div>
-            <div className="leading-none text-left">
-              <div className="font-agrandir-extrabold text-sm tracking-wider uppercase text-white">
-                LUMARÉEL
-              </div>
-              <div className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
-                BLACK CARD
-              </div>
-            </div>
-          </div>
+  const markImageFailed = (key: string) => {
+    setFailedImages((prev) => ({ ...prev, [key]: true }));
+  };
 
-          {/* Quick status & Actions */}
-          <div className="flex items-center gap-3">
-            {hasActiveCard && onGoToWallet && (
+  const quota = edition?.quota || 100;
+  const allocated = edition?.allocatedCount || 14;
+  const remaining = Math.max(0, quota - allocated);
+  const displayName = (customName.trim() || 'ELENA V. MOREAU').toUpperCase();
+  const displaySerial = `#0041-${String(allocated + 1).padStart(2, '0')}`;
+  const cardNumber = activeCardNumber || `LMR-2026-${String(allocated + 1).padStart(4, '0')}`;
+
+  const activePlan = selectedPlan || plans[0] || null;
+  const planPrice = activePlan?.price ?? 150000;
+  const planCurrency = activePlan?.currency || 'FCFA';
+  const formattedPrice = `${Number(planPrice).toLocaleString('fr-FR')} ${planCurrency}`;
+
+  const featuredConcert = events[0];
+  const syncEventTitle = featuredConcert?.title || 'The Neon Horizon World Tour';
+  const syncEventDate = featuredConcert?.date || '19 Déc. 2026';
+  const syncEventTier = featuredConcert?.categories?.[1]?.name || 'VIP Soundstage';
+
+  return (
+    <div className="w-full min-h-screen bg-[#050505] text-[#F2F2F2] font-agrandir-regular selection:bg-[#C8B282] selection:text-black">
+      {/* =================================================================== */}
+      {/* 1. TOP BAR — CLEAN 3-ZONE LANDING HEADER                            */}
+      {/* =================================================================== */}
+      <header className="w-full border-b border-white/10 bg-[#050505]/95 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between gap-6">
+          {/* Zone 1: Brand wordmark */}
+          <button
+            type="button"
+            onClick={() => scrollToSection('section-hero')}
+            className="flex items-center gap-2.5 text-left whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            <span className="font-agrandir-extrabold text-base sm:text-lg tracking-tight text-white uppercase">
+              LUMARÉEL
+            </span>
+            <span className="px-2 py-0.5 rounded bg-[#161616] border border-[#C8B282]/35 text-[10px] font-mono tracking-[0.2em] text-[#C8B282] uppercase">
+              BLACK
+            </span>
+          </button>
+
+          {/* Zone 2: 4 Single-line nav links */}
+          <nav className="hidden md:flex items-center gap-7 text-xs font-agrandir-semibold text-neutral-400">
+            <button
+              type="button"
+              onClick={() => scrollToSection('section-hero')}
+              className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              La Carte
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('section-how-it-works')}
+              className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              Comment ça marche
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('section-benefits')}
+              className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              Avantages
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('section-make-it-yours')}
+              className="hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              Commander
+            </button>
+          </nav>
+
+          {/* Zone 3: Account + Primary CTA */}
+          <div className="flex items-center gap-3 shrink-0">
+            {hasActiveCard && onGoToWallet ? (
               <button
                 type="button"
                 onClick={onGoToWallet}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#d4af37]/15 hover:bg-[#d4af37]/25 border border-[#d4af37]/35 text-[10px] font-agrandir-bold text-[#d4af37] uppercase tracking-wider transition-all cursor-pointer"
+                className="hidden sm:inline-flex items-center text-xs font-agrandir-semibold text-[#C8B282] hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
               >
-                <span>Mon Pass Actif ({activeCardNumber || 'Membre'})</span>
+                Mon Pass Actif
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (currentUser) setCurrentPage('profile');
+                  else setIsAuthModalOpen(true);
+                }}
+                className="hidden sm:inline-flex items-center text-xs font-agrandir-semibold text-neutral-300 hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                {currentUser ? 'Mon Compte' : 'Connexion'}
               </button>
             )}
 
             <button
               type="button"
-              onClick={() => showToast('Vous êtes à jour dans vos notifications de membre.', 'info')}
-              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-neutral-300 hover:text-white transition-colors cursor-pointer relative"
-              aria-label="Notifications"
+              onClick={() => openAdmissionWizard(activePlan || undefined)}
+              className="px-4 sm:px-5 py-2.5 rounded-full bg-white hover:bg-[#C8B282] text-black text-xs font-agrandir-extrabold transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <Bell className="w-4 h-4 text-neutral-300" />
-              <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] absolute top-2 right-2" />
+              Obtenir la Black Card
             </button>
 
-            <div className="w-8 h-8 rounded-full overflow-hidden border border-[#d4af37]/40 bg-gradient-to-br from-neutral-800 to-black flex items-center justify-center text-xs font-agrandir-bold text-[#d4af37]">
-              {currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'AV'}
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (hasActiveCard && onGoToWallet) onGoToWallet();
+                else if (currentUser) setCurrentPage('profile');
+                else setIsAuthModalOpen(true);
+              }}
+              aria-label="Profil membre"
+              className="w-9 h-9 rounded-full bg-[#121212] hover:bg-[#1C1C1C] border border-white/15 flex items-center justify-center text-neutral-300 hover:text-white transition-colors shrink-0 cursor-pointer"
+            >
+              <User className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* ========================================================================= */}
-      {/* 2. HERO SECTION — "YOUR WORLD. YOUR ACCESS." (DESIGN EXACT DE L'IMAGE)    */}
-      {/* ========================================================================= */}
-      <section className="relative pt-12 pb-16 sm:pt-16 sm:pb-24 border-b border-white/5 text-center overflow-hidden">
-        {/* Warm golden ambient glow */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[340px] bg-[#d4af37]/12 blur-[130px] pointer-events-none rounded-full" />
-
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 relative z-10 space-y-6">
-          
-          {/* Subtle Tag Indicator */}
-          <div className="inline-flex items-center gap-2 text-[10px] font-agrandir-bold tracking-[0.25em] text-[#d4af37] uppercase">
-            <span className="w-2 h-2 rounded-full bg-[#d4af37]" />
-            <span>PRÉSENTATION DE LA LUMARÉEL BLACK CARD</span>
-          </div>
-
-          {/* Headline Monumental */}
-          <h1 className="text-4xl sm:text-6xl font-agrandir-extrabold uppercase tracking-tight text-white leading-[1.05]">
-            VOTRE MONDE. <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#d4af37] via-[#f5e6b3] to-[#d4af37]">
-              VOTRE ACCÈS.
-            </span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="text-sm sm:text-base text-neutral-300 font-light leading-relaxed max-w-xl mx-auto">
-            Bien plus qu’une carte. Votre passerelle exclusive vers des concerts inoubliables, des accès coulisses privilégiés et l'hospitalité privée d'un cercle d'initiés.
-          </p>
-
-          {/* Two Prominent Action Buttons (Couleurs Noir, Blanc, Or) */}
-          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 max-w-md mx-auto">
-            <button
-              type="button"
-              onClick={() => scrollToSection('section-card-showcase')}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-gradient-to-r from-[#d4af37] via-[#e5c04b] to-[#d4af37] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all duration-300 shadow-[0_0_25px_rgba(212,175,55,0.35)] hover:brightness-110 active:scale-95 cursor-pointer"
-            >
-              DÉCOUVRIR LA CARTE
-            </button>
-
-            <button
-              type="button"
-              onClick={() => openAdmissionWizard(plans[0])}
-              className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/20 text-white font-agrandir-extrabold text-xs tracking-wider uppercase transition-all duration-300 hover:border-[#d4af37]/60 active:scale-95 cursor-pointer"
-            >
-              DEMANDER MON ADMISSION
-            </button>
-          </div>
-
-          {/* 3D Black Card Visual & Label */}
-          <div id="section-card-showcase" className="pt-8 sm:pt-10 flex flex-col items-center">
-            <div className="w-full max-w-[420px]">
-              <DigitalMembershipCard card={previewCard} />
+      {/* =================================================================== */}
+      {/* 2. HERO SECTION — SPLIT COPY + BENTO PHOTO COLLAGE & FLOATING CARD  */}
+      {/* =================================================================== */}
+      <section id="section-hero" className="max-w-6xl mx-auto px-4 sm:px-8 pt-10 pb-16 sm:pt-14 sm:pb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+          {/* Left Column: Editorial Headline + CTAs + Sync Proof */}
+          <div className="lg:col-span-6 space-y-6 text-left">
+            <div className="inline-flex items-center gap-2 text-[11px] font-mono tracking-[0.16em] text-neutral-300 uppercase">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#B8F249]" aria-hidden="true" />
+              <span>LE PASS PHYSIQUE DES PASSIONNÉS DE MUSIQUE</span>
             </div>
 
-            {/* Label caption underneath */}
-            <div className="mt-4 inline-flex items-center gap-2 text-[10px] font-mono tracking-widest text-neutral-400 uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37]" />
-              <span>COMPOSITE NOIR PROFOND & OR · 16G</span>
-            </div>
-
-            {/* Live Name Input to personalize */}
-            <div className="mt-4 flex items-center justify-center gap-2 text-xs">
-              <span className="text-[11px] text-neutral-500">Personnaliser votre gravure :</span>
-              <input
-                type="text"
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value.toUpperCase())}
-                placeholder="VOTRE NOM"
-                maxLength={28}
-                className="bg-black/60 border-b border-[#d4af37]/50 text-[#d4af37] text-xs font-mono uppercase px-2 py-0.5 outline-hidden tracking-widest"
-              />
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 3. SECTION "BACKSTAGE SOCIETY" / "MADE FOR THE MOMENTS THAT MATTER"       */}
-      {/* ========================================================================= */}
-      <section className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 border-b border-white/5">
-        <div className="space-y-4 mb-8 text-left">
-          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
-            CERCLE PRIVÉ & HOSPITALITÉ
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold uppercase text-white leading-tight">
-            Façonnée pour les moments qui comptent.
-          </h2>
-          <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-2xl">
-            De la première note au rappel final, vivez l’intensité musicale et l'art de recevoir partagés entre initiés.
-          </p>
-        </div>
-
-        {/* Atmosphere Photo Showcase with overlay */}
-        <div className="relative overflow-hidden border border-white/10 mb-8 aspect-video sm:aspect-21/9 bg-neutral-900">
-          <img
-            src="/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.30_0f827a3a.jpeg"
-            alt="Concert Society LUMARÉEL"
-            className="w-full h-full object-cover brightness-90 contrast-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-        </div>
-
-        {/* 3 Interactive Feature Rows (Open layout, non-rounded blocks) */}
-        <div className="divide-y divide-white/10 border-t border-b border-white/10 text-left">
-          {[
-            { label: 'Votre prochain concert inoubliable', sub: 'Accès réservé aux productions majeures & festivals d’élite' },
-            { label: 'Des expériences gravées dans les mémoires', sub: 'Salons VIP, dégustations privées et loges réservées' },
-            { label: 'Une communauté réunie autour de votre passion', sub: 'Rencontrez des créateurs, artistes et amateurs exigeants' },
-          ].map((item, idx) => (
-            <div
-              key={idx}
-              onClick={() => openAdmissionWizard(plans[0])}
-              className="py-4 sm:py-5 flex items-center justify-between group hover:bg-white/[0.02] px-2 transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37]" />
-                <div>
-                  <div className="text-sm sm:text-base font-agrandir-bold text-white group-hover:text-[#d4af37] transition-colors">
-                    {item.label}
-                  </div>
-                  <div className="text-[11px] text-neutral-400 font-light">
-                    {item.sub}
-                  </div>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-neutral-500 group-hover:text-[#d4af37] group-hover:translate-x-1 transition-all" />
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 4. SECTION "DUAL ARCHITECTURE" / "ONE CARD. A WORLD OF POSSIBILITIES."   */}
-      {/* ========================================================================= */}
-      <section className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 border-b border-white/5 text-center">
-        <div className="space-y-4 mb-10">
-          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
-            EXPÉRIENCE HYBRIDE
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold uppercase text-white leading-tight">
-            Une carte. Un monde de possibilités.
-          </h2>
-          <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-xl mx-auto">
-            L'alliance parfaite entre une carte physique d'exception et un pass digital synchronisé en temps réel sur votre smartphone.
-          </p>
-        </div>
-
-        {/* The Digital Pass Vault (Exactement comme dans la maquette envoyée) */}
-        <div className="max-w-md mx-auto text-left border border-white/15 bg-[#0a0a0a] p-6 sm:p-7 shadow-2xl relative overflow-hidden">
-          
-          {/* Top Pass Status */}
-          <div className="flex items-center justify-between border-b border-white/10 pb-3 mb-5 text-[10px] font-mono uppercase tracking-widest">
-            <span className="flex items-center gap-1.5 text-neutral-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37]" />
-              <span>COFFRE PASS DIGITAL</span>
-            </span>
-            <span className="text-[#d4af37] font-bold">ACCÈS ACTIF</span>
-          </div>
-
-          {/* Pass Holder Identification */}
-          <div className="flex items-start justify-between gap-4 mb-5">
-            <div>
-              <span className="text-[9px] font-mono uppercase tracking-widest text-neutral-500 block">
-                TITULAIRE DU PASS VIP
+            <h1 className="text-4xl sm:text-5xl xl:text-[3.65rem] font-agrandir-extrabold uppercase tracking-tight leading-[1.02] text-white max-w-xl">
+              VOTRE MONDE <br />
+              DIGITAL.{' '}
+              <span className="text-[#C8B282]">
+                ENTRE <br />
+                VOS MAINS.
               </span>
-              <h3 className="text-lg sm:text-xl font-agrandir-extrabold uppercase text-white tracking-wide">
-                {customName.trim() || 'AURELIA VANCE'}
-              </h3>
-            </div>
-            <span className="px-3 py-1 bg-[#d4af37] text-black font-agrandir-bold text-[9px] tracking-wider uppercase">
-              MEMBRE FONDATEUR
-            </span>
-          </div>
+            </h1>
 
-          {/* Active Engagement Details */}
-          <div className="mb-6 space-y-1">
-            <span className="text-[9px] font-mono uppercase tracking-widest text-neutral-500 block">
-              PROCHAINE IMMERSION CONFIRMÉE
-            </span>
-            <div className="font-agrandir-bold text-sm text-[#f5e6b3] uppercase">
-              AREEL FESTIVAL · SCÈNE PRINCIPALE VIP
-            </div>
-            <div className="text-[11px] text-neutral-400 font-light">
-              Lounge Soundstage · Tunnel Artistes · Loge Privée
-            </div>
-          </div>
+            <p className="text-sm sm:text-base text-neutral-400 font-light leading-relaxed max-w-md">
+              Vos concerts LUMARÉEL, vos commandes et vos activités digitales représentés par une carte physique d’exception. Le luxe tactile pensé pour la génération live.
+            </p>
 
-          {/* Interactive Dynamic Rotating Security Token */}
-          <div
-            onClick={() => {
-              setIsTokenActive(true);
-              setTokenCounter((c) => (c + 1) % 99);
-              setTimeout(() => setIsTokenActive(false), 2000);
-            }}
-            className="p-4 bg-black border border-white/10 flex items-center justify-between cursor-pointer group hover:border-[#d4af37]/40 transition-colors mb-6"
-          >
-            <div className="flex items-center gap-3">
-              {/* Dynamic Animated Token Icon */}
-              <div className="w-11 h-11 bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
-                <KeyRound className={`w-5 h-5 ${isTokenActive ? 'text-emerald-400 animate-spin' : 'text-[#d4af37]'}`} />
+            {/* Primary & Secondary Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => openAdmissionWizard(activePlan || undefined)}
+                className="px-6 py-3.5 rounded-full bg-white hover:bg-[#C8B282] text-black text-xs font-agrandir-extrabold tracking-wide transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                Obtenir votre Black Card
+              </button>
+
+              <button
+                type="button"
+                onClick={() => scrollToSection('section-benefits')}
+                className="px-6 py-3.5 rounded-full bg-[#111111] hover:bg-[#1B1B1B] border border-white/15 text-white text-xs font-agrandir-semibold tracking-wide transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              >
+                Découvrir les avantages
+              </button>
+            </div>
+
+            {/* Numbered Member Library Sync Row */}
+            <div className="pt-3 flex items-center gap-3.5">
+              <div className="flex items-center -space-x-1.5">
+                <span className="w-7 h-7 rounded-lg bg-[#1A1A1A] border border-white/15 flex items-center justify-center text-[10px] font-mono font-semibold text-neutral-300">
+                  01
+                </span>
+                <span className="w-7 h-7 rounded-lg bg-[#C8B282] border border-[#050505] flex items-center justify-center text-[10px] font-mono font-bold text-black">
+                  02
+                </span>
+                <span className="w-7 h-7 rounded-lg bg-white border border-[#050505] flex items-center justify-center text-[10px] font-mono font-bold text-black">
+                  03
+                </span>
               </div>
-              <div>
-                <div className="text-xs font-agrandir-bold text-white uppercase tracking-wider">
-                  {isTokenActive ? 'JETON VALIDÉ · ACCÈS LIBÉRÉ' : 'TOUCHER POUR PRÉSENTER LE PASS'}
+              <span className="text-xs text-neutral-400">
+                Synchronisé avec le réseau live et {quota} membres fondateurs
+              </span>
+            </div>
+          </div>
+
+          {/* Right Column: Bento Lifestyle Collage + Overlapping Black Card */}
+          <div className="lg:col-span-6 relative pb-10 sm:pb-12">
+            <div className="rounded-[26px] bg-[#0B0B0B] border border-white/10 p-2.5 shadow-[0_30px_80px_rgba(0,0,0,0.85)]">
+              <div className="grid grid-cols-12 gap-2.5 h-[360px] sm:h-[420px]">
+                {/* Left Stacked Column (2 images) */}
+                <div className="col-span-6 grid grid-rows-2 gap-2.5 h-full">
+                  <div className="relative rounded-2xl overflow-hidden bg-[#141414]">
+                    {!failedImages['heroTop'] ? (
+                      <img
+                        src={heroLoungeTopImg}
+                        alt="Membres LUMARÉEL en salon VIP avant concert"
+                        referrerPolicy="no-referrer"
+                        onError={() => markImageFailed('heroTop')}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#1C1810] to-[#080808] flex items-center justify-center">
+                        <Sparkles className="w-6 h-6 text-[#C8B282]/50" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                  </div>
+
+                  <div className="relative rounded-2xl overflow-hidden bg-[#141414]">
+                    {!failedImages['heroPortrait'] ? (
+                      <img
+                        src={heroPortraitLeftImg}
+                        alt="Expérience soirée privée LUMARÉEL"
+                        referrerPolicy="no-referrer"
+                        onError={() => markImageFailed('heroPortrait')}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#1A1612] to-[#080808] flex items-center justify-center">
+                        <User className="w-6 h-6 text-[#C8B282]/50" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
+                  </div>
                 </div>
-                <div className="text-[10px] text-neutral-400 font-mono">
-                  Jeton dynamique de sécurité #{tokenCounter} · Synchronisé
+
+                {/* Right Tall Portrait */}
+                <div className="col-span-6 relative rounded-2xl overflow-hidden bg-[#141414] h-full">
+                  {!failedImages['heroTall'] ? (
+                    <img
+                      src={heroNightTallImg}
+                      alt="Bar et loge privée après-concert LUMARÉEL"
+                      referrerPolicy="no-referrer"
+                      onError={() => markImageFailed('heroTall')}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#18140C] to-[#050505] flex items-center justify-center">
+                      <Radio className="w-7 h-7 text-[#C8B282]/50" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+                </div>
+              </div>
+
+              {/* Bottom Verification Strip inside Frame */}
+              <div className="mt-2.5 rounded-2xl bg-[#111111] border border-white/10 px-4 py-3 flex items-center justify-end">
+                <div className="flex items-center gap-2 text-[10px] font-mono tracking-widest uppercase text-[#B8F249]">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>VERIFIED</span>
                 </div>
               </div>
             </div>
 
-            <Volume2 className="w-4 h-4 text-neutral-500 group-hover:text-[#d4af37]" />
-          </div>
+            {/* Overlapping Physical Black Card (Bottom Left) */}
+            <div className="absolute left-2 sm:-left-6 bottom-0 w-[260px] sm:w-[295px] rounded-2xl bg-gradient-to-br from-[#171717] via-[#0B0B0B] to-[#030303] border border-[#C8B282]/40 p-4 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.95)]">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-agrandir-extrabold text-xs tracking-wider text-white uppercase">
+                    LUMARÉEL
+                  </span>
+                  <span className="text-[9px] font-mono tracking-widest text-[#C8B282] uppercase">
+                    BLACK
+                  </span>
+                </div>
+                <Wifi className="w-3.5 h-3.5 text-neutral-400 rotate-90" />
+              </div>
 
-          {/* 3 Verified Active Perks */}
-          <div className="space-y-2.5 pt-1 border-t border-white/10 text-xs">
-            <div className="flex items-center gap-2 text-neutral-300">
-              <Zap className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span>Coupe-file immédiat aux entrées</span>
-            </div>
-            <div className="flex items-center gap-2 text-neutral-300">
-              <Crown className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span>Bar privé & consommations offertes</span>
-            </div>
-            <div className="flex items-center gap-2 text-neutral-300">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span>Accueil personnalisé & vestiaire VIP</span>
+              <div className="flex items-center gap-3 mb-4">
+                {/* Metallic Gold EMV Chip */}
+                <div className="w-8 h-6 rounded-[4px] bg-gradient-to-br from-[#F2DFB2] via-[#C8B282] to-[#7D6638] border border-black/40 p-0.5 grid grid-cols-2 gap-0.5">
+                  <div className="border-r border-b border-black/35" />
+                  <div className="border-b border-black/35" />
+                  <div className="border-r border-black/35" />
+                  <div />
+                </div>
+                <span className="text-[9px] font-mono tracking-[0.2em] text-neutral-400 uppercase">
+                  PHYSICAL PASS
+                </span>
+              </div>
+
+              <div className="flex items-end justify-between gap-2 pt-2 border-t border-white/10">
+                <div className="min-w-0">
+                  <div className="text-[8px] font-mono tracking-[0.2em] text-neutral-500 uppercase">
+                    PASS HOLDER
+                  </div>
+                  <div className="text-xs font-agrandir-extrabold text-white uppercase truncate">
+                    {displayName}
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-[8px] font-mono font-bold tracking-widest text-[#B8F249] uppercase">
+                    SYNCED
+                  </div>
+                  <div className="text-[10px] font-mono text-neutral-300 tabular-nums">
+                    {displaySerial}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
         </div>
       </section>
 
-      {/* ========================================================================= */}
-      {/* 5. SECTION "EXCLUSIVE PRIVILEGES" / "ARCHITECTED FOR ELITE ACCESS"        */}
-      {/* ========================================================================= */}
-      <section className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 border-b border-white/5">
-        <div className="space-y-4 mb-10 text-left">
-          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
-            PRIVILÈGES D'EXCEPTION
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold uppercase text-white leading-tight">
-            Architecturée pour un accès sans compromis.
-          </h2>
-          <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-xl">
-            L'élégance d'un club privé où chaque événement se transforme en moment sur-mesure.
-          </p>
-        </div>
-
-        {/* Feature Stream (Open editorial layout, non-rounded blocks) */}
-        <div className="space-y-6 text-left">
-          
-          {/* Feature 01 */}
-          <div className="p-6 sm:p-8 border border-white/10 bg-[#080808] space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono tracking-widest text-[#d4af37] uppercase">01 · ACCÈS</span>
-              <Ticket className="w-4 h-4 text-[#d4af37]" />
+      {/* =================================================================== */}
+      {/* 3. HOW IT WORKS — BENTO DIGITAL-TO-PHYSICAL SHOWCASE                */}
+      {/* =================================================================== */}
+      <section id="section-how-it-works" className="max-w-6xl mx-auto px-4 sm:px-8 pb-20 sm:pb-24">
+        <div className="rounded-[28px] bg-[#0B0B0B] border border-white/10 p-6 sm:p-10 lg:p-12">
+          {/* Header */}
+          <div className="max-w-2xl space-y-3 mb-10 text-left">
+            <div className="text-[10px] font-mono tracking-[0.22em] text-[#C8B282] uppercase">
+              COMMENT ÇA MARCHE
             </div>
-            <h3 className="text-xl font-agrandir-bold text-white uppercase">Accès Prioritaire Mondial</h3>
+            <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold text-white tracking-tight leading-[1.08] text-balance">
+              Vos expériences digitales, <br />
+              devenues physiques.
+            </h2>
             <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed">
-              Débloquez les préventes de billetterie 48 heures avant l'ouverture générale pour tous les concerts et festivals majeurs.
+              La LUMARÉEL Black Card est la représentation physique de vos achats de concerts et activités sur LUMARÉEL. Elle réunit vos billets digitaux, commandes VIP et entrées prioritaires en une pièce tactile d’orfèvrerie.
             </p>
-            <div className="pt-2">
-              <div className="w-full h-1 bg-white/10 overflow-hidden">
-                <div className="w-full h-full bg-[#d4af37]" />
-              </div>
-              <div className="text-[10px] font-mono text-neutral-400 mt-1">100% de placement garanti pour les membres</div>
-            </div>
           </div>
 
-          {/* Feature 02 */}
-          <div className="p-6 sm:p-8 border border-white/10 bg-[#080808] space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono tracking-widest text-[#d4af37] uppercase">02 · SUR-MESURE</span>
-              <Sparkles className="w-4 h-4 text-[#d4af37]" />
-            </div>
-            <h3 className="text-xl font-agrandir-bold text-white uppercase">Salons & Loges d'Artistes</h3>
-            <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed">
-              Accès direct aux balances acoustiques, aux coulisses privées et aux salons VIP réservés avec service de conciergerie sur place.
-            </p>
-            <button
-              type="button"
-              onClick={() => openAdmissionWizard(plans[0])}
-              className="inline-flex items-center gap-2 text-xs font-agrandir-bold text-[#d4af37] hover:underline uppercase pt-1 cursor-pointer"
-            >
-              <span>Demander l'accès Conciergerie</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          {/* Upper 2-Column Bento */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            {/* Left Card: Digital Concert Ticket Sync */}
+            <div className="lg:col-span-7 rounded-2xl bg-[#121212] border border-white/10 p-6 flex flex-col justify-between gap-5 text-left">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white">
+                    <Smartphone className="w-4 h-4 text-[#C8B282]" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-agrandir-bold text-white">
+                      Synchronisation Billet Concert
+                    </div>
+                    <div className="text-[11px] text-neutral-500">
+                      Synchronicité wallet en temps réel
+                    </div>
+                  </div>
+                </div>
 
-          {/* Feature 03 */}
-          <div className="p-6 sm:p-8 border border-white/10 bg-[#080808] space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono tracking-widest text-[#d4af37] uppercase">03 · RÉPERTOIRE</span>
-              <Award className="w-4 h-4 text-[#d4af37]" />
-            </div>
-            <h3 className="text-xl font-agrandir-bold text-white uppercase">Votre Collection de Concerts</h3>
-            <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed">
-              Tous vos pass de concert, accès coulisses et enregistrements exclusifs réunis dans un coffre personnel unique.
-            </p>
-            <div className="pt-2 flex items-center gap-8 text-xs font-mono">
-              <div>
-                <strong className="text-lg text-white font-agrandir-bold block">14</strong>
-                <span className="text-[10px] text-neutral-500 uppercase">Événements Prévus 2026</span>
+                <span className="text-[10px] font-mono font-semibold tracking-wider text-[#B8F249] uppercase">
+                  TAP &amp; GO
+                </span>
               </div>
-              <div>
-                <strong className="text-lg text-[#d4af37] font-agrandir-bold block">100%</strong>
-                <span className="text-[10px] text-neutral-500 uppercase">Privilège Garanti</span>
-              </div>
-            </div>
-          </div>
 
-          {/* Feature 04 & 05 in 2-columns */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="p-6 border border-white/10 bg-[#080808] space-y-2">
-              <div className="text-[10px] font-mono text-[#d4af37] uppercase">04 · COFFRE</div>
-              <h4 className="font-agrandir-bold text-base text-white uppercase">Portefeuille Sans Contact</h4>
+              {/* Inner Active Ticket Order Card */}
+              <div className="rounded-xl bg-[#080808] border border-white/10 p-4 sm:p-5 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-[9px] font-mono tracking-[0.18em] text-neutral-500 uppercase mb-1">
+                      COMMANDE CONCERT ACTIVE
+                    </div>
+                    <div className="text-sm sm:text-base font-agrandir-extrabold text-white">
+                      {syncEventTitle}
+                    </div>
+                  </div>
+                  <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-[#C8B282] shrink-0">
+                    <QrCode className="w-4 h-4" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/10 text-left">
+                  <div>
+                    <div className="text-[9px] font-mono uppercase tracking-wider text-neutral-500">
+                      DATE
+                    </div>
+                    <div className="text-xs font-agrandir-semibold text-neutral-200 tabular-nums">
+                      {syncEventDate}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] font-mono uppercase tracking-wider text-neutral-500">
+                      CATÉGORIE
+                    </div>
+                    <div className="text-xs font-agrandir-semibold text-neutral-200 truncate">
+                      {syncEventTier}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] font-mono uppercase tracking-wider text-neutral-500">
+                      STATUT
+                    </div>
+                    <div className="text-xs font-agrandir-semibold text-[#B8F249]">
+                      • Actif
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <p className="text-xs text-neutral-400 font-light leading-relaxed">
-                Réglez vos consommations par simple effleurement, rechargez en un instant avec 0% de frais.
+                Un billet acheté sur mobile ? Dès la confirmation de votre réservation, votre carte physique est mise à jour instantanément via notre registre cryptographique.
               </p>
             </div>
 
-            <div className="p-6 border border-white/10 bg-[#080808] space-y-2">
-              <div className="text-[10px] font-mono text-[#d4af37] uppercase">05 · STATUT</div>
-              <h4 className="font-agrandir-bold text-base text-white uppercase">Accompagnant Inclus</h4>
-              <p className="text-xs text-neutral-400 font-light leading-relaxed">
-                Faites profiter un proche de votre coupe-file et de vos accès aux salons VIP lors de chaque soirée.
-              </p>
-            </div>
-          </div>
+            {/* Right Card: Laser-Etched Backplate (Dark High-Contrast Showcase) */}
+            <div className="lg:col-span-5 rounded-2xl bg-gradient-to-br from-[#070707] via-[#050505] to-[#11100C] border border-[#C8B282]/30 p-6 flex flex-col justify-between gap-6 text-left">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono tracking-[0.2em] text-[#C8B282] uppercase">
+                    VÉRIFICATION TACTILE
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsShowcaseFlipped((prev) => !prev)}
+                    aria-label="Basculer l'aperçu du verso laser"
+                    className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-neutral-300 hover:text-[#C8B282] transition-colors cursor-pointer"
+                  >
+                    <RotateCw className="w-3.5 h-3.5" />
+                  </button>
+                </div>
 
-        </div>
-      </section>
+                <h3 className="text-xl sm:text-2xl font-agrandir-extrabold text-white tracking-tight">
+                  Verso Gravé au Laser
+                </h3>
 
-      {/* ========================================================================= */}
-      {/* 6. SECTION "LIVE SONIC CULTURE" / "CLOSER TO THE MUSIC" (FULL BLEED)      */}
-      {/* ========================================================================= */}
-      <section className="relative py-24 sm:py-32 overflow-hidden border-b border-white/5 text-center">
-        {/* Full-bleed background concert image with dark overlay scrim */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src="/assets/aistudio/10cbcb7f-470c-4343-9740-e8c87192025d_5b981144.jpeg"
-            alt="Live Concert LUMARÉEL"
-            className="w-full h-full object-cover brightness-[0.45] contrast-110"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/80" />
-        </div>
-
-        <div className="relative z-10 max-w-2xl mx-auto px-4 sm:px-6 space-y-6">
-          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
-            IMMERSION SCÉNIQUE DIRECTE
-          </span>
-
-          <h2 className="text-3xl sm:text-5xl font-agrandir-extrabold uppercase text-white leading-tight">
-            Au plus près de la musique. <br />
-            Au plus près de l'émotion.
-          </h2>
-
-          <p className="text-xs sm:text-sm text-neutral-300 font-light leading-relaxed max-w-lg mx-auto">
-            Votre passion pour la scène mérite un point de vue sans compromis. Élevez chaque instant avec un accueil d’exception.
-          </p>
-
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => openAdmissionWizard(plans[0])}
-              className="px-8 py-3.5 rounded-full bg-[#d4af37] hover:bg-[#e5c04b] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all shadow-xl cursor-pointer hover:scale-105"
-            >
-              EXPLORER LES EXPÉRIENCES MEMBRES
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 7. SECTION "DOSSIER D'ADMISSION" / "THE BLACK TIER"                       */}
-      {/* ========================================================================= */}
-      <section className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 border-b border-white/5 text-center">
-        <div className="space-y-4 mb-10">
-          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
-            DOSSIER D'ADMISSION
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold uppercase text-white leading-tight">
-            Votre nouveau chapitre commence ici.
-          </h2>
-          <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-xl mx-auto">
-            Découvrez la Black Card LUMARÉEL et demandez votre admission à une expérience exclusive alliant musique, prestige et conciergerie privée.
-          </p>
-        </div>
-
-        {/* The Black Tier Summary Box */}
-        <div className="max-w-lg mx-auto border border-white/20 bg-[#090909] p-7 sm:p-8 text-left space-y-6 shadow-2xl">
-          <div className="flex items-center justify-between border-b border-white/10 pb-4">
-            <div>
-              <h3 className="font-agrandir-extrabold text-lg text-white uppercase tracking-wider">
-                LE CERCLE BLACK TIER
-              </h3>
-              <span className="text-[10px] font-mono text-[#d4af37] uppercase tracking-widest">
-                SÉLECTION SUR CANDIDATURE
-              </span>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/40 flex items-center justify-center text-[#d4af37]">
-              <Crown className="w-5 h-5 text-[#d4af37]" />
-            </div>
-          </div>
-
-          {/* Checklist */}
-          <div className="space-y-3 text-xs">
-            {[
-              'Carte physique 16g en composite noir mat et gravure dorée',
-              'Conciergerie privée et accueil VIP dédié 24/7',
-              'Portefeuille électronique sans contact intégré avec +5 000 FCFA offerts',
-              'Accès aux loges privées et salons VIP réservés',
-              'Coupe-file permanent pour vous et un accompagnant privilégié',
-            ].map((text, idx) => (
-              <div key={idx} className="flex items-start gap-2.5">
-                <Check className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
-                <span className="text-neutral-200 font-light leading-relaxed">{text}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Price & Primary Action */}
-          <div className="pt-2 border-t border-white/10">
-            <div className="flex items-baseline justify-between mb-4">
-              <span className="text-xs text-neutral-400 uppercase">Tarif annuel</span>
-              <div className="text-right">
-                <span className="text-xl font-agrandir-extrabold text-[#d4af37] font-mono">150 000 FCFA</span>
-                <span className="text-[10px] text-neutral-500 block uppercase font-mono">Valable 12 mois</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => openAdmissionWizard(plans[0])}
-              className="w-full py-4 rounded-full bg-[#d4af37] hover:bg-[#e6c14c] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all shadow-[0_0_25px_rgba(212,175,55,0.35)] cursor-pointer hover:scale-[1.02] active:scale-95"
-            >
-              DEMANDER MON ADMISSION
-            </button>
-
-            <div className="text-[10px] text-neutral-500 text-center mt-3 font-mono">
-              Admission délivrée après revue du comité · Demandes traitées avec une stricte confidentialité
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 8. SECTION "THREE-STAGE PATHWAY" / "HOW TO JOIN"                          */}
-      {/* ========================================================================= */}
-      <section className="py-16 sm:py-24 max-w-4xl mx-auto px-4 sm:px-6 border-b border-white/5 text-left">
-        <div className="space-y-4 mb-10">
-          <span className="text-[10px] font-mono tracking-[0.25em] text-[#d4af37] uppercase">
-            PARCOURS EN 3 ÉTAPES
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold uppercase text-white leading-tight">
-            Comment nous rejoindre.
-          </h2>
-          <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-xl">
-            Un parcours d'admission fluide et confidentiel, conçu pour une intégration immédiate :
-          </p>
-        </div>
-
-        <div className="space-y-6">
-          {[
-            {
-              num: '01',
-              title: 'Découvrir',
-              desc: 'Explorez l’écosystème Black Card, les privilèges scéniques et les accès réservés au cercle d’initiés.',
-            },
-            {
-              num: '02',
-              title: 'Candidater',
-              desc: 'Remplissez votre dossier d’admission confidentiel avec vos préférences de placement et vos coordonnées de remise.',
-            },
-            {
-              num: '03',
-              title: 'Recevoir sa Carte',
-              desc: 'Débloquez immédiatement votre Pass Digital et recevez votre carte physique gravée sous coffret de prestige scellé.',
-            },
-          ].map((item, idx) => (
-            <div key={idx} className="p-6 border border-white/10 bg-[#080808] flex items-start gap-5">
-              <div className="w-12 h-12 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/35 flex items-center justify-center font-agrandir-extrabold text-[#d4af37] text-lg font-mono shrink-0">
-                {item.num}
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-lg font-agrandir-bold text-white uppercase">{item.title}</h4>
                 <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed">
-                  {item.desc}
+                  Retournez la carte pour révéler votre QR code dynamique gravé au laser haute précision et sa puce NFC haute fréquence pour un passage instantané aux portiques.
+                </p>
+              </div>
+
+              {/* Interactive Venue Gate Access Tap Bar */}
+              <button
+                type="button"
+                onClick={triggerTapSimulation}
+                className="w-full rounded-xl bg-[#131313] hover:bg-[#191919] border border-white/10 hover:border-[#B8F249]/40 p-3.5 flex items-center justify-between transition-colors cursor-pointer text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-white text-black flex items-center justify-center shrink-0">
+                    <QrCode className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-agrandir-bold text-white">
+                      {isTokenActive ? 'Accès Portique Autorisé' : 'Accès Portique Scène'}
+                    </div>
+                    <div className="text-[10px] text-neutral-400">
+                      {isTokenActive ? 'Signature NFC vérifiée' : 'Vérification sans latence'}
+                    </div>
+                  </div>
+                </div>
+                <span className="font-mono text-xs font-bold text-[#B8F249] tabular-nums">
+                  {tapLatency}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Lower 2-Column Supporting Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+            <div className="rounded-2xl bg-[#121212] border border-white/10 p-5 sm:p-6 flex items-start gap-4 text-left">
+              <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#C8B282] shrink-0">
+                <Radio className="w-4 h-4" />
+              </div>
+              <div className="space-y-1.5">
+                <h4 className="text-sm font-agrandir-bold text-white">
+                  Synchronisation Sans Effort
+                </h4>
+                <p className="text-xs text-neutral-400 font-light leading-relaxed">
+                  Instantanément liée à votre compte LUMARÉEL. Chaque festival, concert, session acoustique et réservation VIP se synchronise sans aucune activation manuelle.
                 </p>
               </div>
             </div>
-          ))}
+
+            <div className="rounded-2xl bg-[#121212] border border-white/10 p-5 sm:p-6 flex items-start gap-4 text-left">
+              <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#C8B282] shrink-0">
+                <ShieldCheck className="w-4 h-4" />
+              </div>
+              <div className="space-y-1.5">
+                <h4 className="text-sm font-agrandir-bold text-white">
+                  Pass 100% Musique Live
+                </h4>
+                <p className="text-xs text-neutral-400 font-light leading-relaxed">
+                  Ni carte de crédit, ni carte bancaire. Aucune vérification de solvabilité, aucun intérêt ni relevé. Pensée exclusivement pour vos souvenirs live et l’accès aux scènes.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ========================================================================= */}
-      {/* 9. SECTION "YOUR EXPERIENCE DESERVES AN UPGRADE" (CLOSING STATEMENT)      */}
-      {/* ========================================================================= */}
-      <section className="py-20 sm:py-28 max-w-3xl mx-auto px-4 sm:px-6 text-center space-y-6">
-        <div className="w-14 h-14 rounded-full bg-white/5 border border-[#d4af37]/40 flex items-center justify-center text-[#d4af37] mx-auto shadow-xl">
-          <Star className="w-6 h-6 text-[#d4af37] fill-[#d4af37]" />
+      {/* =================================================================== */}
+      {/* 4. THREE WAYS YOUR CARD ELEVATES YOUR LIVE MUSIC                    */}
+      {/* =================================================================== */}
+      <section id="section-benefits" className="max-w-6xl mx-auto px-4 sm:px-8 pb-20 sm:pb-24">
+        <div className="text-center max-w-2xl mx-auto space-y-3 mb-12">
+          <div className="text-[10px] font-mono tracking-[0.22em] text-[#C8B282] uppercase">
+            PRIVILÈGES ESSENTIELS
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold text-white tracking-tight leading-[1.08] text-balance">
+            Trois façons dont votre carte <br />
+            sublime vos concerts.
+          </h2>
         </div>
 
-        <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold uppercase text-white leading-tight">
-          Votre expérience mérite ce qu'il y a de mieux.
-        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+          {/* Card 01: Your Concerts */}
+          <div className="rounded-[24px] bg-[#0B0B0B] border border-white/10 p-6 flex flex-col justify-between gap-6 text-left">
+            <div className="space-y-3">
+              <div className="text-3xl sm:text-4xl font-agrandir-extrabold text-[#C8B282] tabular-nums">
+                01
+              </div>
+              <h3 className="text-base font-agrandir-extrabold uppercase tracking-wide text-white">
+                VOS CONCERTS
+              </h3>
+              <p className="text-xs text-neutral-400 font-light leading-relaxed">
+                Conservez tous vos billets de concerts et commandes digitales reliés à votre carte personnelle. Présentez-la aux bars et comptoirs partenaires.
+              </p>
+            </div>
 
-        <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-lg mx-auto">
-          Rejoignez le cercle d'initiés de la LUMARÉEL Black Card et accédez à une dimension où la musique se vit sans contrainte.
-        </p>
+            <div className="space-y-3">
+              <div className="relative rounded-xl overflow-hidden aspect-video bg-[#141414] border border-white/10">
+                {!failedImages['crowd'] ? (
+                  <img
+                    src={concertsCrowdImg}
+                    alt="Foule en concert devant la scène principale"
+                    referrerPolicy="no-referrer"
+                    onError={() => markImageFailed('crowd')}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#1C160E] to-[#070707] flex items-center justify-center">
+                    <Ticket className="w-6 h-6 text-[#C8B282]/50" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              </div>
 
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
-          <button
-            type="button"
-            onClick={() => openAdmissionWizard(plans[0])}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#d4af37] hover:bg-[#e6c14c] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all shadow-xl cursor-pointer hover:scale-105 active:scale-95"
-          >
-            DEMANDER MON ADMISSION
-          </button>
+              <div className="flex items-center justify-between pt-2 border-t border-white/10 text-[11px]">
+                <span className="text-neutral-200 font-agrandir-semibold">
+                  Accès Scène Principale
+                </span>
+                <span className="text-neutral-500 font-mono">Tap Instantané</span>
+              </div>
+            </div>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => scrollToSection('section-card-showcase')}
-            className="w-full sm:w-auto px-8 py-3.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/20 text-white font-agrandir-bold text-xs tracking-wider uppercase transition-all cursor-pointer"
-          >
-            EXPLORER L'EXPÉRIENCE
-          </button>
-        </div>
+          {/* Card 02: One Personal Card */}
+          <div className="rounded-[24px] bg-[#0B0B0B] border border-white/10 p-6 flex flex-col justify-between gap-6 text-left">
+            <div className="space-y-3">
+              <div className="text-3xl sm:text-4xl font-agrandir-extrabold text-white tabular-nums">
+                02
+              </div>
+              <h3 className="text-base font-agrandir-extrabold uppercase tracking-wide text-white">
+                UNE CARTE PERSONNELLE
+              </h3>
+              <p className="text-xs text-neutral-400 font-light leading-relaxed">
+                L’incarnation physique de vos activités LUMARÉEL. Composite noir mat anodisé haute précision, conçu pour résister à l’effervescence des salles.
+              </p>
+            </div>
 
-        <div className="pt-8 text-[10px] font-mono tracking-[0.25em] text-neutral-500 uppercase">
-          LUMARÉEL CO. — CLUB PRIVÉ & PRODUCTIONS D'ÉLITE — EST. 2024
+            <div className="rounded-xl bg-[#121212] border border-white/10 p-4 space-y-4">
+              <div className="flex items-center justify-between text-[9px] font-mono tracking-wider uppercase text-neutral-400">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C8B282]" />
+                  <span>MONOGRAMME SUR MESURE</span>
+                </span>
+                <span className="text-neutral-500">LMR-BLACK</span>
+              </div>
+
+              <div>
+                <div className="text-[9px] font-mono uppercase tracking-wider text-neutral-500 mb-1">
+                  ÉDITION GRAVÉE (PERSONNALISABLE)
+                </div>
+                <input
+                  type="text"
+                  value={customName}
+                  onChange={(e) => setCustomName(e.target.value.toUpperCase())}
+                  maxLength={28}
+                  aria-label="Personnaliser le nom gravé sur votre carte"
+                  className="w-full bg-black/70 border border-white/10 focus:border-[#C8B282] rounded-lg px-2.5 py-1.5 text-sm font-agrandir-extrabold uppercase tracking-wide text-white outline-none transition-colors"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-white/10 text-[10px] font-mono">
+                <span className="text-neutral-500">Poids : 16.0g</span>
+                <span className="text-[#B8F249] font-semibold">Puce Haptique Active</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 03: Exclusive Benefits */}
+          <div className="rounded-[24px] bg-[#0B0B0B] border border-white/10 p-6 flex flex-col justify-between gap-6 text-left">
+            <div className="space-y-3">
+              <div className="text-3xl sm:text-4xl font-agrandir-extrabold text-[#B8F249] tabular-nums">
+                03
+              </div>
+              <h3 className="text-base font-agrandir-extrabold uppercase tracking-wide text-white">
+                AVANTAGES EXCLUSIFS
+              </h3>
+              <p className="text-xs text-neutral-400 font-light leading-relaxed">
+                Profitez de privilèges exclusifs liés à votre LUMARÉEL Black Card : entrée anticipée aux balances, accès mezzanine privée et avantages partenaires.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="relative rounded-xl overflow-hidden aspect-video bg-[#141414] border border-white/10">
+                {!failedImages['vip'] ? (
+                  <img
+                    src={vipMezzanineImg}
+                    alt="Salon mezzanine VIP LUMARÉEL"
+                    referrerPolicy="no-referrer"
+                    onError={() => markImageFailed('vip')}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#1C1810] to-[#070707] flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-[#C8B282]/50" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-white/10 text-[11px]">
+                <span className="text-neutral-200 font-agrandir-semibold">
+                  Mezzanine Accompagnant
+                </span>
+                <span className="text-[10px] font-mono font-bold text-[#C8B282] uppercase">
+                  PRIVILÈGE
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ========================================================================= */}
-      {/* 10. BOTTOM NAVIGATION BAR (COMME DANS LE DESIGN DE L'IMAGE)               */}
-      {/* ========================================================================= */}
-      <nav className="border-t border-white/10 bg-[#060606] py-3 px-4 sm:px-6 sticky bottom-0 z-30">
-        <div className="max-w-md mx-auto flex items-center justify-between text-neutral-400 text-[10px] font-agrandir-bold uppercase">
-          <button
-            type="button"
-            onClick={() => scrollToSection('section-card-showcase')}
-            className="flex flex-col items-center gap-1 hover:text-[#d4af37] transition-colors cursor-pointer text-[#d4af37]"
-          >
-            <CreditCard className="w-4 h-4" />
-            <span>La Carte</span>
-          </button>
+      {/* =================================================================== */}
+      {/* 5. MAKE IT YOURS — PHYSICAL EDITION CONVERSION BLOCK                */}
+      {/* =================================================================== */}
+      <section id="section-make-it-yours" className="max-w-6xl mx-auto px-4 sm:px-8 pb-20 sm:pb-24">
+        <div className="rounded-[28px] bg-[#0B0B0B] border border-white/10 p-6 sm:p-10 lg:p-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+            {/* Left Column: Physical Card Interactive Showcase */}
+            <div className="lg:col-span-5 flex flex-col items-center">
+              <div
+                onClick={() => setIsShowcaseFlipped((prev) => !prev)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setIsShowcaseFlipped((prev) => !prev);
+                  }
+                }}
+                aria-label="Retourner la Black Card physique"
+                className="w-full max-w-[380px] cursor-pointer perspective-[1200px]"
+                style={{ aspectRatio: '85.6 / 53.98' }}
+              >
+                <motion.div
+                  animate={{ rotateY: isShowcaseFlipped ? 180 : 0 }}
+                  transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                  className="w-full h-full relative"
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  {/* Card Front */}
+                  <div
+                    className="absolute inset-0 rounded-[20px] p-5 sm:p-6 flex flex-col justify-between bg-gradient-to-br from-[#191919] via-[#0B0B0B] to-[#040404] border border-[#C8B282]/40 shadow-[0_28px_70px_rgba(0,0,0,0.95)]"
+                    style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-agrandir-extrabold text-sm sm:text-base tracking-tight text-white uppercase">
+                          LUMARÉEL
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-[#C8B282]/15 border border-[#C8B282]/40 text-[9px] font-mono tracking-widest text-[#C8B282] uppercase">
+                          PASS
+                        </span>
+                      </div>
+                      <Wifi className="w-4 h-4 text-neutral-400 rotate-90" />
+                    </div>
 
-          <button
-            type="button"
-            onClick={() => scrollToSection('section-card-showcase')}
-            className="flex flex-col items-center gap-1 hover:text-[#d4af37] transition-colors cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Expérience</span>
-          </button>
+                    <div className="flex items-center gap-3.5 my-auto">
+                      {/* Brushed Gold EMV Chip */}
+                      <div className="w-11 h-8 rounded-md bg-gradient-to-br from-[#F4E1B6] via-[#C8B282] to-[#7D6638] p-0.5 border border-black/40 grid grid-cols-3 gap-0.5">
+                        <div className="border-r border-b border-black/35" />
+                        <div className="border-b border-black/35" />
+                        <div className="border-l border-b border-black/35" />
+                        <div className="border-r border-black/35" />
+                        <div className="bg-black/15" />
+                        <div className="border-l border-black/35" />
+                      </div>
+                      <div>
+                        <div className="text-[8px] font-mono tracking-[0.2em] text-neutral-500 uppercase">
+                          ENCRYPTED TACTILE CORE
+                        </div>
+                        <div className="text-xs font-mono tracking-[0.18em] text-neutral-200 tabular-nums">
+                          0042 · 8821 · 9102
+                        </div>
+                      </div>
+                    </div>
 
-          <button
-            type="button"
-            onClick={() => scrollToSection('section-card-showcase')}
-            className="flex flex-col items-center gap-1 hover:text-[#d4af37] transition-colors cursor-pointer"
-          >
-            <Crown className="w-4 h-4" />
-            <span>Privilèges</span>
-          </button>
+                    <div className="flex items-end justify-between pt-2 border-t border-white/10">
+                      <div className="min-w-0">
+                        <div className="text-[8px] font-mono tracking-[0.2em] text-neutral-500 uppercase">
+                          PHYSICAL EDITION
+                        </div>
+                        <div className="text-sm font-agrandir-extrabold text-white uppercase truncate">
+                          {displayName}
+                        </div>
+                      </div>
+                      <QrCode className="w-5 h-5 text-[#C8B282] shrink-0" />
+                    </div>
+                  </div>
 
-          <button
-            type="button"
-            onClick={() => openAdmissionWizard(plans[0])}
-            className="flex flex-col items-center gap-1 hover:text-[#d4af37] transition-colors cursor-pointer"
-          >
-            <Award className="w-4 h-4" />
-            <span>Adhésion</span>
-          </button>
+                  {/* Card Backplate (Laser-Etched) */}
+                  <div
+                    className="absolute inset-0 rounded-[20px] p-5 sm:p-6 flex flex-col justify-between bg-[#060606] border border-white/20 shadow-[0_28px_70px_rgba(0,0,0,0.95)]"
+                    style={{
+                      backfaceVisibility: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)',
+                    }}
+                  >
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                      <span className="text-[9px] font-mono tracking-[0.2em] text-[#C8B282] uppercase">
+                        GRAVURE LASER · {cardNumber}
+                      </span>
+                      <span className="text-[9px] font-mono text-[#B8F249] uppercase">
+                        NFC 13.56 MHZ
+                      </span>
+                    </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              if (hasActiveCard && onGoToWallet) onGoToWallet();
-              else openAdmissionWizard(plans[0]);
-            }}
-            className="flex flex-col items-center gap-1 hover:text-[#d4af37] transition-colors cursor-pointer"
-          >
-            <Lock className="w-4 h-4" />
-            <span>Coffre</span>
-          </button>
+                    <div className="flex items-center justify-between gap-4 my-auto">
+                      <div className="space-y-1.5 text-left">
+                        <div className="text-xs font-agrandir-bold text-white uppercase">
+                          Portique Coupe-File &amp; Loges
+                        </div>
+                        <p className="text-[10px] text-neutral-400 leading-relaxed">
+                          Présentez ce verso laser ou effleurez le lecteur NFC aux points de contrôle officiels LUMARÉEL.
+                        </p>
+                      </div>
+                      <div className="w-16 h-16 rounded-xl bg-white p-2 flex items-center justify-center shrink-0">
+                        <QrCode className="w-12 h-12 text-black" />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[9px] font-mono text-neutral-500 pt-2 border-t border-white/10">
+                      <span>FOUNDERS EDITION · {quota} MAX</span>
+                      <span className="text-white">{displaySerial}</span>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+
+              <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-neutral-400">
+                <span>Composite Noir &amp; Titane</span>
+                <span aria-hidden="true">·</span>
+                <span>NFC &amp; QR Intégrés</span>
+                <span aria-hidden="true">·</span>
+                <button
+                  type="button"
+                  onClick={() => setIsShowcaseFlipped((prev) => !prev)}
+                  className="text-[#C8B282] hover:underline cursor-pointer"
+                >
+                  {isShowcaseFlipped ? 'Voir le recto' : 'Voir le verso'}
+                </button>
+              </div>
+            </div>
+
+            {/* Right Column: Pricing & Direct Checkout */}
+            <div className="lg:col-span-7 space-y-6 text-left">
+              <div className="space-y-2.5">
+                <div className="text-[10px] font-mono tracking-[0.22em] text-[#C8B282] uppercase">
+                  POSSÉDEZ LA PIÈCE
+                </div>
+                <h2 className="text-3xl sm:text-5xl font-agrandir-extrabold uppercase text-white tracking-tight leading-none">
+                  FAITES-EN LA VÔTRE.
+                </h2>
+                <p className="text-xs sm:text-sm text-neutral-400 font-light leading-relaxed max-w-xl">
+                  Obtenez votre LUMARÉEL Black Card et transposez vos expériences de concerts digitales dans le monde réel. Façonnée en composite noir anodisé avec puce NFC et QR code dynamique.
+                </p>
+              </div>
+
+              {/* Plan Switcher if multiple plans exist */}
+              {plans.length > 1 && (
+                <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#131313] border border-white/10">
+                  {plans.map((plan) => {
+                    const isActive = activePlan?.id === plan.id;
+                    return (
+                      <button
+                        key={plan.id}
+                        type="button"
+                        onClick={() => setSelectedPlan(plan)}
+                        className={`px-3.5 py-2 rounded-lg text-xs font-agrandir-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                          isActive
+                            ? 'bg-white text-black'
+                            : 'text-neutral-400 hover:text-white'
+                        }`}
+                      >
+                        {plan.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Pricing Card */}
+              <div className="rounded-2xl bg-[#131313] border border-white/10 p-5 sm:p-6 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-mono tracking-[0.16em] text-neutral-400 uppercase">
+                    LUMARÉEL BLACK CARD — ÉDITION PHYSIQUE
+                  </span>
+                  <span className="text-[10px] font-mono font-bold tracking-wider text-[#B8F249] uppercase">
+                    {remaining > 0 ? 'PRÊTE À EXPÉDIER' : 'LISTE D’ATTENTE'}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-baseline justify-between gap-3">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl sm:text-4xl font-agrandir-extrabold text-white tabular-nums">
+                      {loading ? '...' : formattedPrice}
+                    </span>
+                    <span className="text-xs font-mono text-neutral-400 uppercase">
+                      / {activePlan?.durationMonths === 1 ? 'mois' : 'an'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono tracking-wider text-[#C8B282] uppercase">
+                    LIVRAISON EXPRESS OFFERTE
+                  </span>
+                </div>
+
+                <div className="text-xs text-neutral-400 font-light">
+                  Adhésion tout-inclus · Bonus cashless +5 000 FCFA offert · {remaining} places restantes sur {quota}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => openAdmissionWizard(activePlan || undefined)}
+                className="w-full py-4 px-6 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2.5 transition-colors cursor-pointer"
+              >
+                <span>OBTENIR VOTRE BLACK CARD</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-[11px] text-neutral-500">
+                <Lock className="w-3.5 h-3.5 text-[#B8F249]" />
+                <span>
+                  Commande directe sécurisée. Expédition sous 2 à 3 jours ouvrés. Activation digitale immédiate.
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-      </nav>
+      </section>
 
-      {/* ========================================================================= */}
-      {/* 11. PROCESSUS D'INSCRIPTION FLUIDE EN PLUSIEURS ÉTAPES (MODALE WIZARD)   */}
-      {/* ========================================================================= */}
+      {/* =================================================================== */}
+      {/* 6. CLEAN LANDING FOOTER                                             */}
+      {/* =================================================================== */}
+      <footer className="border-t border-white/10 bg-[#050505]">
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-left">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="font-agrandir-extrabold text-sm tracking-tight text-white uppercase">
+                  LUMARÉEL
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-[#151515] border border-[#C8B282]/30 text-[9px] font-mono tracking-widest text-[#C8B282] uppercase">
+                  BLACK
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500 leading-relaxed max-w-xs">
+                La carte physique de votre univers concert digital. Précision architecturale et accès live instantané.
+              </p>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              <div className="font-agrandir-bold text-white">Produit</div>
+              <div className="flex flex-col gap-2 text-neutral-400">
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('section-hero')}
+                  className="text-left hover:text-white transition-colors cursor-pointer"
+                >
+                  La Carte
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage('client_space')}
+                  className="text-left hover:text-white transition-colors cursor-pointer"
+                >
+                  Commandes Concerts
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onGoToWallet) onGoToWallet();
+                    else setCurrentPage('member_card');
+                  }}
+                  className="text-left hover:text-white transition-colors cursor-pointer"
+                >
+                  Mon Pass &amp; Portefeuille
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              <div className="font-agrandir-bold text-white">Maison</div>
+              <div className="flex flex-col gap-2 text-neutral-400">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage('home')}
+                  className="text-left hover:text-white transition-colors cursor-pointer"
+                >
+                  Programmation
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage('archive')}
+                  className="text-left hover:text-white transition-colors cursor-pointer"
+                >
+                  Archives Live
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage('organizers')}
+                  className="text-left hover:text-white transition-colors cursor-pointer"
+                >
+                  Organisateurs
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              <div className="font-agrandir-bold text-white">Sécurité &amp; Contrôle</div>
+              <div className="flex flex-col gap-2 text-neutral-400">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage('card_verify')}
+                  className="text-left hover:text-white transition-colors cursor-pointer"
+                >
+                  Vérifier une carte
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage('news')}
+                  className="text-left hover:text-white transition-colors cursor-pointer"
+                >
+                  Communiqués
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAdmissionWizard(activePlan || undefined)}
+                  className="text-left hover:text-white transition-colors cursor-pointer"
+                >
+                  Demander l’admission
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-10 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-neutral-500">
+            <span>© 2026 LUMARÉEL CO. Tous droits réservés.</span>
+            <span className="font-mono text-neutral-400">
+              Réseau Scénique LUMARÉEL · Abidjan
+            </span>
+          </div>
+        </div>
+      </footer>
+
+      {/* =================================================================== */}
+      {/* 7. 5-STEP ADMISSION WIZARD MODAL (PRESERVED WORKING FLOW)           */}
+      {/* =================================================================== */}
       <AnimatePresence>
         {isWizardOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
             <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 15 }}
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 15 }}
-              transition={{ duration: 0.22 }}
-              className="relative w-full max-w-xl bg-[#0a0a0a] border border-[#d4af37]/40 p-6 sm:p-8 shadow-2xl my-8 text-left"
+              exit={{ opacity: 0, scale: 0.96, y: 12 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-xl rounded-3xl bg-[#0B0B0B] border border-[#C8B282]/40 p-6 sm:p-8 shadow-2xl my-8 text-left"
             >
-              {/* Header de la modale */}
+              {/* Modal Header */}
               <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
                 <div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-[#d4af37]">
-                    DOSSIER D'ADMISSION · ÉTAPE {wizardStep} / 5
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-[#C8B282]">
+                    DOSSIER D&apos;ADMISSION · ÉTAPE {wizardStep} / 5
                   </span>
                   <h3 className="font-agrandir-extrabold text-lg text-white uppercase mt-0.5">
                     LUMARÉEL Black Card
@@ -863,19 +1170,19 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 </button>
               </div>
 
-              {/* Step indicator bar */}
+              {/* Step progress bar */}
               <div className="grid grid-cols-5 gap-2 mb-6">
                 {[1, 2, 3, 4, 5].map((s) => (
                   <div
                     key={s}
-                    className={`h-1 transition-all duration-300 ${
-                      wizardStep >= s ? 'bg-[#d4af37]' : 'bg-white/10'
+                    className={`h-1 rounded-full transition-all duration-300 ${
+                      wizardStep >= s ? 'bg-[#C8B282]' : 'bg-white/10'
                     }`}
                   />
                 ))}
               </div>
 
-              {/* Étape 1 : Personnalisation de la Gravure */}
+              {/* Step 1: Gravure */}
               {wizardStep === 1 && (
                 <div className="space-y-5">
                   <div>
@@ -883,7 +1190,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                       1. Personnalisation de votre Gravure
                     </h4>
                     <p className="text-xs text-neutral-400 font-light mt-1">
-                      Votre nom sera gravé au laser doré sur la surface noir mat de votre Black Card physique.
+                      Votre nom sera gravé au laser sur la face composite noir mat de votre Black Card physique.
                     </p>
                   </div>
 
@@ -898,27 +1205,27 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         setApplicantName(e.target.value.toUpperCase());
                         setCustomName(e.target.value.toUpperCase());
                       }}
-                      placeholder="EX : AURELIA VANCE"
+                      placeholder="EX : ELENA V. MOREAU"
                       required
-                      className="w-full px-4 py-3 bg-black border border-white/20 focus:border-[#d4af37] text-white font-mono text-sm uppercase tracking-wider outline-hidden"
+                      className="w-full px-4 py-3 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white font-mono text-sm uppercase tracking-wider outline-none"
                     />
                   </div>
 
-                  <div className="p-4 bg-white/5 border border-[#d4af37]/40 flex items-center justify-between">
+                  <div className="p-4 rounded-2xl bg-[#131313] border border-[#C8B282]/35 flex items-center justify-between gap-4">
                     <div>
-                      <span className="text-[10px] font-agrandir-bold text-[#d4af37] uppercase tracking-wider block">
+                      <span className="text-[10px] font-agrandir-bold text-[#C8B282] uppercase tracking-wider block">
                         Formule Sélectionnée
                       </span>
                       <strong className="text-sm font-agrandir-bold text-white uppercase">
-                        {selectedPlan?.name || 'Black Card Annuelle (12 mois)'}
+                        {activePlan?.name || 'Black Card Annuelle (12 mois)'}
                       </strong>
                       <p className="text-[11px] text-neutral-400 font-light">
-                        Carte physique composite noir & or + Pass Digital + Salons VIP + Coupe-file
+                        Carte physique composite &amp; titane + Pass Digital + Salons VIP
                       </p>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-agrandir-extrabold text-[#d4af37] font-mono">
-                        150 000 FCFA
+                    <div className="text-right shrink-0">
+                      <div className="text-lg font-agrandir-extrabold text-[#C8B282] font-mono tabular-nums">
+                        {formattedPrice}
                       </div>
                       <span className="text-[9px] text-neutral-400 uppercase">Valable 1 an</span>
                     </div>
@@ -929,7 +1236,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                       type="button"
                       disabled={!applicantName.trim()}
                       onClick={() => setWizardStep(2)}
-                      className="px-6 py-3 rounded-full bg-[#d4af37] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-40"
+                      className="px-6 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-40 transition-colors"
                     >
                       <span>Continuer vers mes coordonnées</span>
                       <ChevronRight className="w-4 h-4" />
@@ -938,15 +1245,15 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 </div>
               )}
 
-              {/* Étape 2 : Coordonnées & Livraison */}
+              {/* Step 2: Shipping & Contact */}
               {wizardStep === 2 && (
                 <div className="space-y-5">
                   <div>
                     <h4 className="text-base font-agrandir-bold text-white uppercase">
-                      2. Coordonnées & Expédition
+                      2. Coordonnées &amp; Expédition
                     </h4>
                     <p className="text-xs text-neutral-400 font-light mt-1">
-                      Votre Pass Digital sera rattaché à cet e-mail. Le coffret physique sera livré à cette adresse.
+                      Votre Pass Digital sera synchronisé avec cet e-mail. Le coffret physique sera livré à cette adresse.
                     </p>
                   </div>
 
@@ -961,7 +1268,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         onChange={(e) => setApplicantEmail(e.target.value)}
                         placeholder="votre.email@domaine.com"
                         required
-                        className="w-full px-4 py-2.5 bg-black border border-white/20 focus:border-[#d4af37] text-white text-xs outline-hidden"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-xs outline-none"
                       />
                     </div>
 
@@ -975,7 +1282,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         onChange={(e) => setApplicantPhone(e.target.value)}
                         placeholder="+225 07 00 00 00 00"
                         required
-                        className="w-full px-4 py-2.5 bg-black border border-white/20 focus:border-[#d4af37] text-white text-xs outline-hidden"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-xs outline-none"
                       />
                     </div>
                   </div>
@@ -990,7 +1297,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         value={applicantCity}
                         onChange={(e) => setApplicantCity(e.target.value)}
                         placeholder="Abidjan"
-                        className="w-full px-4 py-2.5 bg-black border border-white/20 focus:border-[#d4af37] text-white text-xs outline-hidden"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-xs outline-none"
                       />
                     </div>
 
@@ -1003,7 +1310,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         value={applicantAddress}
                         onChange={(e) => setApplicantAddress(e.target.value)}
                         placeholder="Cocody, Zone 4, Plateau..."
-                        className="w-full px-4 py-2.5 bg-black border border-white/20 focus:border-[#d4af37] text-white text-xs outline-hidden"
+                        className="w-full px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-xs outline-none"
                       />
                     </div>
                   </div>
@@ -1021,7 +1328,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                       type="button"
                       disabled={!applicantEmail.trim() || !applicantPhone.trim()}
                       onClick={() => setWizardStep(3)}
-                      className="px-6 py-3 rounded-full bg-[#d4af37] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-40"
+                      className="px-6 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-40 transition-colors"
                     >
                       <span>Préférences Membre</span>
                       <ChevronRight className="w-4 h-4" />
@@ -1030,15 +1337,15 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 </div>
               )}
 
-              {/* Étape 3 : Profil & Parrainage */}
+              {/* Step 3: Preferences & Referral */}
               {wizardStep === 3 && (
                 <div className="space-y-5">
                   <div>
                     <h4 className="text-base font-agrandir-bold text-white uppercase">
-                      3. Préférences Musicales & Parrainage
+                      3. Préférences Musicales &amp; Parrainage
                     </h4>
                     <p className="text-xs text-neutral-400 font-light mt-1">
-                      Aidez notre conciergerie à vous adresser les invitations qui vous correspondent.
+                      Personnalisez les invitations privées associées à votre Black Card.
                     </p>
                   </div>
 
@@ -1049,12 +1356,12 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     <select
                       value={musicInterest}
                       onChange={(e) => setMusicInterest(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-black border border-white/20 focus:border-[#d4af37] text-white text-xs outline-hidden cursor-pointer"
+                      className="w-full px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-xs outline-none cursor-pointer"
                     >
-                      <option value="Afrobeats & Live Acoustic">Afrobeats, Amapiano & Live Acoustique</option>
-                      <option value="Jazz, Soul & R&B">Jazz, Soul & Soirées R&B Privées</option>
-                      <option value="Grands Concerts & Festivals">Grands Concerts & Événements Festifs</option>
-                      <option value="Loges VIP & Dégustations">Loges VIP & Expériences Privées</option>
+                      <option value="Afrobeats & Live Acoustic">Afrobeats, Amapiano &amp; Live Acoustique</option>
+                      <option value="Jazz, Soul & R&B">Jazz, Soul &amp; Soirées R&amp;B Privées</option>
+                      <option value="Grands Concerts & Festivals">Grands Concerts &amp; Événements Festifs</option>
+                      <option value="Loges VIP & Dégustations">Loges VIP &amp; Expériences Privées</option>
                     </select>
                   </div>
 
@@ -1067,7 +1374,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                       value={referralCode}
                       onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                       placeholder="EX : BLACK-VIP-2026"
-                      className="w-full px-4 py-2.5 bg-black border border-white/20 focus:border-[#d4af37] text-white font-mono text-xs uppercase tracking-wider outline-hidden"
+                      className="w-full px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white font-mono text-xs uppercase tracking-wider outline-none"
                     />
                   </div>
 
@@ -1083,7 +1390,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     <button
                       type="button"
                       onClick={() => setWizardStep(4)}
-                      className="px-6 py-3 rounded-full bg-[#d4af37] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+                      className="px-6 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
                     >
                       <span>Règlement Sécurisé</span>
                       <ChevronRight className="w-4 h-4" />
@@ -1092,61 +1399,59 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 </div>
               )}
 
-              {/* Étape 4 : Règlement Sécurisé */}
+              {/* Step 4: Payment */}
               {wizardStep === 4 && (
                 <form onSubmit={handleCompleteAdmission} className="space-y-5">
                   <div>
                     <h4 className="text-base font-agrandir-bold text-white uppercase">
-                      4. Règlement Sécurisé & Activation
+                      4. Règlement Sécurisé &amp; Activation
                     </h4>
                     <p className="text-xs text-neutral-400 font-light mt-1">
-                      Choisissez votre moyen de paiement sécurisé pour finaliser votre adhésion.
+                      Sélectionnez votre moyen de paiement pour activer immédiatement votre Black Card.
                     </p>
                   </div>
 
-                  {/* Payment Method Selector */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {[
-                      { id: 'wave', label: 'Wave', desc: '0% de frais', icon: '🌊' },
-                      { id: 'orange_money', label: 'Orange Money', desc: 'CI & UEMOA', icon: '🟠' },
-                      { id: 'mtn_momo', label: 'MTN MoMo', desc: 'Instantané', icon: '🟡' },
-                      { id: 'djamo', label: 'Djamo', desc: 'Carte / Visa', icon: '💳' },
-                      { id: 'card', label: 'Carte Bancaire', desc: 'Visa / Mastercard', icon: '🔒' },
+                      { id: 'wave', label: 'Wave', desc: '0% de frais' },
+                      { id: 'orange_money', label: 'Orange Money', desc: 'CI & UEMOA' },
+                      { id: 'mtn_momo', label: 'MTN MoMo', desc: 'Instantané' },
+                      { id: 'djamo', label: 'Djamo', desc: 'Carte / Visa' },
+                      { id: 'card', label: 'Carte Bancaire', desc: 'Visa / Mastercard' },
                     ].map((m) => (
                       <button
                         key={m.id}
                         type="button"
                         onClick={() => setPaymentMethod(m.id as any)}
-                        className={`p-3 border text-left transition-all cursor-pointer ${
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                           paymentMethod === m.id
-                            ? 'bg-[#d4af37]/20 border-[#d4af37] text-white'
+                            ? 'bg-[#C8B282]/15 border-[#C8B282] text-white'
                             : 'bg-white/5 border-white/10 text-neutral-400 hover:border-white/20'
                         }`}
                       >
-                        <div className="text-lg mb-1">{m.icon}</div>
+                        <CreditCard className="w-4 h-4 text-[#C8B282] mb-1.5" />
                         <div className="font-agrandir-bold text-xs text-white uppercase">{m.label}</div>
                         <div className="text-[10px] text-neutral-400 font-mono">{m.desc}</div>
                       </button>
                     ))}
                   </div>
 
-                  {/* Summary Box */}
-                  <div className="p-4 bg-black border border-white/15 space-y-2 text-xs">
+                  <div className="p-4 rounded-2xl bg-black border border-white/15 space-y-2 text-xs">
                     <div className="flex justify-between text-neutral-400">
-                      <span>Adhésion LUMARÉEL Black Card (1 an)</span>
-                      <span className="font-mono text-white">150 000 FCFA</span>
+                      <span>Adhésion LUMARÉEL Black Card</span>
+                      <span className="font-mono text-white tabular-nums">{formattedPrice}</span>
                     </div>
                     <div className="flex justify-between text-neutral-400">
-                      <span>Carte physique 16g composite & or</span>
-                      <span className="text-emerald-400 font-mono">Incluse</span>
+                      <span>Carte physique gravée &amp; livraison</span>
+                      <span className="text-[#B8F249] font-mono">Incluse</span>
                     </div>
                     <div className="flex justify-between text-neutral-400">
-                      <span>Crédit de bienvenue offert</span>
-                      <span className="text-[#d4af37] font-mono">+5 000 FCFA offerts</span>
+                      <span>Crédit cashless de bienvenue</span>
+                      <span className="text-[#C8B282] font-mono">+5 000 FCFA offerts</span>
                     </div>
                     <div className="border-t border-white/10 pt-2 flex justify-between font-agrandir-extrabold text-sm text-white">
                       <span>Total</span>
-                      <span className="text-[#d4af37] font-mono">150 000 FCFA</span>
+                      <span className="text-[#C8B282] font-mono tabular-nums">{formattedPrice}</span>
                     </div>
                   </div>
 
@@ -1162,7 +1467,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="px-8 py-3.5 rounded-full bg-[#d4af37] hover:bg-[#e6c14c] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
+                      className="px-8 py-3.5 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-lg disabled:opacity-50 transition-colors"
                     >
                       {isSubmitting ? (
                         <>
@@ -1171,7 +1476,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         </>
                       ) : (
                         <>
-                          <span>Valider & Rejoindre le Cercle</span>
+                          <span>Valider &amp; Activer</span>
                           <Check className="w-4 h-4 text-black" />
                         </>
                       )}
@@ -1180,37 +1485,43 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 </form>
               )}
 
-              {/* Étape 5 : Confirmation */}
+              {/* Step 5: Confirmation */}
               {wizardStep === 5 && issuedResult && (
                 <div className="text-center space-y-5 py-4">
-                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto shadow-2xl">
+                  <div className="w-16 h-16 rounded-full bg-[#B8F249]/15 text-[#B8F249] border border-[#B8F249]/40 flex items-center justify-center mx-auto shadow-2xl">
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
 
                   <div className="space-y-2">
-                    <span className="text-[10px] font-mono tracking-widest text-[#d4af37] uppercase">
-                      ADMISSION CONFIRMÉE & SCELLÉE
+                    <span className="text-[10px] font-mono tracking-widest text-[#C8B282] uppercase">
+                      ADMISSION CONFIRMÉE &amp; SCELLÉE
                     </span>
                     <h3 className="text-2xl font-agrandir-extrabold uppercase text-white">
                       BIENVENUE DANS LA BLACK CARD
                     </h3>
                     <p className="text-xs text-neutral-300 font-light max-w-md mx-auto">
-                      Votre identifiant permanent officiel est <strong>{issuedResult.card.cardNumber}</strong>. Votre pass numérique est immédiatement disponible et crédité d'un bonus de bienvenue de 5 000 FCFA.
+                      Votre identifiant permanent officiel est <strong>{issuedResult.card.cardNumber}</strong>. Votre pass numérique est immédiatement disponible et crédité d&apos;un bonus de bienvenue de 5 000 FCFA.
                     </p>
                   </div>
 
-                  <div className="p-4 bg-black border border-[#d4af37]/40 max-w-md mx-auto text-left space-y-2 text-xs">
+                  <div className="p-4 rounded-2xl bg-black border border-[#C8B282]/40 max-w-md mx-auto text-left space-y-2 text-xs">
                     <div className="flex justify-between">
                       <span className="text-neutral-400">Titulaire</span>
-                      <strong className="text-white uppercase font-mono">{issuedResult.card.cardholderName}</strong>
+                      <strong className="text-white uppercase font-mono">
+                        {issuedResult.card.cardholderName}
+                      </strong>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-400">Numéro de carte</span>
-                      <strong className="text-[#d4af37] font-mono">{issuedResult.card.cardNumber}</strong>
+                      <strong className="text-[#C8B282] font-mono">
+                        {issuedResult.card.cardNumber}
+                      </strong>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-400">Coffret physique</span>
-                      <span className="text-emerald-400 font-mono">En cours de préparation sous écrin</span>
+                      <span className="text-[#B8F249] font-mono">
+                        En préparation sous écrin
+                      </span>
                     </div>
                   </div>
 
@@ -1222,19 +1533,17 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         if (onGoToWallet) onGoToWallet();
                         else setCurrentPage('member_card');
                       }}
-                      className="px-8 py-3.5 rounded-full bg-[#d4af37] text-black font-agrandir-extrabold text-xs uppercase tracking-wider cursor-pointer hover:bg-white transition-all shadow-xl"
+                      className="px-8 py-3.5 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs uppercase tracking-wider cursor-pointer transition-colors shadow-xl"
                     >
-                      Accéder à mon Pass & Portefeuille
+                      Accéder à mon Pass &amp; Portefeuille
                     </button>
                   </div>
                 </div>
               )}
-
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
     </div>
   );
 };
