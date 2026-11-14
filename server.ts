@@ -166,28 +166,61 @@ async function requireMemberAdmin(
   return resolved;
 }
 
-function getStorageUploadsDir(): string {
+async function getStorageUploadsDir(): Promise<string> {
   const dir = path.resolve(process.env.LUMAREEL_STORAGE_DIR || path.join(process.cwd(), 'storage', 'uploads'));
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
-  if (process.env.LUMAREEL_STORAGE_DIR) {
-    return dir;
-  }
-  const legacyDir = path.resolve(process.cwd(), 'public', 'uploads');
-  if (fs.existsSync(legacyDir)) {
+
+  // Custom test/runtime storage stays isolated unless a legacy directory is
+  // explicitly supplied. Never move untrusted public files without validation.
+  const legacyDir = process.env.LUMAREEL_LEGACY_UPLOADS_DIR
+    ? path.resolve(process.env.LUMAREEL_LEGACY_UPLOADS_DIR)
+    : process.env.LUMAREEL_STORAGE_DIR
+      ? ''
+      : path.resolve(process.cwd(), 'public', 'uploads');
+  if (!legacyDir || !fs.existsSync(legacyDir)) return dir;
+
+  const quarantineDir = path.resolve(
+    process.env.LUMAREEL_QUARANTINE_DIR || path.join(process.cwd(), 'storage', 'quarantine', 'uploads')
+  );
+  fs.mkdirSync(quarantineDir, { recursive: true, mode: 0o700 });
+
+  for (const file of fs.readdirSync(legacyDir)) {
+    const src = path.join(legacyDir, file);
     try {
-      for (const file of fs.readdirSync(legacyDir)) {
-        const src = path.join(legacyDir, file);
-        const dest = path.join(dir, file);
-        if (fs.statSync(src).isFile() && !fs.existsSync(dest)) {
-          fs.renameSync(src, dest);
-        }
+      const info = fs.lstatSync(src);
+      if (info.isDirectory()) continue;
+
+      const quarantine = () => {
+        const safeName = path.basename(file).replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80) || 'invalid-upload';
+        const target = path.join(quarantineDir, `${crypto.randomUUID()}-${safeName}`);
+        fs.renameSync(src, target);
+      };
+
+      if (!info.isFile() || info.isSymbolicLink()) {
+        quarantine();
+        continue;
       }
-    } catch (err) {
-      console.warn('[Uploads Migration]', err);
+
+      const validated = await validateAndSanitizeImage(fs.readFileSync(src));
+      if (validated.ok === false) {
+        quarantine();
+        continue;
+      }
+
+      // Use a server-generated extension and filename; never preserve a
+      // user-controlled extension or original public path.
+      const filename = `${crypto.randomUUID()}${validated.ext}`;
+      const dest = path.join(dir, filename);
+      fs.writeFileSync(dest, validated.buffer, { flag: 'wx', mode: 0o600 });
+      fs.unlinkSync(src);
+    } catch {
+      // Keep the original in place if validation or a safe move fails.
+      console.warn('[Uploads Migration] Un fichier historique n’a pas pu être migré en sécurité.');
     }
   }
+
   return dir;
 }
 
@@ -216,7 +249,7 @@ export async function createApp() {
     next();
   });
 
-  const storageUploadsDir = getStorageUploadsDir();
+  const storageUploadsDir = await getStorageUploadsDir();
 
   // Raw body route MUST be registered BEFORE express.json() for HMAC signature validation
   app.post(
