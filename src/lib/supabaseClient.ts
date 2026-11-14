@@ -43,7 +43,7 @@ export let isSupabaseConfigured = Boolean(
  * - Timeout à 10 000 ms pour libérer immédiatement les requêtes bloquées
  * - Retry exponentiel automatique en cas de surcharge temporaire (429 ou 5xx)
  */
-const resilientFetch: typeof fetch = async (url, options = {}) => {
+const resilientFetch: typeof fetch = async (url, options: RequestInit = {}) => {
   const MAX_RETRIES = 3;
   let delay = 150; // ms initial delay
   let lastError: any = null;
