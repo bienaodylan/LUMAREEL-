@@ -33,15 +33,15 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
   onCreateEvent,
 }) => {
   // Calculations based strictly on actual data
-  const totalRevenue = events.reduce((acc, evt) => {
+  const estimatedCategoryRevenue = events.reduce((acc, evt) => {
     return acc + (evt.categories || []).reduce((catAcc, cat) => catAcc + (cat.sold * cat.price), 0);
   }, 0);
 
-  const totalTicketsSold = events.reduce((acc, evt) => {
+  const totalRevenue = stats?.confirmedRevenueXof ?? estimatedCategoryRevenue;
+  const totalTicketsSold = stats?.ticketsSold ?? events.reduce((acc, evt) => {
     return acc + (evt.categories || []).reduce((catAcc, cat) => catAcc + cat.sold, 0);
   }, 0);
-
-  const totalQuota = events.reduce((acc, evt) => {
+  const totalQuota = stats?.totalQuota ?? events.reduce((acc, evt) => {
     return acc + (evt.categories || []).reduce((catAcc, cat) => catAcc + cat.quota, 0);
   }, 0);
 
