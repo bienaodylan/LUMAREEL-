@@ -18,20 +18,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { data, error } = await db.auth.signUp({ email, password, options: { data: { name } } });
       if (error) return res.status(400).json({ success: false, error: error.message });
       if (!data.user) return res.status(500).json({ success: false, error: 'Inscription impossible.' });
-      const { data: profile } = await db
-        .from('users')
-        .select('name, role, email_verified')
-        .eq('id', data.user.id)
-        .maybeSingle();
       return res.status(201).json({
         success: true,
         user: {
           id: data.user.id,
           email,
-          name: profile?.name || name,
-          // Privileges are read from the protected profile table, never inferred from an email address.
-          role: profile?.role || 'customer',
-          emailVerified: Boolean(data.user.email_confirmed_at || profile?.email_verified),
+          name,
+          // A public signup always starts with the least-privileged role.
+          role: 'customer',
+          emailVerified: Boolean(data.user.email_confirmed_at),
           createdAt: data.user.created_at,
         },
         session: data.session,

@@ -50,6 +50,29 @@ export async function requireRole(req: VercelRequest, roles: string[]) {
   return { ok: true as const, db, user: authData.user, profile: { role, email_verified: true } };
 }
 
+export async function authenticatedUserDb(req: VercelRequest) {
+  const authorization = req.headers.authorization || '';
+  const jwt = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
+  if (!jwt) {
+    return { ok: false as const, status: 401, error: 'Session requise.' };
+  }
+  try {
+    const { url, key } = projectConfig();
+    const db = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: `Bearer ${jwt}` } },
+    });
+    const { data, error } = await db.auth.getUser(jwt);
+    if (error || !data.user) {
+      return { ok: false as const, status: 401, error: 'Session invalide ou expirée.' };
+    }
+    return { ok: true as const, db, user: data.user };
+  } catch (error: any) {
+    console.error('[auth] authenticated user lookup:', error?.message || error);
+    return { ok: false as const, status: 503, error: 'Service d’authentification temporairement indisponible.' };
+  }
+}
+
 export function methodNotAllowed(res: VercelResponse, allowed: string[]) {
   res.setHeader('Allow', allowed.join(', '));
   return res.status(405).json({ success: false, error: 'Méthode non autorisée.' });

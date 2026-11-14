@@ -141,15 +141,10 @@ function getSupabase() {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Add CORS headers so AI Studio preview and Vercel domains can sync seamlessly
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+  // This API is same-origin with the Vercel-hosted frontend. Do not enable
+  // wildcard cross-origin access to authenticated administrative operations.
+  res.setHeader('Vary', 'Origin');
+  res.setHeader('Cache-Control', 'no-store');
 
   const route = typeof req.query.__route === 'string' ? req.query.__route : '';
 
@@ -394,11 +389,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           categories: event.categories || [],
           updated_at: new Date().toISOString(),
         };
-        const {error}=await auth.db.from('events').upsert(dbRow,{onConflict:'id'});
-        if(error) throw error;
+        const { error } = await auth.db.from('events').upsert(dbRow, { onConflict: 'id' });
+        if (error) {
+          console.error('[api/events] event upsert failed:', error.message);
+          return res.status(500).json({ success: false, error: 'Enregistrement de l’événement impossible.' });
+        }
+      } else {
+        return res.status(503).json({ success: false, error: 'Base de données indisponible.' });
       }
     } catch (e) {
-      console.warn('Supabase upsert failed in /api/events:', e);
+      console.error('[api/events] Supabase upsert failed:', e);
+      return res.status(500).json({ success: false, error: 'Enregistrement de l’événement impossible.' });
     }
 
     return res.status(200).json({ success: true, event });
