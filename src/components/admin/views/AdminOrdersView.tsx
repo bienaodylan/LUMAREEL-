@@ -37,8 +37,8 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({ orders }) => {
       order.eventTitle, order.categoryName, order.quantity, order.totalAmount, order.currency,
       order.paymentStatus, order.paymentProvider, order.paymentRef, order.createdAt, order.paidAt || '',
     ]);
-    const csv = [columns, ...rows].map((row) => row.map((cell) => formatCsvCell(cell)).join(';')).join('\\n');
-    const blob = new Blob(['\\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+    const csv = [columns, ...rows].map((row) => row.map((cell) => formatCsvCell(cell)).join(';')).join('\n');
+    const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
