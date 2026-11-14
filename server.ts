@@ -3037,7 +3037,20 @@ export async function createApp() {
     if (!await requireMemberAdmin(req, res, ['super_admin'])) return;
     try {
       const settings = db.getSettings();
-      res.json({ success: true, settings });
+      // Explicit DTO: never return legacy gate tokens or Supabase credentials.
+      res.json({
+        success: true,
+        settings: {
+          platformName: settings.platformName,
+          tagline: settings.tagline,
+          logoMonogram: settings.logoMonogram,
+          logoUrl: settings.logoUrl,
+          currency: settings.currency,
+          infoline: settings.infoline,
+          githubRepoUrl: settings.githubRepoUrl || '',
+          socialLinks: settings.socialLinks || {},
+        },
+      });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
@@ -3056,7 +3069,19 @@ export async function createApp() {
         targetType: 'settings',
         ip: req.ip,
       });
-      res.json({ success: true, settings: updated });
+      res.json({
+        success: true,
+        settings: {
+          platformName: updated.platformName,
+          tagline: updated.tagline,
+          logoMonogram: updated.logoMonogram,
+          logoUrl: updated.logoUrl,
+          currency: updated.currency,
+          infoline: updated.infoline,
+          githubRepoUrl: updated.githubRepoUrl || '',
+          socialLinks: updated.socialLinks || {},
+        },
+      });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
