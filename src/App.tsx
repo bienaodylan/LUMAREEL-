@@ -63,7 +63,7 @@ const MainApp: React.FC = () => {
               {currentPage === 'gate_scanner' && <ScannerView />}
               {currentPage === 'admin' && <AdminDashboard />}
             </Suspense>
-          </motion.div>otion.div>
+          </motion.div>
         </AnimatePresence>
       </main>
 
