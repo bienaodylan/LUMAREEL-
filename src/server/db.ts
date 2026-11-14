@@ -85,7 +85,7 @@ class LumareelDatabase {
     logoUrl: '',
     currency: 'FCFA',
     infoline: '+225 01 53 508 210',
-    gateToken: 'VIGILE_AUTH_LMR_2026',
+    gateToken: '',
     githubRepoUrl: '',
   };
   private checkInLogs: Array<{
