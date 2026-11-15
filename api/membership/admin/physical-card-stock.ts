@@ -35,6 +35,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     if (req.method === 'GET') {
+      if (req.query.audit === 'consistency') {
+        const rawLimit = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
+        const limit = rawLimit === undefined ? 100 : Number(rawLimit);
+        if (!Number.isInteger(limit) || limit < 1 || limit > 500) {
+          return res.status(400).json({ success: false, error: 'La limite du rapport doit être un entier de 1 à 500.' });
+        }
+        const { data, error } = await auth.db.rpc('lumareel_audit_physical_nfc_consistency', { p_limit: limit });
+        if (error) {
+          const statusCode = error.code === '42501' ? 403 : 500;
+          console.error('[physical-card-stock] consistency audit:', error.message);
+          return res.status(statusCode).json({
+            success: false,
+            error: statusCode === 500 ? 'Rapport de cohérence NFC indisponible.' : error.message,
+          });
+        }
+        return res.status(200).json({ success: true, audit: { limit, anomalies: data || [] } });
+      }
+
       const { data, error } = await auth.db.from('membership_physical_card_stock')
         .select('id,manufacturer_serial,chip_reference,batch_reference,chip_type,stock_status,membership_card_id,received_at,verified_at,shipped_at,delivered_at,carrier,tracking_reference')
         .order('received_at', { ascending: false }).limit(1000);
