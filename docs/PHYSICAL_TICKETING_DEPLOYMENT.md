@@ -77,6 +77,7 @@ ci-dessous **dans l'ordre chronologique**, sur le projet Supabase déjà utilis�
 9. `202611110001_secure_physical_card_stock_lifecycle.sql`
 10. `202611130001_secure_physical_card_replacement.sql`
 11. `202611140001_guard_physical_nfc_replacement_consistency.sql`
+12. `202611150001_readonly_physical_nfc_consistency_audit.sql`
 
 **Attention :** la migration 0002 supprime la table NFC historique avec `CASCADE` ;
 la migration 0003 la recrée ensuite en registre de métadonnées. Ne pas sauter
@@ -125,3 +126,23 @@ La migration `202611140001_guard_physical_nfc_replacement_consistency.sql` rempl
 - conserve le même contrat API et le rollback transactionnel.
 
 Cette garde évite de révoquer une puce tout en bloquant par erreur une autre carte physique. Elle ne répare pas automatiquement les éventuelles incohérences existantes : celles-ci doivent être examinées et corrigées manuellement en environnement contrôlé, avec audit.
+
+## 8. Rapport de cohérence NFC en lecture seule (migration 202611150001)
+
+La migration `202611150001_readonly_physical_nfc_consistency_audit.sql` ajoute
+`lumareel_audit_physical_nfc_consistency(p_limit)`. Elle est **strictement en lecture seule**,
+réservée au super-admin et limitée à 500 anomalies par appel. Le rapport ne renvoie jamais
+les références NFC opaques, UID bruts ou clés.
+
+Anomalies détectées :
+- stock physique lié sans credential NFC actif ;
+- stock lié sans référence NFC ;
+- référence/type de puce du stock différent du credential actif ;
+- credential NFC actif sans stock physique opérationnel lié ;
+- stock bloqué qui conserve un lien vers une carte membre.
+
+Endpoint admin existant (aucune nouvelle route) :
+`GET /api/membership/admin/physical-card-stock?audit=consistency&limit=100`.
+La réponse contient les codes d'anomalie, IDs internes, numéro fabricant si applicable et des détails non secrets. L'endpoint exige une session super-admin. Le rapport ne corrige aucune donnée : toute remédiation doit être revue, tracée et exécutée séparément en environnement contrôlé.
+
+Avant utilisation, appliquer les migrations précédentes dans l'ordre sur une base non-production et vérifier le résultat du RPC avec un compte super-admin. Aucune migration n'a été appliquée par ce commit.
