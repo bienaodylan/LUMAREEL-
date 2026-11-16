@@ -78,6 +78,7 @@ ci-dessous **dans l'ordre chronologique**, sur le projet Supabase déjà utilis�
 10. `202611130001_secure_physical_card_replacement.sql`
 11. `202611140001_guard_physical_nfc_replacement_consistency.sql`
 12. `202611150001_readonly_physical_nfc_consistency_audit.sql`
+13. `202611160001_paginated_physical_nfc_consistency_audit.sql`
 
 **Attention :** la migration 0002 supprime la table NFC historique avec `CASCADE` ;
 la migration 0003 la recrée ensuite en registre de métadonnées. Ne pas sauter
@@ -146,3 +147,22 @@ Endpoint admin existant (aucune nouvelle route) :
 La réponse contient les codes d'anomalie, IDs internes, numéro fabricant si applicable et des détails non secrets. L'endpoint exige une session super-admin. Le rapport ne corrige aucune donnée : toute remédiation doit être revue, tracée et exécutée séparément en environnement contrôlé.
 
 Avant utilisation, appliquer les migrations précédentes dans l'ordre sur une base non-production et vérifier le résultat du RPC avec un compte super-admin. Aucune migration n'a été appliquée par ce commit.
+
+
+## 9. Pagination du rapport de cohérence NFC (migration 202611160001)
+
+La migration `202611160001_paginated_physical_nfc_consistency_audit.sql` ajoute
+`lumareel_audit_physical_nfc_consistency_page(p_limit,p_offset)`, sans supprimer ni
+modifier le RPC initial `lumareel_audit_physical_nfc_consistency`. Elle renvoie
+`total_count`, `limit`, `offset` et la page `anomalies`. Les limites sont strictes :
+`limit` entre 1 et 500, `offset` entre 0 et 100000.
+
+Endpoint super-admin existant :
+`GET /api/membership/admin/physical-card-stock?audit=consistency&limit=100&offset=0`.
+
+La pagination facilite l'inspection de rapports dépassant 500 anomalies et permet de
+savoir combien d'anomalies existent au total, y compris lorsque l'offset est au-delà
+de la dernière page. La fonction reste en lecture seule : aucune correction, révocation
+ou association n'est exécutée par le rapport. Le RPC historique est conservé pour
+compatibilité. Tester les pages 0, suivantes, dernière page et offset hors plage en
+environnement non-production avant usage opérationnel.
