@@ -35,22 +35,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     if (req.method === 'GET') {
-      if (req.query.audit === 'consistency') {
+      const auditMode = Array.isArray(req.query.audit) ? req.query.audit[0] : req.query.audit;
+      if (auditMode === 'consistency') {
         const rawLimit = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
+        const rawOffset = Array.isArray(req.query.offset) ? req.query.offset[0] : req.query.offset;
         const limit = rawLimit === undefined ? 100 : Number(rawLimit);
-        if (!Number.isInteger(limit) || limit < 1 || limit > 500) {
-          return res.status(400).json({ success: false, error: 'La limite du rapport doit être un entier de 1 à 500.' });
+        const offset = rawOffset === undefined ? 0 : Number(rawOffset);
+        if (!Number.isInteger(limit) || limit < 1 || limit > 500
+            || !Number.isInteger(offset) || offset < 0 || offset > 100000) {
+          return res.status(400).json({ success: false, error: 'Pagination invalide : limit 1–500 et offset 0–100000.' });
         }
-        const { data, error } = await auth.db.rpc('lumareel_audit_physical_nfc_consistency', { p_limit: limit });
+        const { data, error } = await auth.db.rpc('lumareel_audit_physical_nfc_consistency_page', {
+          p_limit: limit, p_offset: offset,
+        });
         if (error) {
-          const statusCode = error.code === '42501' ? 403 : 500;
+          const statusCode = error.code === '42501' ? 403 : error.code === '22023' ? 400 : 500;
           console.error('[physical-card-stock] consistency audit:', error.message);
           return res.status(statusCode).json({
             success: false,
             error: statusCode === 500 ? 'Rapport de cohérence NFC indisponible.' : error.message,
           });
         }
-        return res.status(200).json({ success: true, audit: { limit, anomalies: data || [] } });
+        return res.status(200).json({ success: true, audit: data });
       }
 
       const { data, error } = await auth.db.from('membership_physical_card_stock')
