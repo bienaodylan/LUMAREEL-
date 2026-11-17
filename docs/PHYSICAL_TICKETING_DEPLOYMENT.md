@@ -79,6 +79,7 @@ ci-dessous **dans l'ordre chronologique**, sur le projet Supabase déjà utilis�
 11. `202611140001_guard_physical_nfc_replacement_consistency.sql`
 12. `202611150001_readonly_physical_nfc_consistency_audit.sql`
 13. `202611160001_paginated_physical_nfc_consistency_audit.sql`
+14. `202611170001_harden_membership_security_definer_search_path.sql`
 
 **Attention :** la migration 0002 supprime la table NFC historique avec `CASCADE` ;
 la migration 0003 la recrée ensuite en registre de métadonnées. Ne pas sauter
@@ -166,3 +167,33 @@ de la dernière page. La fonction reste en lecture seule : aucune correction, r�
 ou association n'est exécutée par le rapport. Le RPC historique est conservé pour
 compatibilité. Tester les pages 0, suivantes, dernière page et offset hors plage en
 environnement non-production avant usage opérationnel.
+
+
+## 10. Durcissement des RPC SECURITY DEFINER (migration 202611170001)
+
+La migration `202611170001_harden_membership_security_definer_search_path.sql`
+réduit le `search_path` des fonctions privilégiées du module Membership/NFC à
+`pg_catalog` uniquement :
+
+- `lumareel_current_admin_role()` ;
+- association et révocation NFC ;
+- association du stock physique ;
+- transitions logistiques ;
+- remplacement de carte ;
+- rapports de cohérence NFC (historique et paginé).
+
+Les tables, helpers et fonctions applicatives appelés par ces RPC sont déjà référencés
+avec leur schéma (`public.*` ou `auth.*`). Les fonctions système restent résolues dans
+`pg_catalog`. Ce durcissement limite le risque de détournement d'un nom non qualifié
+dans le contexte privilégié d'une fonction `SECURITY DEFINER`.
+
+La migration ne change ni les rôles autorisés, ni les contrôles super-admin, ni les
+permissions existantes, ni les données. Elle échouera volontairement si une signature
+attendue n'existe pas : vérifier d'abord que le schéma de base et les migrations
+Membership précédentes sont présents.
+
+Un contrôle SQL non destructif est fourni dans
+`supabase/tests/physical_card_security_definer_search_path.sql`. À exécuter après
+les migrations sur une base non-production ; il vérifie les propriétés SECURITY DEFINER,
+le `search_path` effectif et les droits d'exécution `anon` / `authenticated` des RPC
+restreints. Ce test n'a pas été exécuté contre une base PostgreSQL dans cette livraison.
