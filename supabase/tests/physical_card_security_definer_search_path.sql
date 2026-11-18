@@ -6,8 +6,11 @@ DECLARE
   v_function regprocedure;
   v_config text[];
   v_is_security_definer boolean;
+  v_role_definition text;
+  v_signup_definition text;
   v_functions regprocedure[] := ARRAY[
     'public.lumareel_current_admin_role()'::regprocedure,
+    'public.handle_new_user()'::regprocedure,
     'public.lumareel_nfc_associate(uuid,text,text)'::regprocedure,
     'public.lumareel_nfc_revoke(uuid,text)'::regprocedure,
     'public.lumareel_assign_received_card(uuid,uuid)'::regprocedure,
@@ -17,6 +20,7 @@ DECLARE
     'public.lumareel_audit_physical_nfc_consistency_page(integer,integer)'::regprocedure
   ];
   v_restricted_functions regprocedure[] := ARRAY[
+    'public.lumareel_current_admin_role()'::regprocedure,
     'public.lumareel_nfc_associate(uuid,text,text)'::regprocedure,
     'public.lumareel_nfc_revoke(uuid,text)'::regprocedure,
     'public.lumareel_assign_received_card(uuid,uuid)'::regprocedure,
@@ -26,6 +30,21 @@ DECLARE
     'public.lumareel_audit_physical_nfc_consistency_page(integer,integer)'::regprocedure
   ];
 BEGIN
+  SELECT pg_catalog.pg_get_functiondef('public.lumareel_current_admin_role()'::regprocedure)
+    INTO v_role_definition;
+  SELECT pg_catalog.pg_get_functiondef('public.handle_new_user()'::regprocedure)
+    INTO v_signup_definition;
+
+  IF v_role_definition ~* 'auth\\.users|@|lower\\s*\\(\\s*email' THEN
+    RAISE EXCEPTION 'Admin role helper must not contain an email allowlist or email-based fallback';
+  END IF;
+  IF v_role_definition !~* 'where\\s+u\\.id\\s*=\\s*auth\\.uid\\(\\)' THEN
+    RAISE EXCEPTION 'Admin role helper must resolve roles only from public.users.id = auth.uid()';
+  END IF;
+  IF v_signup_definition ~* 'super_admin|role\\s*=\\s*CASE' THEN
+    RAISE EXCEPTION 'New-user trigger must never assign a privileged role automatically';
+  END IF;
+
   FOREACH v_function IN ARRAY v_functions LOOP
     SELECT p.prosecdef, p.proconfig
       INTO v_is_security_definer, v_config
