@@ -80,6 +80,7 @@ ci-dessous **dans l'ordre chronologique**, sur le projet Supabase déjà utilis�
 12. `202611150001_readonly_physical_nfc_consistency_audit.sql`
 13. `202611160001_paginated_physical_nfc_consistency_audit.sql`
 14. `202611170001_harden_membership_security_definer_search_path.sql`
+15. `202611180001_remove_hardcoded_admin_role_bypass.sql`
 
 **Attention :** la migration 0002 supprime la table NFC historique avec `CASCADE` ;
 la migration 0003 la recrée ensuite en registre de métadonnées. Ne pas sauter
@@ -197,3 +198,34 @@ Un contrôle SQL non destructif est fourni dans
 les migrations sur une base non-production ; il vérifie les propriétés SECURITY DEFINER,
 le `search_path` effectif et les droits d'exécution `anon` / `authenticated` des RPC
 restreints. Ce test n'a pas été exécuté contre une base PostgreSQL dans cette livraison.
+
+
+## 11. Attribution explicite des rôles administrateur (migration 202611180001)
+
+La migration `202611180001_remove_hardcoded_admin_role_bypass.sql` supprime
+l'attribution de privilèges fondée sur une adresse e-mail codée en dur.
+
+- `lumareel_current_admin_role()` lit exclusivement le rôle de la ligne
+  `public.users.id = auth.uid()` ; aucune correspondance d'e-mail n'est utilisée.
+- `handle_new_user()` crée les nouveaux profils avec le rôle `customer` et ne
+  modifie jamais le rôle lors d'une mise à jour du compte Auth.
+- Les deux fonctions SECURITY DEFINER utilisent `search_path = pg_catalog`.
+- L'exécution du RPC de rôle est révoquée à `PUBLIC` et `anon`, puis accordée
+  à `authenticated`.
+- Les schémas de référence `src/lib/supabase-schema.sql` et
+  `supabase/full_schema.sql` sont alignés : aucun compte administrateur n'y est
+  créé ou promu automatiquement.
+
+**Précontrôle obligatoire :** avant application sur le projet Supabase existant,
+vérifier que les comptes administrateurs voulus ont déjà un rôle explicite dans
+`public.users`. Un comptage ne révélant aucune identité peut être exécuté ainsi :
+
+```sql
+SELECT count(*) AS configured_super_admin_count
+FROM public.users
+WHERE role = 'super_admin';
+```
+
+Si le résultat est nul, arrêter et attribuer explicitement le rôle à un compte
+maîtrisé après vérification. La migration ne modifie aucune ligne de profil et ne
+rétrograde aucun compte existant. Les nouvelles inscriptions restent clientes par défaut.
