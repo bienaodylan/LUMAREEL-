@@ -445,9 +445,26 @@ CREATE POLICY "Public Read Events" ON public.events FOR SELECT USING (true);
 CREATE POLICY "Public Read Archives" ON public.archives FOR SELECT USING (true);
 CREATE POLICY "Public Read News" ON public.news_articles FOR SELECT USING (true);
 CREATE POLICY "Public Read Settings" ON public.platform_settings FOR SELECT USING (true);
-CREATE POLICY "Public Read Users" ON public.users FOR SELECT USING (true);
-CREATE POLICY "Public Insert Users" ON public.users FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Update Users" ON public.users FOR UPDATE USING (true);
+CREATE POLICY "users_self_select"
+    ON public.users FOR SELECT TO authenticated
+    USING (id = auth.uid());
+
+CREATE POLICY "users_self_insert_customer"
+    ON public.users FOR INSERT TO authenticated
+    WITH CHECK (
+        id = auth.uid()
+        AND LOWER(email) = LOWER((SELECT auth.jwt()->>'email'))
+        AND role = 'customer'
+    );
+
+CREATE POLICY "users_self_update_profile"
+    ON public.users FOR UPDATE TO authenticated
+    USING (id = auth.uid())
+    WITH CHECK (id = auth.uid());
+
+REVOKE ALL ON TABLE public.users FROM anon, authenticated;
+GRANT SELECT, INSERT ON TABLE public.users TO authenticated;
+GRANT UPDATE (name) ON TABLE public.users TO authenticated;
 CREATE POLICY "Public Insert Orders" ON public.orders FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Read Orders" ON public.orders FOR SELECT USING (true);
 CREATE POLICY "Public Read Tickets" ON public.tickets FOR SELECT USING (true);
