@@ -298,7 +298,7 @@ BEGIN
     SELECT u.role
       INTO v_role
       FROM public.users AS u
-     WHERE u.id = auth.uid();
+     WHERE u.id = (SELECT auth.uid());
 
     RETURN COALESCE(v_role, 'customer');
 END;
@@ -447,27 +447,27 @@ CREATE POLICY "Public Read News" ON public.news_articles FOR SELECT USING (true)
 CREATE POLICY "Public Read Settings" ON public.platform_settings FOR SELECT USING (true);
 CREATE POLICY "users_self_select"
     ON public.users FOR SELECT TO authenticated
-    USING (id = auth.uid());
+    USING (id = (SELECT auth.uid()));
 
 CREATE POLICY "users_admin_select"
     ON public.users FOR SELECT TO authenticated
     USING (
-        id = auth.uid()
-        OR public.lumareel_current_admin_role() IN ('super_admin', 'box_office')
+        id = (SELECT auth.uid())
+        OR (SELECT public.lumareel_current_admin_role()) IN ('super_admin', 'box_office')
     );
 
 CREATE POLICY "users_self_insert_customer"
     ON public.users FOR INSERT TO authenticated
     WITH CHECK (
-        id = auth.uid()
+        id = (SELECT auth.uid())
         AND LOWER(email) = LOWER((SELECT auth.jwt()->>'email'))
         AND role = 'customer'
     );
 
 CREATE POLICY "users_self_update_profile"
     ON public.users FOR UPDATE TO authenticated
-    USING (id = auth.uid())
-    WITH CHECK (id = auth.uid());
+    USING (id = (SELECT auth.uid()))
+    WITH CHECK (id = (SELECT auth.uid()));
 
 REVOKE ALL ON TABLE public.users FROM anon, authenticated;
 GRANT SELECT, INSERT ON TABLE public.users TO authenticated;
