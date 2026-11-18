@@ -262,7 +262,7 @@ LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 SET search_path = pg_catalog
-AS $
+AS $$
 DECLARE
     v_role TEXT;
 BEGIN
@@ -275,7 +275,7 @@ BEGIN
 
     RETURN COALESCE(v_role, 'customer');
 END;
-$;
+$$;
 REVOKE ALL ON FUNCTION public.lumareel_current_admin_role() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.lumareel_current_admin_role() TO authenticated;
 
@@ -285,7 +285,7 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog
-AS $
+AS $$
 BEGIN
     INSERT INTO public.users (id, email, name, role, email_verified, created_at, updated_at)
     VALUES (
@@ -304,7 +304,7 @@ BEGIN
         updated_at = NOW();
     RETURN NEW;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
