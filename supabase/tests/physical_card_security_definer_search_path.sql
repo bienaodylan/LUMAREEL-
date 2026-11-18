@@ -35,13 +35,13 @@ BEGIN
   SELECT pg_catalog.pg_get_functiondef('public.handle_new_user()'::regprocedure)
     INTO v_signup_definition;
 
-  IF v_role_definition ~* 'auth\\.users|@|lower\\s*\\(\\s*email' THEN
+  IF v_role_definition ~* 'auth\.users|@|lower\s*\(\s*email' THEN
     RAISE EXCEPTION 'Admin role helper must not contain an email allowlist or email-based fallback';
   END IF;
-  IF v_role_definition !~* 'where\\s+u\\.id\\s*=\\s*auth\\.uid\\(\\)' THEN
+  IF v_role_definition !~* 'where\s+u\.id\s*=\s*auth\.uid\(\)' THEN
     RAISE EXCEPTION 'Admin role helper must resolve roles only from public.users.id = auth.uid()';
   END IF;
-  IF v_signup_definition ~* 'super_admin|role\\s*=\\s*CASE' THEN
+  IF v_signup_definition ~* 'super_admin|role\s*=\s*CASE' THEN
     RAISE EXCEPTION 'New-user trigger must never assign a privileged role automatically';
   END IF;
 
