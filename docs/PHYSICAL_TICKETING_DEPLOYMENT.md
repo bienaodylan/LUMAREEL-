@@ -242,10 +242,11 @@ Elles sont maintenant explicitement supprimées.
 La migration `202611180002_lock_down_user_profile_role_mutations.sql` :
 - retire les accès de table de `anon` et `authenticated`, puis réaccorde uniquement
   les droits nécessaires à `authenticated` ;
-- limite SELECT et INSERT au profil dont `id = auth.uid()` ;
+- limite SELECT au propriétaire et aux rôles `super_admin` / `box_office` ; INSERT reste limité au profil dont `id = auth.uid()` ;
 - n'autorise l'insertion d'un profil que pour l'identité courante avec le rôle
   `customer` ;
 - conserve la modification du seul champ `name` pour le propriétaire ;
+- conserve la consultation administrative des profils via `users_admin_select`, sans rétablir de lecture publique ;
 - interdit aux clients de modifier `role`, `email`, `email_verified` ou de supprimer
   un profil ;
 - ne modifie aucune ligne existante et ne change aucun rôle déjà attribué.
