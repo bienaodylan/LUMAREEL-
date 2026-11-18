@@ -57,7 +57,10 @@ BEGIN
   END IF;
   IF pg_catalog.has_column_privilege('authenticated', 'public.users', 'role', 'UPDATE')
      OR pg_catalog.has_column_privilege('authenticated', 'public.users', 'email', 'UPDATE')
-     OR pg_catalog.has_column_privilege('authenticated', 'public.users', 'email_verified', 'UPDATE') THEN
+     OR pg_catalog.has_column_privilege('authenticated', 'public.users', 'email_verified', 'UPDATE')
+     OR pg_catalog.has_column_privilege('authenticated', 'public.users', 'id', 'UPDATE')
+     OR pg_catalog.has_column_privilege('authenticated', 'public.users', 'created_at', 'UPDATE')
+     OR pg_catalog.has_column_privilege('authenticated', 'public.users', 'updated_at', 'UPDATE') THEN
     RAISE EXCEPTION 'Authenticated role must not update privileged profile columns';
   END IF;
   IF NOT pg_catalog.has_column_privilege('authenticated', 'public.users', 'name', 'UPDATE') THEN
