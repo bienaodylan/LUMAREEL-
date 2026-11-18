@@ -288,38 +288,41 @@ RETURNS TEXT
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = pg_catalog
 AS $$
 DECLARE
-    v_user_email TEXT;
     v_role TEXT;
 BEGIN
-    SELECT LOWER(email) INTO v_user_email FROM auth.users WHERE id = auth.uid();
-    
-    -- Le mail du fondateur a toujours les privilèges super_admin absolus
-    IF v_user_email = 'bienaodylan428@gmail.com' THEN
-        RETURN 'super_admin';
-    END IF;
+    -- Authorization is tied only to the authenticated Supabase user UUID.
+    -- Privileged roles must be assigned explicitly in public.users.
+    SELECT u.role
+      INTO v_role
+      FROM public.users AS u
+     WHERE u.id = auth.uid();
 
-    SELECT role INTO v_role FROM public.users WHERE id = auth.uid() OR LOWER(email) = v_user_email LIMIT 1;
     RETURN COALESCE(v_role, 'customer');
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.lumareel_current_admin_role() TO authenticated, anon;
+REVOKE ALL ON FUNCTION public.lumareel_current_admin_role() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.lumareel_current_admin_role() TO authenticated;
 
 -- ============================================================================
 -- 14. TRIGGER AUTOMATIQUE DE SYNCHRONISATION SUPABASE AUTH -> PUBLIC.USERS
 -- ============================================================================
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog
+AS $$
 BEGIN
     INSERT INTO public.users (id, email, name, role, email_verified, created_at, updated_at)
     VALUES (
         NEW.id,
         LOWER(NEW.email),
         COALESCE(NEW.raw_user_meta_data->>'name', SPLIT_PART(NEW.email, '@', 1)),
-        CASE WHEN LOWER(NEW.email) = 'bienaodylan428@gmail.com' THEN 'super_admin' ELSE 'customer' END,
+        'customer',
         COALESCE(NEW.email_confirmed_at IS NOT NULL, FALSE),
         NOW(),
         NOW()
@@ -327,12 +330,11 @@ BEGIN
     ON CONFLICT (id) DO UPDATE SET
         email = EXCLUDED.email,
         name = COALESCE(EXCLUDED.name, public.users.name),
-        role = CASE WHEN LOWER(EXCLUDED.email) = 'bienaodylan428@gmail.com' THEN 'super_admin' ELSE public.users.role END,
         email_verified = EXCLUDED.email_verified,
         updated_at = NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
@@ -443,9 +445,33 @@ CREATE POLICY "Public Read Events" ON public.events FOR SELECT USING (true);
 CREATE POLICY "Public Read Archives" ON public.archives FOR SELECT USING (true);
 CREATE POLICY "Public Read News" ON public.news_articles FOR SELECT USING (true);
 CREATE POLICY "Public Read Settings" ON public.platform_settings FOR SELECT USING (true);
-CREATE POLICY "Public Read Users" ON public.users FOR SELECT USING (true);
-CREATE POLICY "Public Insert Users" ON public.users FOR INSERT WITH CHECK (true);
-CREATE POLICY "Public Update Users" ON public.users FOR UPDATE USING (true);
+CREATE POLICY "users_self_select"
+    ON public.users FOR SELECT TO authenticated
+    USING (id = (SELECT auth.uid()));
+
+CREATE POLICY "users_admin_select"
+    ON public.users FOR SELECT TO authenticated
+    USING (
+        id = (SELECT auth.uid())
+        OR (SELECT public.lumareel_current_admin_role()) IN ('super_admin', 'box_office')
+    );
+
+CREATE POLICY "users_self_insert_customer"
+    ON public.users FOR INSERT TO authenticated
+    WITH CHECK (
+        id = (SELECT auth.uid())
+        AND LOWER(email) = LOWER((SELECT auth.jwt()->>'email'))
+        AND role = 'customer'
+    );
+
+CREATE POLICY "users_self_update_profile"
+    ON public.users FOR UPDATE TO authenticated
+    USING (id = (SELECT auth.uid()))
+    WITH CHECK (id = (SELECT auth.uid()));
+
+REVOKE ALL ON TABLE public.users FROM anon, authenticated;
+GRANT SELECT, INSERT ON TABLE public.users TO authenticated;
+GRANT UPDATE (name) ON TABLE public.users TO authenticated;
 CREATE POLICY "Public Insert Orders" ON public.orders FOR INSERT WITH CHECK (true);
 CREATE POLICY "Public Read Orders" ON public.orders FOR SELECT USING (true);
 CREATE POLICY "Public Read Tickets" ON public.tickets FOR SELECT USING (true);
@@ -477,12 +503,7 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
--- ============================================================================
--- 18. INITIALISATION DU COMPTE FONDATEUR & RECHARGEMENT DU CACHE D'API
--- ============================================================================
-INSERT INTO public.users (email, name, role, email_verified)
-VALUES ('bienaodylan428@gmail.com', 'Dylan B. (Directeur Artistique & Fondateur)', 'super_admin', true)
-ON CONFLICT (email) DO UPDATE SET role = 'super_admin', email_verified = true;
+-- Administrator roles are assigned explicitly after account verification.
 
 INSERT INTO public.platform_settings (id, platform_name, tagline, logo_monogram, currency, infoline, gate_token)
 VALUES (1, 'LUMARÉEL', 'CO.', 'LR', 'XOF (FCFA)', '+225 01 53 508 210', 'VIGILE_AUTH_LMR_2026')
