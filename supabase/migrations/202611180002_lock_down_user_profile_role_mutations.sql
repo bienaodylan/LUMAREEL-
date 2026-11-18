@@ -13,25 +13,31 @@ DROP POLICY IF EXISTS "users_self_select" ON public.users;
 DROP POLICY IF EXISTS "users_self_insert_customer" ON public.users;
 DROP POLICY IF EXISTS "users_self_update_profile" ON public.users;
 
--- The profile is visible only to its authenticated owner.
+-- Owners can read their profile; trusted administrative roles can inspect
+-- profiles for support workflows, but no client can change role or identity fields.
 CREATE POLICY "users_self_select"
-  ON public.users FOR SELECT TO authenticated
-  USING (id = auth.uid());
+    ON public.users FOR SELECT TO authenticated
+    USING (id = auth.uid());
 
--- A missing profile may only be created for the current Auth identity as customer.
+CREATE POLICY "users_admin_select"
+    ON public.users FOR SELECT TO authenticated
+    USING (
+        id = auth.uid()
+        OR public.lumareel_current_admin_role() IN ('super_admin', 'box_office')
+    );
+
 CREATE POLICY "users_self_insert_customer"
-  ON public.users FOR INSERT TO authenticated
-  WITH CHECK (
-    id = auth.uid()
-    AND lower(email) = lower((SELECT auth.jwt()->>'email'))
-    AND role = 'customer'
-  );
+    ON public.users FOR INSERT TO authenticated
+    WITH CHECK (
+        id = auth.uid()
+        AND LOWER(email) = LOWER((SELECT auth.jwt()->>'email'))
+        AND role = 'customer'
+    );
 
--- Keep profile-name editing, but never expose role/email/verification updates.
 CREATE POLICY "users_self_update_profile"
-  ON public.users FOR UPDATE TO authenticated
-  USING (id = auth.uid())
-  WITH CHECK (id = auth.uid());
+    ON public.users FOR UPDATE TO authenticated
+    USING (id = auth.uid())
+    WITH CHECK (id = auth.uid());
 
 REVOKE ALL ON TABLE public.users FROM anon, authenticated;
 GRANT SELECT, INSERT ON TABLE public.users TO authenticated;
