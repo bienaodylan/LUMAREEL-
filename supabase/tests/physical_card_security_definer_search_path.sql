@@ -63,6 +63,20 @@ BEGIN
   IF NOT pg_catalog.has_column_privilege('authenticated', 'public.users', 'name', 'UPDATE') THEN
     RAISE EXCEPTION 'Authenticated profile-name update should remain available';
   END IF;
+  IF NOT pg_catalog.has_table_privilege('authenticated', 'public.users', 'SELECT')
+     OR NOT pg_catalog.has_table_privilege('authenticated', 'public.users', 'INSERT') THEN
+    RAISE EXCEPTION 'Authenticated users must retain scoped profile SELECT/INSERT';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'users'
+      AND policyname = 'users_admin_select'
+      AND 'authenticated'::name = ANY(roles)
+  ) THEN
+    RAISE EXCEPTION 'Scoped administrator profile-read policy is missing';
+  END IF;
   IF EXISTS (
     SELECT 1
     FROM pg_catalog.pg_policies
