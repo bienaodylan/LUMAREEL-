@@ -45,6 +45,34 @@ BEGIN
     RAISE EXCEPTION 'New-user trigger must never assign a privileged role automatically';
   END IF;
 
+
+  -- public.users must not expose table-level privileges or role/email mutation.
+  IF pg_catalog.has_table_privilege('anon', 'public.users', 'SELECT')
+     OR pg_catalog.has_table_privilege('anon', 'public.users', 'INSERT')
+     OR pg_catalog.has_table_privilege('anon', 'public.users', 'UPDATE') THEN
+    RAISE EXCEPTION 'Anonymous role must not access or mutate public.users';
+  END IF;
+  IF pg_catalog.has_table_privilege('authenticated', 'public.users', 'UPDATE') THEN
+    RAISE EXCEPTION 'Authenticated role must not have table-level UPDATE on public.users';
+  END IF;
+  IF pg_catalog.has_column_privilege('authenticated', 'public.users', 'role', 'UPDATE')
+     OR pg_catalog.has_column_privilege('authenticated', 'public.users', 'email', 'UPDATE')
+     OR pg_catalog.has_column_privilege('authenticated', 'public.users', 'email_verified', 'UPDATE') THEN
+    RAISE EXCEPTION 'Authenticated role must not update privileged profile columns';
+  END IF;
+  IF NOT pg_catalog.has_column_privilege('authenticated', 'public.users', 'name', 'UPDATE') THEN
+    RAISE EXCEPTION 'Authenticated profile-name update should remain available';
+  END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'users'
+      AND 'public'::name = ANY(roles)
+  ) THEN
+    RAISE EXCEPTION 'public.users must not have a PUBLIC RLS policy';
+  END IF;
+
   FOREACH v_function IN ARRAY v_functions LOOP
     SELECT p.prosecdef, p.proconfig
       INTO v_is_security_definer, v_config
