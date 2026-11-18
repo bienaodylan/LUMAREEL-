@@ -378,6 +378,13 @@ CREATE POLICY "users_self_select"
     ON public.users FOR SELECT TO authenticated
     USING (id = auth.uid());
 
+CREATE POLICY "users_admin_select"
+    ON public.users FOR SELECT TO authenticated
+    USING (
+        id = auth.uid()
+        OR public.lumareel_current_admin_role() IN ('super_admin', 'box_office')
+    );
+
 CREATE POLICY "users_self_insert_customer"
     ON public.users FOR INSERT TO authenticated
     WITH CHECK (
