@@ -81,6 +81,7 @@ ci-dessous **dans l'ordre chronologique**, sur le projet Supabase déjà utilis�
 13. `202611160001_paginated_physical_nfc_consistency_audit.sql`
 14. `202611170001_harden_membership_security_definer_search_path.sql`
 15. `202611180001_remove_hardcoded_admin_role_bypass.sql`
+16. `202611180002_lock_down_user_profile_role_mutations.sql`
 
 **Attention :** la migration 0002 supprime la table NFC historique avec `CASCADE` ;
 la migration 0003 la recrée ensuite en registre de métadonnées. Ne pas sauter
@@ -229,3 +230,28 @@ WHERE role = 'super_admin';
 Si le résultat est nul, arrêter et attribuer explicitement le rôle à un compte
 maîtrisé après vérification. La migration ne modifie aucune ligne de profil et ne
 rétrograde aucun compte existant. Les nouvelles inscriptions restent clientes par défaut.
+
+
+## 12. Protection des rôles et profils utilisateurs (migration 202611180002)
+
+L'audit a révélé que les politiques initiales `Public Read Users`,
+`Public Insert Users` et `Public Update Users` pouvaient rester actives :
+la migration historique de restriction supprimait d'autres noms de politiques.
+Elles sont maintenant explicitement supprimées.
+
+La migration `202611180002_lock_down_user_profile_role_mutations.sql` :
+- retire les accès de table de `anon` et `authenticated`, puis réaccorde uniquement
+  les droits nécessaires à `authenticated` ;
+- limite SELECT et INSERT au profil dont `id = auth.uid()` ;
+- n'autorise l'insertion d'un profil que pour l'identité courante avec le rôle
+  `customer` ;
+- conserve la modification du seul champ `name` pour le propriétaire ;
+- interdit aux clients de modifier `role`, `email`, `email_verified` ou de supprimer
+  un profil ;
+- ne modifie aucune ligne existante et ne change aucun rôle déjà attribué.
+
+Le test SQL vérifie les privilèges de table/colonne et l'absence de politique RLS
+accordée à `PUBLIC`. Exécuter les migrations 202611180001 et 202611180002 dans cet
+ordre sur une base non-production, puis vérifier les parcours de lecture et de
+modification du nom d'un profil avec un compte utilisateur ordinaire et un compte
+administrateur. Aucun test sur la base réelle n'a été exécuté dans cette livraison.
