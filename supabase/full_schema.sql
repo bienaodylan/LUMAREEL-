@@ -298,7 +298,7 @@ BEGIN
     SELECT u.role
       INTO v_role
       FROM public.users AS u
-     WHERE u.id = (SELECT auth.uid());
+     WHERE u.id = auth.uid();
 
     RETURN COALESCE(v_role, 'customer');
 END;
