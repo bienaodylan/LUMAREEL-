@@ -16,10 +16,13 @@ import {
   Percent,
   Clock,
   Sparkles,
+  ArrowLeft,
 } from 'lucide-react';
 
 export const OrganizersView: React.FC = () => {
-  const { events, refreshEvents, showToast, setCurrentPage, setSelectedEventSlug } = useApp();
+  const { events, refreshEvents, showToast, setCurrentPage, setSelectedEventSlug, language, t } = useApp();
+  const isEn = language === 'en';
+  const locale = isEn ? 'en-US' : 'fr-FR';
 
   // Tab: 'overview' | 'register' | 'portal'
   const [activeTab, setActiveTab] = useState<'overview' | 'register' | 'portal'>('overview');
@@ -59,7 +62,10 @@ export const OrganizersView: React.FC = () => {
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regForm.companyName || !regForm.contactName || !regForm.email) {
-      showToast('Veuillez compléter les informations obligatoires.', 'error');
+      showToast(
+        isEn ? 'Please complete all required fields.' : 'Veuillez compléter les informations obligatoires.',
+        'error'
+      );
       return;
     }
 
@@ -72,9 +78,9 @@ export const OrganizersView: React.FC = () => {
       const data = await res.json();
       if (data.success) {
         setRegistrationSubmitted(true);
-        showToast(data.message, 'success');
+        showToast(data.message || (isEn ? 'Application submitted.' : 'Candidature envoyée.'), 'success');
       } else {
-        showToast(data.error || 'Erreur lors de l’inscription.', 'error');
+        showToast(data.error || (isEn ? 'Error submitting application.' : 'Erreur lors de l’inscription.'), 'error');
       }
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -84,7 +90,10 @@ export const OrganizersView: React.FC = () => {
   const handleCreateEventSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEvent.title || !newEvent.artist || !newEvent.venue) {
-      showToast('Veuillez remplir le titre, l’artiste et le lieu.', 'error');
+      showToast(
+        isEn ? 'Please enter event title, artist, and venue.' : 'Veuillez remplir le titre, l’artiste et le lieu.',
+        'error'
+      );
       return;
     }
 
@@ -100,7 +109,7 @@ export const OrganizersView: React.FC = () => {
       genre: newEvent.genre,
       description: newEvent.description,
       organizerType: 'partner',
-      organizerName: regForm.companyName || 'Dope Music Hub (Partenaire)',
+      organizerName: regForm.companyName || (isEn ? 'Dope Music Hub (Partner)' : 'Dope Music Hub (Partenaire)'),
       organizerId: 'org_dope_music',
       platformFeePercent: newEvent.platformCommissionPercent,
       status: 'published',
@@ -112,8 +121,12 @@ export const OrganizersView: React.FC = () => {
           currency: 'FCFA',
           quota: Number(newEvent.categoryQuota),
           sold: 0,
-          description: 'Billet officiel émis via la marketplace LUMARÉEL',
-          perks: ['Entrée garantie', 'QR Code infalsifiable'],
+          description: isEn
+            ? 'Official ticket issued via the LUMARÉEL marketplace'
+            : 'Billet officiel émis via la marketplace LUMARÉEL',
+          perks: isEn
+            ? ['Guaranteed entry', 'Tamper-proof QR code']
+            : ['Entrée garantie', 'QR Code infalsifiable'],
         },
       ],
     };
@@ -126,11 +139,16 @@ export const OrganizersView: React.FC = () => {
       });
       const data = await res.json();
       if (data.success) {
-        showToast('Événement créé et mis en ligne avec succès sur la marketplace !', 'success');
+        showToast(
+          isEn
+            ? 'Event created and published to the marketplace!'
+            : 'Événement créé et mis en ligne avec succès sur la marketplace !',
+          'success'
+        );
         setIsCreatingEvent(false);
         await refreshEvents();
       } else {
-        showToast(data.error || 'Erreur lors de la création.', 'error');
+        showToast(data.error || (isEn ? 'Error creating event.' : 'Erreur lors de la création.'), 'error');
       }
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -149,19 +167,29 @@ export const OrganizersView: React.FC = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-24 sm:pt-28 pb-20">
-      
+    <div className="max-w-7xl mx-auto px-6 pt-6 sm:pt-10 pb-20">
+      <div className="mb-6">
+        <button
+          type="button"
+          onClick={() => setCurrentPage('home')}
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-agrandir-bold uppercase tracking-wider text-white transition-all cursor-pointer"
+        >
+          <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37]" />
+          <span>{t('nav.backHome')}</span>
+        </button>
+      </div>
+
       {/* Top Section */}
       <div className="mb-10 pb-6 border-b border-[#1c1c1c] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
           <div className="text-xs font-agrandir-regular tracking-[0.25em] text-[#d4af37] uppercase mb-2">
-            PLATEFORME PROFESSIONNELLE &amp; MARKETPLACE
+            {t('org.kicker')}
           </div>
           <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl text-white tracking-tight uppercase">
-            ESPACE ORGANISATEURS
+            {t('org.title')}
           </h1>
           <p className="mt-2 text-xs sm:text-sm font-agrandir-regular text-[#888] max-w-2xl font-light leading-relaxed">
-            Diffusez vos événements, gérez vos quotas en temps réel et protégez vos entrées avec la billetterie inviolable de LUMARÉEL CO.
+            {t('org.subtitle')}
           </p>
         </div>
 
@@ -173,7 +201,7 @@ export const OrganizersView: React.FC = () => {
               activeTab === 'overview' ? 'bg-white text-black' : 'text-[#888] hover:text-white'
             }`}
           >
-            Solutions
+            {t('org.tabSolutions')}
           </button>
           <button
             onClick={() => setActiveTab('portal')}
@@ -181,7 +209,7 @@ export const OrganizersView: React.FC = () => {
               activeTab === 'portal' ? 'bg-white text-black' : 'text-[#888] hover:text-white'
             }`}
           >
-            Tableau de Bord Pro
+            {t('org.tabPortal')}
           </button>
           <button
             onClick={() => setActiveTab('register')}
@@ -189,7 +217,7 @@ export const OrganizersView: React.FC = () => {
               activeTab === 'register' ? 'bg-white text-black' : 'text-[#888] hover:text-white'
             }`}
           >
-            Postuler
+            {t('org.tabApply')}
           </button>
         </div>
       </div>
@@ -205,30 +233,36 @@ export const OrganizersView: React.FC = () => {
             <div className="p-8 bg-[#0c0c0c] border border-[#1f1f1f] space-y-4">
               <ShieldCheck className="w-8 h-8 text-[#d4af37]" />
               <h3 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight">
-                CONTRÔLE STRICT ANTI-DOUBLON
+                {isEn ? 'STRICT ANTI-DUPLICATE CHECK' : 'CONTRÔLE STRICT ANTI-DOUBLON'}
               </h3>
               <p className="font-agrandir-regular text-xs text-[#888] leading-relaxed">
-                Chaque billet vendu possède un QR code officiel certifié. Dès qu'un billet est scanné à l'entrée, il est immédiatement validé et ne peut plus être réutilisé.
+                {isEn
+                  ? 'Every issued ticket holds an official certified QR code. Once scanned at the gate, it is instantly marked used and cannot be reused.'
+                  : "Chaque billet vendu possède un QR code officiel certifié. Dès qu'un billet est scanné à l'entrée, il est immédiatement validé et ne peut plus être réutilisé."}
               </p>
             </div>
 
             <div className="p-8 bg-[#0c0c0c] border border-[#1f1f1f] space-y-4">
               <BarChart3 className="w-8 h-8 text-white" />
               <h3 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight">
-                QUOTAS CONCURRENTS &amp; PAIEMENTS
+                {isEn ? 'LIVE QUOTAS & PAYMENTS' : 'QUOTAS CONCURRENTS & PAIEMENTS'}
               </h3>
               <p className="font-agrandir-regular text-xs text-[#888] leading-relaxed">
-                Fixez vos prix par zone (Fosse, Balcon, Carré Or, VIP). Encaissez en Francs CFA (Mobile Money Orange, Wave, MTN) et en Euros (Cartes bancaires internationales) avec versement transparent.
+                {isEn
+                  ? 'Set prices per zone (Pit, Balcony, Gold, VIP). Collect in FCFA (Orange Money, Wave, MTN) and EUR cards with transparent payouts.'
+                  : 'Fixez vos prix par zone (Fosse, Balcon, Carré Or, VIP). Encaissez en Francs CFA (Mobile Money Orange, Wave, MTN) et en Euros (Cartes bancaires internationales) avec versement transparent.'}
               </p>
             </div>
 
             <div className="p-8 bg-[#0c0c0c] border border-[#1f1f1f] space-y-4">
               <Percent className="w-8 h-8 text-[#d4af37]" />
               <h3 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight">
-                COMMISSION TRANSPARENTE
+                {isEn ? 'TRANSPARENT COMMISSION' : 'COMMISSION TRANSPARENTE'}
               </h3>
               <p className="font-agrandir-regular text-xs text-[#888] leading-relaxed">
-                Modèle économique modulable et convenu contractuellement (taux standard à 5% incluant hébergement, sécurisation, routage des e-mails et accès aux terminaux de contrôle).
+                {isEn
+                  ? 'Contractually agreed fee model (standard 5% rate covering hosting, security, email delivery, and gate scanner access).'
+                  : 'Modèle économique modulable et convenu contractuellement (taux standard à 5% incluant hébergement, sécurisation, routage des e-mails et accès aux terminaux de contrôle).'}
               </p>
             </div>
           </div>
@@ -236,55 +270,71 @@ export const OrganizersView: React.FC = () => {
           {/* Workflow Steps */}
           <div className="p-8 sm:p-10 bg-[#0c0c0c] border border-[#222]">
             <div className="text-[10px] font-agrandir-regular tracking-[0.25em] text-[#777] uppercase mb-2">
-              COMMENT ÇA FONCTIONNE
+              {isEn ? 'HOW IT WORKS' : 'COMMENT ÇA FONCTIONNE'}
             </div>
             <h2 className="font-agrandir-extrabold text-2xl text-white uppercase tracking-tight mb-8">
-              LE PARCOURS ORGANISATEUR EN 4 ÉTAPES
+              {isEn ? 'THE 4-STEP ORGANIZER JOURNEY' : 'LE PARCOURS ORGANISATEUR EN 4 ÉTAPES'}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="border-t border-[#333] pt-4">
                 <span className="font-agrandir-extrabold text-2xl text-[#d4af37]">01</span>
-                <h4 className="font-agrandir-semibold text-sm text-white uppercase mt-2 mb-1">Candidature</h4>
+                <h4 className="font-agrandir-semibold text-sm text-white uppercase mt-2 mb-1">
+                  {isEn ? 'Application' : 'Candidature'}
+                </h4>
                 <p className="font-agrandir-regular text-xs text-[#777]">
-                  Soumettez les informations de votre structure et vos références événementielles.
+                  {isEn
+                    ? 'Submit your company details and past event references.'
+                    : 'Soumettez les informations de votre structure et vos références événementielles.'}
                 </p>
               </div>
 
               <div className="border-t border-[#333] pt-4">
                 <span className="font-agrandir-extrabold text-2xl text-white">02</span>
-                <h4 className="font-agrandir-semibold text-sm text-white uppercase mt-2 mb-1">Validation</h4>
+                <h4 className="font-agrandir-semibold text-sm text-white uppercase mt-2 mb-1">
+                  {isEn ? 'Verification' : 'Validation'}
+                </h4>
                 <p className="font-agrandir-regular text-xs text-[#777]">
-                  L'équipe LUMARÉEL valide la conformité et active vos accès créateur d'événements.
+                  {isEn
+                    ? 'LUMARÉEL reviews compliance and unlocks your event creator access.'
+                    : "L'équipe LUMARÉEL valide la conformité et active vos accès créateur d'événements."}
                 </p>
               </div>
 
               <div className="border-t border-[#333] pt-4">
                 <span className="font-agrandir-extrabold text-2xl text-[#d4af37]">03</span>
-                <h4 className="font-agrandir-semibold text-sm text-white uppercase mt-2 mb-1">Mise en vente</h4>
+                <h4 className="font-agrandir-semibold text-sm text-white uppercase mt-2 mb-1">
+                  {isEn ? 'Go Live' : 'Mise en vente'}
+                </h4>
                 <p className="font-agrandir-regular text-xs text-[#777]">
-                  Configurez vos jauges, visuels et catégories. Vos ventes s'ouvrent sur notre catalogue.
+                  {isEn
+                    ? 'Set capacities, artwork, and ticket tiers. Sales open on our catalog.'
+                    : "Configurez vos jauges, visuels et catégories. Vos ventes s'ouvrent sur notre catalogue."}
                 </p>
               </div>
 
               <div className="border-t border-[#333] pt-4">
                 <span className="font-agrandir-extrabold text-2xl text-white">04</span>
-                <h4 className="font-agrandir-semibold text-sm text-white uppercase mt-2 mb-1">Contrôle aux portes</h4>
+                <h4 className="font-agrandir-semibold text-sm text-white uppercase mt-2 mb-1">
+                  {isEn ? 'Gate Check-In' : 'Contrôle aux portes'}
+                </h4>
                 <p className="font-agrandir-regular text-xs text-[#777]">
-                  Vos agents scannent directement avec notre terminal intégré smartphone le jour J.
+                  {isEn
+                    ? 'Your staff scans tickets directly with our built-in smartphone terminal.'
+                    : 'Vos agents scannent directement avec notre terminal intégré smartphone le jour J.'}
                 </p>
               </div>
             </div>
 
             <div className="mt-10 pt-6 border-t border-[#1a1a1a] flex flex-col sm:flex-row items-center justify-between gap-4">
               <span className="text-xs font-agrandir-regular text-[#888]">
-                Prêt à diffuser votre concert sur LUMARÉEL ?
+                {isEn ? 'Ready to host your concert on LUMARÉEL?' : 'Prêt à diffuser votre concert sur LUMARÉEL ?'}
               </span>
               <button
                 onClick={() => setActiveTab('register')}
                 className="px-6 py-3 bg-white text-black font-agrandir-semibold text-xs uppercase tracking-widest hover:bg-[#eaeaea] transition-all cursor-pointer"
               >
-                POSTULER COMME ORGANISATEUR PARTENAIRE →
+                {isEn ? 'APPLY AS PARTNER ORGANIZER →' : 'POSTULER COMME ORGANISATEUR PARTENAIRE →'}
               </button>
             </div>
           </div>
@@ -302,34 +352,34 @@ export const OrganizersView: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="p-6 bg-[#0c0c0c] border border-[#1f1f1f]">
               <div className="text-[10px] font-agrandir-regular text-[#777] uppercase tracking-wider mb-1">
-                ÉVÉNEMENTS PARTENAIRES ACTIFS
+                {isEn ? 'ACTIVE PARTNER EVENTS' : 'ÉVÉNEMENTS PARTENAIRES ACTIFS'}
               </div>
               <div className="text-3xl font-agrandir-extrabold text-white">
                 {partnerEvents.length}
               </div>
               <div className="text-[11px] text-[#555] font-agrandir-regular mt-1">
-                Certifiés &amp; en vente sur le catalogue
+                {isEn ? 'Certified & live on catalog' : 'Certifiés & en vente sur le catalogue'}
               </div>
             </div>
 
             <div className="p-6 bg-[#0c0c0c] border border-[#1f1f1f]">
               <div className="text-[10px] font-agrandir-regular text-[#777] uppercase tracking-wider mb-1">
-                BILLETS PARTENAIRES VENDUS
+                {isEn ? 'PARTNER TICKETS SOLD' : 'BILLETS PARTENAIRES VENDUS'}
               </div>
               <div className="text-3xl font-agrandir-extrabold text-[#d4af37]">
-                {totalPartnerSold.toLocaleString()}
+                {totalPartnerSold.toLocaleString(locale)}
               </div>
               <div className="text-[11px] text-[#555] font-agrandir-regular mt-1">
-                Quotas contrôlés en temps réel
+                {isEn ? 'Live capacity tracking' : 'Quotas contrôlés en temps réel'}
               </div>
             </div>
 
             <div className="p-6 bg-[#0c0c0c] border border-[#1f1f1f]">
               <div className="text-[10px] font-agrandir-regular text-[#777] uppercase tracking-wider mb-1">
-                VOLUME D'AFFAIRES PARTENAIRES
+                {isEn ? 'PARTNER REVENUE VOLUME' : "VOLUME D'AFFAIRES PARTENAIRES"}
               </div>
               <div className="text-3xl font-agrandir-extrabold text-white">
-                {totalPartnerRevenue.toLocaleString()} FCFA
+                {totalPartnerRevenue.toLocaleString(locale)} FCFA
               </div>
             </div>
           </div>
@@ -337,7 +387,7 @@ export const OrganizersView: React.FC = () => {
           {/* Action strip: Create Event Button */}
           <div className="flex items-center justify-between pb-4 border-b border-[#181818]">
             <h3 className="font-agrandir-extrabold text-xl text-white uppercase tracking-tight">
-              VOS CONCERTS &amp; PRODUCTIONS
+              {isEn ? 'YOUR CONCERTS & PRODUCTIONS' : 'VOS CONCERTS & PRODUCTIONS'}
             </h3>
 
             <div className="flex items-center gap-3">
@@ -346,7 +396,7 @@ export const OrganizersView: React.FC = () => {
                 className="px-4 py-2 border border-[#333] hover:border-white text-xs font-agrandir-semibold uppercase tracking-wider text-[#aaa] hover:text-white transition-colors cursor-pointer flex items-center gap-2"
               >
                 <QrCode className="w-3.5 h-3.5" />
-                <span>TERMINAL SCANNER</span>
+                <span>{isEn ? 'SCANNER TERMINAL' : 'TERMINAL SCANNER'}</span>
               </button>
 
               <button
@@ -354,7 +404,7 @@ export const OrganizersView: React.FC = () => {
                 className="px-5 py-2 bg-white text-black text-xs font-agrandir-semibold uppercase tracking-wider hover:bg-[#eaeaea] transition-colors cursor-pointer flex items-center gap-2 shadow-xl"
               >
                 <Plus className="w-4 h-4" />
-                <span>CRÉER UN ÉVÉNEMENT</span>
+                <span>{isEn ? 'CREATE EVENT' : 'CRÉER UN ÉVÉNEMENT'}</span>
               </button>
             </div>
           </div>
@@ -364,10 +414,12 @@ export const OrganizersView: React.FC = () => {
             <div className="p-8 bg-[#0e0e0e] border border-[#2a2a2a] animate-fadeIn">
               <div className="mb-6 pb-4 border-b border-[#222]">
                 <h4 className="font-agrandir-extrabold text-lg text-white uppercase">
-                  NOUVEL ÉVÉNEMENT PARTENAIRE
+                  {isEn ? 'NEW PARTNER EVENT' : 'NOUVEL ÉVÉNEMENT PARTENAIRE'}
                 </h4>
                 <p className="text-xs font-agrandir-regular text-[#888] mt-1">
-                  Les événements créés sont automatiquement enregistrés et visibles sur le catalogue Découvrir.
+                  {isEn
+                    ? 'Created events are saved and immediately displayed on the public catalog.'
+                    : 'Les événements créés sont automatiquement enregistrés et visibles sur le catalogue Découvrir.'}
                 </p>
               </div>
 
@@ -375,28 +427,28 @@ export const OrganizersView: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-regular">
-                      TITRE DU CONCERT *
+                      {isEn ? 'CONCERT TITLE *' : 'TITRE DU CONCERT *'}
                     </label>
                     <input
                       type="text"
                       required
                       value={newEvent.title}
                       onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                      placeholder="Ex: NUIT DRILL &amp; BASS"
+                      placeholder={isEn ? 'e.g. DRILL & BASS NIGHT' : 'Ex: NUIT DRILL & BASS'}
                       className="w-full bg-[#161616] border border-[#333] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular"
                     />
                   </div>
 
                   <div>
                     <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-regular">
-                      ARTISTE OU COLLECTIF *
+                      {isEn ? 'ARTIST OR COLLECTIVE *' : 'ARTISTE OU COLLECTIF *'}
                     </label>
                     <input
                       type="text"
                       required
                       value={newEvent.artist}
                       onChange={(e) => setNewEvent({ ...newEvent, artist: e.target.value })}
-                      placeholder="Ex: COLLECTIF AFROWAVE"
+                      placeholder={isEn ? 'e.g. AFROWAVE COLLECTIVE' : 'Ex: COLLECTIF AFROWAVE'}
                       className="w-full bg-[#161616] border border-[#333] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular"
                     />
                   </div>
@@ -418,7 +470,7 @@ export const OrganizersView: React.FC = () => {
 
                   <div>
                     <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-regular">
-                      HEURE DÉBUT *
+                      {isEn ? 'START TIME *' : 'HEURE DÉBUT *'}
                     </label>
                     <input
                       type="text"
@@ -432,7 +484,7 @@ export const OrganizersView: React.FC = () => {
 
                   <div>
                     <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-regular">
-                      GENRE MUSICAL *
+                      {isEn ? 'MUSIC GENRE *' : 'GENRE MUSICAL *'}
                     </label>
                     <select
                       value={newEvent.genre}
@@ -440,9 +492,9 @@ export const OrganizersView: React.FC = () => {
                       className="w-full bg-[#161616] border border-[#333] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular uppercase"
                     >
                       <option value="Rap / Hip-Hop">Rap / Hip-Hop</option>
-                      <option value="Rap Français / Trap">Rap Français / Trap</option>
-                      <option value="Électro & Expérimental">Électro &amp; Expérimental</option>
-                      <option value="Électro-Afro / Club">Électro-Afro / Club</option>
+                      <option value="Rap Français / Trap">{isEn ? 'French Rap / Trap' : 'Rap Français / Trap'}</option>
+                      <option value="Électro & Expérimental">{isEn ? 'Electronic & Experimental' : 'Électro & Expérimental'}</option>
+                      <option value="Électro-Afro / Club">{isEn ? 'Afro-Electronic / Club' : 'Électro-Afro / Club'}</option>
                       <option value="Afro-Rap / Live Band">Afro-Rap / Live Band</option>
                     </select>
                   </div>
@@ -451,21 +503,21 @@ export const OrganizersView: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-regular">
-                      LIEU OU SALLE *
+                      {isEn ? 'VENUE OR HALL *' : 'LIEU OU SALLE *'}
                     </label>
                     <input
                       type="text"
                       required
                       value={newEvent.venue}
                       onChange={(e) => setNewEvent({ ...newEvent, venue: e.target.value })}
-                      placeholder="Ex: Palais de la Culture, Salle Kodjo Ebouclé"
+                      placeholder={isEn ? 'e.g. Palais de la Culture, Main Hall' : 'Ex: Palais de la Culture, Salle Kodjo Ebouclé'}
                       className="w-full bg-[#161616] border border-[#333] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular"
                     />
                   </div>
 
                   <div>
                     <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-regular">
-                      VILLE *
+                      {isEn ? 'CITY *' : 'VILLE *'}
                     </label>
                     <input
                       type="text"
@@ -480,12 +532,12 @@ export const OrganizersView: React.FC = () => {
                 {/* Ticket category configuration */}
                 <div className="p-4 bg-[#141414] border border-[#2a2a2a] space-y-3">
                   <div className="text-[10px] text-[#d4af37] uppercase font-agrandir-semibold tracking-wider">
-                    PARAMÉTRAGE DE LA BILLETTERIE &amp; COMMISSION
+                    {isEn ? 'TICKETING & COMMISSION SETUP' : 'PARAMÉTRAGE DE LA BILLETTERIE & COMMISSION'}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-regular">
-                        NOM DE CATÉGORIE
+                        {isEn ? 'CATEGORY NAME' : 'NOM DE CATÉGORIE'}
                       </label>
                       <input
                         type="text"
@@ -496,7 +548,7 @@ export const OrganizersView: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-regular">
-                        PRIX DU BILLET (FCFA)
+                        {isEn ? 'TICKET PRICE (FCFA)' : 'PRIX DU BILLET (FCFA)'}
                       </label>
                       <input
                         type="number"
@@ -507,7 +559,7 @@ export const OrganizersView: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-[10px] text-[#777] uppercase mb-1 font-agrandir-regular">
-                        JAUGE / QUOTA MAXIMAL
+                        {isEn ? 'MAX CAPACITY / QUOTA' : 'JAUGE / QUOTA MAXIMAL'}
                       </label>
                       <input
                         type="number"
@@ -525,13 +577,13 @@ export const OrganizersView: React.FC = () => {
                     onClick={() => setIsCreatingEvent(false)}
                     className="px-4 py-2.5 border border-[#333] text-xs font-agrandir-regular text-[#888] hover:text-white uppercase"
                   >
-                    Annuler
+                    {isEn ? 'Cancel' : 'Annuler'}
                   </button>
                   <button
                     type="submit"
                     className="px-6 py-2.5 bg-white text-black text-xs font-agrandir-semibold uppercase tracking-wider hover:bg-[#eaeaea] cursor-pointer"
                   >
-                    Publier l'événement
+                    {isEn ? 'Publish event' : "Publier l'événement"}
                   </button>
                 </div>
               </form>
@@ -569,10 +621,10 @@ export const OrganizersView: React.FC = () => {
 
                   <div className="md:col-span-2 text-xs font-agrandir-regular">
                     <div className="font-agrandir-semibold text-white">
-                      {totalSold} / {totalQuota} vendus
+                      {totalSold} / {totalQuota} {isEn ? 'sold' : 'vendus'}
                     </div>
                     <div className="text-[#777] text-[11px]">
-                      {revenue.toLocaleString()} FCFA
+                      {revenue.toLocaleString(locale)} FCFA
                     </div>
                   </div>
 
@@ -584,7 +636,7 @@ export const OrganizersView: React.FC = () => {
                       }}
                       className="px-3 py-1.5 border border-[#333] hover:border-white text-[10px] font-agrandir-semibold uppercase tracking-wider text-white transition-colors"
                     >
-                      Aperçu Fiche
+                      {isEn ? 'Preview' : 'Aperçu Fiche'}
                     </button>
                   </div>
                 </div>
@@ -603,10 +655,12 @@ export const OrganizersView: React.FC = () => {
           
           <div className="mb-6">
             <h2 className="font-agrandir-extrabold text-2xl text-white uppercase tracking-tight">
-              POSTULER POUR REJOINDRE LA MARKETPLACE
+              {isEn ? 'APPLY TO JOIN THE MARKETPLACE' : 'POSTULER POUR REJOINDRE LA MARKETPLACE'}
             </h2>
             <p className="font-agrandir-regular text-xs text-[#777] mt-1 leading-relaxed">
-              Pour préserver l'exigence culturelle et technique de la plateforme, chaque organisateur fait l'objet d'un examen préalable.
+              {isEn
+                ? 'To preserve the cultural and technical standard of the platform, every organizer is reviewed prior to onboarding.'
+                : "Pour préserver l'exigence culturelle et technique de la plateforme, chaque organisateur fait l'objet d'un examen préalable."}
             </p>
           </div>
 
@@ -614,10 +668,12 @@ export const OrganizersView: React.FC = () => {
             <div className="p-8 bg-[#111] border border-emerald-900/40 text-center">
               <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
               <div className="font-agrandir-extrabold text-lg text-white uppercase mb-2">
-                DOSSIER TRANSMIS À LA DIRECTION
+                {isEn ? 'APPLICATION SUBMITTED' : 'DOSSIER TRANSMIS À LA DIRECTION'}
               </div>
               <p className="font-agrandir-regular text-xs text-[#aaa] max-w-md mx-auto mb-6 leading-relaxed">
-                Votre candidature pour {regForm.companyName} a bien été enregistrée. Notre équipe examinera vos références et vous contactera sous 24 à 48 heures.
+                {isEn
+                  ? `Your application for ${regForm.companyName} has been recorded. Our team will review your references and respond within 24–48 hours.`
+                  : `Votre candidature pour ${regForm.companyName} a bien été enregistrée. Notre équipe examinera vos références et vous contactera sous 24 à 48 heures.`}
               </p>
               <button
                 onClick={() => {
@@ -626,7 +682,7 @@ export const OrganizersView: React.FC = () => {
                 }}
                 className="px-6 py-2.5 bg-white text-black font-agrandir-semibold text-xs uppercase tracking-wider cursor-pointer"
               >
-                Accéder à l'espace de démonstration
+                {isEn ? 'Go to demo workspace' : "Accéder à l'espace de démonstration"}
               </button>
             </div>
           ) : (
@@ -634,28 +690,28 @@ export const OrganizersView: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-agrandir-regular text-[#777] uppercase mb-1">
-                    NOM DE LA STRUCTURE / LABEL *
+                    {isEn ? 'COMPANY / LABEL NAME *' : 'NOM DE LA STRUCTURE / LABEL *'}
                   </label>
                   <input
                     type="text"
                     required
                     value={regForm.companyName}
                     onChange={(e) => setRegForm({ ...regForm, companyName: e.target.value })}
-                    placeholder="Ex: AfroWave Entertainment"
+                    placeholder={isEn ? 'e.g. AfroWave Entertainment' : 'Ex: AfroWave Entertainment'}
                     className="w-full bg-[#141414] border border-[#2a2a2a] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular"
                   />
                 </div>
 
                 <div>
                   <label className="block text-[10px] font-agrandir-regular text-[#777] uppercase mb-1">
-                    NOM DU RESPONSABLE *
+                    {isEn ? 'CONTACT PERSON *' : 'NOM DU RESPONSABLE *'}
                   </label>
                   <input
                     type="text"
                     required
                     value={regForm.contactName}
                     onChange={(e) => setRegForm({ ...regForm, contactName: e.target.value })}
-                    placeholder="Prénom et Nom"
+                    placeholder={isEn ? 'First and Last Name' : 'Prénom et Nom'}
                     className="w-full bg-[#141414] border border-[#2a2a2a] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular"
                   />
                 </div>
@@ -664,7 +720,7 @@ export const OrganizersView: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-agrandir-regular text-[#777] uppercase mb-1">
-                    E-MAIL PROFESSIONNEL *
+                    {isEn ? 'WORK EMAIL *' : 'E-MAIL PROFESSIONNEL *'}
                   </label>
                   <input
                     type="email"
@@ -678,7 +734,7 @@ export const OrganizersView: React.FC = () => {
 
                 <div>
                   <label className="block text-[10px] font-agrandir-regular text-[#777] uppercase mb-1">
-                    TÉLÉPHONE / WHATSAPP
+                    {isEn ? 'PHONE / WHATSAPP' : 'TÉLÉPHONE / WHATSAPP'}
                   </label>
                   <input
                     type="tel"
@@ -693,7 +749,7 @@ export const OrganizersView: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-agrandir-regular text-[#777] uppercase mb-1">
-                    VILLE D'IMPLANTATION
+                    {isEn ? 'CITY' : "VILLE D'IMPLANTATION"}
                   </label>
                   <input
                     type="text"
@@ -705,29 +761,29 @@ export const OrganizersView: React.FC = () => {
 
                 <div>
                   <label className="block text-[10px] font-agrandir-regular text-[#777] uppercase mb-1">
-                    EXPÉRIENCE EN PRODUCTION
+                    {isEn ? 'PRODUCTION EXPERIENCE' : 'EXPÉRIENCE EN PRODUCTION'}
                   </label>
                   <select
                     value={regForm.experienceYears}
                     onChange={(e) => setRegForm({ ...regForm, experienceYears: e.target.value })}
                     className="w-full bg-[#141414] border border-[#2a2a2a] px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular uppercase"
                   >
-                    <option value="Moins de 2 ans">1 à 2 ans</option>
-                    <option value="3 ans et plus">3 à 5 ans</option>
-                    <option value="Plus de 5 ans">Plus de 5 ans (Tourneur / Salle)</option>
+                    <option value="Moins de 2 ans">{isEn ? '1 to 2 years' : '1 à 2 ans'}</option>
+                    <option value="3 ans et plus">{isEn ? '3 to 5 years' : '3 à 5 ans'}</option>
+                    <option value="Plus de 5 ans">{isEn ? '5+ years (Promoter / Venue)' : 'Plus de 5 ans (Tourneur / Salle)'}</option>
                   </select>
                 </div>
               </div>
 
               <div>
                 <label className="block text-[10px] font-agrandir-regular text-[#777] uppercase mb-1">
-                  ÉVÉNEMENTS RÉALISÉS OU PROCHAIN PROJET PRÉVU
+                  {isEn ? 'PAST EVENTS OR UPCOMING PROJECT' : 'ÉVÉNEMENTS RÉALISÉS OU PROCHAIN PROJET PRÉVU'}
                 </label>
                 <textarea
                   rows={3}
                   value={regForm.pastEvents}
                   onChange={(e) => setRegForm({ ...regForm, pastEvents: e.target.value })}
-                  placeholder="Artistes programmés, salles envisagées, jauges estimées..."
+                  placeholder={isEn ? 'Booked artists, target venues, estimated capacity...' : 'Artistes programmés, salles envisagées, jauges estimées...'}
                   className="w-full bg-[#141414] border border-[#2a2a2a] p-3 text-xs text-white focus:outline-none focus:border-white font-agrandir-regular"
                 />
               </div>
@@ -736,7 +792,7 @@ export const OrganizersView: React.FC = () => {
                 type="submit"
                 className="w-full py-4 bg-white text-black font-agrandir-semibold text-xs uppercase tracking-widest hover:bg-[#eaeaea] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xl"
               >
-                <span>TRANSMETTRE LA CANDIDATURE ORGANISATEUR</span>
+                <span>{isEn ? 'SUBMIT ORGANIZER APPLICATION' : 'TRANSMETTRE LA CANDIDATURE ORGANISATEUR'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>

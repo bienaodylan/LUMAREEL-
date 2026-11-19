@@ -17,12 +17,12 @@ export const ConcertDetailView: React.FC = () => {
   if (!event) {
     return (
       <div className="w-full max-w-4xl mx-auto px-4 py-20 text-center">
-        <p className="text-sm font-agrandir-regular text-[#888]">Événement non trouvé.</p>
+        <p className="text-sm font-agrandir-regular text-[#888]">{t('detail.notFound')}</p>
         <button
           onClick={() => setCurrentPage('home')}
           className="mt-4 px-4 py-2 text-xs font-agrandir-semibold border border-[#333] text-white rounded-xl hover:border-white transition-colors"
         >
-          Retour à l'accueil
+          {t('nav.backHome')}
         </button>
       </div>
     );
@@ -41,7 +41,7 @@ export const ConcertDetailView: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-20 sm:pt-24 pb-20 select-none font-agrandir-regular">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-6 sm:pt-10 pb-20 select-none font-agrandir-regular">
       
       {/* Barre de retour supérieure avec flèche et croix de fermeture */}
       <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8 pb-3 border-b border-white/10">
@@ -49,18 +49,18 @@ export const ConcertDetailView: React.FC = () => {
           type="button"
           onClick={() => setCurrentPage('home')}
           className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
-          title="Retourner aux concerts"
+          title={t('nav.backHome')}
         >
           <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
-          <span>RETOUR</span>
+          <span>{t('nav.back')}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setCurrentPage('home')}
           className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
-          title="Fermer et revenir à l'accueil"
-          aria-label="Fermer"
+          title={t('nav.backHome')}
+          aria-label={t('nav.close')}
         >
           <X className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-transform duration-200" />
         </button>
@@ -101,7 +101,7 @@ export const ConcertDetailView: React.FC = () => {
             </div>
 
             <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl md:text-6xl text-white tracking-tight uppercase leading-[1.02] mb-6 text-balance">
-              {event.artist} EN CONCERT
+              {event.artist} {t('home.inConcert')}
             </h1>
 
             {/* Practical information grid with bold date and venue */}
@@ -208,7 +208,7 @@ export const ConcertDetailView: React.FC = () => {
                     {t('detail.step2')}
                   </div>
                   <div className="text-[11px] text-[#777]">
-                    Sélectionnez le nombre de billets
+                    {t('detail.selectQty')}
                   </div>
                 </div>
                 <div className="flex items-center border border-white/20 bg-[#161616] rounded-full overflow-hidden shadow-inner w-fit">
@@ -216,7 +216,7 @@ export const ConcertDetailView: React.FC = () => {
                     type="button"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={quantity <= 1}
-                    aria-label="Diminuer la quantité"
+                    aria-label={t('detail.decreaseQty')}
                     className="w-12 h-12 text-white font-agrandir-semibold text-lg hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
                   >
                     -
@@ -228,7 +228,7 @@ export const ConcertDetailView: React.FC = () => {
                     type="button"
                     onClick={() => setQuantity(Math.min(remaining, quantity + 1))}
                     disabled={quantity >= remaining}
-                    aria-label="Augmenter la quantité"
+                    aria-label={t('detail.increaseQty')}
                     className="w-12 h-12 text-white font-agrandir-semibold text-lg hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent cursor-pointer transition-colors"
                   >
                     +
@@ -279,7 +279,7 @@ export const ConcertDetailView: React.FC = () => {
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-agrandir-semibold tracking-wider text-neutral-300 hover:text-white transition-all uppercase cursor-pointer active:scale-95"
               >
                 <ArrowLeft className="w-4 h-4 text-[#d4af37]" />
-                <span>Retourner à la programmation</span>
+                <span>{t('detail.backToLineup')}</span>
               </button>
             </div>
 

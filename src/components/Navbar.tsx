@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useApp, PageView } from '../context/AppContext';
-import { User as UserIcon } from 'lucide-react';
 
 /**
- * Navbar.tsx — En-tête épuré et moderne LUMARÉEL CO.
- * Dispose désormais d'un menu profil complet sur ordinateur ainsi que du sélecteur de langue complet FR / EN.
+ * Navbar.tsx — En-tête mobile LUMARÉEL CO.
+ * Affiché uniquement sur la page d'accueil ('home' / 'discover') afin de ne jamais recouvrir
+ * les boutons Retour et contrôles des autres pages (Archives, Black Card, Commandes, etc.).
  */
 export const Navbar: React.FC = () => {
   const {
@@ -27,18 +27,18 @@ export const Navbar: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navItems: Array<{ label: string; page: PageView; isGold?: boolean }> = [
-    { label: t('nav.home'), page: 'home' },
-    { label: 'Mes commandes', page: 'client_space' },
-    { label: t('nav.archives'), page: 'archive' },
-    { label: 'Ma carte', page: 'member_card', isGold: true },
-    { label: 'Mon compte', page: 'profile' },
-  ];
-
-  // Masqué sur l'écran d'accueil splash ou pendant le contrôle vigile plein écran
-  if (currentPage === 'splash' || currentPage === 'gate_scanner') {
+  // Affiché uniquement sur la page d'accueil
+  if (currentPage !== 'home' && currentPage !== 'discover') {
     return null;
   }
+
+  const navItems: Array<{ label: string; page: PageView; isGold?: boolean }> = [
+    { label: t('nav.home'), page: 'home' },
+    { label: t('nav.orders'), page: 'client_space' },
+    { label: t('nav.archives'), page: 'archive' },
+    { label: t('nav.myCard'), page: 'member_card', isGold: true },
+    { label: t('nav.account'), page: 'profile' },
+  ];
 
   const isSuperAdmin =
     currentUser?.email?.toLowerCase() === 'bienaodylan428@gmail.com' ||
@@ -53,14 +53,13 @@ export const Navbar: React.FC = () => {
       }`}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-        
         {/* Zone 1: Logo Officiel LUMARÉEL CO. */}
         <div className="flex items-center gap-3 shrink-0">
           <button
             type="button"
             onClick={() => setCurrentPage('home')}
             className="flex items-center group cursor-pointer focus:outline-none"
-            aria-label={`${platformSettings.platformName || 'LUMARÉEL'} Accueil`}
+            aria-label={`${platformSettings.platformName || 'LUMARÉEL'} ${t('nav.home')}`}
           >
             <img
               src="/assets/logo-lumareel.png"
@@ -93,18 +92,16 @@ export const Navbar: React.FC = () => {
           })}
         </nav>
 
-        {/* Zone 3: Sélecteur de langue & Accès Profil sur Ordinateur */}
+        {/* Zone 3: Sélecteur de langue & Accès Profil */}
         <div className="flex items-center gap-2.5 shrink-0">
-          
-          {/* Bouton Administrateur épuré sur Desktop si connecté avec le mail Dylan */}
           {isSuperAdmin && (
             <button
               type="button"
               onClick={() => setCurrentPage('admin')}
               className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white text-black text-xs font-agrandir-bold hover:bg-neutral-200 transition-all cursor-pointer shadow-md"
-              title="Accéder à l'espace administrateur"
+              title={t('nav.admin')}
             >
-              <span>Administrateur</span>
+              <span>{t('nav.admin')}</span>
             </button>
           )}
 
@@ -136,7 +133,6 @@ export const Navbar: React.FC = () => {
             </button>
           </div>
         </div>
-
       </div>
     </header>
   );

@@ -27,7 +27,7 @@ import {
   X
 } from 'lucide-react';
 
-import { formatDateLongFrench } from '../utils/dateUtils';
+import { formatDateLong } from '../utils/dateUtils';
 
 type ScrollableTab = 'tickets' | 'transfer' | 'past';
 
@@ -92,22 +92,27 @@ export const CustomerSpace: React.FC = () => {
   const handleConfirmTransfer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!transferTicketId || !recipientName || !recipientContact) {
-      showToast('Veuillez remplir toutes les informations du destinataire.', 'error');
+      showToast(t('orders.fillRecipientError'), 'error');
       return;
     }
     const token = `TRF_${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     setTransferSuccessToken(token);
-    showToast(`Billet transféré à ${recipientName}. Jeton : ${token}`, 'success');
+    showToast(
+      t('orders.transferSuccessToast')
+        .replace('{name}', recipientName)
+        .replace('{token}', token),
+      'success'
+    );
   };
 
   const tabsConfig: Array<{ id: ScrollableTab; label: string; count?: number; highlight?: boolean }> = [
-    { id: 'tickets', label: 'Mes billets', count: allTickets.length },
-    { id: 'past', label: 'Historique' },
-    { id: 'transfer', label: 'Transférés' },
+    { id: 'tickets', label: t('orders.tabTickets'), count: allTickets.length },
+    { id: 'past', label: t('orders.tabPast') },
+    { id: 'transfer', label: t('orders.tabTransfer') },
   ];
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-32 select-none font-agrandir-regular">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-32 select-none font-agrandir-regular">
       
       {/* Barre de retour supérieure */}
       <div className="flex items-center justify-between gap-3 mb-6 pb-3 border-b border-white/10">
@@ -115,18 +120,18 @@ export const CustomerSpace: React.FC = () => {
           type="button"
           onClick={() => setCurrentPage('home')}
           className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
-          title="Retourner à l'accueil"
+          title={t('nav.backHome')}
         >
           <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
-          <span>RETOUR</span>
+          <span>{t('nav.back')}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setCurrentPage('home')}
           className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
-          title="Fermer et revenir à l'accueil"
-          aria-label="Fermer"
+          title={t('nav.backHome')}
+          aria-label={t('nav.close')}
         >
           <X className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-transform duration-200" />
         </button>
@@ -192,9 +197,9 @@ export const CustomerSpace: React.FC = () => {
             <div className="text-center py-20 border border-dashed border-white/15 rounded-3xl bg-[#0c0c0c] p-8 space-y-4">
               <TicketIcon className="w-12 h-12 text-[#555] mx-auto" />
               <div className="space-y-1">
-                <h3 className="font-agrandir-extrabold text-xl text-white uppercase">AUCUN BILLET ACTIF</h3>
+                <h3 className="font-agrandir-extrabold text-xl text-white uppercase">{t('orders.noTickets')}</h3>
                 <p className="text-xs font-agrandir-regular text-[#888] max-w-sm mx-auto">
-                  Vous n’avez pas encore de billets réservés. Choisissez un concert officiel dans la programmation pour réserver vos places.
+                  {t('orders.noTicketsDesc')}
                 </p>
               </div>
               <button
@@ -202,7 +207,7 @@ export const CustomerSpace: React.FC = () => {
                 onClick={() => setCurrentPage('home')}
                 className="px-6 py-3 rounded-full bg-white text-black font-agrandir-semibold text-xs tracking-wider uppercase hover:bg-neutral-200 transition-colors cursor-pointer"
               >
-                DÉCOUVRIR LES CONCERTS
+                {t('orders.discoverConcerts')}
               </button>
             </div>
           ) : (
@@ -235,7 +240,7 @@ export const CustomerSpace: React.FC = () => {
                       <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
                         <span className="rounded-full bg-black/80 backdrop-blur-md text-[8px] sm:text-[9px] font-agrandir-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 tracking-widest text-[#d4af37] border border-[#d4af37]/40 uppercase shadow-md flex items-center gap-1">
                           <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#d4af37]" />
-                          <span className="hidden sm:inline">OFFICIEL</span>
+                          <span className="hidden sm:inline">{t('orders.officialBadge')}</span>
                         </span>
                       </div>
                     </div>
@@ -254,7 +259,7 @@ export const CustomerSpace: React.FC = () => {
                                 : 'border-amber-500/50 text-amber-400 bg-amber-950/30'
                             }`}
                           >
-                            {ticket.status === 'valid' ? '✓ ENTRÉE VALIDE' : 'UTILISÉ'}
+                            {ticket.status === 'valid' ? t('orders.validEntry') : t('orders.used')}
                           </span>
                         </div>
 
@@ -264,7 +269,7 @@ export const CustomerSpace: React.FC = () => {
 
                         <div className="inline-block rounded-lg sm:rounded-xl border border-[#d4af37]/60 bg-[#d4af37]/10 px-2.5 sm:px-3.5 py-1 mb-2.5 shadow-sm">
                           <div className="text-[7px] sm:text-[8px] font-agrandir-semibold text-[#d4af37] tracking-widest uppercase">
-                            CATÉGORIE RÉSERVÉE
+                            {t('orders.reservedCategory')}
                           </div>
                           <div className="font-agrandir-extrabold text-xs sm:text-base text-white tracking-wide uppercase">
                             {ticket.categoryName}
@@ -274,7 +279,7 @@ export const CustomerSpace: React.FC = () => {
                         <div className="space-y-1 sm:space-y-1.5 text-[10px] sm:text-xs font-agrandir-regular text-[#ccc]">
                           <div className="flex items-center gap-1.5 sm:gap-2">
                             <Calendar className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-                            <span className="font-agrandir-semibold text-white truncate"><strong className="font-agrandir-extrabold text-white">{formatDateLongFrench(ticket.eventDate)}</strong> à <strong className="font-agrandir-extrabold text-white">{ticket.eventTime}</strong></span>
+                            <span className="font-agrandir-semibold text-white truncate"><strong className="font-agrandir-extrabold text-white">{formatDateLong(ticket.eventDate, language)}</strong> {t('orders.atTime')} <strong className="font-agrandir-extrabold text-white">{ticket.eventTime}</strong></span>
                           </div>
                           <div className="flex items-center gap-1.5 sm:gap-2">
                             <MapPin className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
@@ -282,14 +287,14 @@ export const CustomerSpace: React.FC = () => {
                           </div>
                           <div className="hidden sm:flex items-center gap-2">
                             <User className="w-3.5 h-3.5 text-[#888] shrink-0" />
-                            <span className="truncate">Titulaire : <strong className="text-white font-agrandir-semibold">{ticket.holderName}</strong></span>
+                            <span className="truncate">{t('orders.holder')} <strong className="text-white font-agrandir-semibold">{ticket.holderName}</strong></span>
                           </div>
                         </div>
                       </div>
 
                       <div className="pt-2 sm:pt-3 border-t border-white/10 flex items-center justify-between gap-2 text-[8px] sm:text-[9px] text-[#777] font-agrandir-regular">
                         <span className="truncate hidden sm:inline">LUMARÉEL CO. · CRYPTO CHECK</span>
-                        <span className="text-[#999] tracking-widest truncate">RÉF : {ticket.orderRef}</span>
+                        <span className="text-[#999] tracking-widest truncate">{t('orders.ref')} {ticket.orderRef}</span>
                       </div>
                     </div>
 
@@ -319,11 +324,11 @@ export const CustomerSpace: React.FC = () => {
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-black text-[9px] sm:text-xs">
-                              Génération...
+                              {t('orders.generating')}
                             </div>
                           )}
                           <div className="absolute inset-0 bg-black/60 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-agrandir-semibold">
-                            Agrandir
+                            {t('orders.enlarge')}
                           </div>
                         </div>
                       </div>
@@ -335,7 +340,7 @@ export const CustomerSpace: React.FC = () => {
                           className="w-full py-1.5 sm:py-2 text-[8px] sm:text-[10px] font-agrandir-semibold tracking-wider uppercase bg-white text-black rounded-full hover:bg-neutral-200 transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm"
                         >
                           <QrCode className="w-3 h-3 shrink-0" />
-                          <span>VOIR QR</span>
+                          <span>{t('orders.viewQr')}</span>
                         </button>
 
                         <button
@@ -344,7 +349,7 @@ export const CustomerSpace: React.FC = () => {
                           className="hidden sm:flex w-full py-1.5 text-[8px] sm:text-[9px] font-agrandir-regular tracking-wider uppercase border border-white/20 hover:border-white text-[#bbb] hover:text-white rounded-full transition-colors items-center justify-center gap-1.5 cursor-pointer bg-white/5"
                         >
                           <Printer className="w-3 h-3 shrink-0" />
-                          <span>IMPRIMER</span>
+                          <span>{t('orders.printUpper')}</span>
                         </button>
                       </div>
                     </div>
@@ -364,28 +369,28 @@ export const CustomerSpace: React.FC = () => {
             <div className="flex items-center gap-2 text-[#d4af37]">
               <Send className="w-5 h-5" />
               <h2 className="font-agrandir-extrabold text-lg uppercase tracking-tight text-white">
-                Transférer un billet
+                {t('orders.transferTitle')}
               </h2>
             </div>
             <p className="text-xs text-[#888] leading-relaxed">
-              Transférez en toute sécurité un billet à un proche. L'ancien QR code sera immédiatement désactivé et un nouveau billet officiel sera généré au nom du nouveau titulaire.
+              {t('orders.transferDesc')}
             </p>
           </div>
 
           {allTickets.length === 0 ? (
             <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-neutral-400">
-              Vous n'avez aucun billet disponible pour le transfert.
+              {t('orders.noTransferTickets')}
             </div>
           ) : transferSuccessToken ? (
             <div className="p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-center space-y-3">
               <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
               <div className="space-y-1">
-                <div className="font-agrandir-extrabold text-white uppercase text-base">Transfert Validé</div>
+                <div className="font-agrandir-extrabold text-white uppercase text-base">{t('orders.transferValidated')}</div>
                 <div className="text-xs text-neutral-300">
-                  Le billet a été transféré avec succès à <strong>{recipientName}</strong>.
+                  {t('orders.transferSuccessDesc')} <strong>{recipientName}</strong>.
                 </div>
                 <div className="p-2.5 rounded-xl bg-black/60 border border-emerald-500/30 text-xs font-mono text-[#d4af37] mt-2">
-                  Jeton de transfert : {transferSuccessToken}
+                  {t('orders.transferToken')} {transferSuccessToken}
                 </div>
               </div>
               <button
@@ -397,14 +402,14 @@ export const CustomerSpace: React.FC = () => {
                 }}
                 className="px-4 py-2 rounded-full bg-white text-black font-agrandir-semibold text-xs uppercase cursor-pointer"
               >
-                Effectuer un autre transfert
+                {t('orders.anotherTransfer')}
               </button>
             </div>
           ) : (
             <form onSubmit={handleConfirmTransfer} className="space-y-4">
               <div>
                 <label className="text-[10px] uppercase font-agrandir-semibold text-[#888] block mb-1">
-                  1. Sélectionner le billet à céder
+                  {t('orders.selectTicket')}
                 </label>
                 <select
                   value={transferTicketId}
@@ -412,10 +417,10 @@ export const CustomerSpace: React.FC = () => {
                   className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-[#d4af37]"
                   required
                 >
-                  <option value="">-- Choisir parmi mes billets valides --</option>
-                  {allTickets.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.eventTitle} — {t.categoryName} ({t.serialNumber})
+                  <option value="">{t('orders.chooseValidTicket')}</option>
+                  {allTickets.map((tkt) => (
+                    <option key={tkt.id} value={tkt.id}>
+                      {tkt.eventTitle} — {tkt.categoryName} ({tkt.serialNumber})
                     </option>
                   ))}
                 </select>
@@ -423,13 +428,13 @@ export const CustomerSpace: React.FC = () => {
 
               <div>
                 <label className="text-[10px] uppercase font-agrandir-semibold text-[#888] block mb-1">
-                  2. Nom complet du nouveau bénéficiaire
+                  {t('orders.recipientFullName')}
                 </label>
                 <input
                   type="text"
                   value={recipientName}
                   onChange={(e) => setRecipientName(e.target.value)}
-                  placeholder="Ex: Jean-Marc Kouassi"
+                  placeholder={t('orders.recipientName')}
                   className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-[#d4af37]"
                   required
                 />
@@ -437,13 +442,13 @@ export const CustomerSpace: React.FC = () => {
 
               <div>
                 <label className="text-[10px] uppercase font-agrandir-semibold text-[#888] block mb-1">
-                  3. Adresse e-mail ou WhatsApp du destinataire
+                  {t('orders.recipientContactLabel')}
                 </label>
                 <input
                   type="text"
                   value={recipientContact}
                   onChange={(e) => setRecipientContact(e.target.value)}
-                  placeholder="jean.marc@gmail.com ou +225 07..."
+                  placeholder={t('orders.recipientContact')}
                   className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-[#d4af37]"
                   required
                 />
@@ -452,7 +457,7 @@ export const CustomerSpace: React.FC = () => {
               <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-[11px] text-[#888] flex items-start gap-2">
                 <ShieldCheck className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
                 <span>
-                  Ce transfert est irréversible. Dès validation, votre ancien billet deviendra inutilisable lors du contrôle aux portes.
+                  {t('orders.transferNotice')}
                 </span>
               </div>
 
@@ -460,7 +465,7 @@ export const CustomerSpace: React.FC = () => {
                 type="submit"
                 className="w-full py-3.5 rounded-full bg-white text-black font-agrandir-extrabold text-xs uppercase tracking-wider hover:bg-neutral-200 transition-colors cursor-pointer shadow-lg"
               >
-                Confirmer le transfert sécurisé
+                {t('orders.confirmTransfer')}
               </button>
             </form>
           )}
@@ -476,23 +481,23 @@ export const CustomerSpace: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-5 rounded-2xl bg-[#141414] border border-white/10 space-y-2">
                 <div className="flex items-center justify-between text-xs text-neutral-400 font-agrandir-bold">
-                  <span className="text-white font-agrandir-extrabold text-sm uppercase">TRK EN CONCERT</span>
+                  <span className="text-white font-agrandir-extrabold text-sm uppercase">TRK {t('home.inConcert')}</span>
                   <span className="text-neutral-500 font-mono">2025</span>
                 </div>
                 <div className="text-[11px] text-[#aaa]">
-                  <strong className="text-white font-agrandir-bold">Palais des Congrès du Sofitel Ivoire</strong> · Scénographie sonore et visuelle 360°
+                  <strong className="text-white font-agrandir-bold">Palais des Congrès du Sofitel Ivoire</strong> · {language === 'en' ? '360° sound & visual scenography' : 'Scénographie sonore et visuelle 360°'}
                 </div>
                 <div className="pt-2 flex items-center justify-between">
                   <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/10 text-[9px] text-neutral-300 uppercase font-agrandir-semibold">
-                    Billet Archivé
+                    {t('orders.archivedTicket')}
                   </span>
-                  <span className="text-[10px] text-emerald-400 font-agrandir-semibold">Terminé</span>
+                  <span className="text-[10px] text-emerald-400 font-agrandir-semibold">{t('orders.completed')}</span>
                 </div>
               </div>
 
               <div className="p-5 rounded-2xl bg-[#141414] border border-white/10 space-y-2">
                 <div className="flex items-center justify-between text-xs text-neutral-400 font-agrandir-bold">
-                  <span className="text-white font-agrandir-extrabold text-sm uppercase">DOPELYM EN CONCERT</span>
+                  <span className="text-white font-agrandir-extrabold text-sm uppercase">DOPELYM {t('home.inConcert')}</span>
                   <span className="text-neutral-500 font-mono">2025</span>
                 </div>
                 <div className="text-[11px] text-[#aaa]">
@@ -500,9 +505,9 @@ export const CustomerSpace: React.FC = () => {
                 </div>
                 <div className="pt-2 flex items-center justify-between">
                   <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/10 text-[9px] text-neutral-300 uppercase font-agrandir-semibold">
-                    Billet Archivé
+                    {t('orders.archivedTicket')}
                   </span>
-                  <span className="text-[10px] text-emerald-400 font-agrandir-semibold">Terminé</span>
+                  <span className="text-[10px] text-emerald-400 font-agrandir-semibold">{t('orders.completed')}</span>
                 </div>
               </div>
             </div>
@@ -517,13 +522,13 @@ export const CustomerSpace: React.FC = () => {
             <button
               onClick={() => setSelectedTicketForQr(null)}
               className="absolute top-4 right-4 p-2 text-black hover:bg-black/10 rounded-full transition-colors cursor-pointer"
-              aria-label="Fermer"
+              aria-label={t('nav.close')}
             >
               ✕
             </button>
 
             <div className="text-[10px] font-agrandir-regular tracking-widest text-[#666] uppercase mb-1">
-              SCAN DE CONTRÔLE D’ACCÈS
+              {t('orders.qrScanTitle')}
             </div>
             <h3 className="font-agrandir-extrabold text-xl mb-1 uppercase text-black">
               {selectedTicketForQr.eventTitle}
@@ -542,7 +547,7 @@ export const CustomerSpace: React.FC = () => {
               </div>
             ) : (
               <div className="w-56 h-56 mx-auto bg-neutral-100 flex items-center justify-center text-xs mb-4">
-                Chargement...
+                {t('orders.loading')}
               </div>
             )}
 
@@ -550,7 +555,7 @@ export const CustomerSpace: React.FC = () => {
               {selectedTicketForQr.serialNumber}
             </div>
             <p className="text-[10px] text-[#666] leading-tight mb-4">
-              Présentez cet écran avec luminosité maximale au portillon d'accès.
+              {t('orders.accessNotice')}
             </p>
 
             <div className="flex items-center justify-center gap-2 mb-3">
@@ -558,10 +563,9 @@ export const CustomerSpace: React.FC = () => {
                 href={modalQrCodeUrl}
                 download={`QR_${selectedTicketForQr.serialNumber}.png`}
                 className="flex-1 py-2.5 px-3 bg-neutral-100 hover:bg-neutral-200 text-black border border-neutral-300 font-agrandir-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                title="Enregistrer l'image du QR Code"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Enregistrer QR</span>
+                <span>{t('orders.saveQr')}</span>
               </a>
 
               <a
@@ -569,10 +573,9 @@ export const CustomerSpace: React.FC = () => {
                 target="_blank"
                 rel="noreferrer"
                 className="flex-1 py-2.5 px-3 bg-neutral-100 hover:bg-neutral-200 text-black border border-neutral-300 font-agrandir-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                title="Ouvrir le billet au format imprimable A4"
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span>Imprimer</span>
+                <span>{t('orders.print')}</span>
               </a>
             </div>
 
@@ -581,7 +584,7 @@ export const CustomerSpace: React.FC = () => {
               onClick={() => setSelectedTicketForQr(null)}
               className="w-full py-2.5 bg-black text-white font-agrandir-semibold text-xs rounded-full uppercase tracking-wider hover:bg-neutral-800 transition-colors cursor-pointer"
             >
-              FERMER
+              {t('orders.close')}
             </button>
           </div>
         </div>

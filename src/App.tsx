@@ -23,7 +23,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Shield } from 'lucide-react';
 
 const MainApp: React.FC = () => {
-  const { currentPage, toast, setCurrentPage, platformSettings, currentUser, setIsAuthModalOpen, showToast } = useApp();
+  const { currentPage, toast, setCurrentPage, platformSettings, currentUser, t } = useApp();
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
   const isSuperAdmin =
@@ -81,7 +81,7 @@ const MainApp: React.FC = () => {
                 />
               </div>
               <p className="text-[11px] text-[#aaa] max-w-lg font-light leading-relaxed">
-                Agence de AREEL GROUPE, spécialisée dans l’Organisation et la Promotion d’Événements Festifs.
+                {t('footer.description')}
               </p>
             </div>
 
@@ -155,7 +155,7 @@ const MainApp: React.FC = () => {
               </div>
 
               <div className="text-[10px] text-[#777] font-mono tracking-widest uppercase">
-                BILLETTERIE OFFICIELLE CERTIFIÉE · PLACEMENT GARANTI
+                {t('footer.security')}
               </div>
             </div>
           </div>

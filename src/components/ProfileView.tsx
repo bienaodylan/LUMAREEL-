@@ -58,10 +58,10 @@ export const ProfileView: React.FC = () => {
 
       setCurrentUser(null);
       setShowDeleteConfirm(false);
-      showToast('Votre compte a été supprimé avec succès.', 'success');
+      showToast(t('profile.deleteSuccess'), 'success');
       setCurrentPage('home');
     } catch (err: any) {
-      showToast(err.message || 'Impossible de supprimer le compte.', 'error');
+      showToast(err.message || t('profile.deleteError'), 'error');
     } finally {
       setIsDeletingAccount(false);
     }
@@ -82,18 +82,18 @@ export const ProfileView: React.FC = () => {
           type="button"
           onClick={() => setCurrentPage('home')}
           className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
-          title="Retourner à l'accueil"
+          title={t('nav.backHome')}
         >
           <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
-          <span>RETOUR</span>
+          <span>{t('nav.back')}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setCurrentPage('home')}
           className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
-          title="Fermer et revenir à l'accueil"
-          aria-label="Fermer"
+          title={t('nav.backHome')}
+          aria-label={t('nav.close')}
         >
           <X className="w-4 h-4 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-transform duration-200" />
         </button>
@@ -120,9 +120,9 @@ export const ProfileView: React.FC = () => {
             type="button"
             onClick={() => setCurrentPage('admin')}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-agrandir-bold transition-all cursor-pointer shadow-md active:scale-95"
-            title="Accéder à l'espace administrateur"
+            title={t('nav.admin')}
           >
-            <span>Administrateur</span>
+            <span>{t('nav.admin')}</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         )}
@@ -161,10 +161,10 @@ export const ProfileView: React.FC = () => {
             <Crown className="w-5 h-5 text-[#d4af37] stroke-[1.8]" />
             <div>
               <span className="text-sm font-agrandir-bold text-white group-hover:text-[#d4af37] transition-colors block">
-                Ma LUMARÉEL CARD
+                {t('profile.myCard')}
               </span>
               <span className="text-[10px] text-neutral-400 font-mono block">
-                Founders Edition · Carte PVC Gravée &amp; Privilèges
+                {t('profile.myCardSub')}
               </span>
             </div>
           </div>
@@ -180,7 +180,7 @@ export const ProfileView: React.FC = () => {
             <div className="flex items-center gap-3.5">
               <Shield className="w-5 h-5 text-white stroke-[1.8]" />
               <span className="text-sm font-agrandir-regular text-white">
-                Administrateur
+                {t('nav.admin')}
               </span>
             </div>
             <ChevronRight className="w-4 h-4 text-neutral-500" />
@@ -233,7 +233,7 @@ export const ProfileView: React.FC = () => {
       {/* GROUPE 3 : CONNEXION */}
       <div className="pt-6">
         <div className="px-6 pb-2 text-[11px] font-agrandir-bold tracking-widest text-[#888] uppercase">
-          Session
+          {t('profile.session')}
         </div>
 
         {currentUser ? (
@@ -255,13 +255,13 @@ export const ProfileView: React.FC = () => {
             {/* Zone de Danger : Suppression du compte */}
             <div className="mt-4 pt-4 border-t border-white/10">
               <div className="px-6 pb-2 text-[10px] font-agrandir-bold tracking-widest text-rose-500/80 uppercase">
-                Zone sensible
+                {t('profile.sensitiveZone')}
               </div>
               <button
                 type="button"
                 onClick={() => {
                   if (currentUser.email?.toLowerCase() === 'bienaodylan428@gmail.com') {
-                    showToast('Le compte fondateur est protégé contre la suppression.', 'info');
+                    showToast(t('profile.founderProtected'), 'info');
                     return;
                   }
                   setShowDeleteConfirm(true);
@@ -272,10 +272,10 @@ export const ProfileView: React.FC = () => {
                   <Trash2 className="w-5 h-5 text-rose-400 stroke-[1.8] group-hover:scale-110 transition-transform" />
                   <div>
                     <span className="text-sm font-agrandir-bold text-rose-400">
-                      Supprimer mon compte
+                      {t('profile.deleteAccount')}
                     </span>
                     <p className="text-[11px] text-rose-400/60 font-agrandir-regular">
-                      Supprime définitivement votre compte et vos données
+                      {t('profile.deleteAccountDesc')}
                     </p>
                   </div>
                 </div>
@@ -292,7 +292,7 @@ export const ProfileView: React.FC = () => {
             <div className="flex items-center gap-3.5">
               <User className="w-5 h-5 text-white stroke-[1.8]" />
               <span className="text-sm font-agrandir-regular text-white">
-                Se connecter
+                {t('profile.login')}
               </span>
             </div>
             <ChevronRight className="w-4 h-4 text-neutral-500" />
@@ -310,7 +310,7 @@ export const ProfileView: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-agrandir-extrabold text-base text-white uppercase tracking-tight">
-                  Supprimer votre compte ?
+                  {t('profile.deleteTitle')}
                 </h3>
                 <p className="text-[11px] text-rose-400/80 font-mono">
                   {currentUser?.email}
@@ -319,7 +319,7 @@ export const ProfileView: React.FC = () => {
             </div>
 
             <p className="text-xs text-neutral-300 leading-relaxed font-agrandir-regular">
-              Êtes-vous sûr de vouloir supprimer définitivement votre compte LUMARÉEL ? Cette action est irréversible et supprimera l'ensemble de votre profil.
+              {t('profile.deleteConfirm')}
             </p>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
@@ -329,7 +329,7 @@ export const ProfileView: React.FC = () => {
                 disabled={isDeletingAccount}
                 className="px-4 py-2.5 rounded-full border border-white/15 hover:border-white text-xs font-agrandir-semibold text-neutral-300 hover:text-white transition-colors cursor-pointer"
               >
-                Annuler
+                {t('profile.cancel')}
               </button>
               <button
                 type="button"
@@ -338,11 +338,11 @@ export const ProfileView: React.FC = () => {
                 className="px-5 py-2.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white font-agrandir-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95 disabled:opacity-50 flex items-center gap-2"
               >
                 {isDeletingAccount ? (
-                  <span>Suppression...</span>
+                  <span>{t('profile.deleting')}</span>
                 ) : (
                   <>
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Confirmer la suppression</span>
+                    <span>{t('profile.confirmDelete')}</span>
                   </>
                 )}
               </button>

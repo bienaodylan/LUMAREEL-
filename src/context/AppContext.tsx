@@ -285,6 +285,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLanguageState(lang);
     if (typeof window !== 'undefined') {
       localStorage.setItem('lumareel_lang', lang);
+      document.documentElement.lang = lang;
     }
   };
 

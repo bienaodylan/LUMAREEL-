@@ -5,7 +5,7 @@ import {
   Play, Image as ImageIcon, MapPin, X, ChevronLeft, ChevronRight, 
   Maximize2, Film, ArrowLeft
 } from 'lucide-react';
-import { formatDateLongFrench } from '../utils/dateUtils';
+import { formatDateLong } from '../utils/dateUtils';
 
 export const ArchiveView: React.FC = () => {
   const { archives, setCurrentPage, language, t } = useApp();
@@ -54,7 +54,7 @@ export const ArchiveView: React.FC = () => {
       </div>
 
       {/* Main content container avec espacement ajusté */}
-      <div className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-10 lg:px-12 pt-24 sm:pt-28 pb-6 sm:pb-8 flex-1">
+      <div className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-10 lg:px-12 pt-6 sm:pt-10 pb-6 sm:pb-8 flex-1">
         
         {/* Navigation & Section kicker */}
         <div className="flex items-center justify-between mb-6">
@@ -170,7 +170,7 @@ export const ArchiveView: React.FC = () => {
                             <strong className="font-agrandir-extrabold text-neutral-300">{item.venue}</strong>
                           </p>
                           <p className="text-[9px] text-[#666] font-agrandir-regular mt-0.5">
-                            <strong className="font-agrandir-extrabold text-neutral-400">{item.date ? formatDateLongFrench(item.date) : item.year}</strong> · {item.city}
+                            <strong className="font-agrandir-extrabold text-neutral-400">{item.date ? formatDateLong(item.date, language) : item.year}</strong> · {item.city}
                           </p>
                         </div>
 
@@ -192,7 +192,7 @@ export const ArchiveView: React.FC = () => {
                         className="flex-1 py-2 rounded-full bg-white/5 hover:bg-white/10 text-[#d4af37] text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 border border-[#d4af37]/30 transition-colors cursor-pointer"
                       >
                         <ImageIcon className="w-3.5 h-3.5 text-[#d4af37]" />
-                        <span>Voir les images ({photoList.length})</span>
+                        <span>{t('archive.viewImages')} ({photoList.length})</span>
                       </button>
 
                       <button
@@ -200,7 +200,7 @@ export const ArchiveView: React.FC = () => {
                         className="px-4 py-2 rounded-full bg-white text-black text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center gap-1 hover:bg-neutral-200 transition-colors cursor-pointer"
                       >
                         <Play className="w-3 h-3 fill-current" />
-                        <span>Lire</span>
+                        <span>{t('archive.play')}</span>
                       </button>
                     </div>
 
@@ -249,7 +249,7 @@ export const ArchiveView: React.FC = () => {
                               <button
                                 onClick={() => setActivePlayingId(null)}
                                 className="absolute top-3 right-3 p-2 rounded-full bg-black/80 hover:bg-black text-white border border-white/20 cursor-pointer shadow-lg backdrop-blur-md transition-all z-20"
-                                title="Fermer la vidéo"
+                                title={t('archive.closeVideo')}
                               >
                                 <X className="w-4 h-4" />
                               </button>
@@ -288,7 +288,7 @@ export const ArchiveView: React.FC = () => {
                               <div className="absolute top-3.5 left-3.5">
                                 <span className="px-3 py-1 rounded-full bg-black/75 backdrop-blur-md text-[10px] font-agrandir-semibold text-[#d4af37] border border-white/15 uppercase tracking-wider flex items-center gap-1.5">
                                   <Film className="w-3 h-3" />
-                                  <span>RÉCAP VIDÉO 4K</span>
+                                  <span>{t('archive.videoRecapBadge')}</span>
                                 </span>
                               </div>
                             </div>
@@ -316,7 +316,7 @@ export const ArchiveView: React.FC = () => {
                                   }))
                                 }
                                 className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/70 hover:bg-black text-white border border-white/20 cursor-pointer shadow-lg backdrop-blur-md"
-                                aria-label="Photo précédente"
+                                aria-label={t('archive.prevPhoto')}
                               >
                                 <ChevronLeft className="w-4 h-4" />
                               </button>
@@ -329,7 +329,7 @@ export const ArchiveView: React.FC = () => {
                                   }))
                                 }
                                 className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/70 hover:bg-black text-white border border-white/20 cursor-pointer shadow-lg backdrop-blur-md"
-                                aria-label="Photo suivante"
+                                aria-label={t('archive.nextPhoto')}
                               >
                                 <ChevronRight className="w-4 h-4" />
                               </button>
@@ -339,7 +339,7 @@ export const ArchiveView: React.FC = () => {
                           {/* Photo counter badge */}
                           <div className="absolute bottom-3.5 right-3.5">
                             <span className="px-3 py-1 rounded-full bg-black/85 backdrop-blur-md text-xs font-mono text-white border border-white/20">
-                              {currentPhotoIdx + 1} / {photoList.length} PHOTOS
+                              {currentPhotoIdx + 1} / {photoList.length} {t('archive.photos')}
                             </span>
                           </div>
 
@@ -347,7 +347,7 @@ export const ArchiveView: React.FC = () => {
                           <button
                             onClick={() => handleOpenModal(item, 'photos', currentPhotoIdx)}
                             className="absolute top-3.5 right-3.5 p-2 rounded-full bg-black/70 hover:bg-black text-white border border-white/20 cursor-pointer shadow-lg backdrop-blur-md"
-                            title="Agrandir les photos"
+                            title={t('archive.enlargePhotos')}
                           >
                             <Maximize2 className="w-3.5 h-3.5" />
                           </button>
@@ -369,7 +369,7 @@ export const ArchiveView: React.FC = () => {
                         }`}
                       >
                         <Play className="w-3.5 h-3.5 fill-current" />
-                        <span>Voir la vidéo</span>
+                        <span>{t('archive.watchVideo')}</span>
                       </button>
 
                       <button
@@ -381,7 +381,7 @@ export const ArchiveView: React.FC = () => {
                         }`}
                       >
                         <ImageIcon className="w-3.5 h-3.5" />
-                        <span>Voir les photos ({photoList.length})</span>
+                        <span>{t('archive.watchPhotos')} ({photoList.length})</span>
                       </button>
                     </div>
 
@@ -394,7 +394,7 @@ export const ArchiveView: React.FC = () => {
                       {/* Top Tag & Date */}
                       <div className="flex items-center gap-2.5 mb-2 flex-wrap">
                         <span className="text-xs text-[#888] font-agrandir-regular">
-                          <strong className="font-agrandir-extrabold text-white">{item.date ? formatDateLongFrench(item.date) : item.year}</strong>
+                          <strong className="font-agrandir-extrabold text-white">{item.date ? formatDateLong(item.date, language) : item.year}</strong>
                         </span>
                       </div>
 
@@ -418,7 +418,7 @@ export const ArchiveView: React.FC = () => {
                       {item.artists && item.artists.length > 0 && (
                         <div className="space-y-1.5">
                           <div className="text-[10px] text-[#777] uppercase tracking-wider font-agrandir-semibold">
-                            Artistes &amp; Scénographie
+                            {t('archive.artistsSceno')}
                           </div>
                           <div className="flex flex-wrap gap-2">
                             {item.artists.map((art, aIdx) => (
@@ -441,13 +441,13 @@ export const ArchiveView: React.FC = () => {
                         className="px-6 py-2.5 rounded-full bg-white text-black hover:bg-[#eaeaea] font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-xl"
                       >
                         <Play className="w-3.5 h-3.5 fill-current" />
-                        <span>{isPlaying ? 'En cours de lecture' : 'Lancer le récap'}</span>
+                        <span>{isPlaying ? t('archive.playing') : t('archive.launchRecap')}</span>
                       </button>
 
                       <button
                         onClick={() => handleOpenModal(item, 'video')}
                         className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/15 transition-colors cursor-pointer"
-                        title="Plein écran sans redirection"
+                        title={t('archive.fullscreenHint')}
                       >
                         <Maximize2 className="w-4 h-4" />
                       </button>
@@ -479,14 +479,14 @@ export const ArchiveView: React.FC = () => {
                   {modalItem.archive.title}
                 </h3>
                 <p className="text-xs text-[#888]">
-                  {modalItem.archive.venue} · {modalItem.archive.date || modalItem.archive.year}
+                  {modalItem.archive.venue} · {modalItem.archive.date ? formatDateLong(modalItem.archive.date, language) : modalItem.archive.year}
                 </p>
               </div>
 
               <button
                 onClick={() => setModalItem(null)}
                 className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white cursor-pointer transition-colors"
-                title="Fermer"
+                title={t('archive.close')}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -512,7 +512,7 @@ export const ArchiveView: React.FC = () => {
                     className="max-h-[60vh] w-auto object-contain rounded-2xl sm:rounded-3xl border border-white/10"
                   />
                   <div className="text-xs text-[#888] font-mono mt-3">
-                    Photo {(modalItem.photoIndex || 0) + 1} sur {(modalItem.archive.photos || []).length}
+                    {t('archive.photo')} {(modalItem.photoIndex || 0) + 1} {t('archive.of')} {(modalItem.archive.photos || []).length}
                   </div>
                 </div>
               )}

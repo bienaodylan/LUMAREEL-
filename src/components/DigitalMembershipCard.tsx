@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MembershipCard } from '../types';
+import { useApp } from '../context/AppContext';
 import {
   RotateCw,
   Cpu,
@@ -22,6 +23,7 @@ interface DigitalMembershipCardProps {
 export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
   card,
 }) => {
+  const { t, language } = useApp();
   const [isFlipped, setIsFlipped] = useState(false);
 
   // Clean member name without any titles or roles
@@ -51,7 +53,7 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
               setIsFlipped((prev) => !prev);
             }
           }}
-          aria-label={`Carte de membre sans contact ${card.cardNumber}. Cliquez pour retourner la carte.`}
+          aria-label={`${language === 'en' ? 'Contactless member card' : 'Carte de membre sans contact'} ${card.cardNumber}. ${t('cardUi.clickFlip')}`}
         >
           <motion.div
             animate={{ rotateY: isFlipped ? 180 : 0 }}
@@ -114,7 +116,7 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/80">
                   <Radio className="w-3.5 h-3.5 text-[#d4af37]" />
                   <span className="text-[8px] sm:text-[9px] font-mono tracking-widest text-[#d4af37] uppercase">
-                    SANS CONTACT
+                    {t('cardUi.contactless')}
                   </span>
                 </div>
               </div>
@@ -122,7 +124,7 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
               {/* Ligne 3 (Centre) : Nom complet du membre en grand */}
               <div className="relative z-10 text-left px-1 py-1">
                 <div className="text-[7px] sm:text-[8px] font-mono tracking-[0.25em] text-neutral-400 uppercase">
-                  TITULAIRE OFFICIEL
+                  {t('cardUi.officialHolder')}
                 </div>
                 <h2 className="text-base sm:text-xl font-agrandir-extrabold uppercase tracking-wide text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] truncate">
                   {cleanMemberName}
@@ -132,7 +134,7 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
               {/* Ligne 4 (Bas) : Numéro permanent de membre */}
               <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-2">
                 <span className="text-[8px] sm:text-[9px] font-mono tracking-[0.2em] text-neutral-400 uppercase">
-                  IDENTIFIANT PERMANENT
+                  {t('cardUi.permanentId')}
                 </span>
                 <span className="font-mono font-bold text-xs sm:text-sm text-[#d4af37] tracking-widest">
                   {card.cardNumber}
@@ -154,7 +156,7 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
               {/* Bande magnétique satinée noire sur le haut */}
               <div className="-mx-6 -mt-4 sm:-mt-6 h-8 sm:h-9 bg-neutral-950 border-b border-white/10 flex items-center px-6">
                 <span className="text-[7px] font-mono text-neutral-600 tracking-widest uppercase">
-                  LUMARÉEL BLACK CARD · CERCLE PRIVÉ & HOSPITALITÉ
+                  {language === 'en' ? 'LUMARÉEL BLACK CARD · PRIVATE CIRCLE & HOSPITALITY' : 'LUMARÉEL BLACK CARD · CERCLE PRIVÉ & HOSPITALITÉ'}
                 </span>
               </div>
 
@@ -164,16 +166,16 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#d4af37]" />
                     <span className="text-[9px] font-agrandir-bold text-white uppercase tracking-wider">
-                      SCELLÉ DE SÉCURITÉ LUMARÉEL
+                      {t('cardUi.securitySeal')}
                     </span>
                   </div>
                   <p className="text-[8px] sm:text-[9px] text-neutral-300 leading-snug font-agrandir-regular">
-                    Identification automatique par simple effleurement aux portillons coupe-file, salons VIP et bars privés.
+                    {t('cardUi.sealDesc')}
                   </p>
                   <div className="pt-1 flex items-center gap-2">
-                    <span className="text-[7px] font-mono text-[#888] uppercase tracking-wider">STATUT :</span>
+                    <span className="text-[7px] font-mono text-[#888] uppercase tracking-wider">{t('cardUi.status')}</span>
                     <span className="font-mono text-[9px] font-bold text-[#d4af37] tracking-wider bg-black/50 px-2 py-0.5 rounded border border-[#d4af37]/30">
-                      SÉRIE LIMITÉE 100 MEMBRES
+                      {t('cardUi.limitedSeries')}
                     </span>
                   </div>
                 </div>
@@ -182,7 +184,7 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-amber-400/20 via-[#d4af37]/30 to-amber-700/20 border border-[#d4af37]/50 p-2 flex flex-col items-center justify-center text-center shrink-0 shadow-inner">
                   <Lock className="w-4 h-4 text-[#d4af37] mb-1" />
                   <span className="text-[6px] font-mono font-bold text-white tracking-widest uppercase">
-                    CARTE OFFICIELLE
+                    {t('cardUi.officialCard')}
                   </span>
                 </div>
               </div>
@@ -190,9 +192,9 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
               {/* Bas du verso : Signature & Numéro */}
               <div className="relative z-10 border-t border-white/10 pt-2 flex items-center justify-between text-[7px] sm:text-[8px] font-mono text-neutral-400">
                 <div className="flex items-center gap-2">
-                  <span className="text-white">CONCIERGERIE PRIVÉE 24/7</span>
+                  <span className="text-white">{t('cardUi.concierge')}</span>
                   <span>·</span>
-                  <span className="text-[#d4af37]">SANS CONTACT ACTIF</span>
+                  <span className="text-[#d4af37]">{t('cardUi.contactlessActive')}</span>
                 </div>
                 <span className="font-mono font-bold text-white tracking-wider">
                   {card.cardNumber}
@@ -211,13 +213,13 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-neutral-200 hover:text-white transition-all cursor-pointer text-xs font-agrandir-semibold active:scale-95 shadow-md"
         >
           <RotateCw className="w-3.5 h-3.5 text-[#d4af37]" />
-          <span>{isFlipped ? 'Afficher le Recto (Puce Or)' : 'Retourner la carte (Verso de Prestige)'}</span>
+          <span>{isFlipped ? t('cardUi.showFront') : t('cardUi.flipBack')}</span>
         </button>
       </div>
 
       <p className="mt-2 text-[11px] text-neutral-500 font-agrandir-regular text-center">
-        <span className="hidden sm:inline">Cliquez sur la carte pour la retourner</span>
-        <span className="sm:hidden">Touchez la carte pour la retourner</span>
+        <span className="hidden sm:inline">{t('cardUi.clickFlip')}</span>
+        <span className="sm:hidden">{t('cardUi.tapFlip')}</span>
       </p>
     </div>
   );

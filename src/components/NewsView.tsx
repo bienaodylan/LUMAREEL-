@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ArrowLeft, Calendar, User, Clock, ArrowRight, X } from 'lucide-react';
-import { formatDateLongFrench } from '../utils/dateUtils';
+import { formatDateLong } from '../utils/dateUtils';
 
 export const NewsView: React.FC = () => {
   const { news, setCurrentPage, language, t } = useApp();
   const [selectedArticle, setSelectedArticle] = useState<any | null>(null);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-24 sm:pt-28 pb-6 sm:pb-8">
+    <div className="max-w-7xl mx-auto px-6 pt-6 sm:pt-10 pb-6 sm:pb-8">
       
       {/* Header */}
       <div className="mb-12 pb-6 border-b border-[#1c1c1c]">
@@ -51,7 +51,7 @@ export const NewsView: React.FC = () => {
               <div className="p-6">
                 <div className="flex items-center justify-between text-[10px] font-agrandir-regular text-[#777] uppercase tracking-wider mb-2">
                   <span className="text-[#d4af37] font-agrandir-semibold">{article.category}</span>
-                  <strong className="font-agrandir-bold text-white">{formatDateLongFrench(article.date)}</strong>
+                  <strong className="font-agrandir-bold text-white">{formatDateLong(article.date, language)}</strong>
                 </div>
 
                 <h3 className="font-agrandir-extrabold text-xl text-white uppercase tracking-tight group-hover:text-white transition-colors mb-3 leading-snug">
@@ -66,7 +66,7 @@ export const NewsView: React.FC = () => {
 
             <div className="p-6 pt-0 flex items-center justify-between text-[11px] font-agrandir-semibold text-white uppercase tracking-wider border-t border-[#161616] mt-4">
               <span className="group-hover:translate-x-1 transition-transform inline-flex items-center gap-1.5">
-                <span>Lire la note</span>
+                <span>{t('news.readNote')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </span>
               <span className="text-[#666] font-agrandir-regular">{article.readTime}</span>
@@ -83,13 +83,13 @@ export const NewsView: React.FC = () => {
             <button
               onClick={() => setSelectedArticle(null)}
               className="absolute top-6 right-6 p-2 text-[#777] hover:text-white transition-colors cursor-pointer"
-              aria-label="Fermer"
+              aria-label={t('news.close')}
             >
               <X className="w-6 h-6" />
             </button>
 
             <div className="text-[10px] font-agrandir-semibold text-[#d4af37] uppercase tracking-widest mb-2">
-              {selectedArticle.category} · <strong className="text-white">{formatDateLongFrench(selectedArticle.date)}</strong>
+              {selectedArticle.category} · <strong className="text-white">{formatDateLong(selectedArticle.date, language)}</strong>
             </div>
 
             <h2 className="font-agrandir-extrabold text-2xl sm:text-4xl text-white uppercase tracking-tight mb-4 text-balance">
@@ -114,12 +114,12 @@ export const NewsView: React.FC = () => {
             </div>
 
             <div className="mt-8 pt-6 border-t border-[#1c1c1c] flex items-center justify-between text-xs font-agrandir-regular text-[#666]">
-              <span>Rédigé par {selectedArticle.author}</span>
+              <span>{t('news.writtenBy')} {selectedArticle.author}</span>
               <button
                 onClick={() => setSelectedArticle(null)}
                 className="text-white hover:underline uppercase font-agrandir-semibold cursor-pointer"
               >
-                Fermer
+                {t('news.close')}
               </button>
             </div>
 

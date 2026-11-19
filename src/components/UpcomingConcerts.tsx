@@ -20,7 +20,7 @@ export const UpcomingConcerts: React.FC = () => {
   const publishedEvents = events.filter((e) => e.status !== 'draft');
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-28 sm:pt-32 pb-16 select-none">
+    <div className="max-w-7xl mx-auto px-6 pt-8 sm:pt-12 pb-16 select-none">
       
       {/* Header */}
       <div className="mb-14 border-b border-[#1c1c1c] pb-8">
@@ -81,7 +81,7 @@ export const UpcomingConcerts: React.FC = () => {
 
                     {/* Artist & Title */}
                     <h2 className="font-agrandir-extrabold text-2xl sm:text-4xl text-white tracking-tight mb-1 group-hover:text-[#FAFAFA] transition-colors uppercase">
-                      {event.artist} EN CONCERT
+                      {event.artist} {t('home.inConcert')}
                     </h2>
                     <div className="text-base sm:text-xl text-[#d4d4d4] font-agrandir-semibold mb-4 uppercase">
                       {event.title}

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 
 /** Navigation mobile flottante LUMARÉEL — cinq destinations, icônes seules. */
 export const FloatingAppNavbar: React.FC = () => {
-  const { currentPage, setCurrentPage } = useApp();
+  const { currentPage, setCurrentPage, t } = useApp();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -18,11 +18,11 @@ export const FloatingAppNavbar: React.FC = () => {
   if (currentPage === 'splash' || currentPage === 'gate_scanner') return null;
 
   const navItems: Array<{ page: PageView; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-    { page: 'home', label: 'Accueil', icon: Home },
-    { page: 'client_space', label: 'Mes commandes', icon: Ticket },
-    { page: 'archive', label: 'Archives', icon: Film },
-    { page: 'member_card', label: 'Black Card', icon: CreditCard },
-    { page: 'profile', label: 'Mon compte', icon: User },
+    { page: 'home', label: t('nav.home'), icon: Home },
+    { page: 'client_space', label: t('nav.orders'), icon: Ticket },
+    { page: 'archive', label: t('nav.archives'), icon: Film },
+    { page: 'member_card', label: t('nav.blackCard'), icon: CreditCard },
+    { page: 'profile', label: t('nav.account'), icon: User },
   ];
 
   return (
@@ -34,7 +34,7 @@ export const FloatingAppNavbar: React.FC = () => {
       style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
     >
       <motion.nav
-        aria-label="Navigation principale"
+        aria-label={t('nav.mainNav')}
         animate={{
           width: scrolled ? 'min(280px, calc(100% - 32px))' : 'min(340px, calc(100% - 24px))',
           height: scrolled ? 48 : 60,

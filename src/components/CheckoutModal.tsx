@@ -236,16 +236,16 @@ export const CheckoutModal: React.FC = () => {
 
   const handleProceedToPayment = () => {
     if (!customerName.trim()) {
-      showToast('Veuillez renseigner votre nom complet.', 'error');
+      showToast(t('checkout.errName'), 'error');
       return;
     }
     const cleanEmail = customerEmail.trim();
     if (!cleanEmail) {
-      showToast('L\'adresse e-mail est obligatoire pour recevoir vos billets.', 'error');
+      showToast(t('checkout.errEmailReq'), 'error');
       return;
     }
     if (!isValidRealEmail(cleanEmail)) {
-      showToast('Veuillez saisir une adresse e-mail réelle et valide (ex : nom@domaine.com).', 'error');
+      showToast(t('checkout.errEmailInvalid'), 'error');
       return;
     }
 
@@ -256,25 +256,25 @@ export const CheckoutModal: React.FC = () => {
     if (paymentMethod !== 'card') {
       const pPhone = paymentPhoneNumber.trim();
       if (!pPhone) {
-        showToast('Veuillez saisir votre numéro pour le paiement mobile money.', 'error');
+        showToast(t('checkout.errPhoneReq'), 'error');
         return;
       }
       if (!isValidPhoneNumber(pPhone)) {
-        showToast('Veuillez saisir un numéro de téléphone valide pour le paiement.', 'error');
+        showToast(t('checkout.errPhoneInvalid'), 'error');
         return;
       }
     } else {
       const cleanCard = cardNumber.replace(/\s+/g, '');
       if (!cleanCard || cleanCard.length < 15) {
-        showToast('Veuillez saisir un numéro de carte bancaire valide (au moins 15 chiffres).', 'error');
+        showToast(t('checkout.errCardNum'), 'error');
         return;
       }
       if (!cardExp.trim() || !cardExp.includes('/')) {
-        showToast('Veuillez renseigner la date d\'expiration de votre carte (MM/AA).', 'error');
+        showToast(t('checkout.errCardExp'), 'error');
         return;
       }
       if (!cardCvv.trim() || cardCvv.length < 3) {
-        showToast('Veuillez renseigner le code CVV à 3 chiffres.', 'error');
+        showToast(t('checkout.errCardCvv'), 'error');
         return;
       }
     }
@@ -401,7 +401,7 @@ export const CheckoutModal: React.FC = () => {
         refreshCustomerOrders();
       }
     } catch (err: any) {
-      showToast(err.message || 'Une erreur inattendue est survenue.', 'error');
+      showToast(err.message || t('checkout.errUnexpected'), 'error');
     } finally {
       setGatewayProcessing(false);
       setIsSubmitting(false);
@@ -451,17 +451,17 @@ export const CheckoutModal: React.FC = () => {
               type="button"
               onClick={handleStepBack}
               className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
-              title={step === 1 ? 'Retourner au concert' : 'Étape précédente'}
+              title={t('checkout.back')}
             >
               <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
-              <span>RETOUR</span>
+              <span>{t('nav.back')}</span>
             </button>
 
             <div className="flex flex-col items-center justify-center text-center">
               {step === 2 || step === 3 ? (
                 <>
                   <h2 className="text-xs sm:text-sm font-agrandir-bold uppercase tracking-wider text-white">
-                    Récapitulatif de commande
+                    {t('checkout.orderSummary')}
                   </h2>
                   <div className="text-[11px] font-mono text-neutral-400 flex items-center gap-1.5 mt-0.5">
                     <span className="text-[#d4af37] animate-pulse">⏱</span>
@@ -483,8 +483,8 @@ export const CheckoutModal: React.FC = () => {
               type="button"
               onClick={handleClose}
               className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-neutral-300 hover:text-white hover:border-white transition-all cursor-pointer active:scale-95 shadow-md"
-              aria-label="Fermer"
-              title="Fermer la billetterie"
+              aria-label={t('nav.close')}
+              title={t('nav.close')}
             >
               <X className="w-4 h-4" />
             </button>
@@ -547,10 +547,10 @@ export const CheckoutModal: React.FC = () => {
                   className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-xs font-agrandir-bold tracking-wider text-neutral-200 hover:text-white transition-all uppercase cursor-pointer active:scale-95 group"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37] group-hover:-translate-x-1 transition-transform" />
-                  <span>RETOUR AU CONCERT</span>
+                  <span>{t('checkout.returnToConcert')}</span>
                 </button>
                 <span className="text-[11px] font-agrandir-semibold text-[#888] uppercase tracking-wider font-mono">
-                  Étape 1 sur 4
+                  {t('checkout.stepOf').replace('{step}', '1')}
                 </span>
               </div>
 
@@ -606,7 +606,7 @@ export const CheckoutModal: React.FC = () => {
                       return (
                         <span className="px-3 py-1 rounded-full bg-[#181818] text-[#888] border border-white/10 text-[10px] font-agrandir-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
                           <span className="w-1.5 h-1.5 rounded-full bg-neutral-500" />
-                          <span>Guichet fermé · Épuisé</span>
+                          <span>{t('checkout.soldOut')}</span>
                         </span>
                       );
                     }
@@ -616,7 +616,7 @@ export const CheckoutModal: React.FC = () => {
                       return (
                         <span className="px-3 py-1 rounded-full bg-rose-950/60 border border-rose-500/40 text-rose-300 text-[10px] font-agrandir-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm backdrop-blur-md">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
-                          <span>Risque de rupture · {remaining} restant{remaining > 1 ? 's' : ''}</span>
+                          <span>{t('checkout.lowStock')} · {remaining} {t('checkout.left')}{language === 'fr' && remaining > 1 ? 's' : ''}</span>
                         </span>
                       );
                     }
@@ -626,7 +626,7 @@ export const CheckoutModal: React.FC = () => {
                       return (
                         <span className="px-3 py-1 rounded-full bg-amber-950/50 border border-amber-500/40 text-amber-300 text-[10px] font-agrandir-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm backdrop-blur-md">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                          <span>Forte demande · {fillPercent}% réservé</span>
+                          <span>{t('checkout.highDemand')} · {fillPercent}% {t('checkout.booked')}</span>
                         </span>
                       );
                     }
@@ -636,7 +636,7 @@ export const CheckoutModal: React.FC = () => {
                       return (
                         <span className="px-3 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#d4af37] text-[10px] font-agrandir-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm backdrop-blur-md">
                           <Sparkles className="w-3 h-3 text-[#d4af37]" />
-                          <span>Places limitées · Jauge {cat.quota}</span>
+                          <span>{t('checkout.limitedSeats')} · {t('checkout.capacity')} {cat.quota}</span>
                         </span>
                       );
                     }
@@ -645,7 +645,7 @@ export const CheckoutModal: React.FC = () => {
                     return (
                       <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-neutral-400 text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center gap-1.5">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                        <span>Disponible</span>
+                        <span>{t('checkout.available')}</span>
                       </span>
                     );
                   };
@@ -712,7 +712,7 @@ export const CheckoutModal: React.FC = () => {
                             className="w-full flex items-center justify-between text-left text-xs font-agrandir-semibold text-[#d4af37] hover:text-white transition-colors cursor-pointer group"
                           >
                             <span className="flex items-center gap-1.5">
-                              <span>Détails &amp; Avantages</span>
+                              <span>{t('checkout.detailsPerks')}</span>
                               {isExpanded ? (
                                 <ChevronUp className="w-3.5 h-3.5" />
                               ) : (
@@ -721,7 +721,7 @@ export const CheckoutModal: React.FC = () => {
                             </span>
                             {cat.perks && cat.perks.length > 0 && (
                               <span className="text-[10px] text-[#888] font-normal">
-                                {cat.perks.length} avantage{cat.perks.length > 1 ? 's' : ''} inclus
+                                {cat.perks.length} {cat.perks.length > 1 ? t('checkout.perksIncluded') : t('checkout.perkIncluded')}
                               </span>
                             )}
                           </button>
@@ -771,10 +771,10 @@ export const CheckoutModal: React.FC = () => {
                   className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-xs font-agrandir-bold tracking-wider text-neutral-200 hover:text-white transition-all uppercase cursor-pointer active:scale-95 group"
                 >
                   <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37] group-hover:-translate-x-1 transition-transform" />
-                  <span>RETOUR AU CHOIX DES BILLETS</span>
+                  <span>{t('checkout.returnToTickets')}</span>
                 </button>
                 <span className="text-[11px] font-agrandir-semibold text-[#888] uppercase tracking-wider font-mono">
-                  Étape 2 sur 4
+                  {t('checkout.stepOf').replace('{step}', '2')}
                 </span>
               </div>
 
@@ -783,10 +783,10 @@ export const CheckoutModal: React.FC = () => {
                 <Clock className="w-5 h-5 shrink-0 animate-pulse" />
                 <div className="flex-1 min-w-0">
                   <div className="font-agrandir-bold uppercase tracking-wider text-[11px]">
-                    Places réservées pendant <span className="font-mono text-white text-sm font-bold">{formatCountdown(lockSeconds)}</span>
+                    {t('checkout.seatsHeld')} <span className="font-mono text-white text-sm font-bold">{formatCountdown(lockSeconds)}</span>
                   </div>
                   <div className="text-[11px] text-[#ccc]">
-                    Vos billets sont temporairement verrouillés pour finaliser votre commande.
+                    {t('checkout.seatsLockedDesc')}
                   </div>
                 </div>
               </div>
@@ -794,16 +794,16 @@ export const CheckoutModal: React.FC = () => {
               {/* Carte de Résumé des Choix */}
               <div className="p-5 rounded-2xl bg-[#0c0c0c] border border-white/10 space-y-4">
                 <div className="text-[10px] font-agrandir-bold tracking-widest text-[#888] uppercase border-b border-white/10 pb-2">
-                  Détail de votre commande
+                  {t('checkout.orderDetails')}
                 </div>
 
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center text-white">
-                    <span className="text-[#888]">Événement :</span>
+                    <span className="text-[#888]">{t('checkout.eventLabel')}</span>
                     <strong className="font-agrandir-bold">{checkoutEvent.artist} — {checkoutEvent.title}</strong>
                   </div>
                   <div className="flex justify-between items-center text-white">
-                    <span className="text-[#888]">Date &amp; Lieu :</span>
+                    <span className="text-[#888]">{t('checkout.dateVenueLabel')}</span>
                     <span>{formatDateLong(checkoutEvent.date, language)} ({checkoutEvent.venue})</span>
                   </div>
 
@@ -823,7 +823,7 @@ export const CheckoutModal: React.FC = () => {
                   </div>
 
                   <div className="flex justify-between items-center text-white pt-2 border-t border-white/10 text-sm">
-                    <strong className="font-agrandir-extrabold uppercase">Total</strong>
+                    <strong className="font-agrandir-extrabold uppercase">{t('checkout.total')}</strong>
                     <strong className="font-mono text-[#d4af37] text-base">{finalTotalAmount.toLocaleString('fr-FR')} FCFA</strong>
                   </div>
                 </div>
@@ -832,7 +832,7 @@ export const CheckoutModal: React.FC = () => {
               {/* Formulaire Coordonnées de l'Acheteur */}
               <div className="p-5 rounded-2xl bg-[#0c0c0c] border border-white/10 space-y-4">
                 <div className="text-[10px] font-agrandir-bold tracking-widest text-[#888] uppercase">
-                  {t('checkout.customerDetails')} (Billetterie nominative)
+                  {t('checkout.customerDetails')} {t('checkout.nominative')}
                 </div>
 
                 <div className="space-y-3">
@@ -887,7 +887,7 @@ export const CheckoutModal: React.FC = () => {
                   className="inline-flex items-center gap-2 text-base sm:text-lg font-agrandir-bold text-white hover:text-neutral-300 transition-colors cursor-pointer group"
                 >
                   <ArrowLeft className="w-5 h-5 text-white group-hover:-translate-x-1 transition-transform" />
-                  <span>Retour</span>
+                  <span>{t('checkout.back')}</span>
                 </button>
 
                 <div className="font-agrandir-extrabold text-lg sm:text-xl font-mono text-[#d4af37] tracking-tight">
@@ -898,7 +898,7 @@ export const CheckoutModal: React.FC = () => {
               {/* SÉLECTEUR DE PAYS (Menu déroulant attaché avec recherche) */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-agrandir-bold text-neutral-300">
-                  Pays <span className="text-[#d4af37]">*</span>
+                  {t('checkout.country')} <span className="text-[#d4af37]">*</span>
                 </label>
 
                 {/* Case de sélection avec drapeau, nom et chevron */}
@@ -932,7 +932,7 @@ export const CheckoutModal: React.FC = () => {
                         type="text"
                         value={countrySearchQuery}
                         onChange={(e) => setCountrySearchQuery(e.target.value)}
-                        placeholder="Rechercher un pays..."
+                        placeholder={t('checkout.searchCountry')}
                         className="w-full bg-[#0a0a0a] border border-white/15 rounded-xl pl-9 pr-3.5 py-2.5 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white font-agrandir-regular"
                       />
                     </div>
@@ -972,7 +972,7 @@ export const CheckoutModal: React.FC = () => {
               {/* SÉLECTION DU MOYEN DE PAIEMENT */}
               <div className="space-y-1.5 pt-1">
                 <label className="block text-xs font-agrandir-bold text-neutral-300">
-                  Moyen de paiement <span className="text-[#d4af37]">*</span>
+                  {t('checkout.paymentMethod')} <span className="text-[#d4af37]">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
@@ -981,7 +981,7 @@ export const CheckoutModal: React.FC = () => {
                     { id: 'mtn_momo', label: 'MTN MoMo', icon: '🟡' },
                     { id: 'djamo', label: 'Djamo', icon: '🟣' },
                     { id: 'moov_money', label: 'Moov', icon: '🔵' },
-                    { id: 'card', label: 'Carte', icon: '💳' },
+                    { id: 'card', label: language === 'en' ? 'Card' : 'Carte', icon: '💳' },
                   ].map((op) => {
                     const isSelected = paymentMethod === op.id;
                     return (
@@ -1007,7 +1007,7 @@ export const CheckoutModal: React.FC = () => {
               {paymentMethod !== 'card' ? (
                 <div className="space-y-1.5">
                   <label className="block text-xs font-agrandir-bold text-neutral-300">
-                    Numéro de téléphone ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : 'Mobile Money'}) <span className="text-[#d4af37]">*</span>
+                    {t('checkout.phone')} ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : 'Mobile Money'}) <span className="text-[#d4af37]">*</span>
                   </label>
                   <div className="flex gap-2">
                     <button
@@ -1022,7 +1022,7 @@ export const CheckoutModal: React.FC = () => {
                       type="tel"
                       value={paymentPhoneNumber}
                       onChange={(e) => setPaymentPhoneNumber(e.target.value)}
-                      placeholder="Ex : 07 00 00 00 00"
+                      placeholder="07 00 00 00 00"
                       className="flex-1 bg-[#141414] border border-white/20 rounded-2xl px-4 py-3.5 text-sm text-white font-mono placeholder-neutral-600 focus:outline-none focus:border-white"
                     />
                   </div>
@@ -1031,26 +1031,26 @@ export const CheckoutModal: React.FC = () => {
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-agrandir-bold text-neutral-300 mb-1">
-                      Numéro de carte bancaire <span className="text-[#d4af37]">*</span>
+                      {language === 'en' ? 'Card number' : 'Numéro de carte bancaire'} <span className="text-[#d4af37]">*</span>
                     </label>
                     <input
                       type="text"
                       value={cardNumber}
                       onChange={(e) => setCardNumber(e.target.value)}
-                      placeholder="Ex : 4000 1234 5678 9010"
+                      placeholder="4000 1234 5678 9010"
                       className="w-full bg-[#141414] border border-white/20 rounded-2xl px-4 py-3 text-sm text-white font-mono placeholder-neutral-600 focus:outline-none focus:border-white"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-agrandir-bold text-neutral-300 mb-1">
-                        Expiration (MM/AA) <span className="text-[#d4af37]">*</span>
+                        {language === 'en' ? 'Expiry (MM/YY)' : 'Expiration (MM/AA)'} <span className="text-[#d4af37]">*</span>
                       </label>
                       <input
                         type="text"
                         value={cardExp}
                         onChange={(e) => setCardExp(e.target.value)}
-                        placeholder="MM/AA"
+                        placeholder={language === 'en' ? 'MM/YY' : 'MM/AA'}
                         maxLength={5}
                         className="w-full bg-[#141414] border border-white/20 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-neutral-600 focus:outline-none focus:border-white"
                       />
@@ -1072,27 +1072,27 @@ export const CheckoutModal: React.FC = () => {
                 </div>
               )}
 
-              {/* RÉCAPITULATIF FINANCIER (Exactement comme dans la capture : Sous-total & Total) */}
+              {/* RÉCAPITULATIF FINANCIER */}
               <div className="p-4 rounded-2xl bg-[#141414] border border-white/10 space-y-2.5">
                 <div className="flex justify-between items-center text-xs text-neutral-300">
-                  <span>Sous-total</span>
+                  <span>{t('checkout.subtotal')}</span>
                   <span className="font-mono text-white font-bold">{finalTotalAmount.toLocaleString('fr-FR')} F CFA</span>
                 </div>
                 <div className="border-t border-white/10" />
                 <div className="flex justify-between items-center text-sm">
-                  <span className="font-agrandir-bold text-white">Total</span>
+                  <span className="font-agrandir-bold text-white">{t('checkout.total')}</span>
                   <span className="font-mono font-agrandir-extrabold text-[#d4af37] text-base">{finalTotalAmount.toLocaleString('fr-FR')} F CFA</span>
                 </div>
               </div>
 
-              {/* BOUTON D'ACTION PRINCIPAL : Payer avec Wave (Doré luxueux, arrondi, grand format) */}
+              {/* BOUTON D'ACTION PRINCIPAL */}
               <button
                 type="button"
                 onClick={handleTriggerPayment}
                 className="w-full py-4 rounded-2xl bg-[#d4af37] hover:bg-[#c49f27] active:scale-[0.99] text-black font-agrandir-extrabold text-base transition-all cursor-pointer shadow-xl shadow-[#d4af37]/20 flex items-center justify-center gap-2"
               >
                 <span>
-                  Payer avec {paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : paymentMethod === 'moov_money' ? 'Moov' : 'Carte'}
+                  {t('checkout.payBtn')} {paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : paymentMethod === 'moov_money' ? 'Moov' : (language === 'en' ? 'Card' : 'Carte')}
                 </span>
               </button>
             </div>
@@ -1114,11 +1114,11 @@ export const CheckoutModal: React.FC = () => {
                     </div>
 
                     <div className="text-[10px] uppercase tracking-widest text-[#1DC3F2] font-agrandir-bold mb-1">
-                      PAIEMENT SÉCURISÉ · {paymentMethod.toUpperCase()}
+                      {t('checkout.securePaymentTitle')} · {paymentMethod.toUpperCase()}
                     </div>
 
                     <h3 className="font-agrandir-extrabold text-xl uppercase tracking-tight text-white mb-2">
-                      Confirmation du paiement
+                      {t('checkout.confirmPaymentHeading')}
                     </h3>
 
                     <div className="bg-black/50 p-4 rounded-2xl border border-white/10 my-4 text-xs space-y-2 text-left">
@@ -1127,15 +1127,15 @@ export const CheckoutModal: React.FC = () => {
                         <strong className="text-white">{t('checkout.merchantName')}</strong>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#888]">Montant à confirmer :</span>
+                        <span className="text-[#888]">{t('checkout.amountToConfirm')}</span>
                         <strong className="text-[#d4af37] font-mono text-sm">{finalTotalAmount.toLocaleString('fr-FR')} FCFA</strong>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#888]">Référence commande :</span>
+                        <span className="text-[#888]">{t('checkout.orderRef')}</span>
                         <span className="text-white font-mono">LMR-{Math.floor(1000 + Math.random() * 9000)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#888]">Compte débité :</span>
+                        <span className="text-[#888]">{t('checkout.debitedAccount')}</span>
                         <span className="text-white font-mono">{paymentDialCode} {paymentPhoneNumber}</span>
                       </div>
                     </div>
@@ -1153,7 +1153,7 @@ export const CheckoutModal: React.FC = () => {
                       {gatewayProcessing ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Validation du débit en cours...</span>
+                          <span>{t('checkout.validatingDebit')}</span>
                         </>
                       ) : (
                         <>
@@ -1172,7 +1172,7 @@ export const CheckoutModal: React.FC = () => {
                       className="w-full mt-3 py-3 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-semibold uppercase tracking-wider text-[#aaa] hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-2 active:scale-95"
                     >
                       <ArrowLeft className="w-3.5 h-3.5" />
-                      <span>Retour au choix de paiement</span>
+                      <span>{t('checkout.backToPayment')}</span>
                     </button>
                   </div>
                 </div>
@@ -1193,7 +1193,7 @@ export const CheckoutModal: React.FC = () => {
                       {t('checkout.ticketsReady')}
                     </h2>
                     <p className="text-xs text-[#aaa] max-w-md mx-auto mt-1">
-                      Commande <span className="text-white font-agrandir-semibold font-mono">{createdOrder.reference}</span> validée. Les billets d’accès certifiés ont été envoyés à <span className="text-white">{createdOrder.customerEmail}</span>.
+                      {language === 'en' ? 'Order' : 'Commande'} <span className="text-white font-agrandir-semibold font-mono">{createdOrder.reference}</span> {t('checkout.orderValidatedDesc')} <span className="text-white">{createdOrder.customerEmail}</span>.
                     </p>
                   </div>
 
@@ -1211,7 +1211,7 @@ export const CheckoutModal: React.FC = () => {
 
                   {/* Liste des Billets Nominatifs Émis */}
                   <div className="space-y-3 my-4 text-left">
-                    {issuedTickets.map((tkt, idx) => (
+                    {issuedTickets.map((tkt) => (
                       <div
                         key={tkt.id}
                         className="p-4 sm:p-5 bg-[#0c0c0c] border border-white/15 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 font-agrandir-regular text-xs shadow-md"
@@ -1221,7 +1221,7 @@ export const CheckoutModal: React.FC = () => {
                             <TicketIcon className="w-4 h-4 text-[#d4af37]" />
                             <span className="font-mono">{tkt.serialNumber}</span>
                             <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold">
-                              CERTIFIÉ
+                              {t('checkout.certified')}
                             </span>
                           </div>
                           <div className="text-[#888] text-[11px] mt-1">
@@ -1257,7 +1257,7 @@ export const CheckoutModal: React.FC = () => {
                       className="w-full sm:w-auto px-6 py-3.5 border border-white/20 hover:border-white text-[#aaa] hover:text-white rounded-full transition-colors text-xs font-agrandir-bold uppercase tracking-widest cursor-pointer flex items-center justify-center gap-2 active:scale-95"
                     >
                       <ArrowLeft className="w-3.5 h-3.5" />
-                      <span>RETOUR À L'ACCUEIL</span>
+                      <span>{t('checkout.backToHome')}</span>
                     </button>
                   </div>
                 </div>
@@ -1267,19 +1267,14 @@ export const CheckoutModal: React.FC = () => {
 
         </div>
 
-        {/* ========================================================================= */}
-        {/* BARRE DYNAMIQUE DE RÉSUMÉ & NAVIGATION ENTRE LES ÉTAPES */}
-        {/* ========================================================================= */}
-        {/* ========================================================================= */}
-        {/* BARRE DYNAMIQUE DE RÉSUMÉ & NAVIGATION (FIXE EN BAS DE L'ÉCRAN) */}
-        {/* ========================================================================= */}
+        {/* BARRE DYNAMIQUE DE RÉSUMÉ & NAVIGATION */}
         {step < 3 && (
           <div className="shrink-0 z-30 border-t border-white/15 bg-[#0a0a0a]/98 backdrop-blur-xl p-4 sm:p-5 sm:rounded-b-3xl shadow-[0_-12px_30px_rgba(0,0,0,0.85)] pb-[max(1rem,env(safe-area-inset-bottom))]">
             {/* LIGNE 1 : TOTAL & NOMBRE DE BILLETS SÉLECTIONNÉS */}
             <div className="flex items-center justify-between gap-3 mb-3">
               <div className="flex items-baseline gap-2">
                 <span className="text-xs sm:text-sm font-agrandir-bold tracking-wider uppercase text-[#d4af37]">
-                  Total :
+                  {t('checkout.total')} :
                 </span>
                 <span className="font-agrandir-extrabold text-lg sm:text-2xl text-white font-mono tracking-tight">
                   {finalTotalAmount.toLocaleString('fr-FR')} F CFA
@@ -1292,7 +1287,7 @@ export const CheckoutModal: React.FC = () => {
                     ? 'bg-white/15 text-white border border-white/20'
                     : 'bg-white/5 text-[#777] border border-white/5'
                 }`}>
-                  {String(totalQuantity).padStart(2, '0')} billet{totalQuantity > 1 ? 's' : ''}
+                  {String(totalQuantity).padStart(2, '0')} {totalQuantity > 1 ? t('checkout.ticketPlural') : t('checkout.ticketSingle')}
                 </span>
 
                 {step === 1 && totalQuantity > 0 && (
@@ -1300,8 +1295,8 @@ export const CheckoutModal: React.FC = () => {
                     type="button"
                     onClick={() => setQuantities({})}
                     className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-[#aaa] hover:text-white flex items-center justify-center transition-colors cursor-pointer active:scale-90"
-                    title="Effacer la sélection de billets"
-                    aria-label="Effacer la sélection"
+                    title={t('checkout.clearSelection')}
+                    aria-label={t('checkout.clearSelection')}
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -1317,10 +1312,10 @@ export const CheckoutModal: React.FC = () => {
                     type="button"
                     onClick={handleClose}
                     className="px-4 sm:px-5 py-3.5 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-bold uppercase tracking-wider text-[#ccc] hover:text-white transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shrink-0"
-                    title="Retourner à la page du concert"
+                    title={t('checkout.back')}
                   >
                     <ArrowLeft className="w-4 h-4 text-[#d4af37]" />
-                    <span className="hidden sm:inline">Retour</span>
+                    <span className="hidden sm:inline">{t('checkout.back')}</span>
                   </button>
 
                   <button
@@ -1329,7 +1324,7 @@ export const CheckoutModal: React.FC = () => {
                     disabled={totalQuantity === 0}
                     className="flex-1 py-3.5 sm:py-4 px-6 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs sm:text-sm uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shadow-xl active:scale-[0.98]"
                   >
-                    <span>Continuer</span>
+                    <span>{t('checkout.continue')}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </>
@@ -1371,7 +1366,7 @@ export const CheckoutModal: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-[#d4af37]" />
                   <h3 className="font-agrandir-bold text-sm text-white uppercase">
-                    E-MAIL DE CONFIRMATION ENVOYÉ À {createdOrder.customerEmail}
+                    {language === 'en' ? 'CONFIRMATION EMAIL SENT TO' : 'E-MAIL DE CONFIRMATION ENVOYÉ À'} {createdOrder.customerEmail}
                   </h3>
                 </div>
                 <button
@@ -1413,54 +1408,46 @@ export const CheckoutModal: React.FC = () => {
                   onClick={() => setShowEmailPreview(false)}
                   className="px-5 py-2 rounded-full bg-white text-black font-agrandir-extrabold text-xs uppercase cursor-pointer"
                 >
-                  Fermer l'aperçu
+                  {t('checkout.closePreview')}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* ========================================================================= */}
         {/* TIROIR DÉROULANT DES PAYS ET INDICATIFS TÉLÉPHONIQUES */}
-        {/* ========================================================================= */}
         {isCountryDrawerOpen && (
           <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fadeIn">
-            {/* Arrière-plan sombre avec fermeture au clic */}
             <div 
               className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" 
               onClick={() => setIsCountryDrawerOpen(false)}
             />
 
-            {/* Corps du tiroir (bottom sheet sur mobile, modal luxueux sur desktop) */}
             <div className="relative z-10 w-full max-w-lg bg-[#0e0e0e] border border-white/15 rounded-t-[32px] sm:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.9)] max-h-[88vh] flex flex-col overflow-hidden animate-slideUp text-left">
               
-              {/* Poignée tactile mobile */}
               <div className="pt-3 pb-1 flex justify-center sm:hidden">
                 <div className="w-12 h-1 rounded-full bg-white/20" />
               </div>
 
-              {/* En-tête du tiroir */}
               <div className="p-5 sm:p-6 border-b border-white/10 flex items-center justify-between">
                 <div>
                   <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white uppercase tracking-wide flex items-center gap-2">
-                    <span className="text-[#d4af37]">Sélecteur</span>
-                    <span>de Pays &amp; Indicatif</span>
+                    <span>{t('checkout.selectCountryTitle')}</span>
                   </h3>
                   <p className="text-[11px] text-[#888] mt-0.5">
-                    Sélectionnez un pays dans la liste. Seul son indicatif apparaîtra dans votre case.
+                    {t('checkout.selectCountryDesc')}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsCountryDrawerOpen(false)}
                   className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors cursor-pointer"
-                  aria-label="Fermer le tiroir"
+                  aria-label={t('nav.close')}
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Barre de recherche dans le tiroir */}
               <div className="p-4 border-b border-white/10 bg-[#0a0a0a]">
                 <div className="relative">
                   <Search className="w-4 h-4 text-[#888] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1468,7 +1455,7 @@ export const CheckoutModal: React.FC = () => {
                     type="text"
                     value={countrySearchQuery}
                     onChange={(e) => setCountrySearchQuery(e.target.value)}
-                    placeholder="Rechercher un pays ou indicatif (Sénégal, +221, Côte d'Ivoire...)..."
+                    placeholder={t('checkout.searchCountry')}
                     className="w-full bg-[#161616] border border-white/15 rounded-xl pl-10 pr-9 py-2.5 text-xs text-white placeholder-[#666] focus:outline-none focus:border-[#d4af37] font-agrandir-regular"
                     autoFocus
                   />
@@ -1477,7 +1464,7 @@ export const CheckoutModal: React.FC = () => {
                       type="button"
                       onClick={() => setCountrySearchQuery('')}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-[#777] hover:text-white"
-                      aria-label="Effacer"
+                      aria-label={t('checkout.clearSelection')}
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -1485,7 +1472,6 @@ export const CheckoutModal: React.FC = () => {
                 </div>
               </div>
 
-              {/* Liste défilante des pays dans le tiroir (longue page confortable) */}
               <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[60vh] scrollbar-thin">
                 {filteredCountries.map((c) => {
                   const currentDial = countryDrawerTarget === 'customer' ? customerDialCode : paymentDialCode;
@@ -1509,7 +1495,7 @@ export const CheckoutModal: React.FC = () => {
                             {c.name}
                           </div>
                           <div className="text-[10px] text-[#777] font-mono mt-0.5">
-                            Indicatif international
+                            {language === 'en' ? 'International dial code' : 'Indicatif international'}
                           </div>
                         </div>
                       </div>
@@ -1530,20 +1516,19 @@ export const CheckoutModal: React.FC = () => {
 
                 {filteredCountries.length === 0 && (
                   <div className="py-8 text-center text-xs text-[#777]">
-                    Aucun pays trouvé pour « {countrySearchQuery} »
+                    {t('checkout.noCountryFound')} « {countrySearchQuery} »
                   </div>
                 )}
               </div>
 
-              {/* Pied du tiroir */}
               <div className="p-4 border-t border-white/10 bg-[#080808] flex items-center justify-between text-[11px] text-[#888]">
-                <span>Appuyez sur un pays pour insérer son indicatif</span>
+                <span>{t('checkout.tapCountryHint')}</span>
                 <button
                   type="button"
                   onClick={() => setIsCountryDrawerOpen(false)}
                   className="text-white hover:text-[#d4af37] font-agrandir-semibold uppercase text-[10px] tracking-wider cursor-pointer"
                 >
-                  Fermer
+                  {t('nav.close')}
                 </button>
               </div>
 

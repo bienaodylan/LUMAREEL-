@@ -46,7 +46,6 @@ import {
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatDateLongFrench } from '../utils/dateUtils';
 
 type WalletTab =
   | 'overview'
@@ -69,6 +68,8 @@ export const LumareelWalletView: React.FC = () => {
     language,
     t,
   } = useApp();
+  const isEn = language === 'en';
+  const locale = isEn ? 'en-US' : 'fr-FR';
 
   const [activeTab, setActiveTab] = useState<WalletTab>('overview');
   const [loading, setLoading] = useState<boolean>(true);
@@ -143,11 +144,15 @@ export const LumareelWalletView: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Impossible de mettre à jour l’invitation.');
+        throw new Error(data.error || (isEn ? 'Unable to update invitation.' : 'Impossible de mettre à jour l’invitation.'));
       }
       showToast(
         response === 'accepted'
-          ? 'Invitation acceptée ! Votre QR d’accès est actif.'
+          ? isEn
+            ? 'Invitation accepted! Your access QR is active.'
+            : 'Invitation acceptée ! Votre QR d’accès est actif.'
+          : isEn
+          ? 'Invitation declined.'
           : 'Invitation déclinée.',
         'success'
       );
@@ -168,14 +173,19 @@ export const LumareelWalletView: React.FC = () => {
         body: JSON.stringify({
           cardId: wallet.card.id,
           benefitId,
-          redeemedBy: currentUser?.name || wallet.user.name || 'Titulaire Membre',
+          redeemedBy: currentUser?.name || wallet.user.name || (isEn ? 'Member Holder' : 'Titulaire Membre'),
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Impossible de valider le privilège.');
+        throw new Error(data.error || (isEn ? 'Unable to redeem perk.' : 'Impossible de valider le privilège.'));
       }
-      showToast(`Privilège validé ! Référence : ${data.redemption?.redemptionReference}`, 'success');
+      showToast(
+        isEn
+          ? `Perk validated! Reference: ${data.redemption?.redemptionReference}`
+          : `Privilège validé ! Référence : ${data.redemption?.redemptionReference}`,
+        'success'
+      );
       fetchWalletOverview();
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -196,9 +206,14 @@ export const LumareelWalletView: React.FC = () => {
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Échec de rotation du jeton.');
+        throw new Error(data.error || (isEn ? 'Token rotation failed.' : 'Échec de rotation du jeton.'));
       }
-      showToast('Jeton QR régénéré avec succès. L’ancien jeton a été révoqué.', 'success');
+      showToast(
+        isEn
+          ? 'QR token regenerated successfully. Previous token revoked.'
+          : 'Jeton QR régénéré avec succès. L’ancien jeton a été révoqué.',
+        'success'
+      );
       fetchWalletOverview();
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -208,30 +223,30 @@ export const LumareelWalletView: React.FC = () => {
   };
 
   const navItems: Array<{ id: WalletTab; label: string; icon: React.ComponentType<{ className?: string }>; count?: number }> = [
-    { id: 'overview', label: 'Vue d’ensemble', icon: Wallet },
+    { id: 'overview', label: isEn ? 'Overview' : 'Vue d’ensemble', icon: Wallet },
     { id: 'membership', label: 'LUMARÉEL CARD', icon: Crown, count: wallet?.card ? 1 : 0 },
-    { id: 'tickets', label: 'Mes Billets', icon: TicketIcon, count: wallet?.metrics.activeTicketsCount },
-    { id: 'benefits', label: 'Avantages', icon: Sparkles, count: wallet?.metrics.availableBenefitsCount },
-    { id: 'invitations', label: 'Invitations', icon: Mail, count: wallet?.metrics.activeInvitationsCount },
-    { id: 'orders', label: 'Commandes', icon: ShoppingBag, count: wallet?.orders.length },
-    { id: 'payments', label: 'Paiements & Reçus', icon: Receipt },
-    { id: 'activity', label: 'Activités', icon: Activity },
-    { id: 'profile', label: 'Mon Profil', icon: User },
+    { id: 'tickets', label: isEn ? 'My Tickets' : 'Mes Billets', icon: TicketIcon, count: wallet?.metrics.activeTicketsCount },
+    { id: 'benefits', label: isEn ? 'Perks' : 'Avantages', icon: Sparkles, count: wallet?.metrics.availableBenefitsCount },
+    { id: 'invitations', label: isEn ? 'Invitations' : 'Invitations', icon: Mail, count: wallet?.metrics.activeInvitationsCount },
+    { id: 'orders', label: isEn ? 'Orders' : 'Commandes', icon: ShoppingBag, count: wallet?.orders.length },
+    { id: 'payments', label: isEn ? 'Payments & Receipts' : 'Paiements & Reçus', icon: Receipt },
+    { id: 'activity', label: isEn ? 'Activity' : 'Activités', icon: Activity },
+    { id: 'profile', label: isEn ? 'My Profile' : 'Mon Profil', icon: User },
   ];
 
   if (loading) {
     return (
-      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-32 flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-32 flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <RefreshCw className="w-8 h-8 animate-spin text-[#d4af37]" />
         <p className="text-xs text-neutral-400 font-agrandir-regular">
-          Synchronisation de votre LUMARÉEL WALLET...
+          {isEn ? 'Syncing your LUMARÉEL WALLET...' : 'Synchronisation de votre LUMARÉEL WALLET...'}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 pb-32 select-none font-agrandir-regular text-white">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-2 sm:pt-4 pb-32 select-none font-agrandir-regular text-white">
       
       {/* Barre de retour supérieure */}
       <div className="flex items-center justify-between gap-3 mb-6 pb-3 border-b border-white/10">
@@ -239,10 +254,10 @@ export const LumareelWalletView: React.FC = () => {
           type="button"
           onClick={() => setCurrentPage('home')}
           className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
-          title="Retourner à l'accueil"
+          title={t('nav.backHome')}
         >
           <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
-          <span>RETOUR</span>
+          <span>{t('nav.back')}</span>
         </button>
 
         <div className="flex items-center gap-2">
@@ -255,8 +270,8 @@ export const LumareelWalletView: React.FC = () => {
           type="button"
           onClick={() => setCurrentPage('home')}
           className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
-          title="Fermer et revenir à l'accueil"
-          aria-label="Fermer"
+          title={t('nav.close')}
+          aria-label={t('nav.close')}
         >
           <X className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-transform duration-200" />
         </button>
@@ -267,21 +282,21 @@ export const LumareelWalletView: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="text-[10px] font-agrandir-regular tracking-[0.25em] text-[#d4af37] uppercase mb-1">
-              ESPACE CLIENT OFFICIEL
+              {isEn ? 'OFFICIAL MEMBER SPACE' : 'ESPACE CLIENT OFFICIEL'}
             </div>
             <h1 className="font-agrandir-extrabold text-3xl sm:text-4xl text-white tracking-tight uppercase">
               LUMARÉEL <span className="text-[#d4af37]">WALLET</span>
             </h1>
             <div className="text-xs font-agrandir-regular text-[#aaa] mt-1.5 flex flex-wrap items-center gap-3">
               <span>
-                Titulaire : <strong className="text-white">{wallet?.user.name || currentUser?.name || 'Dylan Bienao'}</strong>
+                {isEn ? 'Holder:' : 'Titulaire :'} <strong className="text-white">{wallet?.user.name || currentUser?.name || 'Dylan Bienao'}</strong>
               </span>
               <span aria-hidden="true" className="text-white/30">·</span>
               <span>{wallet?.user.email || currentUser?.email}</span>
               <span aria-hidden="true" className="text-white/30">·</span>
               <span className="text-emerald-400 font-agrandir-semibold flex items-center gap-1">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Compte Certifié</span>
+                <span>{isEn ? 'Verified Account' : 'Compte Certifié'}</span>
               </span>
             </div>
           </div>
@@ -293,7 +308,7 @@ export const LumareelWalletView: React.FC = () => {
             className="self-start md:self-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-neutral-300 hover:text-white transition-all cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5 text-[#d4af37]" />
-            <span>Actualiser le portefeuille</span>
+            <span>{isEn ? 'Refresh wallet' : 'Actualiser le portefeuille'}</span>
           </button>
         </div>
       </div>
@@ -341,43 +356,49 @@ export const LumareelWalletView: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             <div className="p-4 rounded-2xl bg-[#0e0e0e] border border-white/10 space-y-1">
               <div className="text-[10px] font-agrandir-bold tracking-widest text-neutral-400 uppercase">
-                Billets Actifs
+                {isEn ? 'Active Tickets' : 'Billets Actifs'}
               </div>
               <div className="font-mono text-2xl sm:text-3xl font-bold text-white">
                 {wallet?.metrics.activeTicketsCount || 0}
               </div>
-              <div className="text-[10px] text-neutral-500">Prêts pour l'accès aux portes</div>
+              <div className="text-[10px] text-neutral-500">
+                {isEn ? 'Ready for gate scan' : "Prêts pour l'accès aux portes"}
+              </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#0e0e0e] border border-white/10 space-y-1">
               <div className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
-                Avantages Disponibles
+                {isEn ? 'Available Perks' : 'Avantages Disponibles'}
               </div>
               <div className="font-mono text-2xl sm:text-3xl font-bold text-[#d4af37]">
                 {wallet?.metrics.availableBenefitsCount || 0}
               </div>
-              <div className="text-[10px] text-neutral-500">Privilèges exclusifs actifs</div>
+              <div className="text-[10px] text-neutral-500">
+                {isEn ? 'Active exclusive perks' : 'Privilèges exclusifs actifs'}
+              </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#0e0e0e] border border-white/10 space-y-1">
               <div className="text-[10px] font-agrandir-bold tracking-widest text-neutral-400 uppercase">
-                Invitations Privées
+                {isEn ? 'Private Invites' : 'Invitations Privées'}
               </div>
               <div className="font-mono text-2xl sm:text-3xl font-bold text-white">
                 {wallet?.metrics.activeInvitationsCount || 0}
               </div>
-              <div className="text-[10px] text-neutral-500">Expériences confidentielles</div>
+              <div className="text-[10px] text-neutral-500">
+                {isEn ? 'Confidential experiences' : 'Expériences confidentielles'}
+              </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-[#0e0e0e] border border-white/10 space-y-1">
               <div className="text-[10px] font-agrandir-bold tracking-widest text-neutral-400 uppercase">
-                Statut Membership
+                {isEn ? 'Membership Status' : 'Statut Membership'}
               </div>
               <div className="font-agrandir-bold text-base sm:text-lg text-emerald-400 truncate">
                 {wallet?.card ? 'FOUNDERS 2026' : 'STANDARD'}
               </div>
               <div className="text-[10px] text-neutral-500">
-                {wallet?.card ? wallet.card.cardNumber : 'Adhésion ouverte'}
+                {wallet?.card ? wallet.card.cardNumber : isEn ? 'Open admission' : 'Adhésion ouverte'}
               </div>
             </div>
           </div>
@@ -388,7 +409,7 @@ export const LumareelWalletView: React.FC = () => {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
                 <div>
                   <div className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
-                    IDENTITÉ OFFICIELLE PERMANENTE
+                    {isEn ? 'PERMANENT OFFICIAL IDENTITY' : 'IDENTITÉ OFFICIELLE PERMANENTE'}
                   </div>
                   <h2 className="text-xl sm:text-2xl font-agrandir-extrabold uppercase">
                     LUMARÉEL CARD · {wallet.card.cardNumber}
@@ -397,7 +418,7 @@ export const LumareelWalletView: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                   <span className="px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-agrandir-bold uppercase">
-                    ● Active &amp; Validée
+                    ● {isEn ? 'Active & Verified' : 'Active & Validée'}
                   </span>
                 </div>
               </div>
@@ -412,13 +433,15 @@ export const LumareelWalletView: React.FC = () => {
               <div className="space-y-2 text-center md:text-left">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/30 text-[10px] font-agrandir-bold text-[#d4af37] uppercase">
                   <Crown className="w-3.5 h-3.5" />
-                  <span>MEMBERSHIP PRIVILÉGIÉ</span>
+                  <span>{isEn ? 'PRIVILEGED MEMBERSHIP' : 'MEMBERSHIP PRIVILÉGIÉ'}</span>
                 </div>
                 <h3 className="text-2xl font-agrandir-extrabold uppercase">
-                  Rejoignez la Founders Edition
+                  {isEn ? 'Join the Founders Edition' : 'Rejoignez la Founders Edition'}
                 </h3>
                 <p className="text-xs text-neutral-300 max-w-lg leading-relaxed">
-                  Plus qu'une adhésion, une identité permanente. Quota limité à 100 membres d'élite avec carte PVC de luxe, salons VIP et invitations privées.
+                  {isEn
+                    ? 'More than a membership—a permanent identity. Strictly limited to 100 members with engraved luxury card, VIP lounges, and private invites.'
+                    : "Plus qu'une adhésion, une identité permanente. Quota limité à 100 membres d'élite avec carte PVC de luxe, salons VIP et invitations privées."}
                 </p>
               </div>
 
@@ -427,7 +450,7 @@ export const LumareelWalletView: React.FC = () => {
                 onClick={() => setCurrentPage('card')}
                 className="px-6 py-3.5 rounded-full bg-[#d4af37] hover:bg-[#e5c04b] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all shadow-xl shadow-[#d4af37]/20 cursor-pointer shrink-0"
               >
-                Découvrir LUMARÉEL CARD
+                {isEn ? 'Discover LUMARÉEL CARD' : 'Découvrir LUMARÉEL CARD'}
               </button>
             </div>
           )}
@@ -440,7 +463,7 @@ export const LumareelWalletView: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <TicketIcon className="w-4 h-4 text-[#d4af37]" />
                   <h3 className="font-agrandir-bold text-sm uppercase tracking-wider">
-                    Derniers Billets Émis
+                    {isEn ? 'Recent Tickets' : 'Derniers Billets Émis'}
                   </h3>
                 </div>
                 <button
@@ -448,7 +471,7 @@ export const LumareelWalletView: React.FC = () => {
                   onClick={() => setActiveTab('tickets')}
                   className="text-xs text-[#d4af37] hover:underline cursor-pointer"
                 >
-                  Voir tout ({wallet?.tickets.length || 0})
+                  {isEn ? `View all (${wallet?.tickets.length || 0})` : `Voir tout (${wallet?.tickets.length || 0})`}
                 </button>
               </div>
 
@@ -473,14 +496,14 @@ export const LumareelWalletView: React.FC = () => {
                         onClick={() => setSelectedTicketForQr(tkt)}
                         className="px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-agrandir-bold text-white transition-all cursor-pointer shrink-0"
                       >
-                        Afficher QR
+                        {isEn ? 'Show QR' : 'Afficher QR'}
                       </button>
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="text-xs text-neutral-500 py-6 text-center">
-                  Aucun billet actif pour le moment.
+                  {isEn ? 'No active tickets at the moment.' : 'Aucun billet actif pour le moment.'}
                 </p>
               )}
             </div>
@@ -491,7 +514,7 @@ export const LumareelWalletView: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <Activity className="w-4 h-4 text-[#d4af37]" />
                   <h3 className="font-agrandir-bold text-sm uppercase tracking-wider">
-                    Journal d’Activité Récent
+                    {isEn ? 'Recent Activity Log' : 'Journal d’Activité Récent'}
                   </h3>
                 </div>
                 <button
@@ -499,7 +522,7 @@ export const LumareelWalletView: React.FC = () => {
                   onClick={() => setActiveTab('activity')}
                   className="text-xs text-[#d4af37] hover:underline cursor-pointer"
                 >
-                  Historique complet
+                  {isEn ? 'Full history' : 'Historique complet'}
                 </button>
               </div>
 
@@ -520,14 +543,14 @@ export const LumareelWalletView: React.FC = () => {
                         </div>
                       </div>
                       <span className="text-[10px] text-neutral-500 shrink-0 font-mono">
-                        {new Date(act.timestamp).toLocaleDateString('fr-FR')}
+                        {new Date(act.timestamp).toLocaleDateString(locale)}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
                 <p className="text-xs text-neutral-500 py-6 text-center">
-                  Aucune activité enregistrée.
+                  {isEn ? 'No activity recorded.' : 'Aucune activité enregistrée.'}
                 </p>
               )}
             </div>
@@ -555,12 +578,12 @@ export const LumareelWalletView: React.FC = () => {
 
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="px-3.5 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-agrandir-bold uppercase">
-                        ● Sans Contact Actif
+                        ● {isEn ? 'Contactless Active' : 'Sans Contact Actif'}
                       </span>
 
                       <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-[#d4af37]">
                         <Radio className="w-3.5 h-3.5 text-[#d4af37]" />
-                        <span>Passage Instantané Autorisé</span>
+                        <span>{isEn ? 'Instant Tap Enabled' : 'Passage Instantané Autorisé'}</span>
                       </span>
                     </div>
                   </div>
@@ -573,21 +596,27 @@ export const LumareelWalletView: React.FC = () => {
                 {/* Métadonnées de validité & de sécurité */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-white/10 text-xs">
                   <div className="p-3.5 rounded-xl bg-black/50 border border-white/5 space-y-1">
-                    <div className="text-[10px] text-neutral-400 uppercase font-mono">Date d'émission</div>
+                    <div className="text-[10px] text-neutral-400 uppercase font-mono">
+                      {isEn ? 'Issued date' : "Date d'émission"}
+                    </div>
                     <div className="font-agrandir-bold text-white">
-                      {new Date(wallet.card.validFrom).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      {new Date(wallet.card.validFrom).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
                     </div>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-black/50 border border-white/5 space-y-1">
-                    <div className="text-[10px] text-neutral-400 uppercase font-mono">Date d'expiration</div>
+                    <div className="text-[10px] text-neutral-400 uppercase font-mono">
+                      {isEn ? 'Expiry date' : "Date d'expiration"}
+                    </div>
                     <div className="font-agrandir-bold text-white">
-                      {new Date(wallet.card.expiresAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      {new Date(wallet.card.expiresAt).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
                     </div>
                   </div>
 
                   <div className="p-3.5 rounded-xl bg-black/50 border border-white/5 space-y-1">
-                    <div className="text-[10px] text-neutral-400 uppercase font-mono">Statut Carte Physique</div>
+                    <div className="text-[10px] text-neutral-400 uppercase font-mono">
+                      {isEn ? 'Physical Card Status' : 'Statut Carte Physique'}
+                    </div>
                     <div className="font-agrandir-bold text-[#d4af37] uppercase">
                       {wallet.card.physicalCardStatus.replace('_', ' ')}
                     </div>
@@ -599,17 +628,19 @@ export const LumareelWalletView: React.FC = () => {
             <div className="p-12 rounded-3xl bg-[#0c0c0c] border border-white/10 text-center space-y-5">
               <Crown className="w-12 h-12 text-[#d4af37] mx-auto animate-bounce" />
               <h2 className="text-2xl font-agrandir-extrabold uppercase">
-                Aucune adhésion LUMARÉEL CARD active
+                {isEn ? 'No active LUMARÉEL CARD membership' : 'Aucune adhésion LUMARÉEL CARD active'}
               </h2>
               <p className="text-xs text-neutral-400 max-w-md mx-auto leading-relaxed">
-                Obtenez votre numéro permanent certifié et rejoignez la série limitée exclusive des 100 Membres Fondateurs.
+                {isEn
+                  ? 'Claim your certified permanent number and join the exclusive limited series of 100 Founding Members.'
+                  : 'Obtenez votre numéro permanent certifié et rejoignez la série limitée exclusive des 100 Membres Fondateurs.'}
               </p>
               <button
                 type="button"
                 onClick={() => setCurrentPage('card')}
                 className="px-8 py-3.5 rounded-full bg-[#d4af37] text-black font-agrandir-extrabold text-xs uppercase tracking-wider shadow-xl shadow-[#d4af37]/20 transition-all cursor-pointer"
               >
-                Rejoindre la Founders Edition
+                {isEn ? 'Join Founders Edition' : 'Rejoindre la Founders Edition'}
               </button>
             </div>
           )}
@@ -624,10 +655,12 @@ export const LumareelWalletView: React.FC = () => {
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <div>
               <h2 className="text-xl font-agrandir-extrabold uppercase">
-                Mes Billets de Concerts
+                {isEn ? 'My Concert Tickets' : 'Mes Billets de Concerts'}
               </h2>
               <p className="text-xs text-neutral-400">
-                Chaque billet dispose de son propre QR code individuel à présenter à l'entrée.
+                {isEn
+                  ? 'Each ticket has its own individual QR code to present at the gate.'
+                  : "Chaque billet dispose de son propre QR code individuel à présenter à l'entrée."}
               </p>
             </div>
           </div>
@@ -648,7 +681,7 @@ export const LumareelWalletView: React.FC = () => {
                         {tkt.eventTitle}
                       </h3>
                       <div className="text-xs text-neutral-300 font-agrandir-bold mt-1">
-                        Catégorie : {tkt.categoryName}
+                        {isEn ? 'Tier:' : 'Catégorie :'} {tkt.categoryName}
                       </div>
                     </div>
 
@@ -659,14 +692,16 @@ export const LumareelWalletView: React.FC = () => {
                           : 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-300'
                       }`}
                     >
-                      {tkt.status === 'used' ? 'Utilisé' : 'Valide'}
+                      {tkt.status === 'used'
+                        ? isEn ? 'Used' : 'Utilisé'
+                        : isEn ? 'Valid' : 'Valide'}
                     </span>
                   </div>
 
                   <div className="border-t border-white/5 pt-3 flex flex-wrap items-center gap-3 text-xs text-neutral-400 font-mono">
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-[#d4af37]" />
-                      <span>{tkt.eventDate || 'Date officielle'}</span>
+                      <span>{tkt.eventDate || (isEn ? 'Official date' : 'Date officielle')}</span>
                     </div>
                     {tkt.eventVenue && (
                       <div className="flex items-center gap-1.5">
@@ -678,7 +713,7 @@ export const LumareelWalletView: React.FC = () => {
 
                   <div className="pt-2 flex items-center justify-between border-t border-white/10">
                     <span className="text-[11px] text-neutral-400 font-mono">
-                      Titulaire : {tkt.holderName || wallet.user.name}
+                      {isEn ? 'Holder:' : 'Titulaire :'} {tkt.holderName || wallet.user.name}
                     </span>
 
                     <button
@@ -687,7 +722,7 @@ export const LumareelWalletView: React.FC = () => {
                       className="px-4 py-2 rounded-full bg-[#d4af37] hover:bg-[#e5c04b] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
                     >
                       <Maximize2 className="w-3.5 h-3.5 text-black" />
-                      <span>Afficher QR</span>
+                      <span>{isEn ? 'Show QR' : 'Afficher QR'}</span>
                     </button>
                   </div>
                 </div>
@@ -697,14 +732,14 @@ export const LumareelWalletView: React.FC = () => {
             <div className="p-12 rounded-3xl bg-[#0c0c0c] border border-white/10 text-center space-y-4">
               <TicketIcon className="w-10 h-10 text-neutral-500 mx-auto" />
               <p className="text-xs text-neutral-400">
-                Vous ne possédez aucun billet de concert pour le moment.
+                {isEn ? 'You do not have any concert tickets yet.' : 'Vous ne possédez aucun billet de concert pour le moment.'}
               </p>
               <button
                 type="button"
                 onClick={() => setCurrentPage('home')}
                 className="px-6 py-2.5 rounded-full bg-white text-black font-agrandir-bold text-xs uppercase tracking-wider cursor-pointer"
               >
-                Découvrir la programmation
+                {isEn ? 'Discover lineup' : 'Découvrir la programmation'}
               </button>
             </div>
           )}
@@ -718,10 +753,12 @@ export const LumareelWalletView: React.FC = () => {
         <div className="space-y-6 animate-fadeIn">
           <div className="border-b border-white/10 pb-4">
             <h2 className="text-xl font-agrandir-extrabold uppercase">
-              Mes Privilèges &amp; Avantages
+              {isEn ? 'My Perks & Privileges' : 'Mes Privilèges & Avantages'}
             </h2>
             <p className="text-xs text-neutral-400">
-              Avantages réels enregistrés et contrôlés côté serveur pour les titulaires LUMARÉEL CARD.
+              {isEn
+                ? 'Live perks registered and verified server-side for LUMARÉEL CARD holders.'
+                : 'Avantages réels enregistrés et contrôlés côté serveur pour les titulaires LUMARÉEL CARD.'}
             </p>
           </div>
 
@@ -759,7 +796,11 @@ export const LumareelWalletView: React.FC = () => {
                             : 'bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#d4af37]'
                         }`}
                       >
-                        {isExhausted ? 'Épuisé' : `${remaining} restant${remaining > 1 ? 's' : ''}`}
+                        {isExhausted
+                          ? isEn ? 'Used up' : 'Épuisé'
+                          : isEn
+                          ? `${remaining} left`
+                          : `${remaining} restant${remaining > 1 ? 's' : ''}`}
                       </span>
                     </div>
 
@@ -769,7 +810,15 @@ export const LumareelWalletView: React.FC = () => {
 
                     <div className="border-t border-white/10 pt-3 flex items-center justify-between text-xs">
                       <span className="text-[11px] text-neutral-400">
-                        Utilisations : <strong className="text-white">{used}</strong> sur <strong>{totalAllowed}</strong>
+                        {isEn ? (
+                          <>
+                            Used: <strong className="text-white">{used}</strong> of <strong>{totalAllowed}</strong>
+                          </>
+                        ) : (
+                          <>
+                            Utilisations : <strong className="text-white">{used}</strong> sur <strong>{totalAllowed}</strong>
+                          </>
+                        )}
                       </span>
 
                       {!isExhausted && wallet.card && (
@@ -784,7 +833,7 @@ export const LumareelWalletView: React.FC = () => {
                           ) : (
                             <Check className="w-3.5 h-3.5 text-[#d4af37]" />
                           )}
-                          <span>Faire valider</span>
+                          <span>{isEn ? 'Redeem now' : 'Faire valider'}</span>
                         </button>
                       )}
                     </div>
@@ -796,7 +845,9 @@ export const LumareelWalletView: React.FC = () => {
             <div className="p-12 rounded-3xl bg-[#0c0c0c] border border-white/10 text-center space-y-4">
               <Sparkles className="w-10 h-10 text-neutral-500 mx-auto" />
               <p className="text-xs text-neutral-400">
-                Aucun avantage rattaché à ce compte. Rejoignez la Founders Edition pour débloquer les privilèges exclusifs.
+                {isEn
+                  ? 'No perks attached to this account yet. Join the Founders Edition to unlock exclusive benefits.'
+                  : 'Aucun avantage rattaché à ce compte. Rejoignez la Founders Edition pour débloquer les privilèges exclusifs.'}
               </p>
             </div>
           )}
@@ -810,10 +861,12 @@ export const LumareelWalletView: React.FC = () => {
         <div className="space-y-6 animate-fadeIn">
           <div className="border-b border-white/10 pb-4">
             <h2 className="text-xl font-agrandir-extrabold uppercase">
-              Mes Invitations Privées
+              {isEn ? 'My Private Invitations' : 'Mes Invitations Privées'}
             </h2>
             <p className="text-xs text-neutral-400">
-              Accès confidentiels aux galas, réceptions d'artistes et showcases acoustiques.
+              {isEn
+                ? 'Confidential access to galas, artist receptions, and acoustic showcases.'
+                : "Accès confidentiels aux galas, réceptions d'artistes et showcases acoustiques."}
             </p>
           </div>
 
@@ -848,7 +901,11 @@ export const LumareelWalletView: React.FC = () => {
                           : 'bg-amber-950/60 border border-amber-500/40 text-amber-300'
                       }`}
                     >
-                      {inv.status === 'accepted' ? 'Confirmée' : inv.status === 'used' ? 'Utilisée' : 'En attente'}
+                      {inv.status === 'accepted'
+                        ? isEn ? 'Confirmed' : 'Confirmée'
+                        : inv.status === 'used'
+                        ? isEn ? 'Used' : 'Utilisée'
+                        : isEn ? 'Pending' : 'En attente'}
                     </span>
                   </div>
 
@@ -859,7 +916,7 @@ export const LumareelWalletView: React.FC = () => {
                   <div className="border-t border-white/5 pt-3 space-y-1.5 text-xs text-neutral-400 font-mono">
                     <div className="flex items-center gap-2">
                       <Calendar className="w-3.5 h-3.5 text-[#d4af37]" />
-                      <span>{inv.eventDate} à {inv.eventTime}</span>
+                      <span>{inv.eventDate} {isEn ? 'at' : 'à'} {inv.eventTime}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <MapPin className="w-3.5 h-3.5 text-neutral-400" />
@@ -869,7 +926,7 @@ export const LumareelWalletView: React.FC = () => {
 
                   <div className="pt-2 flex items-center justify-between border-t border-white/10">
                     <span className="text-[11px] text-neutral-400">
-                      Dress code : <strong className="text-white">{inv.dressCode || 'Élégant'}</strong>
+                      {isEn ? 'Dress code:' : 'Dress code :'} <strong className="text-white">{inv.dressCode || (isEn ? 'Smart' : 'Élégant')}</strong>
                     </span>
 
                     {inv.status === 'pending' ? (
@@ -879,14 +936,14 @@ export const LumareelWalletView: React.FC = () => {
                           onClick={() => handleRespondInvitation(inv.id, 'accepted')}
                           className="px-3.5 py-1.5 rounded-full bg-[#d4af37] text-black font-agrandir-extrabold text-xs uppercase cursor-pointer"
                         >
-                          Accepter
+                          {isEn ? 'Accept' : 'Accepter'}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleRespondInvitation(inv.id, 'declined')}
                           className="px-3.5 py-1.5 rounded-full bg-white/10 text-white font-agrandir-bold text-xs uppercase cursor-pointer"
                         >
-                          Décliner
+                          {isEn ? 'Decline' : 'Décliner'}
                         </button>
                       </div>
                     ) : inv.status === 'accepted' ? (
@@ -896,7 +953,7 @@ export const LumareelWalletView: React.FC = () => {
                         className="px-4 py-2 rounded-full bg-white text-black font-agrandir-extrabold text-xs uppercase cursor-pointer flex items-center gap-1.5"
                       >
                         <Maximize2 className="w-3.5 h-3.5 text-black" />
-                        <span>Pass d'accès QR</span>
+                        <span>{isEn ? 'QR Access Pass' : "Pass d'accès QR"}</span>
                       </button>
                     ) : null}
                   </div>
@@ -907,7 +964,7 @@ export const LumareelWalletView: React.FC = () => {
             <div className="p-12 rounded-3xl bg-[#0c0c0c] border border-white/10 text-center space-y-4">
               <Mail className="w-10 h-10 text-neutral-500 mx-auto" />
               <p className="text-xs text-neutral-400">
-                Aucune invitation privée en attente.
+                {isEn ? 'No pending private invitations.' : 'Aucune invitation privée en attente.'}
               </p>
             </div>
           )}
@@ -921,10 +978,10 @@ export const LumareelWalletView: React.FC = () => {
         <div className="space-y-6 animate-fadeIn">
           <div className="border-b border-white/10 pb-4">
             <h2 className="text-xl font-agrandir-extrabold uppercase">
-              Historique des Commandes
+              {isEn ? 'Order History' : 'Historique des Commandes'}
             </h2>
             <p className="text-xs text-neutral-400">
-              Retrouvez le détail de toutes vos commandes passées sur LUMARÉEL.
+              {isEn ? 'Review all your past orders placed on LUMARÉEL.' : 'Retrouvez le détail de toutes vos commandes passées sur LUMARÉEL.'}
             </p>
           </div>
 
@@ -947,27 +1004,29 @@ export const LumareelWalletView: React.FC = () => {
                             : 'bg-amber-950/60 text-amber-300 border border-amber-500/40'
                         }`}
                       >
-                        {ord.paymentStatus === 'completed' ? 'Payée' : 'En attente'}
+                        {ord.paymentStatus === 'completed'
+                          ? isEn ? 'Paid' : 'Payée'
+                          : isEn ? 'Pending' : 'En attente'}
                       </span>
                     </div>
 
                     <div className="text-xs text-neutral-400">
                       {ord.items?.map((it: any) => `${it.quantity}× ${it.categoryName}`).join(', ') ||
-                        `${ord.quantity || 1}× ${ord.categoryName || 'Billet(s)'}`}
+                        `${ord.quantity || 1}× ${ord.categoryName || (isEn ? 'Ticket(s)' : 'Billet(s)')}`}
                     </div>
 
                     <div className="text-[11px] text-neutral-500 font-mono">
-                      Passée le {new Date(ord.createdAt).toLocaleDateString('fr-FR')} via{' '}
+                      {isEn ? 'Placed on' : 'Passée le'} {new Date(ord.createdAt).toLocaleDateString(locale)} {isEn ? 'via' : 'via'}{' '}
                       {(ord.paymentMethod || ord.paymentProvider || 'WAVE').toUpperCase()}
                     </div>
                   </div>
 
                   <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center border-t sm:border-none border-white/5 pt-2 sm:pt-0">
                     <div className="font-mono font-bold text-base text-[#d4af37]">
-                      {(ord.totalAmount || 0).toLocaleString('fr-FR')} FCFA
+                      {(ord.totalAmount || 0).toLocaleString(locale)} FCFA
                     </div>
                     <div className="text-[10px] text-neutral-500 uppercase mt-0.5">
-                      Paiement Sécurisé
+                      {isEn ? 'Secure Payment' : 'Paiement Sécurisé'}
                     </div>
                   </div>
                 </div>
@@ -977,7 +1036,7 @@ export const LumareelWalletView: React.FC = () => {
             <div className="p-12 rounded-3xl bg-[#0c0c0c] border border-white/10 text-center space-y-4">
               <ShoppingBag className="w-10 h-10 text-neutral-500 mx-auto" />
               <p className="text-xs text-neutral-400">
-                Aucune commande enregistrée.
+                {isEn ? 'No orders found.' : 'Aucune commande enregistrée.'}
               </p>
             </div>
           )}
@@ -991,10 +1050,12 @@ export const LumareelWalletView: React.FC = () => {
         <div className="space-y-6 animate-fadeIn">
           <div className="border-b border-white/10 pb-4">
             <h2 className="text-xl font-agrandir-extrabold uppercase">
-              Paiements &amp; Reçus Fiscaux
+              {isEn ? 'Payments & Receipts' : 'Paiements & Reçus Fiscaux'}
             </h2>
             <p className="text-xs text-neutral-400">
-              Historique financier vérifié des transactions bancaires et Mobile Money réelles.
+              {isEn
+                ? 'Verified history of completed bank card and Mobile Money transactions.'
+                : 'Historique financier vérifié des transactions bancaires et Mobile Money réelles.'}
             </p>
           </div>
 
@@ -1007,22 +1068,22 @@ export const LumareelWalletView: React.FC = () => {
                 >
                   <div className="min-w-0 space-y-1">
                     <div className="font-mono font-bold text-xs sm:text-sm text-white truncate">
-                      Réf : {p.reference}
+                      {isEn ? 'Ref:' : 'Réf :'} {p.reference}
                     </div>
                     <div className="text-xs text-neutral-300 truncate">
                       {p.product}
                     </div>
                     <div className="text-[11px] text-neutral-500 font-mono">
-                      {new Date(p.date).toLocaleDateString('fr-FR')} via {p.method.toUpperCase()}
+                      {new Date(p.date).toLocaleDateString(locale)} via {p.method.toUpperCase()}
                     </div>
                   </div>
 
                   <div className="text-right shrink-0">
                     <div className="font-mono font-bold text-sm sm:text-base text-white">
-                      {p.amount.toLocaleString('fr-FR')} {p.currency}
+                      {p.amount.toLocaleString(locale)} {p.currency}
                     </div>
                     <span className="inline-block mt-1 text-[10px] font-agrandir-bold text-emerald-400 uppercase">
-                      Confirmé
+                      {isEn ? 'Confirmed' : 'Confirmé'}
                     </span>
                   </div>
                 </div>
@@ -1032,7 +1093,7 @@ export const LumareelWalletView: React.FC = () => {
             <div className="p-12 rounded-3xl bg-[#0c0c0c] border border-white/10 text-center space-y-4">
               <Receipt className="w-10 h-10 text-neutral-500 mx-auto" />
               <p className="text-xs text-neutral-400">
-                Aucun paiement confirmé répertorié.
+                {isEn ? 'No confirmed payments found.' : 'Aucun paiement confirmé répertorié.'}
               </p>
             </div>
           )}
@@ -1046,10 +1107,12 @@ export const LumareelWalletView: React.FC = () => {
         <div className="space-y-6 animate-fadeIn">
           <div className="border-b border-white/10 pb-4">
             <h2 className="text-xl font-agrandir-extrabold uppercase">
-              Historique des Activités
+              {isEn ? 'Activity History' : 'Historique des Activités'}
             </h2>
             <p className="text-xs text-neutral-400">
-              Journal d'audit transparent de vos actions, passages aux portes et validations.
+              {isEn
+                ? 'Transparent audit log of your actions, gate entries, and perk validations.'
+                : "Journal d'audit transparent de vos actions, passages aux portes et validations."}
             </p>
           </div>
 
@@ -1063,7 +1126,7 @@ export const LumareelWalletView: React.FC = () => {
                       {act.title}
                     </div>
                     <span className="text-[10px] font-mono text-neutral-400">
-                      {new Date(act.timestamp).toLocaleString('fr-FR')}
+                      {new Date(act.timestamp).toLocaleString(locale)}
                     </span>
                   </div>
                   <p className="text-xs text-neutral-300 font-light leading-relaxed">
@@ -1076,7 +1139,7 @@ export const LumareelWalletView: React.FC = () => {
             <div className="p-12 rounded-3xl bg-[#0c0c0c] border border-white/10 text-center space-y-4">
               <Activity className="w-10 h-10 text-neutral-500 mx-auto" />
               <p className="text-xs text-neutral-400">
-                Aucune activité récente.
+                {isEn ? 'No recent activity.' : 'Aucune activité récente.'}
               </p>
             </div>
           )}
@@ -1090,17 +1153,19 @@ export const LumareelWalletView: React.FC = () => {
         <div className="space-y-6 max-w-2xl animate-fadeIn">
           <div className="border-b border-white/10 pb-4">
             <h2 className="text-xl font-agrandir-extrabold uppercase">
-              Mon Profil Membre
+              {isEn ? 'My Member Profile' : 'Mon Profil Membre'}
             </h2>
             <p className="text-xs text-neutral-400">
-              Identité nominative associée à votre portefeuille LUMARÉEL.
+              {isEn
+                ? 'Verified identity linked to your LUMARÉEL wallet.'
+                : 'Identité nominative associée à votre portefeuille LUMARÉEL.'}
             </p>
           </div>
 
           <div className="p-6 rounded-3xl bg-[#0c0c0c] border border-white/10 space-y-4">
             <div>
               <label className="block text-[10px] font-mono text-neutral-400 uppercase mb-1">
-                Nom complet (Identité nominative certifiée)
+                {isEn ? 'Full Name (Certified Identity)' : 'Nom complet (Identité nominative certifiée)'}
               </label>
               <div className="p-3.5 rounded-xl bg-black border border-white/15 text-sm font-agrandir-bold text-white">
                 {wallet?.user.name || currentUser?.name || 'Dylan Bienao'}
@@ -1109,7 +1174,7 @@ export const LumareelWalletView: React.FC = () => {
 
             <div>
               <label className="block text-[10px] font-mono text-neutral-400 uppercase mb-1">
-                Adresse e-mail officielle
+                {isEn ? 'Official Email Address' : 'Adresse e-mail officielle'}
               </label>
               <div className="p-3.5 rounded-xl bg-black border border-white/15 text-sm font-mono text-white">
                 {wallet?.user.email || currentUser?.email || 'bienaodylan428@gmail.com'}
@@ -1118,7 +1183,7 @@ export const LumareelWalletView: React.FC = () => {
 
             <div>
               <label className="block text-[10px] font-mono text-neutral-400 uppercase mb-1">
-                Rôle &amp; Statut de compte
+                {isEn ? 'Account Role & Status' : 'Rôle & Statut de compte'}
               </label>
               <div className="p-3.5 rounded-xl bg-black border border-white/15 text-xs font-agrandir-semibold text-[#d4af37] uppercase flex items-center justify-between">
                 <span>{wallet?.user.role || 'Founders Member'}</span>
@@ -1152,14 +1217,14 @@ export const LumareelWalletView: React.FC = () => {
                 type="button"
                 onClick={() => setSelectedTicketForQr(null)}
                 className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors"
-                aria-label="Fermer"
+                aria-label={t('nav.close')}
               >
                 <X className="w-4 h-4" />
               </button>
 
               <div className="space-y-1">
                 <div className="text-[10px] font-mono text-[#d4af37] tracking-widest uppercase">
-                  BILLET DE CONCERT OFFICIEL
+                  {isEn ? 'OFFICIAL CONCERT TICKET' : 'BILLET DE CONCERT OFFICIEL'}
                 </div>
                 <h3 className="font-agrandir-extrabold text-base text-white uppercase">
                   {selectedTicketForQr.eventTitle}
@@ -1174,7 +1239,7 @@ export const LumareelWalletView: React.FC = () => {
                 {ticketQrModalUrl ? (
                   <img
                     src={ticketQrModalUrl}
-                    alt="QR Code Billet"
+                    alt="QR Code Ticket"
                     className="w-56 h-56 object-contain"
                   />
                 ) : (
@@ -1185,11 +1250,13 @@ export const LumareelWalletView: React.FC = () => {
               </div>
 
               <div className="text-xs text-neutral-400">
-                Titulaire : <strong className="text-white">{selectedTicketForQr.holderName || wallet?.user.name}</strong>
+                {isEn ? 'Holder:' : 'Titulaire :'} <strong className="text-white">{selectedTicketForQr.holderName || wallet?.user.name}</strong>
               </div>
 
               <p className="text-[10px] text-neutral-500">
-                Chaque billet est individuel et ne peut être validé qu'une seule fois à l'entrée.
+                {isEn
+                  ? 'Each ticket is individual and can only be scanned once at venue gates.'
+                  : "Chaque billet est individuel et ne peut être validé qu'une seule fois à l'entrée."}
               </p>
             </motion.div>
           </motion.div>
@@ -1219,14 +1286,14 @@ export const LumareelWalletView: React.FC = () => {
                 type="button"
                 onClick={() => setSelectedInvitationForQr(null)}
                 className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors"
-                aria-label="Fermer"
+                aria-label={t('nav.close')}
               >
                 <X className="w-4 h-4" />
               </button>
 
               <div className="space-y-1">
                 <div className="text-[10px] font-mono text-[#d4af37] tracking-widest uppercase">
-                  INVITATION PRIVÉE CONFIDENTIELLE
+                  {isEn ? 'CONFIDENTIAL PRIVATE INVITE' : 'INVITATION PRIVÉE CONFIDENTIELLE'}
                 </div>
                 <h3 className="font-agrandir-extrabold text-base text-white uppercase">
                   {selectedInvitationForQr.title}
@@ -1252,11 +1319,13 @@ export const LumareelWalletView: React.FC = () => {
               </div>
 
               <div className="text-xs text-neutral-300">
-                Invité : <strong className="text-white">{selectedInvitationForQr.recipientName}</strong>
+                {isEn ? 'Guest:' : 'Invité :'} <strong className="text-white">{selectedInvitationForQr.recipientName}</strong>
               </div>
 
               <div className="text-[10px] text-[#d4af37] uppercase font-mono">
-                Valable pour {selectedInvitationForQr.plusOnesAllowed + 1} personne(s)
+                {isEn
+                  ? `Valid for ${selectedInvitationForQr.plusOnesAllowed + 1} guest(s)`
+                  : `Valable pour ${selectedInvitationForQr.plusOnesAllowed + 1} personne(s)`}
               </div>
             </motion.div>
           </motion.div>

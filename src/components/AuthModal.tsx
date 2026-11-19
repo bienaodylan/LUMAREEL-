@@ -5,7 +5,7 @@ import { X, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, KeyRound } fr
 import { isValidRealEmail } from './CheckoutModal';
 
 export const AuthModal: React.FC = () => {
-  const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, showToast, checkoutEvent, setCheckoutEvent } = useApp();
+  const { isAuthModalOpen, setIsAuthModalOpen, setCurrentUser, showToast, checkoutEvent, setCheckoutEvent, language, t } = useApp();
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -19,7 +19,7 @@ export const AuthModal: React.FC = () => {
   const handlePasswordReset = async () => {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !isValidRealEmail(cleanEmail)) {
-      showToast('Saisissez une adresse e-mail réelle et valide pour réinitialiser le mot de passe.', 'error');
+      showToast(t('auth.invalidEmailReset'), 'error');
       return;
     }
 
@@ -31,9 +31,9 @@ export const AuthModal: React.FC = () => {
         });
         if (error) throw error;
       }
-      showToast('Si ce compte existe, un e-mail de réinitialisation a été envoyé.', 'success');
+      showToast(t('auth.resetSent'), 'success');
     } catch (err: any) {
-      showToast(err.message || 'Impossible d’envoyer le lien de réinitialisation.', 'error');
+      showToast(err.message || t('auth.resetErr'), 'error');
     } finally {
       setIsResettingPassword(false);
     }
@@ -44,17 +44,17 @@ export const AuthModal: React.FC = () => {
     const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanEmail || !isValidRealEmail(cleanEmail)) {
-      showToast('Veuillez saisir une adresse e-mail réelle et valide (ex : nom@domaine.com).', 'error');
+      showToast(t('auth.invalidEmail'), 'error');
       return;
     }
 
     if (!password || password.length < 6) {
-      showToast('Le mot de passe doit comporter au moins 6 caractères.', 'error');
+      showToast(t('auth.invalidPassword'), 'error');
       return;
     }
 
     if (mode === 'register' && !name.trim()) {
-      showToast('Veuillez renseigner votre nom complet.', 'error');
+      showToast(t('auth.missingName'), 'error');
       return;
     }
 
@@ -73,9 +73,12 @@ export const AuthModal: React.FC = () => {
               options: { data: { name: name.trim() } },
             });
             if (error) {
-              // Si erreur d'inscription Supabase spécifique (ex: utilisateur déjà existant)
               if (/already registered/i.test(error.message)) {
-                throw new Error('Un compte existe déjà avec cette adresse e-mail. Veuillez vous connecter.');
+                throw new Error(
+                  language === 'en'
+                    ? 'An account already exists with this email. Please sign in.'
+                    : 'Un compte existe déjà avec cette adresse e-mail. Veuillez vous connecter.'
+                );
               }
               throw error;
             }
@@ -99,7 +102,11 @@ export const AuthModal: React.FC = () => {
                 // Mauvais identifiants sur Supabase : tester également le serveur local en cas de compte d'administration
                 console.warn('[Supabase Auth] Identifiants Supabase non reconnus, vérification serveur local...');
               } else if (/email not confirmed/i.test(error.message)) {
-                throw new Error('Veuillez confirmer votre adresse e-mail avant de vous connecter.');
+                throw new Error(
+                  language === 'en'
+                    ? 'Please confirm your email address before signing in.'
+                    : 'Veuillez confirmer votre adresse e-mail avant de vous connecter.'
+                );
               } else {
                 throw error;
               }
@@ -138,7 +145,7 @@ export const AuthModal: React.FC = () => {
 
         const data = await res.json();
         if (!res.ok || !data.success || !data.user) {
-          throw new Error(data.error || 'Identifiants ou connexion invalide.');
+          throw new Error(data.error || t('auth.loginFailed'));
         }
         authenticatedUser = data.user;
       }
@@ -147,11 +154,11 @@ export const AuthModal: React.FC = () => {
       setCurrentUser(authenticatedUser);
       setIsAuthModalOpen(false);
 
-      showToast(`Bienvenue, ${authenticatedUser.name}. Connexion réussie.`, 'success');
+      showToast(t('auth.welcome').replace('{name}', authenticatedUser.name), 'success');
 
       if (checkoutEvent) setCheckoutEvent(checkoutEvent);
     } catch (err: any) {
-      showToast(err.message || 'Échec de connexion.', 'error');
+      showToast(err.message || t('auth.loginFailed'), 'error');
     } finally {
       setIsLoading(false);
     }
@@ -166,7 +173,7 @@ export const AuthModal: React.FC = () => {
           type="button"
           onClick={() => setIsAuthModalOpen(false)}
           className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#777] hover:text-white cursor-pointer transition-colors"
-          title="Fermer"
+          title={t('nav.close')}
         >
           <X className="w-4 h-4" />
         </button>
@@ -180,18 +187,16 @@ export const AuthModal: React.FC = () => {
           />
         </div>
         <div className="text-[10px] tracking-[0.25em] text-[#888] uppercase mb-1 flex items-center gap-2">
-          <span>IDENTIFICATION OFFICIELLE</span>
+          <span>{t('auth.kicker')}</span>
           {mode === 'login' && (
-            <span className="text-[#d4af37] font-agrandir-bold">· ACCÈS SÉCURISÉ</span>
+            <span className="text-[#d4af37] font-agrandir-bold">{t('auth.secureAccess')}</span>
           )}
         </div>
         <h2 className="font-agrandir-extrabold text-2xl text-white uppercase tracking-tight mb-2">
-          {mode === 'login' ? 'CONNEXION' : 'CRÉER UN COMPTE'}
+          {mode === 'login' ? t('auth.loginTitle') : t('auth.registerTitle')}
         </h2>
         <p className="text-[#888] text-xs mb-5">
-          {mode === 'login'
-            ? 'Accédez à vos billets officiels et commandes passées.'
-            : 'Créez votre compte en quelques secondes pour réserver vos places et recevoir vos billets sécurisés.'}
+          {mode === 'login' ? t('auth.loginSub') : t('auth.registerSub')}
         </p>
 
         {/* Formulaire Authentification */}
@@ -199,7 +204,7 @@ export const AuthModal: React.FC = () => {
           {mode === 'register' && (
             <div>
               <label className="block text-[10px] text-[#888] uppercase mb-1 font-agrandir-semibold">
-                NOM COMPLET
+                {t('auth.fullName')}
               </label>
               <div className="relative">
                 <UserIcon className="w-4 h-4 text-[#666] absolute left-3.5 top-3" />
@@ -208,7 +213,7 @@ export const AuthModal: React.FC = () => {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Prénom et Nom"
+                  placeholder={t('auth.fullNamePlaceholder')}
                   className="w-full bg-[#161616] border border-white/15 rounded-2xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-white text-xs"
                 />
               </div>
@@ -217,7 +222,7 @@ export const AuthModal: React.FC = () => {
 
           <div>
             <label className="block text-[10px] text-[#888] uppercase mb-1 font-agrandir-semibold">
-              ADRESSE E-MAIL
+              {t('auth.email')}
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-[#666] absolute left-3.5 top-3" />
@@ -226,7 +231,7 @@ export const AuthModal: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="votre.email@domaine.com"
+                placeholder="email@domain.com"
                 className="w-full bg-[#161616] border border-white/15 rounded-2xl pl-10 pr-4 py-2.5 text-white focus:outline-none focus:border-white text-xs"
               />
             </div>
@@ -235,7 +240,7 @@ export const AuthModal: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-[10px] text-[#888] uppercase font-agrandir-semibold">
-                MOT DE PASSE
+                {t('auth.password')}
               </label>
               {mode === 'login' && (
                 <button
@@ -244,7 +249,7 @@ export const AuthModal: React.FC = () => {
                   disabled={isResettingPassword}
                   className="text-[10px] text-[#888] hover:text-[#d4af37] underline cursor-pointer transition-colors"
                 >
-                  {isResettingPassword ? 'Envoi...' : 'Mot de passe oublié ?'}
+                  {isResettingPassword ? t('auth.sending') : t('auth.forgot')}
                 </button>
               )}
             </div>
@@ -269,10 +274,10 @@ export const AuthModal: React.FC = () => {
             className="w-full py-3.5 bg-white text-black font-agrandir-extrabold uppercase tracking-widest text-xs hover:bg-[#eaeaea] rounded-full transition-all flex items-center justify-center gap-2 mt-4 cursor-pointer shadow-lg disabled:opacity-50 active:scale-[0.98]"
           >
             {isLoading ? (
-              <span className="animate-pulse">Vérification en cours...</span>
+              <span className="animate-pulse">{t('auth.verifying')}</span>
             ) : (
               <>
-                <span>{mode === 'login' ? 'SE CONNECTER' : 'CONFIRMER L’INSCRIPTION'}</span>
+                <span>{mode === 'login' ? t('auth.loginBtn') : t('auth.registerBtn')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </>
             )}
@@ -282,7 +287,7 @@ export const AuthModal: React.FC = () => {
         {/* Bascule Mode Connexion / Inscription */}
         <div className="pt-5 mt-5 border-t border-white/10 flex items-center justify-between text-[11px] text-[#888]">
           <span>
-            {mode === 'login' ? 'Pas encore de compte ?' : 'Déjà inscrit ?'}
+            {mode === 'login' ? t('auth.noAccount') : t('auth.alreadyAccount')}
           </span>
           <button
             type="button"
@@ -291,14 +296,14 @@ export const AuthModal: React.FC = () => {
             }}
             className="text-white hover:text-[#d4af37] underline uppercase tracking-wider font-agrandir-semibold cursor-pointer transition-colors"
           >
-            {mode === 'login' ? 'Créer un compte' : 'Se connecter'}
+            {mode === 'login' ? t('auth.switchRegister') : t('auth.switchLogin')}
           </button>
         </div>
 
         {/* Badge de réassurance */}
         <div className="mt-4 text-center text-[10px] text-[#555] flex items-center justify-center gap-1.5">
           <ShieldCheck className="w-3 h-3 text-[#777]" />
-          <span>AUTHENTIFICATION CHIFFRÉE &amp; SÉCURISÉE</span>
+          <span>{t('auth.secureBadge')}</span>
         </div>
 
       </div>

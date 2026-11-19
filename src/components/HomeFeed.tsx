@@ -25,6 +25,7 @@ export const HomeFeed: React.FC = () => {
     setIsAuthModalOpen,
     showToast,
     language,
+    setLanguage,
     t,
   } = useApp();
 
@@ -218,17 +219,37 @@ const EventCardCountdown: React.FC<{
             </h2>
           </div>
           <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center p-1 rounded-full bg-black/60 border border-white/15 text-[11px] font-agrandir-bold tracking-wider mr-1">
+              <button
+                type="button"
+                onClick={() => setLanguage('fr')}
+                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+                  language === 'fr' ? 'bg-white text-black font-agrandir-extrabold' : 'text-[#888] hover:text-white'
+                }`}
+              >
+                FR
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+                  language === 'en' ? 'bg-white text-black font-agrandir-extrabold' : 'text-[#888] hover:text-white'
+                }`}
+              >
+                EN
+              </button>
+            </div>
             <button 
               onClick={() => scrollFeaturedRow('left')} 
               className="p-2.5 rounded-full border border-white/20 hover:border-white text-neutral-300 hover:text-white transition-colors cursor-pointer bg-white/5 active:scale-95"
-              aria-label="Concert précédent"
+              aria-label={t('home.prevConcert')}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <button 
               onClick={() => scrollFeaturedRow('right')} 
               className="p-2.5 rounded-full border border-white/20 hover:border-white text-neutral-300 hover:text-white transition-colors cursor-pointer bg-white/5 active:scale-95"
-              aria-label="Concert suivant"
+              aria-label={t('home.nextConcert')}
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -272,7 +293,7 @@ const EventCardCountdown: React.FC<{
                     <h3 className={`font-agrandir-extrabold text-base sm:text-lg tracking-tight uppercase truncate transition-colors ${
                       isActive ? 'text-white' : 'text-neutral-300 group-hover:text-white'
                     }`}>
-                      {event.artist} EN CONCERT
+                      {event.artist} {t('home.inConcert')}
                     </h3>
                     <p className="text-xs font-agrandir-regular text-neutral-300 truncate mt-1">
                       <strong className={`font-agrandir-extrabold transition-colors ${isActive ? 'text-white' : 'text-neutral-200'}`}>
@@ -328,10 +349,10 @@ const EventCardCountdown: React.FC<{
                 </div>
                 <div className="text-left">
                   <span className="text-[11px] sm:text-xs font-agrandir-bold tracking-wider text-white uppercase block">
-                    LUMARÉEL CARD <span className="text-[#d4af37] text-[10px] font-mono">· 100 MEMBRES</span>
+                    {t('home.cardTitle')} <span className="text-[#d4af37] text-[10px] font-mono">· {t('home.cardBadge')}</span>
                   </span>
                   <span className="text-[10px] text-neutral-400 font-light block">
-                    Founders Edition · Carte PVC Gravée, VIP &amp; Coupe-File
+                    {t('home.cardSubtitle')}
                   </span>
                 </div>
               </div>

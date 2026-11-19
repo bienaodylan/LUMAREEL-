@@ -39,7 +39,9 @@ interface MemberCardSectionProps {
 }
 
 export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubscribe }) => {
-  const { currentUser, customerOrders, setCurrentPage, showToast, language } = useApp();
+  const { currentUser, customerOrders, setCurrentPage, showToast, language, t } = useApp();
+  const isEn = language === 'en';
+  const locale = isEn ? 'en-US' : 'fr-FR';
 
   const [loading, setLoading] = useState(true);
   const [card, setCard] = useState<MembershipCard | null>(null);
@@ -84,7 +86,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
     try {
       setIsRotatingToken(true);
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error('Session utilisateur requise.');
+      if (!session?.access_token) throw new Error(isEn ? 'User session required.' : 'Session utilisateur requise.');
       const res = await fetch(`/api/membership/admin/cards/${card.id}/rotate-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
@@ -92,12 +94,17 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Échec de rotation du jeton.');
+        throw new Error(data.error || (isEn ? 'Failed to rotate token.' : 'Échec de rotation du jeton.'));
       }
       if (data.qrDataUrl) setQrDataUrl(data.qrDataUrl);
-      showToast('Jeton QR régénéré avec succès. L’ancien jeton a été révoqué.', 'success');
+      showToast(
+        isEn
+          ? 'QR token regenerated successfully. Previous token revoked.'
+          : 'Jeton QR régénéré avec succès. L’ancien jeton a été révoqué.',
+        'success'
+      );
     } catch (err: any) {
-      showToast(err.message || 'Impossible de faire pivoter le jeton.', 'error');
+      showToast(err.message || (isEn ? 'Unable to rotate token.' : 'Impossible de faire pivoter le jeton.'), 'error');
     } finally {
       setIsRotatingToken(false);
     }
@@ -108,24 +115,29 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
     try {
       setIsRedeeming(benefitId);
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) throw new Error('Session utilisateur requise.');
+      if (!session?.access_token) throw new Error(isEn ? 'User session required.' : 'Session utilisateur requise.');
       const res = await fetch('/api/membership/redeem-benefit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
           cardId: card.id,
           benefitId,
-          redeemedBy: currentUser?.name || 'Titulaire Membre',
+          redeemedBy: currentUser?.name || (isEn ? 'Member Holder' : 'Titulaire Membre'),
         }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Échec de consommation du privilège.');
+        throw new Error(data.error || (isEn ? 'Failed to redeem perk.' : 'Échec de consommation du privilège.'));
       }
-      showToast(`Privilège validé ! Référence : ${data.redemption?.redemptionReference}`, 'success');
+      showToast(
+        isEn
+          ? `Perk validated! Reference: ${data.redemption?.redemptionReference}`
+          : `Privilège validé ! Référence : ${data.redemption?.redemptionReference}`,
+        'success'
+      );
       fetchMyCard();
     } catch (err: any) {
-      showToast(err.message || 'Erreur lors de la consommation.', 'error');
+      showToast(err.message || (isEn ? 'Error while redeeming.' : 'Erreur lors de la consommation.'), 'error');
     } finally {
       setIsRedeeming(null);
     }
@@ -143,7 +155,9 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
     return (
       <div className="py-16 text-center text-neutral-400 space-y-3">
         <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[#d4af37]" />
-        <p className="text-xs">Chargement de votre identité LUMARÉEL CARD...</p>
+        <p className="text-xs">
+          {isEn ? 'Loading your LUMARÉEL CARD identity...' : 'Chargement de votre identité LUMARÉEL CARD...'}
+        </p>
       </div>
     );
   }
@@ -158,13 +172,21 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
 
         <div className="max-w-md mx-auto space-y-2">
           <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-[#d4af37] uppercase">
-            MEMBERSHIP PRIVILÉGIÉ
+            {isEn ? 'PRIVILEGED MEMBERSHIP' : 'MEMBERSHIP PRIVILÉGIÉ'}
           </span>
           <h2 className="text-2xl sm:text-3xl font-agrandir-extrabold uppercase text-white">
-            VOUS N'AVEZ PAS ENCORE DE LUMARÉEL CARD
+            {isEn ? 'YOU DO NOT HAVE A LUMARÉEL CARD YET' : "VOUS N'AVEZ PAS ENCORE DE LUMARÉEL CARD"}
           </h2>
           <p className="text-xs text-neutral-400 font-light leading-relaxed">
-            Rejoignez la <strong>Founders Edition</strong> limitée strictement à 100 membres d’élite. Accédez aux files prioritaires, salons VIP, préventes privées et recevez votre carte physique officielle gravée.
+            {isEn ? (
+              <>
+                Join the <strong>Founders Edition</strong> strictly limited to 100 elite members. Access priority lines, VIP lounges, private presales, and receive your engraved physical card.
+              </>
+            ) : (
+              <>
+                Rejoignez la <strong>Founders Edition</strong> limitée strictement à 100 membres d’élite. Accédez aux files prioritaires, salons VIP, préventes privées et recevez votre carte physique officielle gravée.
+              </>
+            )}
           </p>
         </div>
 
@@ -177,7 +199,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
             }}
             className="px-8 py-3.5 rounded-full bg-[#d4af37] hover:bg-[#e5c04b] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all cursor-pointer shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:scale-105"
           >
-            Découvrir & Souscrire (100 places max)
+            {isEn ? 'Discover & Apply (100 seats max)' : 'Découvrir & Souscrire (100 places max)'}
           </button>
         </div>
       </div>
@@ -204,25 +226,37 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
         <div className="lg:col-span-6 space-y-5">
           <div>
             <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-[#d4af37] uppercase">
-              DOSSIER D'ADHÉSION
+              {isEn ? 'MEMBERSHIP DOSSIER' : "DOSSIER D'ADHÉSION"}
             </span>
             <h2 className="text-2xl sm:text-3xl font-agrandir-extrabold uppercase text-white mt-1">
               {card.cardNumber}
             </h2>
             <p className="text-xs text-neutral-400 mt-1">
-              Édition : <strong>LUMARÉEL FOUNDERS EDITION</strong> (Place #{card.cardSequence} / 100)
+              {isEn ? (
+                <>
+                  Edition: <strong>LUMARÉEL FOUNDERS EDITION</strong> (Seat #{card.cardSequence} / 100)
+                </>
+              ) : (
+                <>
+                  Édition : <strong>LUMARÉEL FOUNDERS EDITION</strong> (Place #{card.cardSequence} / 100)
+                </>
+              )}
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-              <span className="text-[10px] text-neutral-400 uppercase font-mono block">Date d'émission</span>
-              <strong className="text-white font-mono">{new Date(card.issuedAt).toLocaleDateString('fr-FR')}</strong>
+              <span className="text-[10px] text-neutral-400 uppercase font-mono block">
+                {isEn ? 'Issued date' : "Date d'émission"}
+              </span>
+              <strong className="text-white font-mono">{new Date(card.issuedAt).toLocaleDateString(locale)}</strong>
             </div>
 
             <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-              <span className="text-[10px] text-neutral-400 uppercase font-mono block">Date d'expiration</span>
-              <strong className="text-[#d4af37] font-mono">{new Date(card.expiresAt).toLocaleDateString('fr-FR')}</strong>
+              <span className="text-[10px] text-neutral-400 uppercase font-mono block">
+                {isEn ? 'Expiry date' : "Date d'expiration"}
+              </span>
+              <strong className="text-[#d4af37] font-mono">{new Date(card.expiresAt).toLocaleDateString(locale)}</strong>
             </div>
           </div>
 
@@ -230,12 +264,12 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <div className="px-5 py-2.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2">
               <Radio className="w-4 h-4 text-emerald-400" />
-              <span>Passage Sans Contact Activé</span>
+              <span>{isEn ? 'Contactless Access Enabled' : 'Passage Sans Contact Activé'}</span>
             </div>
 
             <div className="px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 text-xs font-mono flex items-center gap-2">
               <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span>Sécurité Matérielle Scellée</span>
+              <span>{isEn ? 'Hardware Security Sealed' : 'Sécurité Matérielle Scellée'}</span>
             </div>
           </div>
         </div>
@@ -251,20 +285,22 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
             </div>
             <div>
               <h3 className="font-agrandir-extrabold text-base text-white uppercase">
-                SUIVI DE LA CARTE PHYSIQUE
+                {isEn ? 'PHYSICAL CARD TRACKING' : 'SUIVI DE LA CARTE PHYSIQUE'}
               </h3>
               <p className="text-xs text-neutral-400">
-                Carte PVC haut de gamme gravée avec puce NXP DESFire EV3 sous coffret collector
+                {isEn
+                  ? 'Engraved luxury PVC card with NXP DESFire EV3 chip in collector box'
+                  : 'Carte PVC haut de gamme gravée avec puce NXP DESFire EV3 sous coffret collector'}
               </p>
             </div>
           </div>
 
           <span className="px-3 py-1 rounded-full text-[10px] font-agrandir-bold uppercase tracking-wider bg-white/10 text-white border border-white/20">
             {card.physicalCardStatus === 'delivered'
-              ? 'LIVRÉE'
+              ? isEn ? 'DELIVERED' : 'LIVRÉE'
               : card.physicalCardStatus === 'shipped'
-              ? 'EXPÉDIÉE'
-              : 'EN FABRICATION'}
+              ? isEn ? 'SHIPPED' : 'EXPÉDIÉE'
+              : isEn ? 'IN PRODUCTION' : 'EN FABRICATION'}
           </span>
         </div>
 
@@ -272,19 +308,25 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             {
-              step: '1. Personnalisation & Encodage Puce',
-              desc: `Numéro ${card.cardNumber} et puce sans contact NXP DESFire EV3 associée.`,
+              step: isEn ? '1. Personalization & Chip Encoding' : '1. Personnalisation & Encodage Puce',
+              desc: isEn
+                ? `Card ${card.cardNumber} paired with NXP DESFire EV3 contactless chip.`
+                : `Numéro ${card.cardNumber} et puce sans contact NXP DESFire EV3 associée.`,
               done: true,
             },
             {
-              step: '2. Contrôle Qualité & Coffret',
-              desc: 'Contrôle de lecture radiofréquence 13.56 MHz et mise sous écrin scellé.',
+              step: isEn ? '2. Quality Check & Collector Case' : '2. Contrôle Qualité & Coffret',
+              desc: isEn
+                ? '13.56 MHz RF read test completed and sealed in collector box.'
+                : 'Contrôle de lecture radiofréquence 13.56 MHz et mise sous écrin scellé.',
               done: card.physicalCardStatus === 'shipped' || card.physicalCardStatus === 'delivered',
             },
             {
-              step: '3. Remise en Main Propre / Expédition',
+              step: isEn ? '3. Handover / Courier Dispatch' : '3. Remise en Main Propre / Expédition',
               desc: card.physicalCardTrackingNumber
-                ? `Suivi coursier : ${card.physicalCardTrackingNumber}`
+                ? `${isEn ? 'Courier tracking' : 'Suivi coursier'} : ${card.physicalCardTrackingNumber}`
+                : isEn
+                ? 'Available at VIP Desk or express courier in Abidjan.'
                 : 'Disponible au Guichet VIP ou livraison express Abidjan.',
               done: card.physicalCardStatus === 'delivered',
             },
@@ -312,14 +354,16 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
         <div className="flex items-center justify-between">
           <div>
             <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-[#d4af37] uppercase">
-              CATALOGUE OFFICIEL
+              {isEn ? 'OFFICIAL CATALOG' : 'CATALOGUE OFFICIEL'}
             </span>
             <h3 className="text-xl sm:text-2xl font-agrandir-extrabold uppercase text-white mt-0.5">
-              MES AVANTAGES ACTIFS
+              {isEn ? 'MY ACTIVE PERKS' : 'MES AVANTAGES ACTIFS'}
             </h3>
           </div>
           <span className="text-xs text-neutral-400">
-            {benefitsData.length} privilèges associés à votre adhésion
+            {isEn
+              ? `${benefitsData.length} perks linked to your membership`
+              : `${benefitsData.length} privilèges associés à votre adhésion`}
           </span>
         </div>
 
@@ -341,7 +385,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
                       {benefit.benefitType.replace('_', ' ').toUpperCase()}
                     </span>
                     <span className="text-[11px] font-mono text-neutral-400">
-                      {remaining} / {total} disponible(s)
+                      {remaining} / {total} {isEn ? 'available' : 'disponible(s)'}
                     </span>
                   </div>
 
@@ -355,7 +399,9 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
 
                 <div className="border-t border-white/10 pt-3 flex items-center justify-between">
                   <span className="text-[10px] text-neutral-500 font-mono">
-                    {isAvailable ? 'Prêt à l’emploi' : 'Quota utilisé'}
+                    {isAvailable
+                      ? isEn ? 'Ready to use' : 'Prêt à l’emploi'
+                      : isEn ? 'Quota used' : 'Quota utilisé'}
                   </span>
 
                   <button
@@ -364,7 +410,9 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
                     onClick={() => handleRedeemBenefit(benefit.id)}
                     className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-[#d4af37] text-white hover:text-black font-agrandir-bold text-xs uppercase tracking-wider transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                   >
-                    {isRedeeming === benefit.id ? 'Validation...' : 'Réserver'}
+                    {isRedeeming === benefit.id
+                      ? isEn ? 'Validating...' : 'Validation...'
+                      : isEn ? 'Redeem' : 'Réserver'}
                   </button>
                 </div>
               </div>
@@ -378,14 +426,16 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
         <div className="flex items-center justify-between">
           <div>
             <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-[#d4af37] uppercase">
-              BILLETTERIE SYNCHRONISÉE
+              {isEn ? 'SYNCED TICKETING' : 'BILLETTERIE SYNCHRONISÉE'}
             </span>
             <h3 className="text-xl sm:text-2xl font-agrandir-extrabold uppercase text-white mt-0.5">
-              MES BILLETS DE CONCERT
+              {isEn ? 'MY CONCERT TICKETS' : 'MES BILLETS DE CONCERT'}
             </h3>
           </div>
           <span className="text-xs text-neutral-400">
-            {connectedTickets.length} billet(s) actif(s)
+            {isEn
+              ? `${connectedTickets.length} active ticket(s)`
+              : `${connectedTickets.length} billet(s) actif(s)`}
           </span>
         </div>
 
@@ -393,32 +443,36 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
           <div className="p-8 rounded-2xl bg-[#0c0c0c] border border-white/10 text-center space-y-3">
             <TicketIcon className="w-8 h-8 text-neutral-500 mx-auto" />
             <p className="text-xs text-neutral-400">
-              Vous n'avez pas encore acheté de billet de concert avec cette adresse e-mail.
+              {isEn
+                ? 'You have not purchased any concert tickets with this email address yet.'
+                : "Vous n'avez pas encore acheté de billet de concert avec cette adresse e-mail."}
             </p>
             <button
               type="button"
               onClick={() => setCurrentPage('home')}
               className="px-6 py-2.5 rounded-full bg-white text-black font-agrandir-bold text-xs uppercase tracking-wider cursor-pointer hover:bg-neutral-200"
             >
-              Voir la programmation
+              {isEn ? 'Browse lineup' : 'Voir la programmation'}
             </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {connectedTickets.map((t) => (
-              <div key={t.id} className="p-4 rounded-2xl bg-[#0c0c0c] border border-white/10 flex items-center justify-between">
+            {connectedTickets.map((tkt) => (
+              <div key={tkt.id} className="p-4 rounded-2xl bg-[#0c0c0c] border border-white/10 flex items-center justify-between">
                 <div>
                   <span className="text-[10px] text-[#d4af37] font-mono tracking-wider uppercase">
-                    {t.categoryName}
+                    {tkt.categoryName}
                   </span>
-                  <div className="font-agrandir-bold text-sm text-white uppercase">{t.eventTitle}</div>
-                  <div className="text-[11px] text-neutral-400 font-mono">{t.serialNumber}</div>
+                  <div className="font-agrandir-bold text-sm text-white uppercase">{tkt.eventTitle}</div>
+                  <div className="text-[11px] text-neutral-400 font-mono">{tkt.serialNumber}</div>
                 </div>
 
                 <span className={`px-2.5 py-1 rounded-full text-[9px] font-agrandir-bold uppercase tracking-wider ${
-                  t.status === 'valid' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-neutral-400'
+                  tkt.status === 'valid' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-neutral-400'
                 }`}>
-                  {t.status === 'valid' ? 'VALIDE' : 'UTILISÉ'}
+                  {tkt.status === 'valid'
+                    ? isEn ? 'VALID' : 'VALIDE'
+                    : isEn ? 'USED' : 'UTILISÉ'}
                 </span>
               </div>
             ))}
