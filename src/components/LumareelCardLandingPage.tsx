@@ -15,17 +15,14 @@ import {
   Smartphone,
   Sparkles,
   Ticket,
-  User,
   Wifi,
   X,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 
-import heroLoungeTopImg from '../assets/images/black_card_hero_lounge_top_1794694901310.jpg';
-import heroPortraitLeftImg from '../assets/images/black_card_hero_portrait_left_1794694901752.jpg';
-import heroNightTallImg from '../assets/images/black_card_hero_night_tall_1794694902515.jpg';
+import heroBlackCardBannerImg from '../assets/images/dark_card_hero_backdrop_1795099845525.jpg';
 import concertsCrowdImg from '../assets/images/black_card_concerts_crowd_1794694902084.jpg';
-import vipMezzanineImg from '../assets/images/black_card_vip_mezzanine_1794694903429.jpg';
+import vipMezzanineImg from '../assets/images/vip_lounge_empty_stage_1795099845090.jpg';
 
 interface LumareelCardLandingPageProps {
   onGoToWallet?: () => void;
@@ -35,221 +32,223 @@ interface LumareelCardLandingPageProps {
 
 const CARD_COPY = {
   fr: {
-    eyebrow: 'LE PASS LIVE OFFICIEL',
-    heroTitle1: 'VOTRE UNIVERS LIVE.',
-    heroTitle2: 'EN MAIN.',
-    heroSub: 'Billets, salons VIP et coupe-file réunis dans une seule carte physique.',
-    ctaPrimary: 'Obtenir la Black Card',
-    ctaSecondary: 'Avantages',
-    syncProof: (q: number) => `${q} membres fondateurs · Synchro instantanée`,
-    verified: 'VÉRIFIÉ',
-    physicalPass: 'PASS PHYSIQUE',
-    passHolder: 'TITULAIRE',
-    synced: 'ACTIF',
-    howKicker: 'FONCTIONNEMENT',
+    eyebrow: 'LA CARTE DES CONCERTS LUMARÉEL',
+    heroTitle1: 'VOS CONCERTS',
+    heroTitle2: 'ENTRE VOS MAINS.',
+    heroSub: 'Tous vos billets, vos accès VIP et les coupe-file réunis dans une seule carte noire.',
+    ctaPrimary: 'Prendre ma Black Card',
+    ctaSecondary: 'Voir les avantages',
+    syncProof: (q: number) => `${q} cartes dispo · Mise à jour automatique`,
+    flipHint: 'Touchez la carte pour la retourner',
+    verified: 'VÉRIFIÉE',
+    physicalPass: 'CARTE NOIRE',
+    passHolder: 'VOTRE NOM',
+    synced: 'PRÊTE',
+    howKicker: 'COMMENT ÇA MARCHE ?',
     howTitle1: 'Vos billets,',
-    howTitle2: 'matérialisés.',
-    syncTitle: 'Synchro Billets',
-    syncSub: 'Temps réel',
-    tapAndGo: 'TAP & GO',
-    activeOrder: 'BILLET ACTIF',
+    howTitle2: 'direct sur votre carte.',
+    syncTitle: 'Synchro automatique',
+    syncSub: 'En direct dès l’achat',
+    tapAndGo: 'RAPIDE',
+    activeOrder: 'PROCHAIN CONCERT',
     colDate: 'DATE',
     colTier: 'ACCÈS',
     colStatus: 'STATUT',
-    statusActive: '• Actif',
-    syncNote: 'Chaque billet mobile s’ajoute automatiquement à votre carte.',
-    tactileKicker: 'CONTRÔLE TACTILE',
-    laserTitle: 'Verso Laser & NFC',
-    laserDesc: 'QR dynamique gravé et puce NFC pour passer aux portiques sans attente.',
+    statusActive: '• Prêt',
+    syncNote: 'Dès que vous prenez un billet sur le site, il arrive tout seul sur votre carte.',
+    tactileKicker: 'PASSAGE RAPIDE',
+    laserTitle: 'QR & NFC au dos',
+    laserDesc: 'Un QR code gravé et une puce NFC pour passer à l’entrée sans faire la queue.',
     flipAria: 'Retourner la carte',
-    gateGranted: 'Accès Autorisé',
-    gateDefault: 'Accès Portique',
-    gateSubGranted: 'NFC vérifié',
+    gateGranted: 'C’est bon, entrez !',
+    gateDefault: 'Tester le passage à l’entrée',
+    gateSubGranted: 'Puce reconnue',
     gateSubDefault: 'Sans attente',
-    autoSyncTitle: 'Synchro Automatique',
-    autoSyncDesc: 'Zéro activation manuelle après achat.',
-    livePassTitle: 'Pass 100% Concert',
-    livePassDesc: 'Aucune carte bancaire. Uniquement pour le live.',
-    benefitsKicker: 'PRIVILÈGES',
-    benefitsTitle: 'Trois atouts essentiels.',
-    b1Title: 'VOS CONCERTS',
-    b1Desc: 'Billets et commandes bars liés à votre carte.',
-    b1FootL: 'Scène Principale',
-    b1FootR: 'NFC Tap',
-    b2Title: 'SUR MESURE',
-    b2Desc: 'Composite noir anodisé gravé à votre nom.',
-    b2Monogram: 'MONOGRAMME',
-    b2Engraved: 'NOM GRAVÉ',
+    autoSyncTitle: 'Tout se fait tout seul',
+    autoSyncDesc: 'Rien à régler ni à activer après votre achat.',
+    livePassTitle: '100% pour les concerts',
+    livePassDesc: 'Ce n’est pas une carte bancaire. Juste votre pass pour les shows.',
+    benefitsKicker: 'VOS AVANTAGES',
+    benefitsTitle: 'Ce que vous gagnez avec.',
+    b1Title: 'TOUS VOS CONCERTS',
+    b1Desc: 'Vos billets et vos commandes au bar sont déjà liés à votre carte.',
+    b1FootL: 'Accès Scène',
+    b1FootR: 'Scan rapide',
+    b2Title: 'GRAVÉE À VOTRE NOM',
+    b2Desc: 'Une vraie carte noire solide, personnalisée avec votre nom.',
+    b2Monogram: 'PERSO',
+    b2Engraved: 'NOM SUR LA CARTE',
     b2Weight: '16.0g',
-    b2Chip: 'NFC Actif',
-    b3Title: 'ACCÈS VIP',
-    b3Desc: 'Entrée anticipée, mezzanine privée et avantages partenaires.',
-    b3FootL: 'Mezzanine VIP',
+    b2Chip: 'NFC Prêt',
+    b3Title: 'ACCÈS VIP & BONS PLANS',
+    b3Desc: 'Vous passez devant la file, accès loges et cadeaux partenaires.',
+    b3FootL: 'Espace VIP',
     b3FootR: 'VIP',
     previewFrontBadge: 'PASS',
-    previewCore: 'PUCE CRYPTÉE',
-    previewEdition: 'ÉDITION PHYSIQUE',
+    previewCore: 'PUCE SÉCURISÉE',
+    previewEdition: 'CARTE PHYSIQUE',
     previewBackLaser: 'GRAVURE LASER',
     previewBackTitle: 'Coupe-File & VIP',
-    previewBackDesc: 'Scannez le QR ou effleurez le lecteur NFC aux portiques officiels.',
-    previewFounders: (q: number) => `FOUNDERS · ${q} MAX`,
-    specMat: 'Titane & Noir Mat',
+    previewBackDesc: 'Montrez le QR ou posez la carte sur le lecteur à l’entrée.',
+    previewFounders: (q: number) => `SÉRIE LIMITÉE · ${q} MAX`,
+    specMat: 'Noir Mat & Or',
     specTech: 'NFC & QR',
-    seeFront: 'Voir le recto',
-    seeBack: 'Voir le verso',
-    ownKicker: 'ÉDITION LIMITÉE',
-    ownTitle: 'COMMANDEZ LA VÔTRE.',
-    ownDesc: 'Composite noir gravé avec puce NFC et QR dynamique.',
+    seeFront: 'Voir devant',
+    seeBack: 'Voir derrière',
+    ownKicker: 'SÉRIE LIMITÉE',
+    ownTitle: 'PRENEZ LA VÔTRE.',
+    ownDesc: 'Votre carte noire gravée avec puce NFC et QR code perso.',
     boxLabel: 'LUMARÉEL BLACK CARD',
-    inStock: 'EN STOCK',
-    waitlist: 'LISTE D’ATTENTE',
+    inStock: 'DISPONIBLE',
+    waitlist: 'BIENTÔT DISPO',
     perMonth: '/ mois',
     perYear: '/ an',
-    freeShip: 'LIVRAISON OFFERTE',
-    boxMeta: (rem: number, q: number) => `${rem} / ${q} restantes · +5 000 FCFA offerts`,
-    getCardUpper: 'OBTENIR LA BLACK CARD',
-    shipNote: 'Expédition 2–3 jours · Pass digital immédiat.',
-    footTag: 'La carte physique de vos concerts LUMARÉEL.',
+    freeShip: 'LIVRAISON GRATUITE',
+    boxMeta: (rem: number, q: number) => `Encore ${rem} dispo sur ${q} · +5 000 FCFA offerts`,
+    getCardUpper: 'COMMANDER MA BLACK CARD',
+    shipNote: 'Livrée en 2–3 jours · Pass déjà prêt sur votre téléphone.',
+    footTag: 'La carte noire pour tous vos concerts LUMARÉEL.',
     footProd: 'Produit',
     footCard: 'La Carte',
     footOrders: 'Mes commandes',
     footWallet: 'Mon Pass',
     footHouse: 'Maison',
-    footLineup: 'Programmation',
+    footLineup: 'Concerts',
     footArchives: 'Archives',
     footOrganizers: 'Organisateurs',
-    footSec: 'Contrôle',
+    footSec: 'Vérif',
     footVerify: 'Vérifier une carte',
     footNews: 'Actualités',
     footApply: 'Commander',
     footRights: '© 2026 LUMARÉEL CO.',
     footLoc: 'Abidjan · Live Network',
     // Wizard
-    wizHeader: (s: number) => `ADMISSION · ÉTAPE ${s} / 5`,
+    wizHeader: (s: number) => `COMMANDE · ÉTAPE ${s} / 5`,
     wizTitle: 'LUMARÉEL Black Card',
-    wiz1Title: '1. Gravure de la carte',
-    wiz1Sub: 'Nom gravé au laser sur votre carte physique.',
-    wiz1Label: 'Nom à graver *',
-    wiz1Plan: 'Formule',
+    wiz1Title: '1. Votre nom sur la carte',
+    wiz1Sub: 'Le nom qui sera gravé sur votre carte noire.',
+    wiz1Label: 'Nom sur la carte *',
+    wiz1Plan: 'Formule choisie',
     wiz1PlanFallback: 'Black Card Annuelle',
-    wiz1PlanDesc: 'Carte physique + Pass Digital + Salons VIP',
+    wiz1PlanDesc: 'Carte gravée + Pass téléphone + Accès VIP',
     wiz1Valid: '1 an',
     wiz1Next: 'Continuer',
-    wiz2Title: '2. Coordonnées & Livraison',
-    wiz2Sub: 'Votre pass digital et livraison utiliseront ces infos.',
+    wiz2Title: '2. Où vous livrer ?',
+    wiz2Sub: 'Pour activer votre pass et envoyer votre coffret.',
     wiz2Email: 'E-mail *',
     wiz2Phone: 'Téléphone *',
     wiz2City: 'Ville *',
-    wiz2Address: 'Adresse / Quartier *',
+    wiz2Address: 'Quartier / Adresse *',
     wiz2Back: 'Retour',
     wiz2Next: 'Continuer',
-    wiz3Title: '3. Préférences',
-    wiz3Sub: 'Pour vos invitations privées.',
-    wiz3Genre: 'Style préféré',
+    wiz3Title: '3. Vos goûts musicaux',
+    wiz3Sub: 'Pour recevoir les bonnes invitations privées.',
+    wiz3Genre: 'Ce que vous aimez écouter',
     wiz3Genres: [
-      { value: 'Afrobeats & Live Acoustic', label: 'Afrobeats & Live Acoustique' },
+      { value: 'Afrobeats & Live Acoustic', label: 'Afrobeats & Live' },
       { value: 'Jazz, Soul & R&B', label: 'Jazz, Soul & R&B' },
       { value: 'Grands Concerts & Festivals', label: 'Grands Concerts & Festivals' },
-      { value: 'Loges VIP & Dégustations', label: 'Salons VIP & Privés' },
+      { value: 'Loges VIP & Dégustations', label: 'Soirées VIP & Privées' },
     ],
-    wiz3Ref: 'Code parrain (optionnel)',
+    wiz3Ref: 'Code parrain (si vous en avez un)',
     wiz3Next: 'Paiement',
-    wiz4Title: '4. Paiement & Activation',
-    wiz4Sub: 'Activation immédiate après validation.',
+    wiz4Title: '4. Paiement rapide',
+    wiz4Sub: 'Votre pass est prêt dès que c’est validé.',
     wiz4Methods: [
       { id: 'wave', label: 'Wave', desc: '0% frais' },
       { id: 'orange_money', label: 'Orange Money', desc: 'Mobile' },
-      { id: 'mtn_momo', label: 'MTN MoMo', desc: 'Instantané' },
+      { id: 'mtn_momo', label: 'MTN MoMo', desc: 'Rapide' },
       { id: 'djamo', label: 'Djamo', desc: 'Carte' },
       { id: 'card', label: 'Carte Bancaire', desc: 'Visa / MC' },
     ],
-    wiz4Membership: 'Adhésion Black Card',
-    wiz4CardDelivery: 'Carte gravée & livraison',
-    wiz4Included: 'Incluse',
-    wiz4Bonus: 'Crédit cashless offert',
+    wiz4Membership: 'Black Card',
+    wiz4CardDelivery: 'Gravure & livraison',
+    wiz4Included: 'Gratuite',
+    wiz4Bonus: 'Crédit bar offert',
     wiz4BonusVal: '+5 000 FCFA',
-    wiz4Total: 'Total',
-    wiz4Submitting: 'Activation...',
-    wiz4Submit: 'Valider & Activer',
-    wiz5Kicker: 'ADMISSION CONFIRMÉE',
-    wiz5Title: 'BIENVENUE',
-    wiz5Desc: (num: string) => `Identifiant officiel : ${num}. Pass digital actif avec +5 000 FCFA offerts.`,
+    wiz4Total: 'Total à payer',
+    wiz4Submitting: 'Validation...',
+    wiz4Submit: 'Valider et payer',
+    wiz5Kicker: 'C’EST TOUT BON !',
+    wiz5Title: 'BIENVENUE AU CLUB',
+    wiz5Desc: (num: string) => `Votre numéro : ${num}. Votre pass est déjà prêt avec +5 000 FCFA offerts.`,
     wiz5Holder: 'Titulaire',
     wiz5Number: 'Numéro',
-    wiz5Box: 'Coffret physique',
+    wiz5Box: 'Coffret',
     wiz5Prep: 'En préparation',
-    wiz5Cta: 'Accéder à mon Pass',
-    toastMissing: 'Renseignez votre nom complet et votre e-mail.',
-    toastOrderErr: 'Impossible de valider votre demande.',
-    toastActivated: 'Votre LUMARÉEL Black Card est activée.',
-    toastGenericErr: 'Erreur lors du traitement.',
+    wiz5Cta: 'Voir mon Pass',
+    toastMissing: 'Mettez votre nom complet et votre e-mail.',
+    toastOrderErr: 'Impossible de valider votre commande.',
+    toastActivated: 'Votre LUMARÉEL Black Card est prête.',
+    toastGenericErr: 'Petit souci lors de la validation.',
   },
   en: {
     eyebrow: 'THE OFFICIAL LIVE PASS',
-    heroTitle1: 'YOUR LIVE WORLD.',
+    heroTitle1: 'YOUR CONCERTS',
     heroTitle2: 'IN YOUR HANDS.',
-    heroSub: 'Tickets, VIP lounges, and fast-track entry in one physical card.',
+    heroSub: 'All your tickets, VIP lounges, and fast-track entry in one physical black card.',
     ctaPrimary: 'Get Your Black Card',
-    ctaSecondary: 'Benefits',
-    syncProof: (q: number) => `${q} founding members · Instant sync`,
+    ctaSecondary: 'See Benefits',
+    syncProof: (q: number) => `${q} founding cards · Instant auto-sync`,
+    flipHint: 'Tap card to flip',
     verified: 'VERIFIED',
     physicalPass: 'PHYSICAL PASS',
     passHolder: 'PASS HOLDER',
-    synced: 'SYNCED',
+    synced: 'READY',
     howKicker: 'HOW IT WORKS',
-    howTitle1: 'Digital tickets,',
-    howTitle2: 'made physical.',
-    syncTitle: 'Ticket Sync',
-    syncSub: 'Real-time wallet sync',
+    howTitle1: 'Your tickets,',
+    howTitle2: 'live on your card.',
+    syncTitle: 'Auto Ticket Sync',
+    syncSub: 'Real-time sync',
     tapAndGo: 'TAP & GO',
-    activeOrder: 'ACTIVE PASS',
+    activeOrder: 'NEXT CONCERT',
     colDate: 'DATE',
     colTier: 'TIER',
     colStatus: 'STATUS',
-    statusActive: '• Active',
-    syncNote: 'Every mobile ticket automatically syncs to your physical card.',
-    tactileKicker: 'TACTILE CHECK-IN',
-    laserTitle: 'Laser & NFC Back',
-    laserDesc: 'Etched dynamic QR and NFC chip for zero-wait venue entry.',
+    statusActive: '• Ready',
+    syncNote: 'Every mobile ticket you buy syncs automatically to your card.',
+    tactileKicker: 'FAST ENTRY',
+    laserTitle: 'Laser QR & NFC',
+    laserDesc: 'Etched QR and NFC chip so you walk straight in without waiting.',
     flipAria: 'Flip card',
-    gateGranted: 'Gate Cleared',
-    gateDefault: 'Venue Gate Access',
+    gateGranted: 'You’re in!',
+    gateDefault: 'Test gate tap',
     gateSubGranted: 'NFC verified',
-    gateSubDefault: 'Zero lag',
-    autoSyncTitle: 'Auto Sync',
-    autoSyncDesc: 'Zero manual setup required.',
-    livePassTitle: 'Live-Only Pass',
-    livePassDesc: 'Not a bank card. Built purely for live stage access.',
-    benefitsKicker: 'PRIVILEGES',
-    benefitsTitle: 'Three core perks.',
+    gateSubDefault: 'Zero wait',
+    autoSyncTitle: 'Everything syncs automatically',
+    autoSyncDesc: 'Zero manual setup after buying tickets.',
+    livePassTitle: '100% Built for Shows',
+    livePassDesc: 'Not a bank card. Made purely for your live concerts.',
+    benefitsKicker: 'BENEFITS',
+    benefitsTitle: 'Three reasons to carry it.',
     b1Title: 'YOUR CONCERTS',
     b1Desc: 'All tickets and venue bar orders linked to one card.',
     b1FootL: 'Main Stage',
     b1FootR: 'Instant Tap',
-    b2Title: 'PERSONALIZED',
-    b2Desc: 'Anodized matte black composite engraved with your name.',
-    b2Monogram: 'CUSTOM MONOGRAM',
+    b2Title: 'MADE FOR YOU',
+    b2Desc: 'Solid matte black card engraved with your own name.',
+    b2Monogram: 'CUSTOM',
     b2Engraved: 'ENGRAVED NAME',
     b2Weight: '16.0g',
-    b2Chip: 'NFC Active',
+    b2Chip: 'NFC Ready',
     b3Title: 'VIP ACCESS',
-    b3Desc: 'Early soundcheck entry, private mezzanine, and partner perks.',
-    b3FootL: 'VIP Mezzanine',
+    b3Desc: 'Skip the line, enter VIP lounges, and unlock partner perks.',
+    b3FootL: 'VIP Lounge',
     b3FootR: 'VIP',
     previewFrontBadge: 'PASS',
-    previewCore: 'ENCRYPTED CORE',
-    previewEdition: 'PHYSICAL EDITION',
+    previewCore: 'ENCRYPTED CHIP',
+    previewEdition: 'PHYSICAL CARD',
     previewBackLaser: 'LASER ETCHED',
-    previewBackTitle: 'Fast-Track & Lounges',
-    previewBackDesc: 'Scan the QR or tap NFC at official checkpoints.',
+    previewBackTitle: 'Fast-Track & VIP',
+    previewBackDesc: 'Scan the QR or tap NFC at official venue gates.',
     previewFounders: (q: number) => `FOUNDERS · ${q} MAX`,
-    specMat: 'Titanium & Matte',
+    specMat: 'Matte Black & Gold',
     specTech: 'NFC & QR',
     seeFront: 'Show front',
     seeBack: 'Show back',
     ownKicker: 'LIMITED EDITION',
     ownTitle: 'MAKE IT YOURS.',
-    ownDesc: 'Engraved matte black card with integrated NFC and dynamic QR.',
+    ownDesc: 'Engraved matte black card with built-in NFC and personal QR.',
     boxLabel: 'LUMARÉEL BLACK CARD',
     inStock: 'READY TO SHIP',
     waitlist: 'WAITLIST',
@@ -258,8 +257,8 @@ const CARD_COPY = {
     freeShip: 'FREE SHIPPING',
     boxMeta: (rem: number, q: number) => `${rem} / ${q} remaining · +5,000 FCFA bonus`,
     getCardUpper: 'GET YOUR BLACK CARD',
-    shipNote: 'Ships in 2–3 days · Instant digital pass activation.',
-    footTag: 'Physical card for your LUMARÉEL live universe.',
+    shipNote: 'Ships in 2–3 days · Digital pass active immediately.',
+    footTag: 'The physical card for all your LUMARÉEL concerts.',
     footProd: 'Product',
     footCard: 'The Card',
     footOrders: 'Concert Orders',
@@ -277,7 +276,7 @@ const CARD_COPY = {
     // Wizard
     wizHeader: (s: number) => `ADMISSION · STEP ${s} / 5`,
     wizTitle: 'LUMARÉEL Black Card',
-    wiz1Title: '1. Card Engraving',
+    wiz1Title: '1. Your Card Name',
     wiz1Sub: 'Your name laser-etched onto your physical card.',
     wiz1Label: 'Name to engrave *',
     wiz1Plan: 'Selected Plan',
@@ -342,6 +341,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 }) => {
   const { currentUser, events, setCurrentPage, showToast, language } = useApp();
   const c = CARD_COPY[language === 'en' ? 'en' : 'fr'];
+  const prefersReducedMotion = useReducedMotion();
 
   // Edition & Plans data
   const [edition, setEdition] = useState<MembershipEdition | null>(null);
@@ -355,6 +355,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   );
 
   // Interactive card & gate simulator state
+  const [isHeroCardFlipped, setIsHeroCardFlipped] = useState(false);
   const [isShowcaseFlipped, setIsShowcaseFlipped] = useState(false);
   const [isTokenActive, setIsTokenActive] = useState(false);
   const [tapLatency, setTapLatency] = useState('0.2s');
@@ -504,167 +505,218 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   return (
     <div className="w-full min-h-screen bg-[#050505] text-[#F2F2F2] font-agrandir-regular selection:bg-[#C8B282] selection:text-black">
       {/* =================================================================== */}
-      {/* 1. HERO SECTION                                                     */}
+      {/* 1. HERO BANNER — IMAGE WITH TEXT OVERLAY + ANIMATED BLACK CARD      */}
       {/* =================================================================== */}
-      <section id="section-hero" className="max-w-6xl mx-auto px-4 sm:px-8 pt-6 pb-14 sm:pt-10 sm:pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-          <div className="lg:col-span-6 space-y-5 text-left">
-            <div className="inline-flex items-center gap-2 text-[11px] font-mono tracking-[0.16em] text-neutral-300 uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#B8F249]" aria-hidden="true" />
-              <span>{c.eyebrow}</span>
-            </div>
+      <section id="section-hero" className="max-w-6xl mx-auto px-4 sm:px-8 pt-2 pb-12 sm:pt-6 sm:pb-18">
+        <div className="relative rounded-3xl sm:rounded-[32px] overflow-hidden border border-white/15 bg-[#080808] shadow-[0_30px_90px_rgba(0,0,0,0.92)]">
+          {/* Full-bleed Black Card Backdrop Image */}
+          {!failedImages['heroBanner'] ? (
+            <img
+              src={heroBlackCardBannerImg}
+              alt="LUMARÉEL Black Card"
+              referrerPolicy="no-referrer"
+              onError={() => markImageFailed('heroBanner')}
+              className="absolute inset-0 w-full h-full object-cover object-center scale-[1.03]"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1B1710] via-[#090909] to-[#040404]" />
+          )}
 
-            <h1 className="text-4xl sm:text-5xl xl:text-[3.5rem] font-agrandir-extrabold uppercase tracking-tight leading-[1.02] text-white max-w-xl">
-              {c.heroTitle1} <br />
-              <span className="text-[#C8B282]">{c.heroTitle2}</span>
-            </h1>
+          {/* Measured Dark Scrim for High-Contrast Legibility over Image */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/88 via-black/78 to-black/92 lg:bg-gradient-to-r lg:from-black/95 lg:via-black/78 lg:to-black/55" />
 
-            <p className="text-sm sm:text-base text-neutral-400 font-light leading-relaxed max-w-md">
-              {c.heroSub}
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => openAdmissionWizard(activePlan || undefined)}
-                className="px-6 py-3.5 rounded-full bg-white hover:bg-[#C8B282] text-black text-xs font-agrandir-extrabold tracking-wide transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                {c.ctaPrimary}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => scrollToSection('section-benefits')}
-                className="px-6 py-3.5 rounded-full bg-[#111111] hover:bg-[#1B1B1B] border border-white/15 text-white text-xs font-agrandir-semibold tracking-wide transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                {c.ctaSecondary}
-              </button>
-            </div>
-
-            <div className="pt-2 flex items-center gap-3.5">
-              <div className="flex items-center -space-x-1.5">
-                <span className="w-7 h-7 rounded-lg bg-[#1A1A1A] border border-white/15 flex items-center justify-center text-[10px] font-mono font-semibold text-neutral-300">
-                  01
-                </span>
-                <span className="w-7 h-7 rounded-lg bg-[#C8B282] border border-[#050505] flex items-center justify-center text-[10px] font-mono font-bold text-black">
-                  02
-                </span>
-                <span className="w-7 h-7 rounded-lg bg-white border border-[#050505] flex items-center justify-center text-[10px] font-mono font-bold text-black">
-                  03
-                </span>
+          {/* Foreground Grid Sitting Directly Over the Hero Image */}
+          <div className="relative z-10 p-6 sm:p-10 lg:p-14 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
+            {/* Left/Top Column: Text Directly Over Image */}
+            <div className="lg:col-span-7 space-y-4 sm:space-y-5 text-left">
+              <div className="text-[11px] font-mono tracking-[0.16em] text-[#C8B282] uppercase">
+                {c.eyebrow}
               </div>
-              <span className="text-xs text-neutral-400">{c.syncProof(quota)}</span>
+
+              <h1
+                className="text-3xl sm:text-5xl xl:text-[3.6rem] font-agrandir-extrabold uppercase tracking-tight leading-[1.03] text-white max-w-xl"
+                style={{ textWrap: 'balance' }}
+              >
+                {c.heroTitle1} <br />
+                <span className="text-[#C8B282]">{c.heroTitle2}</span>
+              </h1>
+
+              <p className="text-sm sm:text-base text-neutral-200 font-light leading-relaxed max-w-md">
+                {c.heroSub}
+              </p>
+
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => openAdmissionWizard(activePlan || undefined)}
+                  className="min-h-[44px] px-6 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black text-xs font-agrandir-extrabold tracking-wide transition-colors whitespace-nowrap shrink-0 cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <span>{c.ctaPrimary}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('section-benefits')}
+                  className="min-h-[44px] px-6 py-3 rounded-full bg-black/60 hover:bg-black/80 border border-white/25 text-white text-xs font-agrandir-semibold tracking-wide transition-colors whitespace-nowrap shrink-0 cursor-pointer backdrop-blur-md flex items-center justify-center"
+                >
+                  {c.ctaSecondary}
+                </button>
+              </div>
+
+              <div className="pt-1 flex flex-wrap items-center gap-2 text-xs text-neutral-300">
+                <span className="font-mono text-[#B8F249] uppercase tracking-wider">{c.verified}</span>
+                <span aria-hidden="true" className="text-white/30">·</span>
+                <span>{c.syncProof(quota)}</span>
+              </div>
             </div>
-          </div>
 
-          <div className="lg:col-span-6 relative pb-10 sm:pb-12">
-            <div className="rounded-[26px] bg-[#0B0B0B] border border-white/10 p-2.5 shadow-[0_30px_80px_rgba(0,0,0,0.85)]">
-              <div className="grid grid-cols-12 gap-2.5 h-[340px] sm:h-[400px]">
-                <div className="col-span-6 grid grid-rows-2 gap-2.5 h-full">
-                  <div className="relative rounded-2xl overflow-hidden bg-[#141414]">
-                    {!failedImages['heroTop'] ? (
-                      <img
-                        src={heroLoungeTopImg}
-                        alt="LUMARÉEL VIP Lounge"
-                        referrerPolicy="no-referrer"
-                        onError={() => markImageFailed('heroTop')}
-                        className="w-full h-full object-cover"
+            {/* Right/Bottom Column: Interactive Animated 3D Black Card */}
+            <div className="lg:col-span-5 flex flex-col items-center justify-center">
+              <motion.div
+                animate={
+                  prefersReducedMotion
+                    ? undefined
+                    : {
+                        y: [0, -8, 0],
+                        rotateZ: [-0.6, 0.6, -0.6],
+                      }
+                }
+                transition={
+                  prefersReducedMotion
+                    ? undefined
+                    : {
+                        duration: 5.5,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }
+                }
+                whileHover={prefersReducedMotion ? undefined : { scale: 1.03, rotateX: 4, rotateY: -6 }}
+                onClick={() => setIsHeroCardFlipped((prev) => !prev)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setIsHeroCardFlipped((prev) => !prev);
+                  }
+                }}
+                aria-label={c.flipAria}
+                className="w-full max-w-[330px] sm:max-w-[360px] cursor-pointer perspective-[1200px]"
+                style={{ aspectRatio: '85.6 / 53.98' }}
+              >
+                <motion.div
+                  animate={{ rotateY: isHeroCardFlipped ? 180 : 0 }}
+                  transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                  className="w-full h-full relative"
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  {/* Hero Card Front */}
+                  <div
+                    className="absolute inset-0 rounded-[20px] p-5 sm:p-6 flex flex-col justify-between bg-gradient-to-br from-[#1C1C1C] via-[#0B0B0B] to-[#030303] border border-[#C8B282]/55 shadow-[0_28px_70px_rgba(0,0,0,0.95)] overflow-hidden"
+                    style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+                  >
+                    {!prefersReducedMotion && (
+                      <motion.div
+                        aria-hidden="true"
+                        animate={{ x: ['-130%', '220%'] }}
+                        transition={{ duration: 4.2, repeat: Infinity, repeatDelay: 2.2, ease: 'easeInOut' }}
+                        className="pointer-events-none absolute inset-y-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-[#C8B282]/15 to-transparent"
                       />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#1C1810] to-[#080808] flex items-center justify-center">
-                        <Sparkles className="w-6 h-6 text-[#C8B282]/50" />
-                      </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                  </div>
 
-                  <div className="relative rounded-2xl overflow-hidden bg-[#141414]">
-                    {!failedImages['heroPortrait'] ? (
-                      <img
-                        src={heroPortraitLeftImg}
-                        alt="LUMARÉEL Live Night"
-                        referrerPolicy="no-referrer"
-                        onError={() => markImageFailed('heroPortrait')}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#1A1612] to-[#080808] flex items-center justify-center">
-                        <User className="w-6 h-6 text-[#C8B282]/50" />
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-agrandir-extrabold text-sm sm:text-base tracking-wider text-white uppercase">
+                          LUMARÉEL
+                        </span>
+                        <span className="text-[9px] font-mono tracking-widest text-[#C8B282] uppercase">
+                          BLACK
+                        </span>
                       </div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-                  </div>
-                </div>
-
-                <div className="col-span-6 relative rounded-2xl overflow-hidden bg-[#141414] h-full">
-                  {!failedImages['heroTall'] ? (
-                    <img
-                      src={heroNightTallImg}
-                      alt="LUMARÉEL Backstage"
-                      referrerPolicy="no-referrer"
-                      onError={() => markImageFailed('heroTall')}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-[#18140C] to-[#050505] flex items-center justify-center">
-                      <Radio className="w-7 h-7 text-[#C8B282]/50" />
+                      <Wifi className="w-4 h-4 text-neutral-300 rotate-90" />
                     </div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
-                </div>
-              </div>
 
-              <div className="mt-2.5 rounded-2xl bg-[#111111] border border-white/10 px-4 py-3 flex items-center justify-end">
-                <div className="flex items-center gap-2 text-[10px] font-mono tracking-widest uppercase text-[#B8F249]">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>{c.verified}</span>
-                </div>
-              </div>
-            </div>
+                    <div className="relative z-10 flex items-center gap-3 my-auto">
+                      <div className="w-10 h-7 sm:w-11 sm:h-8 rounded-[5px] bg-gradient-to-br from-[#F4E1B6] via-[#C8B282] to-[#7D6638] border border-black/40 p-0.5 grid grid-cols-2 gap-0.5">
+                        <div className="border-r border-b border-black/35" />
+                        <div className="border-b border-black/35" />
+                        <div className="border-r border-black/35" />
+                        <div />
+                      </div>
+                      <span className="text-[9px] font-mono tracking-[0.2em] text-neutral-400 uppercase">
+                        {c.physicalPass}
+                      </span>
+                    </div>
 
-            <div className="absolute left-2 sm:-left-6 bottom-0 w-[260px] sm:w-[295px] rounded-2xl bg-gradient-to-br from-[#171717] via-[#0B0B0B] to-[#030303] border border-[#C8B282]/40 p-4 sm:p-5 shadow-[0_25px_60px_rgba(0,0,0,0.95)]">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="font-agrandir-extrabold text-xs tracking-wider text-white uppercase">
-                    LUMARÉEL
-                  </span>
-                  <span className="text-[9px] font-mono tracking-widest text-[#C8B282] uppercase">
-                    BLACK
-                  </span>
-                </div>
-                <Wifi className="w-3.5 h-3.5 text-neutral-400 rotate-90" />
-              </div>
+                    <div className="relative z-10 flex items-end justify-between gap-2 pt-2.5 border-t border-white/10">
+                      <div className="min-w-0">
+                        <div className="text-[8px] font-mono tracking-[0.2em] text-neutral-400 uppercase">
+                          {c.passHolder}
+                        </div>
+                        <div className="text-xs sm:text-sm font-agrandir-extrabold text-white uppercase truncate">
+                          {displayName}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-[8px] font-mono font-bold tracking-widest text-[#B8F249] uppercase">
+                          {c.synced}
+                        </div>
+                        <div className="text-[10px] font-mono text-neutral-300 tabular-nums">
+                          {displaySerial}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-6 rounded-[4px] bg-gradient-to-br from-[#F2DFB2] via-[#C8B282] to-[#7D6638] border border-black/40 p-0.5 grid grid-cols-2 gap-0.5">
-                  <div className="border-r border-b border-black/35" />
-                  <div className="border-b border-black/35" />
-                  <div className="border-r border-black/35" />
-                  <div />
-                </div>
-                <span className="text-[9px] font-mono tracking-[0.2em] text-neutral-400 uppercase">
-                  {c.physicalPass}
-                </span>
-              </div>
+                  {/* Hero Card Back */}
+                  <div
+                    className="absolute inset-0 rounded-[20px] p-5 sm:p-6 flex flex-col justify-between bg-[#060606] border border-[#C8B282]/45 shadow-[0_28px_70px_rgba(0,0,0,0.95)]"
+                    style={{
+                      backfaceVisibility: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)',
+                    }}
+                  >
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                      <span className="text-[9px] font-mono tracking-[0.18em] text-[#C8B282] uppercase">
+                        {c.previewBackLaser} · {cardNumber}
+                      </span>
+                      <span className="text-[9px] font-mono text-[#B8F249] uppercase">
+                        NFC
+                      </span>
+                    </div>
 
-              <div className="flex items-end justify-between gap-2 pt-2 border-t border-white/10">
-                <div className="min-w-0">
-                  <div className="text-[8px] font-mono tracking-[0.2em] text-neutral-500 uppercase">
-                    {c.passHolder}
+                    <div className="flex items-center justify-between gap-3 my-auto">
+                      <div className="space-y-1 text-left">
+                        <div className="text-xs font-agrandir-bold text-white uppercase">
+                          {c.previewBackTitle}
+                        </div>
+                        <p className="text-[10px] text-neutral-300 leading-relaxed">
+                          {c.previewBackDesc}
+                        </p>
+                      </div>
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-white p-1.5 flex items-center justify-center shrink-0">
+                        <QrCode className="w-11 h-11 text-black" />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[9px] font-mono text-neutral-400 pt-2 border-t border-white/10">
+                      <span>{c.previewFounders(quota)}</span>
+                      <span className="text-white">{displaySerial}</span>
+                    </div>
                   </div>
-                  <div className="text-xs font-agrandir-extrabold text-white uppercase truncate">
-                    {displayName}
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <div className="text-[8px] font-mono font-bold tracking-widest text-[#B8F249] uppercase">
-                    {c.synced}
-                  </div>
-                  <div className="text-[10px] font-mono text-neutral-300 tabular-nums">
-                    {displaySerial}
-                  </div>
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
+
+              <button
+                type="button"
+                onClick={() => setIsHeroCardFlipped((prev) => !prev)}
+                className="mt-2 min-h-[44px] px-3 inline-flex items-center gap-1.5 text-[11px] font-mono text-neutral-300 hover:text-[#C8B282] transition-colors cursor-pointer"
+              >
+                <RotateCw className="w-3.5 h-3.5" />
+                <span>{c.flipHint}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -673,42 +725,45 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       {/* =================================================================== */}
       {/* 2. HOW IT WORKS                                                     */}
       {/* =================================================================== */}
-      <section id="section-how-it-works" className="max-w-6xl mx-auto px-4 sm:px-8 pb-16 sm:pb-20">
-        <div className="rounded-[28px] bg-[#0B0B0B] border border-white/10 p-6 sm:p-10">
-          <div className="max-w-xl space-y-2 mb-8 text-left">
+      <section id="section-how-it-works" className="max-w-6xl mx-auto px-4 sm:px-8 pb-12 sm:pb-20">
+        <div className="rounded-3xl sm:rounded-[28px] bg-[#0B0B0B] border border-white/10 p-5 sm:p-10">
+          <div className="max-w-xl space-y-2 mb-6 sm:mb-8 text-left">
             <div className="text-[10px] font-mono tracking-[0.22em] text-[#C8B282] uppercase">
               {c.howKicker}
             </div>
-            <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold text-white tracking-tight leading-[1.08]">
+            <h2
+              className="text-2xl sm:text-4xl font-agrandir-extrabold text-white tracking-tight leading-[1.08]"
+              style={{ textWrap: 'balance' }}
+            >
               {c.howTitle1} <br />
               {c.howTitle2}
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-7 rounded-2xl bg-[#121212] border border-white/10 p-6 flex flex-col justify-between gap-5 text-left">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
+            <div className="lg:col-span-7 rounded-2xl bg-[#121212] border border-white/10 p-4 sm:p-6 flex flex-col justify-between gap-4 sm:gap-5 text-left">
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white shrink-0">
                     <Smartphone className="w-4 h-4 text-[#C8B282]" />
                   </div>
-                  <div>
-                    <div className="text-xs font-agrandir-bold text-white">{c.syncTitle}</div>
-                    <div className="text-[11px] text-neutral-500">{c.syncSub}</div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-agrandir-bold text-white truncate">{c.syncTitle}</div>
+                    <div className="text-[11px] text-neutral-400 truncate">{c.syncSub}</div>
                   </div>
                 </div>
-                <span className="text-[10px] font-mono font-semibold tracking-wider text-[#B8F249] uppercase">
+                <span className="text-[10px] font-mono font-semibold tracking-wider text-[#B8F249] uppercase shrink-0">
                   {c.tapAndGo}
                 </span>
               </div>
 
               <div className="rounded-xl bg-[#080808] border border-white/10 p-4 sm:p-5 space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
                     <div className="text-[9px] font-mono tracking-[0.18em] text-neutral-500 uppercase mb-1">
                       {c.activeOrder}
                     </div>
-                    <div className="text-sm sm:text-base font-agrandir-extrabold text-white">
+                    <div className="text-sm sm:text-base font-agrandir-extrabold text-white truncate">
                       {syncEventTitle}
                     </div>
                   </div>
@@ -717,38 +772,38 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 pt-3 border-t border-white/10 text-left">
-                  <div>
+                <div className="grid grid-cols-3 gap-2 sm:gap-3 pt-3 border-t border-white/10 text-left">
+                  <div className="min-w-0">
                     <div className="text-[9px] font-mono uppercase tracking-wider text-neutral-500">
                       {c.colDate}
                     </div>
-                    <div className="text-xs font-agrandir-semibold text-neutral-200 tabular-nums">
+                    <div className="text-[11px] sm:text-xs font-agrandir-semibold text-neutral-200 tabular-nums truncate">
                       {syncEventDate}
                     </div>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-[9px] font-mono uppercase tracking-wider text-neutral-500">
                       {c.colTier}
                     </div>
-                    <div className="text-xs font-agrandir-semibold text-neutral-200 truncate">
+                    <div className="text-[11px] sm:text-xs font-agrandir-semibold text-neutral-200 truncate">
                       {syncEventTier}
                     </div>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-[9px] font-mono uppercase tracking-wider text-neutral-500">
                       {c.colStatus}
                     </div>
-                    <div className="text-xs font-agrandir-semibold text-[#B8F249]">
+                    <div className="text-[11px] sm:text-xs font-agrandir-semibold text-[#B8F249] truncate">
                       {c.statusActive}
                     </div>
                   </div>
                 </div>
               </div>
 
-              <p className="text-xs text-neutral-400 font-light">{c.syncNote}</p>
+              <p className="text-xs text-neutral-300 font-light">{c.syncNote}</p>
             </div>
 
-            <div className="lg:col-span-5 rounded-2xl bg-gradient-to-br from-[#070707] via-[#050505] to-[#11100C] border border-[#C8B282]/30 p-6 flex flex-col justify-between gap-6 text-left">
+            <div className="lg:col-span-5 rounded-2xl bg-gradient-to-br from-[#070707] via-[#050505] to-[#11100C] border border-[#C8B282]/30 p-4 sm:p-6 flex flex-col justify-between gap-5 sm:gap-6 text-left">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-mono tracking-[0.2em] text-[#C8B282] uppercase">
@@ -758,9 +813,9 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     type="button"
                     onClick={() => setIsShowcaseFlipped((prev) => !prev)}
                     aria-label={c.flipAria}
-                    className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-neutral-300 hover:text-[#C8B282] transition-colors cursor-pointer"
+                    className="w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-neutral-300 hover:text-[#C8B282] transition-colors cursor-pointer"
                   >
-                    <RotateCw className="w-3.5 h-3.5" />
+                    <RotateCw className="w-4 h-4" />
                   </button>
                 </div>
 
@@ -776,30 +831,30 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
               <button
                 type="button"
                 onClick={triggerTapSimulation}
-                className="w-full rounded-xl bg-[#131313] hover:bg-[#191919] border border-white/10 hover:border-[#B8F249]/40 p-3.5 flex items-center justify-between transition-colors cursor-pointer text-left"
+                className="w-full min-h-[52px] rounded-xl bg-[#131313] hover:bg-[#191919] border border-white/10 hover:border-[#B8F249]/40 p-3.5 flex items-center justify-between gap-3 transition-colors cursor-pointer text-left"
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <div className="w-9 h-9 rounded-lg bg-white text-black flex items-center justify-center shrink-0">
                     <QrCode className="w-4 h-4" />
                   </div>
-                  <div>
-                    <div className="text-xs font-agrandir-bold text-white">
+                  <div className="min-w-0">
+                    <div className="text-xs font-agrandir-bold text-white truncate">
                       {isTokenActive ? c.gateGranted : c.gateDefault}
                     </div>
-                    <div className="text-[10px] text-neutral-400">
+                    <div className="text-[10px] text-neutral-400 truncate">
                       {isTokenActive ? c.gateSubGranted : c.gateSubDefault}
                     </div>
                   </div>
                 </div>
-                <span className="font-mono text-xs font-bold text-[#B8F249] tabular-nums">
+                <span className="font-mono text-xs font-bold text-[#B8F249] tabular-nums shrink-0">
                   {tapLatency}
                 </span>
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
-            <div className="rounded-2xl bg-[#121212] border border-white/10 p-5 flex items-center gap-4 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5 mt-4 sm:mt-5">
+            <div className="rounded-2xl bg-[#121212] border border-white/10 p-4 sm:p-5 flex items-center gap-4 text-left">
               <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#C8B282] shrink-0">
                 <Radio className="w-4 h-4" />
               </div>
@@ -809,7 +864,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
               </div>
             </div>
 
-            <div className="rounded-2xl bg-[#121212] border border-white/10 p-5 flex items-center gap-4 text-left">
+            <div className="rounded-2xl bg-[#121212] border border-white/10 p-4 sm:p-5 flex items-center gap-4 text-left">
               <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-[#C8B282] shrink-0">
                 <ShieldCheck className="w-4 h-4" />
               </div>
@@ -825,18 +880,18 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       {/* =================================================================== */}
       {/* 3. THREE CORE PERKS                                                 */}
       {/* =================================================================== */}
-      <section id="section-benefits" className="max-w-6xl mx-auto px-4 sm:px-8 pb-16 sm:pb-20">
-        <div className="text-center max-w-xl mx-auto space-y-2 mb-10">
+      <section id="section-benefits" className="max-w-6xl mx-auto px-4 sm:px-8 pb-12 sm:pb-20">
+        <div className="text-center max-w-xl mx-auto space-y-2 mb-8 sm:mb-10">
           <div className="text-[10px] font-mono tracking-[0.22em] text-[#C8B282] uppercase">
             {c.benefitsKicker}
           </div>
-          <h2 className="text-3xl sm:text-4xl font-agrandir-extrabold text-white tracking-tight leading-[1.08]">
+          <h2 className="text-2xl sm:text-4xl font-agrandir-extrabold text-white tracking-tight leading-[1.08]">
             {c.benefitsTitle}
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
-          <div className="rounded-[24px] bg-[#0B0B0B] border border-white/10 p-6 flex flex-col justify-between gap-5 text-left">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 items-stretch">
+          <div className="rounded-[24px] bg-[#0B0B0B] border border-white/10 p-5 sm:p-6 flex flex-col justify-between gap-5 text-left">
             <div className="space-y-2">
               <div className="text-3xl font-agrandir-extrabold text-[#C8B282] tabular-nums">01</div>
               <h3 className="text-base font-agrandir-extrabold uppercase tracking-wide text-white">
@@ -870,7 +925,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
             </div>
           </div>
 
-          <div className="rounded-[24px] bg-[#0B0B0B] border border-white/10 p-6 flex flex-col justify-between gap-5 text-left">
+          <div className="rounded-[24px] bg-[#0B0B0B] border border-white/10 p-5 sm:p-6 flex flex-col justify-between gap-5 text-left">
             <div className="space-y-2">
               <div className="text-3xl font-agrandir-extrabold text-white tabular-nums">02</div>
               <h3 className="text-base font-agrandir-extrabold uppercase tracking-wide text-white">
@@ -898,7 +953,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   onChange={(e) => setCustomName(e.target.value.toUpperCase())}
                   maxLength={28}
                   aria-label={c.b2Engraved}
-                  className="w-full bg-black/70 border border-white/10 focus:border-[#C8B282] rounded-lg px-2.5 py-1.5 text-sm font-agrandir-extrabold uppercase tracking-wide text-white outline-none transition-colors"
+                  className="w-full min-h-[44px] bg-black/70 border border-white/10 focus:border-[#C8B282] rounded-lg px-3 py-2 text-sm font-agrandir-extrabold uppercase tracking-wide text-white outline-none transition-colors"
                 />
               </div>
 
@@ -909,7 +964,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
             </div>
           </div>
 
-          <div className="rounded-[24px] bg-[#0B0B0B] border border-white/10 p-6 flex flex-col justify-between gap-5 text-left">
+          <div className="rounded-[24px] bg-[#0B0B0B] border border-white/10 p-5 sm:p-6 flex flex-col justify-between gap-5 text-left">
             <div className="space-y-2">
               <div className="text-3xl font-agrandir-extrabold text-[#B8F249] tabular-nums">03</div>
               <h3 className="text-base font-agrandir-extrabold uppercase tracking-wide text-white">
@@ -950,9 +1005,9 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       {/* =================================================================== */}
       {/* 4. MAKE IT YOURS                                                    */}
       {/* =================================================================== */}
-      <section id="section-make-it-yours" className="max-w-6xl mx-auto px-4 sm:px-8 pb-16 sm:pb-20">
-        <div className="rounded-[28px] bg-[#0B0B0B] border border-white/10 p-6 sm:p-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+      <section id="section-make-it-yours" className="max-w-6xl mx-auto px-4 sm:px-8 pb-14 sm:pb-20">
+        <div className="rounded-3xl sm:rounded-[28px] bg-[#0B0B0B] border border-white/10 p-5 sm:p-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-center">
             <div className="lg:col-span-5 flex flex-col items-center">
               <div
                 onClick={() => setIsShowcaseFlipped((prev) => !prev)}
@@ -965,7 +1020,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   }
                 }}
                 aria-label={c.flipAria}
-                className="w-full max-w-[380px] cursor-pointer perspective-[1200px]"
+                className="w-full max-w-[330px] sm:max-w-[380px] cursor-pointer perspective-[1200px]"
                 style={{ aspectRatio: '85.6 / 53.98' }}
               >
                 <motion.div
@@ -1061,7 +1116,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 </motion.div>
               </div>
 
-              <div className="mt-4 flex items-center justify-center gap-4 text-[11px] text-neutral-400">
+              <div className="mt-2 flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-[11px] text-neutral-400">
                 <span>{c.specMat}</span>
                 <span aria-hidden="true">·</span>
                 <span>{c.specTech}</span>
@@ -1069,7 +1124,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 <button
                   type="button"
                   onClick={() => setIsShowcaseFlipped((prev) => !prev)}
-                  className="text-[#C8B282] hover:underline cursor-pointer"
+                  className="min-h-[44px] px-2 text-[#C8B282] hover:underline cursor-pointer"
                 >
                   {isShowcaseFlipped ? c.seeFront : c.seeBack}
                 </button>
@@ -1084,13 +1139,13 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 <h2 className="text-3xl sm:text-5xl font-agrandir-extrabold uppercase text-white tracking-tight leading-none">
                   {c.ownTitle}
                 </h2>
-                <p className="text-xs sm:text-sm text-neutral-400 font-light max-w-xl">
+                <p className="text-xs sm:text-sm text-neutral-300 font-light max-w-xl">
                   {c.ownDesc}
                 </p>
               </div>
 
               {plans.length > 1 && (
-                <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-[#131313] border border-white/10">
+                <div className="inline-flex flex-wrap items-center gap-1 p-1 rounded-xl bg-[#131313] border border-white/10">
                   {plans.map((plan) => {
                     const isActive = activePlan?.id === plan.id;
                     return (
@@ -1098,7 +1153,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         key={plan.id}
                         type="button"
                         onClick={() => setSelectedPlan(plan)}
-                        className={`px-3.5 py-2 rounded-lg text-xs font-agrandir-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                        className={`min-h-[44px] px-3.5 py-2 rounded-lg text-xs font-agrandir-semibold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                           isActive
                             ? 'bg-white text-black'
                             : 'text-neutral-400 hover:text-white'
@@ -1111,7 +1166,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 </div>
               )}
 
-              <div className="rounded-2xl bg-[#131313] border border-white/10 p-5 sm:p-6 space-y-3">
+              <div className="rounded-2xl bg-[#131313] border border-white/10 p-4 sm:p-6 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[10px] font-mono tracking-[0.16em] text-neutral-400 uppercase">
                     {c.boxLabel}
@@ -1121,9 +1176,9 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2 sm:gap-3">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl sm:text-4xl font-agrandir-extrabold text-white tabular-nums">
+                    <span className="text-2xl sm:text-4xl font-agrandir-extrabold text-white tabular-nums">
                       {loading ? '...' : formattedPrice}
                     </span>
                     <span className="text-xs font-mono text-neutral-400 uppercase">
@@ -1143,14 +1198,14 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
               <button
                 type="button"
                 onClick={() => openAdmissionWizard(activePlan || undefined)}
-                className="w-full py-4 px-6 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2.5 transition-colors cursor-pointer"
+                className="w-full min-h-[48px] py-4 px-6 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2.5 transition-colors cursor-pointer"
               >
                 <span>{c.getCardUpper}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
-              <div className="flex items-center justify-center sm:justify-start gap-2 text-[11px] text-neutral-500">
-                <Lock className="w-3.5 h-3.5 text-[#B8F249]" />
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-[11px] text-neutral-400">
+                <Lock className="w-3.5 h-3.5 text-[#B8F249] shrink-0" />
                 <span>{c.shipNote}</span>
               </div>
             </div>
@@ -1273,15 +1328,15 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       {/* =================================================================== */}
       <AnimatePresence>
         {isWizardOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md overflow-y-auto">
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 12 }}
               transition={{ duration: 0.2 }}
-              className="relative w-full max-w-xl rounded-3xl bg-[#0B0B0B] border border-[#C8B282]/40 p-6 sm:p-8 shadow-2xl my-8 text-left"
+              className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0B0B0B] border border-[#C8B282]/40 p-5 sm:p-8 shadow-2xl my-4 sm:my-8 text-left"
             >
-              <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5 sm:mb-6">
                 <div>
                   <span className="text-[10px] font-mono uppercase tracking-widest text-[#C8B282]">
                     {c.wizHeader(wizardStep)}
@@ -1294,7 +1349,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 <button
                   type="button"
                   onClick={() => setIsWizardOpen(false)}
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                  className="w-11 h-11 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-neutral-400 hover:text-white transition-colors cursor-pointer shrink-0"
                   aria-label="Close"
                 >
                   <X className="w-4 h-4" />
