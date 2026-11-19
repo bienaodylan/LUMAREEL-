@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { CreditCard, Radio, Package, Truck, ShieldCheck, RefreshCw, Search, Upload, AlertCircle, Link2, Ban } from 'lucide-react';
+import { CreditCard, Radio, Package, Truck, ShieldCheck, RefreshCw, Search, Upload, AlertCircle, Link2, Ban, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 
 type Tab = 'dashboard'|'orders'|'inventory'|'nfc'|'association'|'shipping'|'replacements'|'imports'|'logs';
@@ -21,6 +21,15 @@ const metricCards:{label:string;key:string}[]=[
 ];
 type OverviewStats=Record<string,number>;
 type Activity={id:string;action_type:string;entity_type:string;entity_id:string;details:Record<string,unknown>;created_at:string};
+type ConsistencyAnomaly={issue_code:string;membership_card_id:string|null;stock_id:string|null;manufacturer_serial:string|null;credential_id:string|null;details:Record<string,unknown>};
+type ConsistencyAuditPage={total_count:number;limit:number;offset:number;anomalies:ConsistencyAnomaly[]};
+const auditIssueLabels:Record<string,string>={
+ STOCK_WITHOUT_ACTIVE_NFC:'Stock lié sans credential NFC actif',
+ LINKED_STOCK_MISSING_NFC_REFERENCE:'Stock lié sans référence NFC',
+ STOCK_NFC_METADATA_MISMATCH:'Métadonnées stock / NFC divergentes',
+ ACTIVE_NFC_WITHOUT_PHYSICAL_STOCK:'Credential actif sans stock physique',
+ BLOCKED_STOCK_STILL_LINKED:'Stock bloqué encore lié à une carte membre',
+};
 type OrderRow={id:string;order_reference:string;amount:number;currency:string;payment_status:string;paid_at:string|null;created_at:string};
 type StockCard={id:string;manufacturer_serial:string;chip_reference:string|null;batch_reference:string|null;chip_type:string;stock_status:string;membership_card_id:string|null;received_at:string};
 type PhysicalCard={id:string;card_number:string;cardholder_name:string;card_status:string;physical_card_status:string;physical_card_tracking_number:string|null;issued_at:string;expires_at:string};
@@ -52,6 +61,10 @@ export const AdminPhysicalCardsView:React.FC=()=>{
  const [shipStatus,setShipStatus]=useState('verified');
  const [carrier,setCarrier]=useState('');
  const [trackingReference,setTrackingReference]=useState('');
+ const [auditPage,setAuditPage]=useState<ConsistencyAuditPage|null>(null);
+ const [auditOffset,setAuditOffset]=useState(0);
+ const [auditLoading,setAuditLoading]=useState(false);
+ const [auditError,setAuditError]=useState('');
  const active=tabs.find(t=>t.id===tab)!;
 
  const api=useCallback(async(path:string,init:RequestInit={})=>{
@@ -75,7 +88,18 @@ export const AdminPhysicalCardsView:React.FC=()=>{
    catch(e:any){setError(e.message||'Vue d’ensemble indisponible.');}
    finally{setLoadingOverview(false);}
  },[api]);
- useEffect(()=>{if(tab==='nfc')void loadNfc();if(tab==='inventory'||tab==='imports'||tab==='association')void loadStock();if(tab==='dashboard'||tab==='logs'||tab==='orders'||tab==='inventory'||tab==='shipping'||tab==='association')void loadOverview();},[tab,loadNfc,loadOverview]);
+ const loadAudit=useCallback(async(offset:number)=>{
+   setAuditLoading(true);setAuditError('');
+   try{
+     const data=await api(`/api/membership/admin/physical-card-stock?audit=consistency&limit=50&offset=${offset}`);
+     const page=data.audit as ConsistencyAuditPage|undefined;
+     if(!page||!Array.isArray(page.anomalies))throw new Error('Format du rapport de cohérence invalide.');
+     setAuditPage({total_count:Number(page.total_count)||0,limit:Number(page.limit)||50,offset:Number(page.offset)||offset,anomalies:page.anomalies});
+     setAuditOffset(Number(page.offset)||offset);
+   }catch(e:any){setAuditError(e.message||'Rapport de cohérence NFC indisponible.');}
+   finally{setAuditLoading(false);}
+ },[api]);
+ useEffect(()=>{if(tab==='nfc')void loadNfc();if(tab==='inventory'||tab==='imports'||tab==='association')void loadStock();if(tab==='dashboard'||tab==='logs'||tab==='orders'||tab==='inventory'||tab==='shipping'||tab==='association')void loadOverview();if(tab==='logs')void loadAudit(auditOffset);},[tab,auditOffset,loadNfc,loadOverview,loadAudit]);
 
  const associate=async(e:React.FormEvent)=>{
    e.preventDefault();setSaving(true);
@@ -108,7 +132,24 @@ export const AdminPhysicalCardsView:React.FC=()=>{
   {tab==='shipping'&&<div className="space-y-4"><form onSubmit={updateShipping} className="grid gap-3 rounded-2xl border border-white/10 bg-[#0b0b0b] p-5 sm:grid-cols-2"><h2 className="sm:col-span-2 font-bold">Suivi de remise et livraison des cartes reçues</h2><select required value={shipStockId} onChange={e=>setShipStockId(e.target.value)} className="rounded-xl border border-white/15 bg-black px-3 py-3 text-sm"><option value="">Sélectionner la carte fabricant</option>{stock.filter(c=>c.stock_status!=='delivered').map(c=><option key={c.id} value={c.id}>{c.manufacturer_serial} · {c.stock_status}</option>)}</select><select value={shipStatus} onChange={e=>setShipStatus(e.target.value)} className="rounded-xl border border-white/15 bg-black px-3 py-3 text-sm"><option value="verified">Carte vérifiée</option><option value="ready">Prête à remettre</option><option value="shipped">Expédiée</option><option value="delivered">Livrée</option><option value="blocked">Bloquée</option><option value="returned">Retournée</option></select><input value={carrier} onChange={e=>setCarrier(e.target.value)} placeholder="Transporteur (facultatif)" className="rounded-xl border border-white/15 bg-black px-3 py-3 text-sm"/><input value={trackingReference} onChange={e=>setTrackingReference(e.target.value)} placeholder="Référence de suivi" className="rounded-xl border border-white/15 bg-black px-3 py-3 font-mono text-sm"/><button disabled={saving||!shipStockId} className="sm:col-span-2 rounded-full bg-[#d4af37] px-5 py-3 text-xs font-bold text-black disabled:opacity-40">Enregistrer le statut logistique</button></form><div className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-5"><h2 className="mb-3 font-bold">Historique des cartes reçues</h2><div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr><th className="p-2">Série</th><th className="p-2">Statut</th><th className="p-2">Transporteur</th><th className="p-2">Tracking</th><th className="p-2">Remise</th></tr></thead><tbody>{stock.map(c=><tr key={c.id} className="border-t border-white/10"><td className="p-2 font-mono">{c.manufacturer_serial}</td><td className="p-2">{c.stock_status}</td><td className="p-2">{(c as any).carrier||'—'}</td><td className="p-2 font-mono">{(c as any).tracking_reference||'—'}</td><td className="p-2">{(c as any).delivered_at?new Date((c as any).delivered_at).toLocaleDateString('fr-FR'):'—'}</td></tr>)}</tbody></table></div></div></div>}
   {tab==='replacements'&&<div className="rounded-2xl border border-white/10 bg-[#0b0b0b] p-6"><h2 className="font-bold">Remplacements & révocations</h2><p className="mt-2 text-sm text-neutral-400">Historique conservé, motif obligatoire et désactivation de l’ancien credential.</p></div>}
 
-  {tab==='logs'&&<div className="space-y-4 rounded-2xl border border-white/10 bg-[#0b0b0b] p-6"><div className="flex items-center justify-between"><h2 className="font-bold">Journal d’activité récent</h2><button onClick={()=>void loadOverview()} disabled={loadingOverview} className="rounded-lg border border-white/15 p-2"><RefreshCw size={15} className={loadingOverview?'animate-spin':''}/></button></div>{loadingOverview?<p className="text-sm text-neutral-400">Chargement du journal…</p>:events.length===0?<p className="text-sm text-neutral-400">Aucun événement enregistré pour le moment.</p>:<div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="text-neutral-500"><tr><th className="p-2">Date</th><th className="p-2">Action</th><th className="p-2">Objet</th><th className="p-2">Référence</th></tr></thead><tbody>{events.map(ev=><tr key={ev.id} className="border-t border-white/10"><td className="p-2 whitespace-nowrap">{new Date(ev.created_at).toLocaleString('fr-FR')}</td><td className="p-2">{ev.action_type}</td><td className="p-2">{ev.entity_type}</td><td className="p-2 font-mono">{ev.entity_id}</td></tr>)}</tbody></table></div>}</div>}
+  {tab==='logs'&&<div className="space-y-4">
+   <div className="space-y-4 rounded-2xl border border-white/10 bg-[#0b0b0b] p-6">
+    <div className="flex items-center justify-between"><h2 className="font-bold">Journal d’activité récent</h2><button onClick={()=>void loadOverview()} disabled={loadingOverview} className="rounded-lg border border-white/15 p-2"><RefreshCw size={15} className={loadingOverview?'animate-spin':''}/></button></div>
+    {loadingOverview?<p className="text-sm text-neutral-400">Chargement du journal…</p>:events.length===0?<p className="text-sm text-neutral-400">Aucun événement enregistré pour le moment.</p>:<div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead className="text-neutral-500"><tr><th className="p-2">Date</th><th className="p-2">Action</th><th className="p-2">Objet</th><th className="p-2">Référence</th></tr></thead><tbody>{events.map(ev=><tr key={ev.id} className="border-t border-white/10"><td className="p-2 whitespace-nowrap">{new Date(ev.created_at).toLocaleString('fr-FR')}</td><td className="p-2">{ev.action_type}</td><td className="p-2">{ev.entity_type}</td><td className="p-2 font-mono">{ev.entity_id}</td></tr>)}</tbody></table></div>}
+   </div>
+   <div className="space-y-4 rounded-2xl border border-amber-500/20 bg-[#0b0b0b] p-6">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+     <div><h2 className="font-bold">Audit de cohérence NFC</h2><p className="mt-1 text-xs text-neutral-400">Rapport en lecture seule · aucune référence NFC opaque n’est affichée.</p></div>
+     <button onClick={()=>void loadAudit(auditOffset)} disabled={auditLoading} className="rounded-lg border border-white/15 p-2" aria-label="Actualiser le rapport NFC"><RefreshCw size={15} className={auditLoading?'animate-spin':''}/></button>
+    </div>
+    {auditError&&<div className="rounded-xl border border-amber-500/20 bg-amber-500/[.05] p-3 text-xs text-amber-200">{auditError}</div>}
+    {auditLoading?<p className="text-sm text-neutral-400">Chargement des anomalies…</p>:auditPage===null?<p className="text-sm text-neutral-400">Le rapport n’a pas encore été chargé.</p>:auditPage.total_count===0?<div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[.05] p-4 text-sm text-emerald-200">Aucune incohérence détectée par le rapport.</div>:<>
+     <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-400"><span>{auditPage.total_count} anomalie(s) au total</span><span>Page {Math.floor(auditPage.offset/auditPage.limit)+1} / {Math.max(1,Math.ceil(auditPage.total_count/auditPage.limit))}</span></div>
+     <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-xs"><thead className="text-neutral-500"><tr><th className="p-2">Anomalie</th><th className="p-2">Carte membre</th><th className="p-2">Stock</th><th className="p-2">Série fabricant</th><th className="p-2">Credential</th><th className="p-2">Détails</th></tr></thead><tbody>{auditPage.anomalies.map((row,index)=><tr key={row.issue_code+'-'+(row.stock_id||row.credential_id||row.membership_card_id||index)} className="border-t border-white/10 align-top"><td className="p-2"><span className="text-amber-200">{auditIssueLabels[row.issue_code]||row.issue_code}</span><span className="mt-1 block font-mono text-[10px] text-neutral-600">{row.issue_code}</span></td><td className="p-2 font-mono text-neutral-400">{row.membership_card_id?row.membership_card_id.slice(0,8)+'…':'—'}</td><td className="p-2 font-mono text-neutral-400">{row.stock_id?row.stock_id.slice(0,8)+'…':'—'}</td><td className="p-2 font-mono text-neutral-400">{row.manufacturer_serial?('••••'+row.manufacturer_serial.slice(-4)):'—'}</td><td className="p-2 font-mono text-neutral-400">{row.credential_id?row.credential_id.slice(0,8)+'…':'—'}</td><td className="p-2 text-neutral-500">{Object.entries(row.details||{}).map(([key,value])=>key+': '+String(value)).join(' · ')||'—'}</td></tr>)}</tbody></table></div>
+     <div className="flex items-center justify-between border-t border-white/10 pt-3"><button onClick={()=>setAuditOffset(Math.max(0,auditPage.offset-auditPage.limit))} disabled={auditLoading||auditPage.offset===0} className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-3 py-2 text-xs disabled:opacity-40"><ChevronLeft size={14}/>Précédent</button><button onClick={()=>setAuditOffset(auditPage.offset+auditPage.limit)} disabled={auditLoading||auditPage.offset+auditPage.anomalies.length>=auditPage.total_count} className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-3 py-2 text-xs disabled:opacity-40">Suivant<ChevronRight size={14}/></button></div>
+    </>}
+   </div>
+  </div>}
   {success&&<div className="flex gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[.05] p-4 text-xs text-emerald-200"><ShieldCheck size={16} className="shrink-0"/><p>{success}</p></div>}
   {error&&<div className="flex gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[.05] p-4 text-xs text-amber-200"><AlertCircle size={16} className="shrink-0"/><p>{error}</p></div>}
  </section>;
