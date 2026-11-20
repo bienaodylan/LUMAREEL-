@@ -256,3 +256,17 @@ accordée à `PUBLIC`. Exécuter les migrations 202611180001 et 202611180002 dan
 ordre sur une base non-production, puis vérifier les parcours de lecture et de
 modification du nom d'un profil avec un compte utilisateur ordinaire et un compte
 administrateur. Aucun test sur la base réelle n'a été exécuté dans cette livraison.
+
+
+## 13. Masquage des références NFC dans la console (PR #18)
+
+Les références NFC opaques sont masquées par défaut dans les tableaux du stock,
+du registre NFC, dans l'aperçu CSV et dans les options d'association de la console
+super-administrateur. Les champs de saisie de référence utilisent également un
+masquage de type mot de passe par défaut. Un bouton de visibilité permet de les
+afficher temporairement dans l'interface ; le masquage est une mesure de réduction
+d'exposition à l'écran et non un contrôle d'autorisation.
+
+Les endpoints restent réservés au super-administrateur et doivent continuer à
+éviter de retourner des UID bruts, des secrets DESFire ou des clés cryptographiques.
+Aucune référence NFC opaque n'est ajoutée aux logs par cette amélioration.
