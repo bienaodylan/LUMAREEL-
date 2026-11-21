@@ -274,6 +274,6 @@ Aucune référence NFC opaque n'est ajoutée aux logs par cette amélioration.
 
 ## 14. Isolation des références NFC affichées et pagination d'audit
 
-La visibilité des références NFC opaques est désormais indépendante pour la saisie de réception, le tableau de stock, l'aperçu CSV et le registre NFC. Révéler une référence dans une vue ne la révèle pas dans une autre. Les états de révélation sont réinitialisés lorsque l'administrateur change d'onglet. Les options d'association restent masquées par défaut et n'ont pas de toggle de révélation.
+La visibilité des références NFC opaques est désormais indépendante pour la saisie de réception, le tableau de stock, l'aperçu CSV et le registre NFC. Révéler une référence dans une vue ne la révèle pas dans une autre. Les états de révélation sont réinitialisés lors du changement d'onglet avant le prochain affichage. Les options d'association restent masquées par défaut et n'ont pas de toggle de révélation.
 
 Le panneau de cohérence valide maintenant les champs `total_count`, `limit`, `offset` et la taille de page avant de les afficher. Si les anomalies ont été réduites entre deux requêtes et que l'offset est devenu hors plage, le panneau revient automatiquement à la dernière page valide (ou à la page zéro si le rapport est vide) au lieu de présenter une page vide incohérente.
