@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
 import { CreditCard, Radio, Package, Truck, ShieldCheck, RefreshCw, Search, Upload, AlertCircle, Link2, Ban, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 
@@ -73,7 +73,7 @@ export const AdminPhysicalCardsView:React.FC=()=>{
    if(!value)return '—';
    return reveal?value:`${value.slice(0,4)}…${value.slice(-4)}`;
  };
- useEffect(()=>{
+ useLayoutEffect(()=>{
    setManualReferenceVisible(false);
    setStockReferenceVisible(false);
    setCsvReferenceVisible(false);
