@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { CreditCard, Radio, Package, Truck, ShieldCheck, RefreshCw, Search, Upload, AlertCircle, Link2, Ban, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../../lib/supabaseClient';
 
@@ -66,6 +66,7 @@ export const AdminPhysicalCardsView:React.FC=()=>{
  const [auditLoading,setAuditLoading]=useState(false);
  const [auditError,setAuditError]=useState('');
  const [auditIssueFilter,setAuditIssueFilter]=useState('');
+ const auditRequestId=useRef(0);
  const [manualReferenceVisible,setManualReferenceVisible]=useState(false);
  const [stockReferenceVisible,setStockReferenceVisible]=useState(false);
  const [csvReferenceVisible,setCsvReferenceVisible]=useState(false);
@@ -79,6 +80,7 @@ export const AdminPhysicalCardsView:React.FC=()=>{
    setStockReferenceVisible(false);
    setCsvReferenceVisible(false);
    setCredentialReferenceVisible(false);
+   auditRequestId.current+=1;
  },[tab]);
  const active=tabs.find(t=>t.id===tab)!;
 
@@ -104,10 +106,12 @@ export const AdminPhysicalCardsView:React.FC=()=>{
    finally{setLoadingOverview(false);}
  },[api]);
  const loadAudit=useCallback(async(offset:number,issueCode=auditIssueFilter)=>{
+   const requestId=++auditRequestId.current;
    setAuditLoading(true);setAuditError('');
    try{
      const filterQuery=issueCode?`&issue_code=${encodeURIComponent(issueCode)}`:'';
      const data=await api(`/api/membership/admin/physical-card-stock?audit=consistency&limit=50&offset=${offset}${filterQuery}`);
+     if(requestId!==auditRequestId.current)return;
      const page=data.audit as ConsistencyAuditPage|undefined;
      if(!page||!Array.isArray(page.anomalies))throw new Error('Format du rapport de cohérence invalide.');
      const totalCount=Number(page.total_count);
@@ -124,8 +128,8 @@ export const AdminPhysicalCardsView:React.FC=()=>{
      const normalizedOffset=totalCount===0?0:pageOffset;
      setAuditPage({total_count:totalCount,limit:pageLimit,offset:normalizedOffset,anomalies:page.anomalies});
      setAuditOffset(normalizedOffset);
-   }catch(e:any){setAuditError(e.message||'Rapport de cohérence NFC indisponible.');}
-   finally{setAuditLoading(false);}
+   }catch(e:any){if(requestId===auditRequestId.current)setAuditError(e.message||'Rapport de cohérence NFC indisponible.');}
+   finally{if(requestId===auditRequestId.current)setAuditLoading(false);}
  },[api,auditIssueFilter]);
  useEffect(()=>{if(tab==='nfc')void loadNfc();if(tab==='inventory'||tab==='imports'||tab==='association')void loadStock();if(tab==='dashboard'||tab==='logs'||tab==='orders'||tab==='inventory'||tab==='shipping'||tab==='association')void loadOverview();if(tab==='logs')void loadAudit(auditOffset);},[tab,auditOffset,auditIssueFilter,loadNfc,loadOverview,loadAudit]);
 
