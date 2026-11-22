@@ -65,6 +65,7 @@ export const AdminPhysicalCardsView:React.FC=()=>{
  const [auditOffset,setAuditOffset]=useState(0);
  const [auditLoading,setAuditLoading]=useState(false);
  const [auditError,setAuditError]=useState('');
+ const [auditIssueFilter,setAuditIssueFilter]=useState('');
  const [manualReferenceVisible,setManualReferenceVisible]=useState(false);
  const [stockReferenceVisible,setStockReferenceVisible]=useState(false);
  const [csvReferenceVisible,setCsvReferenceVisible]=useState(false);
@@ -102,10 +103,11 @@ export const AdminPhysicalCardsView:React.FC=()=>{
    catch(e:any){setError(e.message||'Vue d’ensemble indisponible.');}
    finally{setLoadingOverview(false);}
  },[api]);
- const loadAudit=useCallback(async(offset:number)=>{
+ const loadAudit=useCallback(async(offset:number,issueCode=auditIssueFilter)=>{
    setAuditLoading(true);setAuditError('');
    try{
-     const data=await api(`/api/membership/admin/physical-card-stock?audit=consistency&limit=50&offset=${offset}`);
+     const filterQuery=issueCode?`&issue_code=${encodeURIComponent(issueCode)}`:'';
+     const data=await api(`/api/membership/admin/physical-card-stock?audit=consistency&limit=50&offset=${offset}${filterQuery}`);
      const page=data.audit as ConsistencyAuditPage|undefined;
      if(!page||!Array.isArray(page.anomalies))throw new Error('Format du rapport de cohérence invalide.');
      const totalCount=Number(page.total_count);
@@ -124,8 +126,8 @@ export const AdminPhysicalCardsView:React.FC=()=>{
      setAuditOffset(normalizedOffset);
    }catch(e:any){setAuditError(e.message||'Rapport de cohérence NFC indisponible.');}
    finally{setAuditLoading(false);}
- },[api]);
- useEffect(()=>{if(tab==='nfc')void loadNfc();if(tab==='inventory'||tab==='imports'||tab==='association')void loadStock();if(tab==='dashboard'||tab==='logs'||tab==='orders'||tab==='inventory'||tab==='shipping'||tab==='association')void loadOverview();if(tab==='logs')void loadAudit(auditOffset);},[tab,auditOffset,loadNfc,loadOverview,loadAudit]);
+ },[api,auditIssueFilter]);
+ useEffect(()=>{if(tab==='nfc')void loadNfc();if(tab==='inventory'||tab==='imports'||tab==='association')void loadStock();if(tab==='dashboard'||tab==='logs'||tab==='orders'||tab==='inventory'||tab==='shipping'||tab==='association')void loadOverview();if(tab==='logs')void loadAudit(auditOffset);},[tab,auditOffset,auditIssueFilter,loadNfc,loadOverview,loadAudit]);
 
  const associate=async(e:React.FormEvent)=>{
    e.preventDefault();setSaving(true);
@@ -166,10 +168,16 @@ export const AdminPhysicalCardsView:React.FC=()=>{
    <div className="space-y-4 rounded-2xl border border-amber-500/20 bg-[#0b0b0b] p-6">
     <div className="flex flex-wrap items-center justify-between gap-3">
      <div><h2 className="font-bold">Audit de cohérence NFC</h2><p className="mt-1 text-xs text-neutral-400">Rapport en lecture seule · aucune référence NFC opaque n’est affichée.</p></div>
-     <button onClick={()=>void loadAudit(auditOffset)} disabled={auditLoading} className="rounded-lg border border-white/15 p-2" aria-label="Actualiser le rapport NFC"><RefreshCw size={15} className={auditLoading?'animate-spin':''}/></button>
+     <div className="flex flex-wrap items-center gap-2">
+      <select aria-label="Filtrer par type d’anomalie NFC" value={auditIssueFilter} onChange={e=>{setAuditIssueFilter(e.target.value);setAuditOffset(0);setAuditPage(null);setAuditError('');}} className="max-w-[280px] rounded-lg border border-white/15 bg-black px-3 py-2 text-xs text-white">
+       <option value="">Toutes les anomalies</option>
+       {Object.entries(auditIssueLabels).map(([code,label])=><option key={code} value={code}>{label}</option>)}
+      </select>
+      <button onClick={()=>void loadAudit(auditOffset)} disabled={auditLoading} className="rounded-lg border border-white/15 p-2" aria-label="Actualiser le rapport NFC"><RefreshCw size={15} className={auditLoading?'animate-spin':''}/></button>
+     </div>
     </div>
     {auditError&&<div className="rounded-xl border border-amber-500/20 bg-amber-500/[.05] p-3 text-xs text-amber-200">{auditError}</div>}
-    {auditLoading?<p className="text-sm text-neutral-400">Chargement des anomalies…</p>:auditPage===null?<p className="text-sm text-neutral-400">Le rapport n’a pas encore été chargé.</p>:auditPage.total_count===0?<div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[.05] p-4 text-sm text-emerald-200">Aucune incohérence détectée par le rapport.</div>:<>
+    {auditLoading?<p className="text-sm text-neutral-400">Chargement des anomalies…</p>:auditPage===null?<p className="text-sm text-neutral-400">Le rapport n’a pas encore été chargé.</p>:auditPage.total_count===0?<div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[.05] p-4 text-sm text-emerald-200">{auditIssueFilter?'Aucune anomalie pour ce filtre.':'Aucune incohérence détectée par le rapport.'}</div>:<>
      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-400"><span>{auditPage.total_count} anomalie(s) au total</span><span>Page {Math.floor(auditPage.offset/auditPage.limit)+1} / {Math.max(1,Math.ceil(auditPage.total_count/auditPage.limit))}</span></div>
      <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-xs"><thead className="text-neutral-500"><tr><th className="p-2">Anomalie</th><th className="p-2">Carte membre</th><th className="p-2">Stock</th><th className="p-2">Série fabricant</th><th className="p-2">Credential</th><th className="p-2">Détails</th></tr></thead><tbody>{auditPage.anomalies.map((row,index)=><tr key={row.issue_code+'-'+(row.stock_id||row.credential_id||row.membership_card_id||index)} className="border-t border-white/10 align-top"><td className="p-2"><span className="text-amber-200">{auditIssueLabels[row.issue_code]||row.issue_code}</span><span className="mt-1 block font-mono text-[10px] text-neutral-600">{row.issue_code}</span></td><td className="p-2 font-mono text-neutral-400">{row.membership_card_id?row.membership_card_id.slice(0,8)+'…':'—'}</td><td className="p-2 font-mono text-neutral-400">{row.stock_id?row.stock_id.slice(0,8)+'…':'—'}</td><td className="p-2 font-mono text-neutral-400">{row.manufacturer_serial?('••••'+row.manufacturer_serial.slice(-4)):'—'}</td><td className="p-2 font-mono text-neutral-400">{row.credential_id?row.credential_id.slice(0,8)+'…':'—'}</td><td className="p-2 text-neutral-500">{Object.entries(row.details||{}).map(([key,value])=>key+': '+String(value)).join(' · ')||'—'}</td></tr>)}</tbody></table></div>
      <div className="flex items-center justify-between border-t border-white/10 pt-3"><button onClick={()=>setAuditOffset(Math.max(0,auditPage.offset-auditPage.limit))} disabled={auditLoading||auditPage.offset===0} className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-3 py-2 text-xs disabled:opacity-40"><ChevronLeft size={14}/>Précédent</button><button onClick={()=>setAuditOffset(auditPage.offset+auditPage.limit)} disabled={auditLoading||auditPage.offset+auditPage.anomalies.length>=auditPage.total_count} className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-3 py-2 text-xs disabled:opacity-40">Suivant<ChevronRight size={14}/></button></div>
