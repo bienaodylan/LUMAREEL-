@@ -195,7 +195,7 @@ export class MembershipService {
       name: 'LUMARÉEL FOUNDERS EDITION',
       editionCode: 'FOUNDERS_2026',
       description:
-        'Adhésion annuelle inaugurale et prestigieuse limitée strictement à 100 membres d’élite. Numéro permanent gravé, identifiant QR cryptographique haute sécurité et privilèges exclusifs pour la saison 2026-2027.',
+        'Adhésion 3 ans limitée à 100 membres. Carte noire officielle avec 8 avantages VIP & partenaires.',
       quota: 100,
       allocatedCount: 0,
       startsAt: now,
@@ -210,12 +210,12 @@ export class MembershipService {
     const foundersPlan: MembershipPlan = {
       id: planId,
       editionId,
-      name: 'Adhésion Annuelle Founders',
+      name: 'Black Card 3 Ans',
       description:
-        'Accès complet 12 mois : carte physique PVC noire mate gravée à chaud avec QR cryptographique haute résolution, carte numérique dynamique avec QR anti-copie, file prioritaire, préventes privées et salon VIP.',
-      price: 150000,
+        'Accès complet 3 ans : carte noire officielle LUMARÉEL, accès prioritaire, parking réservé, placement VIP aux premiers rangs, rafraîchissement offert, préventes, Meet & Greet et réductions partenaires.',
+      price: 50000,
       currency: 'FCFA',
-      durationMonths: 12,
+      durationMonths: 36,
       physicalCardIncluded: true,
       renewalEnabled: true,
       status: 'active',

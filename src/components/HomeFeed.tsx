@@ -349,10 +349,7 @@ const EventCardCountdown: React.FC<{
                 </div>
                 <div className="text-left">
                   <span className="text-[11px] sm:text-xs font-agrandir-bold tracking-wider text-white uppercase block">
-                    {t('home.cardTitle')} <span className="text-[#d4af37] text-[10px] font-mono">· {t('home.cardBadge')}</span>
-                  </span>
-                  <span className="text-[10px] text-neutral-400 font-light block">
-                    {t('home.cardSubtitle')}
+                    {t('home.cardTitle')}
                   </span>
                 </div>
               </div>

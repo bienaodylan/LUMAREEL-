@@ -8,9 +8,7 @@ import {
   ChevronRight,
   CreditCard,
   Lock,
-  QrCode,
   RotateCw,
-  Wifi,
   X,
 } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -18,6 +16,9 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import heroBlackCardBannerImg from '../assets/images/dark_card_hero_backdrop_1795099845525.jpg';
 import concertsCrowdImg from '../assets/images/black_card_concerts_crowd_1794694902084.jpg';
 import vipMezzanineImg from '../assets/images/vip_lounge_empty_stage_1795099845090.jpg';
+
+const CARD_FRONT_IMG = '/assets/aistudio/IMG_6112_896cf3ce.png';
+const CARD_BACK_IMG = '/assets/aistudio/IMG_6111_952dcd49.png';
 
 interface LumareelCardLandingPageProps {
   onGoToWallet?: () => void;
@@ -37,9 +38,6 @@ const CARD_COPY = {
     syncProof: (q: number) => `${q} cartes dispo · 8 avantages inclus`,
     flipHint: 'Touchez la carte pour la retourner',
     verified: 'CARTE OFFICIELLE',
-    physicalPass: 'CARTE NOIRE',
-    passHolder: 'VOTRE NOM',
-    synced: 'PRÊTE',
     // Section 2: Pure editorial photo story (no heavy boxes)
     img1Kicker: 'DÈS VOTRE ARRIVÉE',
     img1Title: 'Parking réservé & coupe-file',
@@ -93,32 +91,24 @@ const CARD_COPY = {
         desc: 'Des remises toute l’année chez nos marques, restos et lieux partenaires.',
       },
     ],
-    // Section 4: Personalize & Order
+    // Section 4: Order
     ownKicker: 'SÉRIE LIMITÉE',
     ownTitle: 'Prenez la vôtre.',
-    ownDesc: 'Carte noire gravée à votre nom avec puce NFC, QR code perso et vos 8 avantages actifs tout de suite.',
-    engraveLabel: 'Testez votre nom sur la carte',
-    engravePlaceholder: 'VOTRE NOM COMPLET',
-    previewFrontBadge: 'PASS',
-    previewCore: 'PUCE NFC & QR',
-    previewEdition: 'GRAVÉE POUR',
-    previewBackLaser: 'GRAVURE LASER',
-    previewBackTitle: 'Coupe-File, VIP & Partenaires',
-    previewBackDesc: 'Montrez le QR ou posez la carte sur le lecteur à l’entrée, au parking ou en boutique.',
-    previewFounders: (q: number) => `SÉRIE LIMITÉE · ${q} MAX`,
-    specMat: 'Noir Mat & Or',
-    specTech: 'NFC & QR',
+    ownDesc: 'Votre Black Card LUMARÉEL avec vos 8 avantages actifs tout de suite, valable 3 ans.',
     seeFront: 'Voir devant',
     seeBack: 'Voir derrière',
     flipAria: 'Retourner la carte',
+    cardFrontAlt: 'LUMARÉEL Black Card — Face avant',
+    cardBackAlt: 'LUMARÉEL Black Card — Face arrière',
     inStock: 'DISPONIBLE',
     waitlist: 'BIENTÔT DISPO',
-    perMonth: '/ mois',
-    perYear: '/ an',
+    perMonth: '1 mois',
+    perYear: '1 an',
+    perThreeYears: '3 Ans',
     freeShip: 'Livraison gratuite',
     boxMeta: (rem: number, q: number) => `Encore ${rem} dispo sur ${q} · Pass téléphone immédiat`,
     getCardUpper: 'Commander ma Black Card',
-    shipNote: 'Livrée en 2–3 jours · Vos 8 avantages fonctionnent déjà sur téléphone.',
+    shipNote: 'Livrée en moins de 24h · Vos 8 avantages fonctionnent déjà sur téléphone.',
     // Footer
     footTag: 'La carte noire pour vivre tous vos concerts LUMARÉEL en VIP.',
     footProd: 'La Carte',
@@ -138,16 +128,16 @@ const CARD_COPY = {
     // Wizard
     wizHeader: (s: number) => `COMMANDE · ÉTAPE ${s} / 5`,
     wizTitle: 'LUMARÉEL Black Card',
-    wiz1Title: '1. Votre nom sur la carte',
-    wiz1Sub: 'Le nom qui sera gravé sur votre carte noire.',
-    wiz1Label: 'Nom sur la carte *',
+    wiz1Title: '1. Votre nom complet',
+    wiz1Sub: 'Pour lier votre Black Card à votre compte membre.',
+    wiz1Label: 'Nom complet *',
     wiz1Plan: 'Formule choisie',
-    wiz1PlanFallback: 'Black Card Annuelle',
-    wiz1PlanDesc: 'Carte gravée + Pass téléphone + Les 8 avantages inclus',
-    wiz1Valid: '1 an',
+    wiz1PlanFallback: 'Black Card 3 Ans',
+    wiz1PlanDesc: 'Carte physique + Pass téléphone + Les 8 avantages inclus',
+    wiz1Valid: '3 ans',
     wiz1Next: 'Continuer',
     wiz2Title: '2. Où vous livrer ?',
-    wiz2Sub: 'Pour activer votre pass et envoyer votre coffret.',
+    wiz2Sub: 'Pour activer votre pass et livrer votre carte en moins de 24h.',
     wiz2Email: 'E-mail *',
     wiz2Phone: 'Téléphone *',
     wiz2City: 'Ville *',
@@ -174,8 +164,8 @@ const CARD_COPY = {
       { id: 'djamo', label: 'Djamo', desc: 'Carte' },
       { id: 'card', label: 'Carte Bancaire', desc: 'Visa / MC' },
     ],
-    wiz4Membership: 'Black Card (8 avantages inclus)',
-    wiz4CardDelivery: 'Gravure & livraison',
+    wiz4Membership: 'Black Card 3 Ans (8 avantages)',
+    wiz4CardDelivery: 'Livraison (< 24h)',
     wiz4Included: 'Gratuite',
     wiz4Bonus: 'Rafraîchissement & avantages',
     wiz4BonusVal: 'Inclus',
@@ -185,11 +175,11 @@ const CARD_COPY = {
     wiz5Kicker: 'C’EST TOUT BON !',
     wiz5Title: 'BIENVENUE AU CLUB',
     wiz5Desc: (num: string) =>
-      `Votre numéro : ${num}. Votre pass et tous vos 8 avantages sont déjà actifs.`,
+      `Votre référence membre : ${num}. Votre pass et tous vos 8 avantages sont déjà actifs.`,
     wiz5Holder: 'Titulaire',
-    wiz5Number: 'Numéro',
-    wiz5Box: 'Coffret',
-    wiz5Prep: 'En préparation',
+    wiz5Number: 'Référence',
+    wiz5Box: 'Livraison',
+    wiz5Prep: 'En moins de 24h',
     wiz5Cta: 'Voir mon Pass',
     toastMissing: 'Mettez votre nom complet et votre e-mail.',
     toastOrderErr: 'Impossible de valider votre commande.',
@@ -207,9 +197,6 @@ const CARD_COPY = {
     syncProof: (q: number) => `${q} cards available · 8 perks included`,
     flipHint: 'Tap card to flip',
     verified: 'OFFICIAL PASS',
-    physicalPass: 'BLACK CARD',
-    passHolder: 'PASS HOLDER',
-    synced: 'READY',
     // Section 2
     img1Kicker: 'ON ARRIVAL',
     img1Title: 'Reserved parking & fast-track',
@@ -266,29 +253,21 @@ const CARD_COPY = {
     // Section 4
     ownKicker: 'LIMITED EDITION',
     ownTitle: 'Make it yours.',
-    ownDesc: 'Engraved matte black card with built-in NFC, personal QR code, and all 8 perks active immediately.',
-    engraveLabel: 'Preview your name on the card',
-    engravePlaceholder: 'YOUR FULL NAME',
-    previewFrontBadge: 'PASS',
-    previewCore: 'NFC & QR CHIP',
-    previewEdition: 'ENGRAVED FOR',
-    previewBackLaser: 'LASER ETCHED',
-    previewBackTitle: 'Fast-Track, VIP & Partners',
-    previewBackDesc: 'Show the QR or tap NFC at venue gates, parking, or partner stores.',
-    previewFounders: (q: number) => `LIMITED EDITION · ${q} MAX`,
-    specMat: 'Matte Black & Gold',
-    specTech: 'NFC & QR',
+    ownDesc: 'Your LUMARÉEL Black Card with all 8 perks active immediately, valid for 3 years.',
     seeFront: 'Show front',
     seeBack: 'Show back',
     flipAria: 'Flip card',
+    cardFrontAlt: 'LUMARÉEL Black Card — Front',
+    cardBackAlt: 'LUMARÉEL Black Card — Back',
     inStock: 'AVAILABLE',
     waitlist: 'WAITLIST',
-    perMonth: '/ month',
-    perYear: '/ year',
-    freeShip: 'Free shipping',
+    perMonth: '1 month',
+    perYear: '1 year',
+    perThreeYears: '3 Years',
+    freeShip: 'Free delivery',
     boxMeta: (rem: number, q: number) => `${rem} / ${q} remaining · Instant digital pass`,
     getCardUpper: 'Order My Black Card',
-    shipNote: 'Ships in 2–3 days · All 8 perks work right away on your phone.',
+    shipNote: 'Delivered in under 24h · All 8 perks work right away on your phone.',
     // Footer
     footTag: 'The black card to experience every LUMARÉEL concert in VIP.',
     footProd: 'The Card',
@@ -308,16 +287,16 @@ const CARD_COPY = {
     // Wizard
     wizHeader: (s: number) => `ORDER · STEP ${s} / 5`,
     wizTitle: 'LUMARÉEL Black Card',
-    wiz1Title: '1. Your Card Name',
-    wiz1Sub: 'Your name laser-etched onto your physical black card.',
-    wiz1Label: 'Name to engrave *',
+    wiz1Title: '1. Your Full Name',
+    wiz1Sub: 'To link your Black Card to your member account.',
+    wiz1Label: 'Full name *',
     wiz1Plan: 'Selected Plan',
-    wiz1PlanFallback: 'Annual Black Card',
-    wiz1PlanDesc: 'Engraved card + Digital pass + All 8 perks included',
-    wiz1Valid: '1 year',
+    wiz1PlanFallback: '3-Year Black Card',
+    wiz1PlanDesc: 'Physical card + Digital pass + All 8 perks included',
+    wiz1Valid: '3 years',
     wiz1Next: 'Continue',
     wiz2Title: '2. Contact & Delivery',
-    wiz2Sub: 'Used to activate your pass and deliver your card box.',
+    wiz2Sub: 'Used to activate your pass and deliver your card in under 24h.',
     wiz2Email: 'Email *',
     wiz2Phone: 'Mobile Phone *',
     wiz2City: 'City *',
@@ -344,8 +323,8 @@ const CARD_COPY = {
       { id: 'djamo', label: 'Djamo', desc: 'Card' },
       { id: 'card', label: 'Bank Card', desc: 'Visa / MC' },
     ],
-    wiz4Membership: 'Black Card (8 perks included)',
-    wiz4CardDelivery: 'Engraving & delivery',
+    wiz4Membership: '3-Year Black Card (8 perks)',
+    wiz4CardDelivery: 'Delivery (< 24h)',
     wiz4Included: 'Free',
     wiz4Bonus: 'Drink & VIP perks',
     wiz4BonusVal: 'Included',
@@ -355,11 +334,11 @@ const CARD_COPY = {
     wiz5Kicker: 'ALL SET!',
     wiz5Title: 'WELCOME TO THE CLUB',
     wiz5Desc: (num: string) =>
-      `Your card number: ${num}. Your digital pass and all 8 perks are already active.`,
+      `Your member reference: ${num}. Your digital pass and all 8 perks are already active.`,
     wiz5Holder: 'Holder',
-    wiz5Number: 'Card Number',
-    wiz5Box: 'Card Box',
-    wiz5Prep: 'Preparing',
+    wiz5Number: 'Reference',
+    wiz5Box: 'Delivery',
+    wiz5Prep: 'Under 24h',
     wiz5Cta: 'Open My Pass',
     toastMissing: 'Please enter your full name and email address.',
     toastOrderErr: 'Unable to process your card order.',
@@ -370,7 +349,6 @@ const CARD_COPY = {
 
 export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = ({
   onGoToWallet,
-  activeCardNumber,
 }) => {
   const { currentUser, setCurrentPage, showToast, language } = useApp();
   const c = CARD_COPY[language === 'en' ? 'en' : 'fr'];
@@ -381,11 +359,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Live personalization name
-  const [customName, setCustomName] = useState(
-    currentUser?.name ? currentUser.name.toUpperCase() : 'ELENA V. MOREAU'
-  );
 
   // Interactive card flip state
   const [isHeroCardFlipped, setIsHeroCardFlipped] = useState(false);
@@ -418,9 +391,8 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   }, []);
 
   useEffect(() => {
-    if (currentUser?.name) {
-      if (!applicantName) setApplicantName(currentUser.name.toUpperCase());
-      setCustomName(currentUser.name.toUpperCase());
+    if (currentUser?.name && !applicantName) {
+      setApplicantName(currentUser.name.toUpperCase());
     }
     if (currentUser?.email && !applicantEmail) {
       setApplicantEmail(currentUser.email);
@@ -448,8 +420,8 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
   const openAdmissionWizard = (plan?: MembershipPlan) => {
     if (plan) setSelectedPlan(plan);
-    setApplicantName(customName.trim() || currentUser?.name?.toUpperCase() || '');
-    setApplicantEmail(currentUser?.email || '');
+    setApplicantName(currentUser?.name?.toUpperCase() || applicantName || '');
+    setApplicantEmail(currentUser?.email || applicantEmail || '');
     setWizardStep(1);
     setIsWizardOpen(true);
   };
@@ -510,14 +482,17 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const quota = edition?.quota || 100;
   const allocated = edition?.allocatedCount || 14;
   const remaining = Math.max(0, quota - allocated);
-  const displayName = (customName.trim() || 'ELENA V. MOREAU').toUpperCase();
-  const displaySerial = `#0041-${String(allocated + 1).padStart(2, '0')}`;
-  const cardNumber = activeCardNumber || `LMR-2026-${String(allocated + 1).padStart(4, '0')}`;
 
   const activePlan = selectedPlan || plans[0] || null;
-  const planPrice = activePlan?.price ?? 150000;
+  const planPrice = activePlan?.price ?? 50000;
   const planCurrency = activePlan?.currency || 'FCFA';
   const formattedPrice = `${Number(planPrice).toLocaleString(language === 'en' ? 'en-US' : 'fr-FR')} ${planCurrency}`;
+  const durationLabel =
+    activePlan?.durationMonths === 1
+      ? c.perMonth
+      : activePlan?.durationMonths === 12
+        ? c.perYear
+        : c.perThreeYears;
 
   return (
     <div className="w-full min-h-screen overflow-x-hidden bg-[#050505] text-[#F2F2F2] font-agrandir-regular selection:bg-[#C8B282] selection:text-black">
@@ -627,100 +602,42 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   className="w-full h-full relative"
                   style={{ transformStyle: 'preserve-3d' }}
                 >
-                  {/* Card Front */}
+                  {/* Official Card Front Design */}
                   <div
-                    className="absolute inset-0 rounded-[18px] p-5 flex flex-col justify-between bg-gradient-to-br from-[#1C1C1C] via-[#0B0B0B] to-[#030303] border border-[#C8B282]/55 shadow-[0_24px_60px_rgba(0,0,0,0.9)] overflow-hidden"
+                    className="absolute inset-0 rounded-[16px] sm:rounded-[18px] bg-black border border-white/20 shadow-[0_24px_60px_rgba(0,0,0,0.92)] overflow-hidden"
                     style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
                   >
+                    <img
+                      src={CARD_FRONT_IMG}
+                      alt={c.cardFrontAlt}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
                     {!prefersReducedMotion && (
                       <motion.div
                         aria-hidden="true"
                         animate={{ x: ['-130%', '220%'] }}
                         transition={{ duration: 4.5, repeat: Infinity, repeatDelay: 2.5, ease: 'easeInOut' }}
-                        className="pointer-events-none absolute inset-y-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-[#C8B282]/15 to-transparent"
+                        className="pointer-events-none absolute inset-y-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/12 to-transparent"
                       />
                     )}
-
-                    <div className="relative z-10 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="font-agrandir-extrabold text-sm tracking-wider text-white uppercase">
-                          LUMARÉEL
-                        </span>
-                        <span className="text-[9px] font-mono tracking-widest text-[#C8B282] uppercase">
-                          BLACK
-                        </span>
-                      </div>
-                      <Wifi className="w-4 h-4 text-neutral-300 rotate-90 shrink-0" />
-                    </div>
-
-                    <div className="relative z-10 flex items-center gap-3 my-auto">
-                      <div className="w-10 h-7 rounded-[5px] bg-gradient-to-br from-[#F4E1B6] via-[#C8B282] to-[#7D6638] border border-black/40 p-0.5 grid grid-cols-2 gap-0.5 shrink-0">
-                        <div className="border-r border-b border-black/35" />
-                        <div className="border-b border-black/35" />
-                        <div className="border-r border-black/35" />
-                        <div />
-                      </div>
-                      <span className="text-[9px] font-mono tracking-[0.2em] text-neutral-400 uppercase">
-                        {c.physicalPass}
-                      </span>
-                    </div>
-
-                    <div className="relative z-10 flex items-end justify-between gap-2 pt-2.5 border-t border-white/10">
-                      <div className="min-w-0">
-                        <div className="text-[8px] font-mono tracking-[0.2em] text-neutral-400 uppercase">
-                          {c.passHolder}
-                        </div>
-                        <div className="text-xs sm:text-sm font-agrandir-extrabold text-white uppercase truncate">
-                          {displayName}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-[8px] font-mono font-bold tracking-widest text-[#B8F249] uppercase">
-                          {c.synced}
-                        </div>
-                        <div className="text-[10px] font-mono text-neutral-300 tabular-nums">
-                          {displaySerial}
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
-                  {/* Card Back */}
+                  {/* Official Card Back Design */}
                   <div
-                    className="absolute inset-0 rounded-[18px] p-5 flex flex-col justify-between bg-[#060606] border border-[#C8B282]/45 shadow-[0_24px_60px_rgba(0,0,0,0.9)]"
+                    className="absolute inset-0 rounded-[16px] sm:rounded-[18px] bg-black border border-white/20 shadow-[0_24px_60px_rgba(0,0,0,0.92)] overflow-hidden"
                     style={{
                       backfaceVisibility: 'hidden',
                       WebkitBackfaceVisibility: 'hidden',
                       transform: 'rotateY(180deg)',
                     }}
                   >
-                    <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2">
-                      <span className="text-[9px] font-mono tracking-[0.14em] text-[#C8B282] uppercase truncate">
-                        {c.previewBackLaser} · {cardNumber}
-                      </span>
-                      <span className="text-[9px] font-mono text-[#B8F249] uppercase shrink-0">
-                        NFC
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between gap-3 my-auto">
-                      <div className="space-y-1 text-left min-w-0">
-                        <div className="text-xs font-agrandir-bold text-white uppercase">
-                          {c.previewBackTitle}
-                        </div>
-                        <p className="text-[10px] text-neutral-300 leading-relaxed">
-                          {c.previewBackDesc}
-                        </p>
-                      </div>
-                      <div className="w-14 h-14 rounded-xl bg-white p-1.5 flex items-center justify-center shrink-0">
-                        <QrCode className="w-11 h-11 text-black" />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[9px] font-mono text-neutral-400 pt-2 border-t border-white/10">
-                      <span>{c.previewFounders(quota)}</span>
-                      <span className="text-white tabular-nums">{displaySerial}</span>
-                    </div>
+                    <img
+                      src={CARD_BACK_IMG}
+                      alt={c.cardBackAlt}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                 </motion.div>
               </motion.div>
@@ -849,7 +766,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
         className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8 py-14 sm:py-20 border-t border-white/10"
       >
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-          {/* Interactive Card + Live Engraving Input */}
+          {/* Interactive Official Black Card */}
           <div className="lg:col-span-5 flex flex-col items-center w-full">
             <div
               onClick={() => setIsShowcaseFlipped((prev) => !prev)}
@@ -871,100 +788,41 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 className="w-full h-full relative"
                 style={{ transformStyle: 'preserve-3d' }}
               >
-                {/* Front */}
+                {/* Official Card Front */}
                 <div
-                  className="absolute inset-0 rounded-[18px] p-5 sm:p-6 flex flex-col justify-between bg-gradient-to-br from-[#191919] via-[#0B0B0B] to-[#040404] border border-[#C8B282]/45 shadow-[0_24px_60px_rgba(0,0,0,0.9)]"
+                  className="absolute inset-0 rounded-[16px] sm:rounded-[18px] bg-black border border-white/20 shadow-[0_24px_60px_rgba(0,0,0,0.92)] overflow-hidden"
                   style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-agrandir-extrabold text-sm sm:text-base tracking-tight text-white uppercase">
-                        LUMARÉEL
-                      </span>
-                      <span className="text-[9px] font-mono tracking-widest text-[#C8B282] uppercase">
-                        {c.previewFrontBadge}
-                      </span>
-                    </div>
-                    <Wifi className="w-4 h-4 text-neutral-400 rotate-90 shrink-0" />
-                  </div>
-
-                  <div className="flex items-center gap-3 my-auto">
-                    <div className="w-10 h-7 rounded-md bg-gradient-to-br from-[#F4E1B6] via-[#C8B282] to-[#7D6638] p-0.5 border border-black/40 grid grid-cols-3 gap-0.5 shrink-0">
-                      <div className="border-r border-b border-black/35" />
-                      <div className="border-b border-black/35" />
-                      <div className="border-l border-b border-black/35" />
-                      <div className="border-r border-black/35" />
-                      <div className="bg-black/15" />
-                      <div className="border-l border-black/35" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[8px] font-mono tracking-[0.18em] text-neutral-500 uppercase">
-                        {c.previewCore}
-                      </div>
-                      <div className="text-xs font-mono tracking-[0.14em] text-neutral-200 tabular-nums truncate">
-                        0042 · 8821 · 9102
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-end justify-between gap-2 pt-2 border-t border-white/10">
-                    <div className="min-w-0">
-                      <div className="text-[8px] font-mono tracking-[0.2em] text-neutral-500 uppercase">
-                        {c.previewEdition}
-                      </div>
-                      <div className="text-xs sm:text-sm font-agrandir-extrabold text-white uppercase truncate">
-                        {displayName}
-                      </div>
-                    </div>
-                    <QrCode className="w-5 h-5 text-[#C8B282] shrink-0" />
-                  </div>
+                  <img
+                    src={CARD_FRONT_IMG}
+                    alt={c.cardFrontAlt}
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
 
-                {/* Back */}
+                {/* Official Card Back */}
                 <div
-                  className="absolute inset-0 rounded-[18px] p-5 sm:p-6 flex flex-col justify-between bg-[#060606] border border-white/20 shadow-[0_24px_60px_rgba(0,0,0,0.9)]"
+                  className="absolute inset-0 rounded-[16px] sm:rounded-[18px] bg-black border border-white/20 shadow-[0_24px_60px_rgba(0,0,0,0.92)] overflow-hidden"
                   style={{
                     backfaceVisibility: 'hidden',
                     WebkitBackfaceVisibility: 'hidden',
                     transform: 'rotateY(180deg)',
                   }}
                 >
-                  <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-2">
-                    <span className="text-[9px] font-mono tracking-[0.14em] text-[#C8B282] uppercase truncate">
-                      {c.previewBackLaser} · {cardNumber}
-                    </span>
-                    <span className="text-[9px] font-mono text-[#B8F249] uppercase shrink-0">
-                      NFC
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 my-auto">
-                    <div className="space-y-1 text-left min-w-0">
-                      <div className="text-xs font-agrandir-bold text-white uppercase">
-                        {c.previewBackTitle}
-                      </div>
-                      <p className="text-[10px] text-neutral-400 leading-relaxed">
-                        {c.previewBackDesc}
-                      </p>
-                    </div>
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-white p-1.5 flex items-center justify-center shrink-0">
-                      <QrCode className="w-11 h-11 text-black" />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[9px] font-mono text-neutral-500 pt-2 border-t border-white/10">
-                    <span>{c.previewFounders(quota)}</span>
-                    <span className="text-white tabular-nums">{displaySerial}</span>
-                  </div>
+                  <img
+                    src={CARD_BACK_IMG}
+                    alt={c.cardBackAlt}
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               </motion.div>
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center justify-center gap-3 text-[11px] text-neutral-400">
-              <span>{c.specMat}</span>
-              <span aria-hidden="true">·</span>
-              <span>{c.specTech}</span>
-              <span aria-hidden="true">·</span>
+            <div className="mt-2 flex items-center justify-center text-[11px] text-neutral-400">
               <button
                 type="button"
                 onClick={() => setIsShowcaseFlipped((prev) => !prev)}
@@ -975,7 +833,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
             </div>
           </div>
 
-          {/* Right/Bottom: Clean Open Pricing & Name Input */}
+          {/* Right/Bottom: Clean Open Pricing & Order CTA */}
           <div className="lg:col-span-7 space-y-6 text-left min-w-0">
             <div className="space-y-2">
               <div className="text-[10px] font-mono tracking-[0.22em] text-[#C8B282] uppercase">
@@ -987,25 +845,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
               <p className="text-sm text-neutral-300 font-light max-w-xl leading-relaxed">
                 {c.ownDesc}
               </p>
-            </div>
-
-            {/* Live Card Engraving Field */}
-            <div className="space-y-1.5 max-w-md">
-              <label
-                htmlFor="black-card-engrave-name"
-                className="block text-[11px] font-mono uppercase tracking-wider text-neutral-400"
-              >
-                {c.engraveLabel}
-              </label>
-              <input
-                id="black-card-engrave-name"
-                type="text"
-                value={customName}
-                onChange={(e) => setCustomName(e.target.value.toUpperCase())}
-                maxLength={28}
-                placeholder={c.engravePlaceholder}
-                className="w-full min-h-[48px] bg-transparent border-b border-white/25 focus:border-[#C8B282] py-2.5 text-base font-agrandir-extrabold uppercase tracking-wider text-white placeholder:text-neutral-600 outline-none transition-colors"
-              />
             </div>
 
             {plans.length > 1 && (
@@ -1035,8 +874,8 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   <span className="text-3xl sm:text-4xl font-agrandir-extrabold text-white tabular-nums">
                     {loading ? '...' : formattedPrice}
                   </span>
-                  <span className="text-xs font-mono text-neutral-400 uppercase">
-                    {activePlan?.durationMonths === 1 ? c.perMonth : c.perYear}
+                  <span className="text-sm font-mono text-[#C8B282] uppercase">
+                    {durationLabel}
                   </span>
                 </div>
                 <span className="text-xs font-mono text-[#B8F249] uppercase tracking-wider">
@@ -1240,11 +1079,8 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     <input
                       type="text"
                       value={applicantName}
-                      onChange={(e) => {
-                        setApplicantName(e.target.value.toUpperCase());
-                        setCustomName(e.target.value.toUpperCase());
-                      }}
-                      placeholder="ELENA V. MOREAU"
+                      onChange={(e) => setApplicantName(e.target.value.toUpperCase())}
+                      placeholder="VOTRE NOM COMPLET"
                       required
                       className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white font-mono text-sm uppercase tracking-wider outline-none"
                     />
