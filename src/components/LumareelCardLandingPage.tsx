@@ -14,14 +14,13 @@ import {
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 
 import heroBlackCardBannerImg from '../assets/images/dark_card_hero_backdrop_1795099845525.jpg';
-import concertsCrowdImg from '../assets/images/black_card_concerts_crowd_1794694902084.jpg';
-import vipMezzanineImg from '../assets/images/vip_lounge_empty_stage_1795099845090.jpg';
 
 const CARD_FRONT_IMG = '/assets/aistudio/IMG_6112_896cf3ce.png';
 const CARD_BACK_IMG = '/assets/aistudio/IMG_6111_952dcd49.png';
 
 interface LumareelCardLandingPageProps {
   onGoToWallet?: () => void;
+  onCardIssued?: (card: MembershipCard) => void;
   hasActiveCard?: boolean;
   activeCardNumber?: string;
 }
@@ -349,6 +348,7 @@ const CARD_COPY = {
 
 export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = ({
   onGoToWallet,
+  onCardIssued,
 }) => {
   const { currentUser, setCurrentPage, showToast, language } = useApp();
   const c = CARD_COPY[language === 'en' ? 'en' : 'fr'];
@@ -435,34 +435,61 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
     try {
       setIsSubmitting(true);
-      const res = await fetch('/api/membership/order', {
+      const planId = selectedPlan?.id || plans[0]?.id || 'plan_founders_annual';
+      const shippingAddress = {
+        street: applicantAddress.trim() || 'Abidjan',
+        city: applicantCity.trim() || 'Abidjan',
+        country: 'Côte d’Ivoire',
+        recipientName: applicantName.trim(),
+      };
+
+      // 1. Initier la session de paiement PayMeTrust côté serveur
+      const initRes = await fetch('/api/payments/paymetrust/initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          planId: selectedPlan?.id || plans[0]?.id || 'plan_founders_annual',
+          kind: 'membership_card',
+          planId,
+          channel: paymentMethod,
           customerName: applicantName.trim(),
           customerEmail: applicantEmail.trim(),
           customerPhone: applicantPhone.trim(),
-          shippingAddress: {
-            street: applicantAddress.trim() || 'Abidjan',
-            city: applicantCity.trim() || 'Abidjan',
-            country: 'Côte d’Ivoire',
-          },
-          paymentMethod,
-          paymentReference: `DEMANDE-ADM-${Date.now()}`,
+          shippingAddress,
           userId: currentUser?.id,
         }),
       });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || c.toastOrderErr);
+      const initData = await initRes.json();
+      if (!initRes.ok || !initData.success || !initData.transaction) {
+        throw new Error(initData.error || c.toastOrderErr);
       }
 
-      setIssuedResult({ card: data.card, qrDataUrl: data.qrDataUrl });
+      const tx = initData.transaction;
+
+      // 2a. Mode live PayMeTrust : redirection vers la page de paiement officielle
+      if (tx.mode === 'live' && tx.paymentUrl) {
+        window.location.assign(tx.paymentUrl);
+        return;
+      }
+
+      // 2b. Mode pré-configuration (clés PayMeTrust pas encore renseignées) : validation côté serveur
+      const confirmRes = await fetch('/api/payments/paymetrust/confirm-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference: tx.reference }),
+      });
+      const confirmData = await confirmRes.json();
+      if (!confirmRes.ok || !confirmData.success || !confirmData.fulfillment?.card) {
+        throw new Error(confirmData.error || c.toastOrderErr);
+      }
+
+      const issuedCard: MembershipCard = confirmData.fulfillment.card;
+      setIssuedResult({ card: issuedCard, qrDataUrl: '' });
       setWizardStep(5);
       showToast(c.toastActivated, 'success');
       fetchEditionAndPlans();
+      if (onCardIssued) {
+        onCardIssued(issuedCard);
+      }
     } catch (err: any) {
       showToast(err.message || c.toastGenericErr, 'error');
     } finally {
@@ -910,117 +937,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       </section>
 
       {/* =================================================================== */}
-      {/* 5. MINIMAL FOOTER                                                   */}
-      {/* =================================================================== */}
-      <footer className="border-t border-white/10 bg-[#050505]">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8 py-10">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-left">
-            <div className="col-span-2 lg:col-span-1 space-y-2.5">
-              <div className="flex items-center gap-2">
-                <span className="font-agrandir-extrabold text-sm tracking-tight text-white uppercase">
-                  LUMARÉEL
-                </span>
-                <span className="text-[10px] font-mono tracking-widest text-[#C8B282] uppercase">
-                  BLACK
-                </span>
-              </div>
-              <p className="text-xs text-neutral-500 leading-relaxed max-w-xs">{c.footTag}</p>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div className="font-agrandir-bold text-white">{c.footProd}</div>
-              <div className="flex flex-col gap-2 text-neutral-400">
-                <button
-                  type="button"
-                  onClick={() => scrollToSection('section-hero')}
-                  className="text-left hover:text-white transition-colors cursor-pointer py-0.5"
-                >
-                  {c.footCard}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage('client_space')}
-                  className="text-left hover:text-white transition-colors cursor-pointer py-0.5"
-                >
-                  {c.footOrders}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onGoToWallet) onGoToWallet();
-                    else setCurrentPage('member_card');
-                  }}
-                  className="text-left hover:text-white transition-colors cursor-pointer py-0.5"
-                >
-                  {c.footWallet}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div className="font-agrandir-bold text-white">{c.footHouse}</div>
-              <div className="flex flex-col gap-2 text-neutral-400">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage('home')}
-                  className="text-left hover:text-white transition-colors cursor-pointer py-0.5"
-                >
-                  {c.footLineup}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage('archive')}
-                  className="text-left hover:text-white transition-colors cursor-pointer py-0.5"
-                >
-                  {c.footArchives}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage('organizers')}
-                  className="text-left hover:text-white transition-colors cursor-pointer py-0.5"
-                >
-                  {c.footOrganizers}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div className="font-agrandir-bold text-white">{c.footSec}</div>
-              <div className="flex flex-col gap-2 text-neutral-400">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage('card_verify')}
-                  className="text-left hover:text-white transition-colors cursor-pointer py-0.5"
-                >
-                  {c.footVerify}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage('news')}
-                  className="text-left hover:text-white transition-colors cursor-pointer py-0.5"
-                >
-                  {c.footNews}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openAdmissionWizard(activePlan || undefined)}
-                  className="text-left hover:text-white transition-colors cursor-pointer py-0.5"
-                >
-                  {c.footApply}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-neutral-500">
-            <span>{c.footRights}</span>
-            <span className="font-mono text-neutral-400">{c.footLoc}</span>
-          </div>
-        </div>
-      </footer>
-
-      {/* =================================================================== */}
-      {/* 6. MOBILE-FIRST 5-STEP ORDER SHEET / MODAL                          */}
+      {/* 4. MOBILE-FIRST 5-STEP ORDER SHEET / MODAL                          */}
       {/* =================================================================== */}
       <AnimatePresence>
         {isWizardOpen && (

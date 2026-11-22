@@ -999,25 +999,48 @@ class LumareelDatabase {
     eventId: string;
     categoryId: string;
     quantity: number;
+    paymentProvider?: string;
+    items?: Array<{ categoryId: string; quantity: number }>;
   }): { success: boolean; order?: Order; error?: string } {
     const event = this.getEvent(params.eventId);
     if (!event) return { success: false, error: 'Concert introuvable.' };
     if (event.status !== 'published') return { success: false, error: 'Cet événement n’est pas disponible à la vente.' };
 
-    const category = event.categories.find(c => c.id === params.categoryId);
-    if (!category) return { success: false, error: 'Catégorie de billet introuvable.' };
+    const rawItems =
+      Array.isArray(params.items) && params.items.length > 0
+        ? params.items.filter((i) => i && i.categoryId && Number(i.quantity) > 0)
+        : [{ categoryId: params.categoryId, quantity: Number(params.quantity) }];
 
-    const available = category.quota - category.sold;
-    if (params.quantity <= 0 || params.quantity > 8) {
+    const totalQty = rawItems.reduce((acc, i) => acc + Number(i.quantity), 0);
+    if (totalQty <= 0 || totalQty > 8) {
       return { success: false, error: 'La quantité sélectionnée doit être comprise entre 1 et 8 billets.' };
     }
-    if (params.quantity > available) {
-      return { success: false, error: `Quota insuffisant. Seuls ${available} billets restants dans cette catégorie.` };
+
+    const resolvedItems: Array<{ categoryId: string; categoryName: string; quantity: number; price: number }> = [];
+    let totalAmount = 0;
+
+    for (const item of rawItems) {
+      const cat = event.categories.find((c) => c.id === item.categoryId);
+      if (!cat) return { success: false, error: 'Catégorie de billet introuvable.' };
+      const available = cat.quota - cat.sold;
+      if (item.quantity > available) {
+        return {
+          success: false,
+          error: `Quota insuffisant pour ${cat.name}. Seuls ${available} billets restants.`,
+        };
+      }
+      resolvedItems.push({
+        categoryId: cat.id,
+        categoryName: cat.name,
+        quantity: Number(item.quantity),
+        price: cat.price,
+      });
+      totalAmount += cat.price * Number(item.quantity);
     }
 
+    const primaryCat = event.categories.find((c) => c.id === resolvedItems[0].categoryId) || event.categories[0];
     const orderRef = `LMR-${Math.floor(1000 + Math.random() * 9000)}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
     const orderId = `ord_${crypto.randomBytes(6).toString('hex')}`;
-    const totalAmount = category.price * params.quantity;
 
     const order: Order = {
       id: orderId,
@@ -1030,26 +1053,43 @@ class LumareelDatabase {
       eventTitle: event.title,
       eventDate: event.date,
       eventVenue: event.venue,
-      categoryId: category.id,
-      categoryName: category.name,
-      quantity: params.quantity,
-      unitPrice: category.price,
+      categoryId: primaryCat.id,
+      categoryName:
+        resolvedItems.length > 1
+          ? resolvedItems.map((i) => `${i.categoryName} x${i.quantity}`).join(', ')
+          : primaryCat.name,
+      quantity: totalQty,
+      unitPrice: primaryCat.price,
       totalAmount,
-      currency: category.currency,
+      currency: primaryCat.currency || 'FCFA',
       paymentStatus: 'pending',
-      paymentProvider: 'geniuspay',
-      paymentRef: `gp_init_${crypto.randomBytes(8).toString('hex')}`,
+      paymentProvider: params.paymentProvider || 'paymetrust',
+      paymentRef: `pmt_init_${crypto.randomBytes(8).toString('hex')}`,
+      items: resolvedItems,
       createdAt: new Date().toISOString(),
     };
 
     this.orders.set(order.id, order);
-    this.saveOrdersToDisk(); // Modification A2
+    this.orders.set(order.reference, order);
+    this.saveOrdersToDisk();
     return { success: true, order };
+  }
+
+  public getOrderByIdOrRef(idOrRef: string): Order | undefined {
+    const direct = this.orders.get(idOrRef);
+    if (direct) return direct;
+    const upper = idOrRef.toUpperCase();
+    for (const ord of this.orders.values()) {
+      if (ord.id === idOrRef || ord.reference.toUpperCase() === upper) {
+        return ord;
+      }
+    }
+    return undefined;
   }
 
   // Confirm payment & atomic ticket emission (Idempotent!)
   public confirmPaymentAndIssueTickets(orderId: string, paymentRef?: string): { success: boolean; order?: Order; tickets?: Ticket[]; error?: string } {
-    const order = this.orders.get(orderId);
+    const order = this.getOrderByIdOrRef(orderId);
     if (!order) return { success: false, error: 'Commande introuvable.' };
 
     // Idempotent safeguard: If already completed, return existing issued tickets
@@ -1061,63 +1101,72 @@ class LumareelDatabase {
     const event = this.getEvent(order.eventId);
     if (!event) return { success: false, error: 'Événement associé introuvable.' };
 
-    const category = event.categories.find(c => c.id === order.categoryId);
-    if (!category) return { success: false, error: 'Catégorie de billet introuvable.' };
-
-    // Atomically decrement quota
-    category.sold += order.quantity;
-    if (category.sold >= category.quota) {
-      const allSold = event.categories.every(c => c.sold >= c.quota);
-      if (allSold) event.status = 'sold_out';
-    }
+    const lineItems =
+      Array.isArray(order.items) && order.items.length > 0
+        ? order.items
+        : [{ categoryId: order.categoryId, categoryName: order.categoryName, quantity: order.quantity, price: order.unitPrice }];
 
     // Update order status
     order.paymentStatus = 'completed';
     order.paidAt = new Date().toISOString();
     if (paymentRef) order.paymentRef = paymentRef;
 
-    // Issue unique electronic tickets
     const issuedTickets: Ticket[] = [];
     const eventCode = event.title.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'LMR');
+    let ticketCounter = 1;
 
-    for (let i = 1; i <= order.quantity; i++) {
-      const ticketId = `tkt_${crypto.randomBytes(8).toString('hex')}`;
-      // Numéro de série unique : on retire au sort tant qu'il existe déjà (achat en ligne ou billet physique).
-      let serialNumber = '';
-      for (let attempt = 0; attempt < 200; attempt++) {
-        const candidate = `LMR-2026-${eventCode}-${Math.floor(1000 + Math.random() * 9000)}`;
-        let taken = false;
-        for (const existing of this.tickets.values()) {
-          if (existing.serialNumber === candidate) { taken = true; break; }
+    for (const line of lineItems) {
+      const category =
+        event.categories.find((c) => c.id === (line as any).categoryId) ||
+        event.categories.find((c) => c.name === line.categoryName) ||
+        event.categories.find((c) => c.id === order.categoryId);
+      if (!category) continue;
+
+      category.sold += line.quantity;
+
+      for (let i = 1; i <= line.quantity; i++) {
+        const ticketId = `tkt_${crypto.randomBytes(8).toString('hex')}`;
+        let serialNumber = '';
+        for (let attempt = 0; attempt < 200; attempt++) {
+          const candidate = `LMR-2026-${eventCode}-${Math.floor(1000 + Math.random() * 9000)}`;
+          let taken = false;
+          for (const existing of this.tickets.values()) {
+            if (existing.serialNumber === candidate) { taken = true; break; }
+          }
+          if (!taken && !issuedTickets.some((t) => t.serialNumber === candidate)) { serialNumber = candidate; break; }
         }
-        if (!taken && !issuedTickets.some((t) => t.serialNumber === candidate)) { serialNumber = candidate; break; }
+        if (!serialNumber) serialNumber = `LMR-2026-${eventCode}-${Date.now().toString().slice(-6)}${ticketCounter}`;
+        const token = `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
+
+        const ticket: Ticket = {
+          id: ticketId,
+          orderId: order.id,
+          orderRef: order.reference,
+          eventId: event.id,
+          eventTitle: event.title,
+          eventDate: event.date,
+          eventTime: event.time,
+          eventVenue: event.venue,
+          categoryId: category.id,
+          categoryName: category.name,
+          serialNumber,
+          token,
+          holderName: `${order.customerName}${order.quantity > 1 ? ` (${ticketCounter}/${order.quantity})` : ''}`,
+          holderEmail: order.customerEmail,
+          status: 'valid',
+          issuedAt: new Date().toISOString(),
+        };
+
+        this.tickets.set(ticket.id, ticket);
+        this.tickets.set(ticket.token, ticket);
+        issuedTickets.push(ticket);
+        ticketCounter++;
       }
-      if (!serialNumber) serialNumber = `LMR-2026-${eventCode}-${Date.now().toString().slice(-6)}${i}`;
-      const token = `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
-
-      const ticket: Ticket = {
-        id: ticketId,
-        orderId: order.id,
-        orderRef: order.reference,
-        eventId: event.id,
-        eventTitle: event.title,
-        eventDate: event.date,
-        eventTime: event.time,
-        eventVenue: event.venue,
-        categoryId: category.id,
-        categoryName: category.name,
-        serialNumber,
-        token,
-        holderName: `${order.customerName}${order.quantity > 1 ? ` (${i}/${order.quantity})` : ''}`,
-        holderEmail: order.customerEmail,
-        status: 'valid',
-        issuedAt: new Date().toISOString(),
-      };
-
-      this.tickets.set(ticket.id, ticket);
-      this.tickets.set(ticket.token, ticket);
-      issuedTickets.push(ticket);
     }
+
+    const allSold = event.categories.every((c) => c.sold >= c.quota);
+    if (allSold) event.status = 'sold_out';
+    this.saveEventsToDisk();
 
     order.tickets = issuedTickets;
 
@@ -1141,8 +1190,135 @@ class LumareelDatabase {
 
     this.emails.unshift(personalizedEmail);
     this.saveEmailsToDisk();
-    this.saveOrdersToDisk(); // Modification A3
+    this.saveOrdersToDisk();
     return { success: true, order, tickets: issuedTickets };
+  }
+
+  /**
+   * Real atomic server-side ticket transfer:
+   * - Validates ticket ownership & active status
+   * - Immediately revokes the sender's ticket QR token (`status = 'cancelled'`)
+   * - Issues a brand-new ticket with a fresh cryptographic QR token for the recipient
+   * - Attaches it to a completed recipient transfer order so it appears immediately in the recipient's account
+   */
+  public transferTicket(params: {
+    ticketId: string;
+    senderEmail: string;
+    recipientName: string;
+    recipientEmail: string;
+    recipientPhone?: string;
+  }): {
+    success: boolean;
+    transferToken?: string;
+    newTicket?: Ticket;
+    revokedTicketId?: string;
+    error?: string;
+  } {
+    const cleanSender = params.senderEmail.trim().toLowerCase();
+    const cleanRecipientName = params.recipientName.trim();
+    const cleanRecipientEmail = params.recipientEmail.trim().toLowerCase();
+
+    if (!cleanRecipientName || !cleanRecipientEmail) {
+      return { success: false, error: 'Nom et adresse e-mail du destinataire requis.' };
+    }
+
+    const oldTicket = this.tickets.get(params.ticketId);
+    if (!oldTicket) {
+      return { success: false, error: 'Billet introuvable dans le registre officiel.' };
+    }
+
+    const parentOrder = this.getOrderByIdOrRef(oldTicket.orderId);
+    const ownerEmails = new Set(
+      [oldTicket.holderEmail, parentOrder?.customerEmail]
+        .filter(Boolean)
+        .map((e) => String(e).trim().toLowerCase())
+    );
+
+    if (cleanSender && ownerEmails.size > 0 && !ownerEmails.has(cleanSender)) {
+      return { success: false, error: 'Seul le titulaire actuel peut transférer ce billet.' };
+    }
+
+    if (oldTicket.status === 'used') {
+      return { success: false, error: 'Ce billet a déjà été scanné aux portes et ne peut plus être transféré.' };
+    }
+    if (oldTicket.status === 'cancelled') {
+      return { success: false, error: 'Ce billet a déjà été transféré ou annulé.' };
+    }
+    if (cleanRecipientEmail === oldTicket.holderEmail.toLowerCase()) {
+      return { success: false, error: 'Le destinataire doit être différent du titulaire actuel.' };
+    }
+
+    // 1. Immediately revoke sender's old ticket & QR token
+    oldTicket.status = 'cancelled';
+    this.tickets.set(oldTicket.id, oldTicket);
+    this.tickets.set(oldTicket.token, oldTicket);
+
+    // 2. Create recipient transfer order & brand-new cryptographic ticket
+    const transferToken = `TRF-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+    const newOrderId = `ord_trf_${crypto.randomBytes(6).toString('hex')}`;
+    const newOrderRef = `LMR-TRF-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newTicketId = `tkt_${crypto.randomBytes(8).toString('hex')}`;
+    const newQrToken = `TKT_SEC_${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
+    const eventCode = (oldTicket.eventTitle || 'LMR').substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'LMR');
+    const newSerial = `LMR-2026-${eventCode}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const newTicket: Ticket = {
+      id: newTicketId,
+      orderId: newOrderId,
+      orderRef: newOrderRef,
+      eventId: oldTicket.eventId,
+      eventTitle: oldTicket.eventTitle,
+      eventDate: oldTicket.eventDate,
+      eventTime: oldTicket.eventTime,
+      eventVenue: oldTicket.eventVenue,
+      categoryId: oldTicket.categoryId,
+      categoryName: oldTicket.categoryName,
+      serialNumber: newSerial,
+      token: newQrToken,
+      holderName: cleanRecipientName,
+      holderEmail: cleanRecipientEmail,
+      status: 'valid',
+      issuedAt: new Date().toISOString(),
+    };
+
+    const recipientOrder: Order = {
+      id: newOrderId,
+      reference: newOrderRef,
+      customerId: `trf_${cleanRecipientEmail}`,
+      customerName: cleanRecipientName,
+      customerEmail: cleanRecipientEmail,
+      customerPhone: params.recipientPhone?.trim() || undefined,
+      eventId: oldTicket.eventId,
+      eventTitle: oldTicket.eventTitle,
+      eventDate: oldTicket.eventDate,
+      eventVenue: oldTicket.eventVenue,
+      categoryId: oldTicket.categoryId,
+      categoryName: oldTicket.categoryName,
+      quantity: 1,
+      unitPrice: parentOrder?.unitPrice || 0,
+      totalAmount: 0,
+      currency: parentOrder?.currency || 'FCFA',
+      paymentStatus: 'completed',
+      paymentProvider: 'ticket_transfer',
+      paymentRef: transferToken,
+      createdAt: new Date().toISOString(),
+      paidAt: new Date().toISOString(),
+      tickets: [newTicket],
+    };
+
+    this.tickets.set(newTicket.id, newTicket);
+    this.tickets.set(newTicket.token, newTicket);
+    this.orders.set(recipientOrder.id, recipientOrder);
+    this.orders.set(recipientOrder.reference, recipientOrder);
+
+    this.saveOrdersToDisk();
+
+    return {
+      success: true,
+      transferToken,
+      newTicket,
+      revokedTicketId: oldTicket.id,
+    };
   }
 
   public getTicketsForOrder(orderId: string): Ticket[] {
@@ -1160,9 +1336,11 @@ class LumareelDatabase {
   public getOrdersForCustomer(customerEmail: string): Order[] {
     const emailNorm = customerEmail.toLowerCase();
     const result: Order[] = [];
+    const seen = new Set<string>();
     for (const ord of this.orders.values()) {
+      if (seen.has(ord.id)) continue;
       if (ord.customerEmail.toLowerCase() === emailNorm) {
-        // Attach tickets if completed
+        seen.add(ord.id);
         if (ord.paymentStatus === 'completed') {
           ord.tickets = this.getTicketsForOrder(ord.id);
         }
@@ -1173,11 +1351,15 @@ class LumareelDatabase {
   }
 
   public getAllOrders(): Order[] {
-    const list = Array.from(this.orders.values());
-    for (const ord of list) {
+    const list: Order[] = [];
+    const seen = new Set<string>();
+    for (const ord of this.orders.values()) {
+      if (seen.has(ord.id)) continue;
+      seen.add(ord.id);
       if (ord.paymentStatus === 'completed') {
         ord.tickets = this.getTicketsForOrder(ord.id);
       }
+      list.push(ord);
     }
     return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }

@@ -1,74 +1,73 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { LumareelWalletView } from './LumareelWalletView';
 import { LumareelCardLandingPage } from './LumareelCardLandingPage';
 import { supabase } from '../lib/supabaseClient';
-import { ArrowLeft, CreditCard, Sparkles, Wallet } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { MembershipCard } from '../types';
 
 /**
- * Page officielle "Ma carte" :
- * - Landing page de présentation produit style Monzo pour découvrir la carte, ses spécifications
- *   physiques et radiofréquences, et suivre le processus de demande d'admission.
- * - Pour les titulaires confirmés : bascule transparente entre leur Portefeuille Cashless & Carte active
- *   et la vitrine de présentation du club.
+ * Page officielle "Black Card" :
+ * - Sans carte commandée : présente la page de commande de la Black Card.
+ * - Dès que la carte est commandée / active : affiche directement la carte installée
+ *   et ses avantages sans boutons de bascule superflus.
  */
 export const LumareelMemberCardPage: React.FC = () => {
   const { currentUser, setCurrentPage, t } = useApp();
-  const [membershipStatus, setMembershipStatus] = useState<'loading' | 'none' | 'pending' | 'active'>('loading');
+  const [membershipStatus, setMembershipStatus] = useState<'loading' | 'none' | 'owned'>('loading');
   const [activeCardNumber, setActiveCardNumber] = useState<string | undefined>(undefined);
-  const [activeView, setActiveView] = useState<'landing' | 'wallet'>('landing');
+  const [ownedCard, setOwnedCard] = useState<MembershipCard | null>(null);
+
+  const loadStatus = useCallback(async () => {
+    if (!currentUser?.email) {
+      setMembershipStatus('none');
+      setOwnedCard(null);
+      return;
+    }
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
+      const response = await fetch(
+        `/api/membership/my-card?email=${encodeURIComponent(currentUser.email)}`,
+        { headers }
+      );
+      const result = await response.json();
+
+      if (result.success && result.hasCard && result.card) {
+        setActiveCardNumber(result.card.cardNumber);
+        setOwnedCard(result.card);
+        setMembershipStatus('owned');
+      } else {
+        setOwnedCard(null);
+        setMembershipStatus('none');
+      }
+    } catch {
+      setOwnedCard(null);
+      setMembershipStatus('none');
+    }
+  }, [currentUser?.email]);
 
   useEffect(() => {
-    let alive = true;
-    const loadStatus = async () => {
-      if (!currentUser?.email) {
-        setMembershipStatus('none');
-        setActiveView('landing');
-        return;
-      }
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const headers: Record<string, string> = {};
-        if (session?.access_token) {
-          headers['Authorization'] = `Bearer ${session.access_token}`;
-        }
-
-        const response = await fetch(`/api/membership/my-card?email=${encodeURIComponent(currentUser.email)}`, { headers });
-        const result = await response.json();
-        if (!alive) return;
-
-        if (result.success && result.hasCard && result.card) {
-          setActiveCardNumber(result.card.cardNumber);
-          if (result.card.cardStatus === 'active') {
-            setMembershipStatus('active');
-            setActiveView('wallet');
-          } else {
-            setMembershipStatus('pending');
-            setActiveView('landing');
-          }
-        } else {
-          setMembershipStatus('none');
-          setActiveView('landing');
-        }
-      } catch {
-        if (alive) {
-          setMembershipStatus('none');
-          setActiveView('landing');
-        }
-      }
-    };
-
     loadStatus();
-    return () => {
-      alive = false;
-    };
-  }, [currentUser]);
+  }, [loadStatus]);
+
+  const handleCardIssued = (card: MembershipCard) => {
+    setOwnedCard(card);
+    setActiveCardNumber(card.cardNumber);
+    setMembershipStatus('owned');
+  };
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-[#050505] text-white pb-24">
-      {/* Barre de navigation supérieure et sélecteur si titulaire actif */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8 pb-3 flex flex-wrap items-center justify-between gap-3">
+    <div className="min-h-screen w-full overflow-x-hidden bg-[#050505] text-white pb-16">
+      {/* Barre supérieure épurée : bouton Retour uniquement */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8 pb-3 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={() => setCurrentPage('home')}
@@ -77,49 +76,22 @@ export const LumareelMemberCardPage: React.FC = () => {
           <ArrowLeft className="h-4 w-4 text-[#d4af37]" />
           <span>{t('nav.backHome')}</span>
         </button>
-
-        {/* Sélecteur de vue pour les membres actifs (Mon Portefeuille vs Découvrir le Produit) */}
-        {membershipStatus === 'active' && (
-          <div className="inline-flex max-w-full overflow-x-auto items-center p-1 rounded-full bg-white/5 border border-white/10 text-xs">
-            <button
-              type="button"
-              onClick={() => setActiveView('wallet')}
-              className={`min-h-[40px] px-3.5 py-1.5 rounded-full font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activeView === 'wallet'
-                  ? 'bg-[#d4af37] text-black'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Wallet className="w-3.5 h-3.5 shrink-0" />
-              <span>{t('memberCard.myWalletCard')}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveView('landing')}
-              className={`min-h-[40px] px-3.5 py-1.5 rounded-full font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                activeView === 'landing'
-                  ? 'bg-[#d4af37] text-black'
-                  : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              <span>{t('memberCard.productShowcase')}</span>
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Rendu dynamique : Portefeuille actif ou Landing Page produit */}
-      {membershipStatus === 'active' && activeView === 'wallet' ? (
-        <div className="max-w-6xl mx-auto px-4 sm:px-8">
-          <LumareelWalletView />
+      {membershipStatus === 'loading' ? (
+        <div className="min-h-[55vh] flex flex-col items-center justify-center gap-3">
+          <RefreshCw className="w-6 h-6 animate-spin text-[#d4af37]" />
+        </div>
+      ) : membershipStatus === 'owned' ? (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <LumareelWalletView embedded initialCard={ownedCard} />
         </div>
       ) : (
         <LumareelCardLandingPage
-          hasActiveCard={membershipStatus === 'active'}
+          hasActiveCard={false}
           activeCardNumber={activeCardNumber}
-          onGoToWallet={() => setActiveView('wallet')}
+          onCardIssued={handleCardIssued}
+          onGoToWallet={() => loadStatus()}
         />
       )}
     </div>

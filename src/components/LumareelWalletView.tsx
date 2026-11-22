@@ -10,6 +10,7 @@ import {
   Order,
   WalletActivityRecord,
   WalletPaymentRecord,
+  MembershipCard,
 } from '../types';
 import { DigitalMembershipCard } from './DigitalMembershipCard';
 import {
@@ -58,7 +59,37 @@ type WalletTab =
   | 'activity'
   | 'profile';
 
-export const LumareelWalletView: React.FC = () => {
+interface LumareelWalletViewProps {
+  embedded?: boolean;
+  initialCard?: MembershipCard | null;
+}
+
+const OFFICIAL_CARD_PERKS_FR = [
+  'Accès prioritaire dans la file d’attente',
+  'Place de parking réservée',
+  'Placement VIP aux premiers rangs',
+  'Rafraîchissement offert',
+  'Accès aux préventes',
+  'Accès aux Meet & Greet',
+  'Réduction sur les articles partenaires',
+  'Réduction chez nos partenaires',
+];
+
+const OFFICIAL_CARD_PERKS_EN = [
+  'Priority fast-track queue access',
+  'Reserved parking spot',
+  'Front-row VIP seating',
+  'Complimentary drink',
+  'Early presale ticket access',
+  'Meet & Greet access',
+  'Discounts on partner merch & items',
+  'Discounts at partner venues & brands',
+];
+
+export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
+  embedded = false,
+  initialCard = null,
+}) => {
   const {
     currentUser,
     customerOrders,
@@ -95,12 +126,52 @@ export const LumareelWalletView: React.FC = () => {
     try {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) { setWallet(null); return; }
-      const res = await fetch('/api/wallet/overview', { headers: { Authorization: `Bearer ${session.access_token}` } });
-      const data = await res.json();
-      if (data.success && data.overview) {
-        setWallet(data.overview);
+      const headers: Record<string, string> = {};
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
       }
+
+      if (session?.access_token) {
+        const res = await fetch('/api/wallet/overview', { headers });
+        const data = await res.json();
+        if (data.success && data.overview) {
+          setWallet(data.overview);
+          return;
+        }
+      }
+
+      // Fallback direct via /api/membership/my-card si session email locale active
+      if (currentUser?.email) {
+        const cardRes = await fetch(
+          `/api/membership/my-card?email=${encodeURIComponent(currentUser.email)}`,
+          { headers }
+        );
+        const cardData = await cardRes.json();
+        if (cardData.success && cardData.hasCard && cardData.card) {
+          setWallet({
+            user: {
+              id: currentUser.id,
+              name: cardData.card.cardholderName || currentUser.name,
+              email: cardData.card.cardholderEmail || currentUser.email,
+            },
+            card: cardData.card,
+            tickets: cardData.concertTickets || [],
+            benefits: cardData.benefits || [],
+            invitations: [],
+            orders: customerOrders || [],
+            payments: [],
+            activities: [],
+            metrics: {
+              activeTicketsCount: (cardData.concertTickets || []).length,
+              availableBenefitsCount: (cardData.benefits || []).length || 8,
+              activeInvitationsCount: 0,
+            },
+          } as unknown as WalletOverview);
+          return;
+        }
+      }
+
+      setWallet(null);
     } catch (err) {
       console.error('Error loading wallet overview:', err);
     } finally {
@@ -245,214 +316,124 @@ export const LumareelWalletView: React.FC = () => {
     );
   }
 
+  const activeCard = wallet?.card || initialCard;
+  const officialPerks = isEn ? OFFICIAL_CARD_PERKS_EN : OFFICIAL_CARD_PERKS_FR;
+
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-2 sm:pt-4 pb-32 select-none font-agrandir-regular text-white">
-      
-      {/* Barre de retour supérieure */}
-      <div className="flex items-center justify-between gap-3 mb-6 pb-3 border-b border-white/10">
-        <button
-          type="button"
-          onClick={() => setCurrentPage('home')}
-          className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
-          title={t('nav.backHome')}
-        >
-          <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
-          <span>{t('nav.back')}</span>
-        </button>
-
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono tracking-widest text-[#d4af37] uppercase">
-            LUMARÉEL WALLET ECOSYSTEM
-          </span>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setCurrentPage('home')}
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
-          title={t('nav.close')}
-          aria-label={t('nav.close')}
-        >
-          <X className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-transform duration-200" />
-        </button>
-      </div>
-
-      {/* En-tête Header : Portefeuille Personnel */}
-      <div className="mb-6 border-b border-white/10 pb-6">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <div className="text-[10px] font-agrandir-regular tracking-[0.25em] text-[#d4af37] uppercase mb-1">
-              {isEn ? 'OFFICIAL MEMBER SPACE' : 'ESPACE CLIENT OFFICIEL'}
-            </div>
-            <h1 className="font-agrandir-extrabold text-3xl sm:text-4xl text-white tracking-tight uppercase">
-              LUMARÉEL <span className="text-[#d4af37]">WALLET</span>
-            </h1>
-            <div className="text-xs font-agrandir-regular text-[#aaa] mt-1.5 flex flex-wrap items-center gap-3">
-              <span>
-                {isEn ? 'Holder:' : 'Titulaire :'} <strong className="text-white">{wallet?.user.name || currentUser?.name || 'Dylan Bienao'}</strong>
-              </span>
-              <span aria-hidden="true" className="text-white/30">·</span>
-              <span>{wallet?.user.email || currentUser?.email}</span>
-              <span aria-hidden="true" className="text-white/30">·</span>
-              <span className="text-emerald-400 font-agrandir-semibold flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>{isEn ? 'Verified Account' : 'Compte Certifié'}</span>
-              </span>
-            </div>
-          </div>
-
-          {/* Quick Refresh */}
+    <div className="w-full max-w-5xl mx-auto px-1 sm:px-4 pt-1 sm:pt-3 pb-16 select-none font-agrandir-regular text-white">
+      {/* Barre de retour supérieure (uniquement hors mode intégré) */}
+      {!embedded && (
+        <div className="flex items-center justify-between gap-3 mb-6 pb-3 border-b border-white/10">
           <button
             type="button"
-            onClick={fetchWalletOverview}
-            className="self-start md:self-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-neutral-300 hover:text-white transition-all cursor-pointer"
+            onClick={() => setCurrentPage('home')}
+            className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
+            title={t('nav.backHome')}
           >
-            <RefreshCw className="w-3.5 h-3.5 text-[#d4af37]" />
-            <span>{isEn ? 'Refresh wallet' : 'Actualiser le portefeuille'}</span>
+            <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
+            <span>{t('nav.back')}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCurrentPage('home')}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
+            title={t('nav.close')}
+            aria-label={t('nav.close')}
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-transform duration-200" />
           </button>
         </div>
+      )}
+
+      {/* En-tête épuré : Ma Black Card installée */}
+      <div className="mb-6 flex items-end justify-between gap-3">
+        <div>
+          <div className="text-[10px] font-mono tracking-[0.22em] text-[#d4af37] uppercase mb-1">
+            {isEn ? 'YOUR BLACK CARD' : 'VOTRE BLACK CARD'}
+          </div>
+          <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight">
+            {isEn ? 'Installed & Active' : 'Carte installée'}
+          </h1>
+        </div>
+
+        <button
+          type="button"
+          onClick={fetchWalletOverview}
+          className="min-h-[40px] inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-neutral-300 hover:text-white transition-colors cursor-pointer shrink-0"
+        >
+          <RefreshCw className="w-3.5 h-3.5 text-[#d4af37]" />
+          <span className="hidden sm:inline">{isEn ? 'Refresh' : 'Actualiser'}</span>
+        </button>
       </div>
 
-      {/* Navigation en onglets horizontale (Scrollable responsive) */}
-      <div className="mb-8 border-b border-white/10 overflow-x-auto no-scrollbar">
+      {/* ===================================================================== */}
+      {/* CARTE NOIRE INSTALLÉE AU PREMIER PLAN                                */}
+      {/* ===================================================================== */}
+      {activeCard && (
+        <section className="mb-8 rounded-3xl bg-gradient-to-b from-[#111111] via-[#090909] to-[#050505] border border-white/10 px-4 sm:px-8 py-7 sm:py-10 shadow-2xl">
+          <DigitalMembershipCard card={activeCard} />
+        </section>
+      )}
+
+      {/* Navigation en onglets horizontale simplifiée */}
+      <div className="mb-7 border-b border-white/10 overflow-x-auto no-scrollbar">
         <nav className="flex items-center gap-2 min-w-max pb-3">
-          {navItems.map((tab) => {
-            const isActive = activeTab === tab.id;
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-agrandir-semibold uppercase tracking-wider transition-all cursor-pointer ${
-                  isActive
-                    ? 'bg-white text-black font-agrandir-extrabold shadow-lg shadow-white/10'
-                    : 'bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10'
-                }`}
-              >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-black' : 'text-[#d4af37]'}`} />
-                <span>{tab.label}</span>
-                {typeof tab.count === 'number' && tab.count > 0 && (
-                  <span
-                    className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
-                      isActive ? 'bg-black text-white' : 'bg-[#d4af37] text-black'
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          {navItems
+            .filter((tab) => ['overview', 'tickets', 'benefits', 'invitations', 'activity'].includes(tab.id))
+            .map((tab) => {
+              const isActive = activeTab === tab.id;
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-agrandir-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-white text-black font-agrandir-extrabold shadow-lg shadow-white/10'
+                      : 'bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white border border-white/10'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-black' : 'text-[#d4af37]'}`} />
+                  <span>{tab.id === 'overview' ? (isEn ? 'My 8 Perks' : 'Mes 8 avantages') : tab.label}</span>
+                </button>
+              );
+            })}
         </nav>
       </div>
 
       {/* ===================================================================== */}
-      {/* SECTION A : VUE D'ENSEMBLE (OVERVIEW)                                */}
+      {/* SECTION A : MES 8 AVANTAGES ACTIFS & RÉSUMÉ                          */}
       {/* ===================================================================== */}
       {activeTab === 'overview' && (
-        <div className="space-y-10 animate-fadeIn">
-          {/* Salutation Personnalisée & Métriques */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-            <div className="p-4 rounded-2xl bg-[#0e0e0e] border border-white/10 space-y-1">
-              <div className="text-[10px] font-agrandir-bold tracking-widest text-neutral-400 uppercase">
-                {isEn ? 'Active Tickets' : 'Billets Actifs'}
-              </div>
-              <div className="font-mono text-2xl sm:text-3xl font-bold text-white">
-                {wallet?.metrics.activeTicketsCount || 0}
-              </div>
-              <div className="text-[10px] text-neutral-500">
-                {isEn ? 'Ready for gate scan' : "Prêts pour l'accès aux portes"}
-              </div>
+        <div className="space-y-8 animate-fadeIn">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white">
+                {isEn ? 'Included with your Black Card' : 'Inclus avec votre Black Card'}
+              </h2>
+              <span className="text-[11px] font-mono text-[#d4af37]">8 / 8</span>
             </div>
 
-            <div className="p-4 rounded-2xl bg-[#0e0e0e] border border-white/10 space-y-1">
-              <div className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
-                {isEn ? 'Available Perks' : 'Avantages Disponibles'}
-              </div>
-              <div className="font-mono text-2xl sm:text-3xl font-bold text-[#d4af37]">
-                {wallet?.metrics.availableBenefitsCount || 0}
-              </div>
-              <div className="text-[10px] text-neutral-500">
-                {isEn ? 'Active exclusive perks' : 'Privilèges exclusifs actifs'}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-[#0e0e0e] border border-white/10 space-y-1">
-              <div className="text-[10px] font-agrandir-bold tracking-widest text-neutral-400 uppercase">
-                {isEn ? 'Private Invites' : 'Invitations Privées'}
-              </div>
-              <div className="font-mono text-2xl sm:text-3xl font-bold text-white">
-                {wallet?.metrics.activeInvitationsCount || 0}
-              </div>
-              <div className="text-[10px] text-neutral-500">
-                {isEn ? 'Confidential experiences' : 'Expériences confidentielles'}
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl bg-[#0e0e0e] border border-white/10 space-y-1">
-              <div className="text-[10px] font-agrandir-bold tracking-widest text-neutral-400 uppercase">
-                {isEn ? 'Membership Status' : 'Statut Membership'}
-              </div>
-              <div className="font-agrandir-bold text-base sm:text-lg text-emerald-400 truncate">
-                {wallet?.card ? 'FOUNDERS 2026' : 'STANDARD'}
-              </div>
-              <div className="text-[10px] text-neutral-500">
-                {wallet?.card ? wallet.card.cardNumber : isEn ? 'Open admission' : 'Adhésion ouverte'}
-              </div>
-            </div>
-          </div>
-
-          {/* Section Carte Interactive si titulaire */}
-          {wallet?.card ? (
-            <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-[#121212] via-[#080808] to-[#040404] border border-[#d4af37]/30 shadow-2xl space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-                <div>
-                  <div className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
-                    {isEn ? 'PERMANENT OFFICIAL IDENTITY' : 'IDENTITÉ OFFICIELLE PERMANENTE'}
+            <ol className="divide-y divide-white/10 border-y border-white/10">
+              {officialPerks.map((perk, idx) => (
+                <li key={perk} className="py-3.5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="font-mono text-[11px] text-[#d4af37] shrink-0">
+                      {String(idx + 1).padStart(2, '0')}
+                    </span>
+                    <span className="text-sm text-white font-agrandir-semibold leading-snug">
+                      {perk}
+                    </span>
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-agrandir-extrabold uppercase">
-                    LUMARÉEL CARD · {wallet.card.cardNumber}
-                  </h2>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs font-agrandir-bold uppercase">
-                    ● {isEn ? 'Active & Verified' : 'Active & Validée'}
-                  </span>
-                </div>
-              </div>
-
-              {/* Rendu 3D de la carte CR-80 */}
-              <DigitalMembershipCard
-                card={wallet.card}
-              />
-            </div>
-          ) : (
-            <div className="p-8 rounded-3xl bg-gradient-to-br from-[#141414] via-[#090909] to-[#040404] border border-white/15 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl">
-              <div className="space-y-2 text-center md:text-left">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/30 text-[10px] font-agrandir-bold text-[#d4af37] uppercase">
-                  <Crown className="w-3.5 h-3.5" />
-                  <span>{isEn ? 'PRIVILEGED MEMBERSHIP' : 'MEMBERSHIP PRIVILÉGIÉ'}</span>
-                </div>
-                <h3 className="text-2xl font-agrandir-extrabold uppercase">
-                  {isEn ? 'Join the Founders Edition' : 'Rejoignez la Founders Edition'}
-                </h3>
-                <p className="text-xs text-neutral-300 max-w-lg leading-relaxed">
-                  {isEn
-                    ? 'More than a membership—a permanent identity. Strictly limited to 100 members with engraved luxury card, VIP lounges, and private invites.'
-                    : "Plus qu'une adhésion, une identité permanente. Quota limité à 100 membres d'élite avec carte PVC de luxe, salons VIP et invitations privées."}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setCurrentPage('card')}
-                className="px-6 py-3.5 rounded-full bg-[#d4af37] hover:bg-[#e5c04b] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all shadow-xl shadow-[#d4af37]/20 cursor-pointer shrink-0"
-              >
-                {isEn ? 'Discover LUMARÉEL CARD' : 'Découvrir LUMARÉEL CARD'}
-              </button>
-            </div>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                </li>
+              ))}
+            </ol>
+          </div>
+          {false && (
+            <div />
           )}
 
           {/* Billets Récents & Activités Récents */}

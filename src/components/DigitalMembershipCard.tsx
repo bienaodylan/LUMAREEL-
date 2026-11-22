@@ -1,18 +1,11 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { MembershipCard } from '../types';
 import { useApp } from '../context/AppContext';
-import {
-  RotateCw,
-  Cpu,
-  Radio,
-  ShieldCheck,
-  Lock,
-  Sparkles,
-  CheckCircle2,
-  X,
-  CreditCard
-} from 'lucide-react';
+import { RotateCw, CheckCircle2, Truck, Calendar } from 'lucide-react';
+
+const CARD_FRONT_IMG = '/assets/aistudio/IMG_6112_896cf3ce.png';
+const CARD_BACK_IMG = '/assets/aistudio/IMG_6111_952dcd49.png';
 
 interface DigitalMembershipCardProps {
   card: MembershipCard;
@@ -20,30 +13,74 @@ interface DigitalMembershipCardProps {
   isRotatingToken?: boolean;
 }
 
+/**
+ * Carte noire officielle LUMARÉEL installée dans l'espace membre.
+ * Affiche fidèlement les visuels officiels recto/verso (aucune puce visible, aucun numéro
+ * superposé) dans un écrin élégant prêt pour mobile iOS/Android.
+ */
 export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
   card,
 }) => {
-  const { t, language } = useApp();
+  const { language } = useApp();
+  const isEn = language === 'en';
+  const locale = isEn ? 'en-US' : 'fr-FR';
+  const prefersReducedMotion = useReducedMotion();
   const [isFlipped, setIsFlipped] = useState(false);
 
-  // Clean member name without any titles or roles
-  const cleanMemberName = (card.cardholderName || 'DYLAN BIENAO')
+  const cleanMemberName = (card.cardholderName || 'MEMBRE LUMARÉEL')
     .replace(/^(mr\.?|mme\.?|m\.|dr\.?|pr\.?|ceo|founder|vip|président|ambassadeur)\s+/i, '')
-    .trim()
-    .toUpperCase();
+    .trim();
+
+  const expiryFormatted = card.expiresAt
+    ? new Date(card.expiresAt).toLocaleDateString(locale, {
+        month: 'short',
+        year: 'numeric',
+      })
+    : isEn
+    ? '3 Years'
+    : '3 Ans';
+
+  const deliveryLabel = (() => {
+    switch (card.physicalCardStatus) {
+      case 'delivered':
+        return isEn ? 'Delivered' : 'Livrée';
+      case 'shipped':
+        return isEn ? 'On the way (< 24h)' : 'En livraison (< 24h)';
+      default:
+        return isEn ? 'Delivery in < 24h' : 'Livraison en moins de 24h';
+    }
+  })();
 
   return (
     <div className="flex flex-col items-center w-full select-none">
-      {/* 
-        Conteneur standard CR-80 :
-        Largeur 85.60 mm x Hauteur 53.98 mm (Ratio standardisé 1.586:1)
-        Sur desktop : max-w-[420px] centré
-        Sur smartphone : responsive avec aspect-ratio strictement conservé
-      */}
-      <div className="w-full max-w-[420px] px-2 sm:px-0">
+      {/* Écrin de présentation de la carte installée */}
+      <div className="relative w-full max-w-[440px] flex flex-col items-center">
+        {/* Halo ambiant discret sous la carte */}
         <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -inset-x-6 top-6 bottom-12 rounded-full bg-gradient-to-b from-[#d4af37]/15 via-white/[0.04] to-transparent blur-3xl"
+        />
+
+        {/* Carte officielle CR-80 (ratio exact 85.6 / 53.98) */}
+        <motion.div
+          animate={
+            prefersReducedMotion
+              ? undefined
+              : {
+                  y: [0, -5, 0],
+                }
+          }
+          transition={
+            prefersReducedMotion
+              ? undefined
+              : {
+                  duration: 5.5,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }
+          }
           onClick={() => setIsFlipped((prev) => !prev)}
-          className="relative w-full cursor-pointer perspective-[1200px] group transition-transform active:scale-[0.99]"
+          className="relative z-10 w-full cursor-pointer perspective-[1400px] active:scale-[0.985] transition-transform"
           style={{ aspectRatio: '85.6 / 53.98' }}
           role="button"
           tabIndex={0}
@@ -53,174 +90,119 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
               setIsFlipped((prev) => !prev);
             }
           }}
-          aria-label={`${language === 'en' ? 'Contactless member card' : 'Carte de membre sans contact'} ${card.cardNumber}. ${t('cardUi.clickFlip')}`}
+          aria-label={isEn ? 'Flip your LUMARÉEL Black Card' : 'Retourner votre Black Card LUMARÉEL'}
         >
           <motion.div
             animate={{ rotateY: isFlipped ? 180 : 0 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             className="w-full h-full relative"
             style={{ transformStyle: 'preserve-3d' }}
           >
-            {/* ============================================================= */}
-            {/* RECTO — CARTE LUXE BANCAIRE AVEC PUCE CONTACT OR & NFC        */}
-            {/* ============================================================= */}
+            {/* RECTO OFFICIEL */}
             <div
-              className="absolute inset-0 rounded-[18px] sm:rounded-[20px] p-5 sm:p-7 flex flex-col justify-between overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_40px_rgba(212,175,55,0.12)] border border-[#d4af37]/40 bg-[#050505]"
+              className="absolute inset-0 rounded-[18px] sm:rounded-[20px] bg-black border border-white/20 shadow-[0_28px_70px_rgba(0,0,0,0.92),0_0_32px_rgba(212,175,55,0.10)] overflow-hidden"
               style={{
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
               }}
             >
-              {/* Texture subtile micro-brossée & halo doré */}
-              <div
-                className="absolute inset-0 pointer-events-none opacity-40 mix-blend-overlay"
-                style={{
-                  backgroundImage:
-                    'radial-gradient(circle at 80% 20%, rgba(212,175,55,0.20) 0%, transparent 60%), radial-gradient(circle at 20% 80%, rgba(255,255,255,0.06) 0%, transparent 50%)',
-                }}
+              <img
+                src={CARD_FRONT_IMG}
+                alt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Face avant'}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
               />
-
-              {/* Ligne 1 (Haut) : Logo officiel LUMARÉEL & Mention FOUNDERS EDITION */}
-              <div className="relative z-10 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <img
-                    src="/assets/logo-lumareel.png"
-                    alt="LUMARÉEL"
-                    className="h-5 sm:h-6 w-auto object-contain drop-shadow-[0_2px_8px_rgba(255,255,255,0.2)]"
-                  />
-                </div>
-
-                <div className="flex items-center gap-1.5 text-[9px] sm:text-[10px] font-agrandir-bold tracking-[0.22em] text-[#d4af37] uppercase">
-                  <span>FOUNDERS EDITION</span>
-                </div>
-              </div>
-
-              {/* Ligne 2 : Puce intelligente EMV dorée gravée + Onde NFC sans contact */}
-              <div className="relative z-10 flex items-center justify-between my-auto pt-1">
-                {/* Microprocesseur à contacts dorés brossés (style carte bancaire de prestige) */}
-                <div className="w-12 h-9 sm:w-14 sm:h-10 rounded-[6px] bg-gradient-to-br from-[#ffd778] via-[#d4af37] to-[#99751e] p-0.5 shadow-md border border-black/40 flex items-center justify-center relative overflow-hidden group-hover:scale-105 transition-transform">
-                  <div className="w-full h-full rounded-[4px] border border-black/50 grid grid-cols-3 gap-0.5 p-0.5 bg-gradient-to-br from-amber-100/30 via-transparent to-black/30">
-                    <div className="border-r border-b border-black/40 rounded-xs" />
-                    <div className="border-b border-black/40 rounded-xs" />
-                    <div className="border-l border-b border-black/40 rounded-xs" />
-                    <div className="border-r border-black/40 rounded-xs" />
-                    <div className="rounded-xs bg-[#c99a2c]/60" />
-                    <div className="border-l border-black/40 rounded-xs" />
-                    <div className="border-r border-t border-black/40 rounded-xs" />
-                    <div className="border-t border-black/40 rounded-xs" />
-                    <div className="border-l border-t border-black/40 rounded-xs" />
-                  </div>
-                </div>
-
-                {/* Symbole d'onde Sans Contact */}
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/80">
-                  <Radio className="w-3.5 h-3.5 text-[#d4af37]" />
-                  <span className="text-[8px] sm:text-[9px] font-mono tracking-widest text-[#d4af37] uppercase">
-                    {t('cardUi.contactless')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Ligne 3 (Centre) : Nom complet du membre en grand */}
-              <div className="relative z-10 text-left px-1 py-1">
-                <div className="text-[7px] sm:text-[8px] font-mono tracking-[0.25em] text-neutral-400 uppercase">
-                  {t('cardUi.officialHolder')}
-                </div>
-                <h2 className="text-base sm:text-xl font-agrandir-extrabold uppercase tracking-wide text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] truncate">
-                  {cleanMemberName}
-                </h2>
-              </div>
-
-              {/* Ligne 4 (Bas) : Numéro permanent de membre */}
-              <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-2">
-                <span className="text-[8px] sm:text-[9px] font-mono tracking-[0.2em] text-neutral-400 uppercase">
-                  {t('cardUi.permanentId')}
-                </span>
-                <span className="font-mono font-bold text-xs sm:text-sm text-[#d4af37] tracking-widest">
-                  {card.cardNumber}
-                </span>
-              </div>
+              {!prefersReducedMotion && (
+                <motion.div
+                  aria-hidden="true"
+                  animate={{ x: ['-130%', '220%'] }}
+                  transition={{ duration: 4.5, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' }}
+                  className="pointer-events-none absolute inset-y-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/12 to-transparent"
+                />
+              )}
             </div>
 
-            {/* ============================================================= */}
-            {/* VERSO — FACE PRIVILÈGE & CONCIERGERIE SANS CONTACT           */}
-            {/* ============================================================= */}
+            {/* VERSO OFFICIEL */}
             <div
-              className="absolute inset-0 rounded-[18px] sm:rounded-[20px] p-4 sm:p-6 flex flex-col justify-between overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_30px_rgba(255,255,255,0.06)] border border-white/20 bg-[#070707]"
+              className="absolute inset-0 rounded-[18px] sm:rounded-[20px] bg-black border border-white/20 shadow-[0_28px_70px_rgba(0,0,0,0.92)] overflow-hidden"
               style={{
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
                 transform: 'rotateY(180deg)',
               }}
             >
-              {/* Bande magnétique satinée noire sur le haut */}
-              <div className="-mx-6 -mt-4 sm:-mt-6 h-8 sm:h-9 bg-neutral-950 border-b border-white/10 flex items-center px-6">
-                <span className="text-[7px] font-mono text-neutral-600 tracking-widest uppercase">
-                  {language === 'en' ? 'LUMARÉEL BLACK CARD · PRIVATE CIRCLE & HOSPITALITY' : 'LUMARÉEL BLACK CARD · CERCLE PRIVÉ & HOSPITALITÉ'}
-                </span>
-              </div>
-
-              {/* Zone centrale : Puce de prestige & Sceau d'authenticité */}
-              <div className="relative z-10 my-auto py-2 flex items-center justify-between gap-4">
-                <div className="space-y-1.5 flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#d4af37]" />
-                    <span className="text-[9px] font-agrandir-bold text-white uppercase tracking-wider">
-                      {t('cardUi.securitySeal')}
-                    </span>
-                  </div>
-                  <p className="text-[8px] sm:text-[9px] text-neutral-300 leading-snug font-agrandir-regular">
-                    {t('cardUi.sealDesc')}
-                  </p>
-                  <div className="pt-1 flex items-center gap-2">
-                    <span className="text-[7px] font-mono text-[#888] uppercase tracking-wider">{t('cardUi.status')}</span>
-                    <span className="font-mono text-[9px] font-bold text-[#d4af37] tracking-wider bg-black/50 px-2 py-0.5 rounded border border-[#d4af37]/30">
-                      {t('cardUi.limitedSeries')}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Sceau de sécurité / Hologramme doré */}
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-amber-400/20 via-[#d4af37]/30 to-amber-700/20 border border-[#d4af37]/50 p-2 flex flex-col items-center justify-center text-center shrink-0 shadow-inner">
-                  <Lock className="w-4 h-4 text-[#d4af37] mb-1" />
-                  <span className="text-[6px] font-mono font-bold text-white tracking-widest uppercase">
-                    {t('cardUi.officialCard')}
-                  </span>
-                </div>
-              </div>
-
-              {/* Bas du verso : Signature & Numéro */}
-              <div className="relative z-10 border-t border-white/10 pt-2 flex items-center justify-between text-[7px] sm:text-[8px] font-mono text-neutral-400">
-                <div className="flex items-center gap-2">
-                  <span className="text-white">{t('cardUi.concierge')}</span>
-                  <span>·</span>
-                  <span className="text-[#d4af37]">{t('cardUi.contactlessActive')}</span>
-                </div>
-                <span className="font-mono font-bold text-white tracking-wider">
-                  {card.cardNumber}
-                </span>
-              </div>
+              <img
+                src={CARD_BACK_IMG}
+                alt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Face arrière'}
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+              />
             </div>
           </motion.div>
-        </div>
-      </div>
+        </motion.div>
 
-      {/* Instructions & Bouton d'action sous la carte */}
-      <div className="mt-4 flex flex-col sm:flex-row items-center gap-3 text-xs">
+        {/* Bouton discret recto/verso */}
         <button
           type="button"
           onClick={() => setIsFlipped((prev) => !prev)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-neutral-200 hover:text-white transition-all cursor-pointer text-xs font-agrandir-semibold active:scale-95 shadow-md"
+          className="relative z-10 mt-3 min-h-[40px] inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs text-neutral-300 hover:text-[#d4af37] transition-colors cursor-pointer"
         >
           <RotateCw className="w-3.5 h-3.5 text-[#d4af37]" />
-          <span>{isFlipped ? t('cardUi.showFront') : t('cardUi.flipBack')}</span>
+          <span>
+            {isFlipped
+              ? isEn
+                ? 'See front'
+                : 'Voir devant'
+              : isEn
+              ? 'See back'
+              : 'Voir derrière'}
+          </span>
         </button>
-      </div>
 
-      <p className="mt-2 text-[11px] text-neutral-500 font-agrandir-regular text-center">
-        <span className="hidden sm:inline">{t('cardUi.clickFlip')}</span>
-        <span className="sm:hidden">{t('cardUi.tapFlip')}</span>
-      </p>
+        {/* Bandeau d'informations de la carte installée (sous la carte, jamais par-dessus) */}
+        <div className="relative z-10 mt-3 w-full rounded-2xl bg-[#0d0d0d] border border-white/10 divide-y divide-white/10 text-left overflow-hidden">
+          <div className="px-4 py-3.5 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">
+                {isEn ? 'Cardholder' : 'Titulaire'}
+              </div>
+              <div className="text-sm sm:text-base font-agrandir-extrabold text-white uppercase truncate mt-0.5">
+                {cleanMemberName}
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/12 border border-emerald-500/35 text-emerald-300 text-[11px] font-agrandir-bold shrink-0">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>{isEn ? 'Active' : 'Active'}</span>
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 divide-x divide-white/10">
+            <div className="px-4 py-3 flex items-center gap-2.5">
+              <Calendar className="w-4 h-4 text-[#d4af37] shrink-0" />
+              <div className="min-w-0">
+                <div className="text-[10px] font-mono uppercase text-neutral-400">
+                  {isEn ? 'Valid until' : 'Valable jusqu’en'}
+                </div>
+                <div className="text-xs font-agrandir-bold text-white truncate">
+                  {expiryFormatted}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 py-3 flex items-center gap-2.5">
+              <Truck className="w-4 h-4 text-[#d4af37] shrink-0" />
+              <div className="min-w-0">
+                <div className="text-[10px] font-mono uppercase text-neutral-400">
+                  {isEn ? 'Physical card' : 'Carte physique'}
+                </div>
+                <div className="text-xs font-agrandir-bold text-white truncate">
+                  {deliveryLabel}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

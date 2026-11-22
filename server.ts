@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import QRCode from 'qrcode';
 import { db } from './src/server/db';
 import { membershipService } from './src/server/membershipService';
+import { paymetrustService, PayMeTrustChannel } from './src/server/paymetrustService';
 import { createClient } from '@supabase/supabase-js';
 
 
@@ -65,7 +66,16 @@ async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
   const isProduction = process.env.NODE_ENV === 'production';
 
-  app.use(express.json({ limit: '50mb' }));
+  app.use(
+    express.json({
+      limit: '50mb',
+      verify: (req: any, _res, buf) => {
+        if (req.originalUrl && req.originalUrl.includes('/webhook')) {
+          req.rawBody = buf.toString('utf8');
+        }
+      },
+    })
+  );
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // CORS configuration for cross-environment sync
@@ -504,8 +514,8 @@ async function startServer() {
   // 5. Checkout & Ticketing Orders
   app.post('/api/orders/checkout', (req: Request, res: Response) => {
     try {
-      const { customerId, customerName, customerEmail, customerPhone, eventId, categoryId, quantity } = req.body;
-      if (!customerEmail || !eventId || !categoryId || !quantity) {
+      const { customerId, customerName, customerEmail, customerPhone, eventId, categoryId, quantity, items, paymentProvider } = req.body;
+      if (!customerEmail || !eventId || (!categoryId && (!Array.isArray(items) || items.length === 0))) {
         return res.status(400).json({ success: false, error: 'Données de commande incomplètes.' });
       }
 
@@ -515,8 +525,10 @@ async function startServer() {
         customerEmail,
         customerPhone,
         eventId,
-        categoryId,
-        quantity: Number(quantity),
+        categoryId: categoryId || items?.[0]?.categoryId,
+        quantity: Number(quantity || 1),
+        paymentProvider: paymentProvider || 'paymetrust',
+        items,
       });
 
       if (!result.success) {
@@ -529,37 +541,319 @@ async function startServer() {
     }
   });
 
-  // Sandbox payment confirmation (guarantees server-side verification without fake client-side claim)
-  app.post('/api/orders/:orderId/pay-sandbox', (req: Request, res: Response) => {
+  // ============================================================================
+  // PAYMETRUST PAYMENT GATEWAY ARCHITECTURE (Mobile Money CI & Cartes)
+  // ============================================================================
+  const resolvePublicBaseUrl = (req: Request): string => {
+    const configured = (process.env.APP_PUBLIC_URL || '').trim().replace(/\/+$/, '');
+    if (configured) return configured;
+    const proto = String(req.headers['x-forwarded-proto'] || req.protocol || 'https').split(',')[0].trim();
+    const host = String(req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3000').split(',')[0].trim();
+    return `${proto}://${host}`;
+  };
+
+  const fulfillPayMeTrustTransaction = (reference: string, providerTxId?: string) => {
+    const tx = paymetrustService.getTransaction(reference);
+    if (!tx) return null;
+
+    if (tx.kind === 'ticket_order') {
+      return db.confirmPaymentAndIssueTickets(tx.orderId, providerTxId || tx.reference);
+    }
+
+    if (tx.kind === 'membership_card') {
+      const meta = (tx.metadata || {}) as Record<string, any>;
+      const existingCard = membershipService.getCardByEmail(tx.customerEmail);
+      if (existingCard) {
+        return { success: true, card: existingCard };
+      }
+
+      const issued = membershipService.issueMembershipCard({
+        userId: String(meta.userId || `usr_${crypto.randomBytes(6).toString('hex')}`),
+        planId: String(meta.planId || membershipService.getPlans()[0]?.id || 'plan_founders_annual'),
+        cardholderName: tx.customerName,
+        cardholderEmail: tx.customerEmail,
+        customerPhone: tx.customerPhone,
+        paymentMethod: tx.channel,
+        paymentReference: providerTxId || tx.reference,
+        shippingAddress: meta.shippingAddress,
+      });
+      return { success: true, card: issued.card, physicalOrder: issued.physicalOrder };
+    }
+
+    return null;
+  };
+
+  // Public PayMeTrust readiness & supported channels (zero secrets exposed)
+  app.get('/api/payments/paymetrust/config', (_req: Request, res: Response) => {
+    res.json({ success: true, ...paymetrustService.getPublicConfig() });
+  });
+
+  // Initiate PayMeTrust payment (server-authoritative amount lookup)
+  app.post('/api/payments/paymetrust/initiate', async (req: Request, res: Response) => {
     try {
-      const { orderId } = req.params;
-      const paymentRef = `gp_test_${Date.now()}`;
-      const result = db.confirmPaymentAndIssueTickets(orderId, paymentRef);
+      const {
+        kind = 'ticket_order',
+        orderId,
+        planId,
+        channel = 'wave',
+        customerName,
+        customerEmail,
+        customerPhone,
+        shippingAddress,
+        userId,
+      } = req.body || {};
+
+      const validChannels: PayMeTrustChannel[] = ['wave', 'orange_money', 'mtn_momo', 'moov_money', 'djamo', 'card'];
+      const safeChannel: PayMeTrustChannel = validChannels.includes(channel) ? channel : 'wave';
+      const baseUrl = resolvePublicBaseUrl(req);
+
+      let amount = 0;
+      let reference = '';
+      let description = '';
+      let resolvedOrderId = '';
+      let resolvedName = String(customerName || '').trim();
+      let resolvedEmail = String(customerEmail || '').trim().toLowerCase();
+      let resolvedPhone = String(customerPhone || '').trim();
+      let metadata: Record<string, unknown> | undefined;
+
+      if (kind === 'ticket_order') {
+        if (!orderId) {
+          return res.status(400).json({ success: false, error: 'Identifiant de commande requis.' });
+        }
+        const order = db.getOrderByIdOrRef(String(orderId));
+        if (!order) {
+          return res.status(404).json({ success: false, error: 'Commande introuvable.' });
+        }
+        amount = order.totalAmount;
+        reference = `PMT-${order.reference}`;
+        description = `LUMARÉEL — ${order.eventTitle} (${order.quantity} billet${order.quantity > 1 ? 's' : ''})`;
+        resolvedOrderId = order.id;
+        resolvedName = resolvedName || order.customerName;
+        resolvedEmail = resolvedEmail || order.customerEmail;
+        resolvedPhone = resolvedPhone || order.customerPhone || '';
+      } else if (kind === 'membership_card') {
+        if (!resolvedName || !resolvedEmail) {
+          return res.status(400).json({ success: false, error: 'Nom complet et e-mail requis.' });
+        }
+        const activePlans = membershipService.getPlans();
+        const plan = planId ? membershipService.getPlanById(String(planId)) : activePlans[0];
+        if (!plan) {
+          return res.status(404).json({ success: false, error: 'Formule Black Card introuvable.' });
+        }
+        amount = plan.price;
+        resolvedOrderId = `mb_${crypto.randomBytes(6).toString('hex')}`;
+        reference = `PMT-CARD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+        description = `LUMARÉEL Black Card — ${plan.name}`;
+        metadata = {
+          planId: plan.id,
+          userId: userId || `usr_${crypto.randomBytes(6).toString('hex')}`,
+          shippingAddress,
+        };
+      } else {
+        return res.status(400).json({ success: false, error: 'Type de transaction invalide.' });
+      }
+
+      const tx = await paymetrustService.initiatePayment({
+        kind,
+        orderId: resolvedOrderId,
+        reference,
+        amount,
+        description,
+        channel: safeChannel,
+        customerName: resolvedName || 'Client LUMARÉEL',
+        customerEmail: resolvedEmail,
+        customerPhone: resolvedPhone,
+        notifyUrl: `${baseUrl}/api/payments/paymetrust/webhook`,
+        returnUrl: `${baseUrl}/?payment_status=success&ref=${encodeURIComponent(reference)}`,
+        cancelUrl: `${baseUrl}/?payment_status=cancelled&ref=${encodeURIComponent(reference)}`,
+        metadata,
+      });
+
+      return res.json({
+        success: true,
+        transaction: {
+          id: tx.id,
+          reference: tx.reference,
+          status: tx.status,
+          amount: tx.amount,
+          currency: tx.currency,
+          channel: tx.channel,
+          paymentUrl: tx.paymentUrl,
+          mode: tx.mode,
+          environment: tx.environment,
+        },
+      });
+    } catch (error: any) {
+      console.error('[PAYMETRUST INITIATE ERROR]', error);
+      return res.status(502).json({
+        success: false,
+        error: error.message || 'Impossible d’initialiser le paiement PayMeTrust.',
+      });
+    }
+  });
+
+  // Verify PayMeTrust transaction status & fulfill order if confirmed
+  app.get('/api/payments/paymetrust/verify/:reference', async (req: Request, res: Response) => {
+    try {
+      const tx = await paymetrustService.verifyTransactionStatus(req.params.reference);
+      if (!tx) {
+        return res.status(404).json({ success: false, error: 'Transaction PayMeTrust introuvable.' });
+      }
+
+      let fulfillment: any = null;
+      if (tx.status === 'SUCCESS') {
+        fulfillment = fulfillPayMeTrustTransaction(tx.reference, tx.providerTransactionId || tx.reference);
+      }
+
+      return res.json({
+        success: true,
+        transaction: {
+          id: tx.id,
+          reference: tx.reference,
+          status: tx.status,
+          amount: tx.amount,
+          currency: tx.currency,
+          channel: tx.channel,
+          mode: tx.mode,
+          paidAt: tx.paidAt,
+        },
+        fulfillment,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Preview-only confirmation when PayMeTrust API keys have not been added yet (strictly disabled in production or once keys are configured)
+  app.post('/api/payments/paymetrust/confirm-preview', (req: Request, res: Response) => {
+    try {
+      if (paymetrustService.isConfigured() || (process.env.PAYMETRUST_ENV || 'sandbox').toLowerCase() === 'production') {
+        return res.status(403).json({
+          success: false,
+          error: 'Mode live actif : la validation passe uniquement par PayMeTrust.',
+        });
+      }
+
+      const { reference } = req.body || {};
+      if (!reference) {
+        return res.status(400).json({ success: false, error: 'Référence de transaction requise.' });
+      }
+
+      const tx = paymetrustService.updateTransactionStatus(
+        String(reference),
+        'SUCCESS',
+        `pmt_preview_${Date.now()}`
+      );
+      if (!tx) {
+        return res.status(404).json({ success: false, error: 'Transaction introuvable.' });
+      }
+
+      const fulfillment = fulfillPayMeTrustTransaction(tx.reference, tx.providerTransactionId);
+      return res.json({
+        success: true,
+        transaction: tx,
+        fulfillment,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Authentic PayMeTrust Webhook (notify_url) with timing-safe HMAC verification & idempotent fulfillment
+  app.post('/api/payments/paymetrust/webhook', (req: Request, res: Response) => {
+    try {
+      const signature = String(
+        req.headers['x-paymetrust-signature'] ||
+          req.headers['x-signature'] ||
+          req.headers['x-webhook-signature'] ||
+          ''
+      );
+      const rawBody = (req as any).rawBody || JSON.stringify(req.body || {});
+
+      if (!paymetrustService.verifyWebhookSignature(rawBody, signature)) {
+        return res.status(401).json({ success: false, error: 'Signature webhook PayMeTrust invalide.' });
+      }
+
+      const payload = req.body || {};
+      const reference = String(payload.reference || payload.merchant_reference || payload.order_id || '').trim();
+      const providerTxId = payload.transaction_id ? String(payload.transaction_id) : undefined;
+      const normalizedStatus = paymetrustService.normalizeStatus(payload.status ?? payload.code);
+
+      if (!reference) {
+        return res.status(400).json({ success: false, error: 'Référence manquante dans la notification.' });
+      }
+
+      const updated = paymetrustService.updateTransactionStatus(reference, normalizedStatus, providerTxId);
+      if (updated && normalizedStatus === 'SUCCESS') {
+        fulfillPayMeTrustTransaction(updated.reference, providerTxId || updated.reference);
+      }
+
+      return res.status(200).json({ received: true, status: normalizedStatus });
+    } catch (error: any) {
+      console.error('[PAYMETRUST WEBHOOK ERROR]', error);
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Real Server-Side Ticket Transfer (revokes old QR token, issues fresh ticket to recipient)
+  app.post('/api/tickets/transfer', async (req: Request, res: Response) => {
+    try {
+      const { ticketId, senderEmail, recipientName, recipientEmail, recipientPhone } = req.body || {};
+      if (!ticketId || !recipientName || !recipientEmail) {
+        return res.status(400).json({
+          success: false,
+          error: 'Billet, nom et adresse e-mail du destinataire requis.',
+        });
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(String(recipientEmail).trim())) {
+        return res.status(400).json({
+          success: false,
+          error: 'Veuillez saisir une adresse e-mail valide pour le destinataire.',
+        });
+      }
+
+      // Resolve authenticated email from Supabase Bearer token when present
+      let resolvedSenderEmail = String(senderEmail || '').trim().toLowerCase();
+      const bearer = String(req.headers.authorization || '');
+      const token = bearer.startsWith('Bearer ') ? bearer.slice(7) : '';
+      if (token) {
+        try {
+          const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+          const key = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+          if (url && key) {
+            const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+            const { data } = await client.auth.getUser(token);
+            if (data?.user?.email) {
+              resolvedSenderEmail = data.user.email.toLowerCase();
+            }
+          }
+        } catch {
+          // fallback to senderEmail checked against ticket owner in db.transferTicket
+        }
+      }
+
+      const result = db.transferTicket({
+        ticketId: String(ticketId),
+        senderEmail: resolvedSenderEmail,
+        recipientName: String(recipientName),
+        recipientEmail: String(recipientEmail),
+        recipientPhone: recipientPhone ? String(recipientPhone) : undefined,
+      });
 
       if (!result.success) {
         return res.status(400).json(result);
       }
 
-      res.json(result);
+      return res.json({
+        success: true,
+        transferToken: result.transferToken,
+        ticket: result.newTicket,
+        revokedTicketId: result.revokedTicketId,
+      });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
-    }
-  });
-
-  // Authentic GeniusPay Webhook
-  app.post('/api/orders/webhook/geniuspay', (req: Request, res: Response) => {
-    try {
-      const signature = req.headers['x-geniuspay-signature'];
-      const payload = req.body;
-      const { order_id, payment_status, transaction_id } = payload || {};
-
-      if (payment_status === 'COMPLETED' && order_id) {
-        db.confirmPaymentAndIssueTickets(order_id, transaction_id || `gp_hook_${Date.now()}`);
-      }
-
-      res.json({ received: true });
-    } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      return res.status(500).json({ success: false, error: error.message || 'Échec du transfert.' });
     }
   });
 

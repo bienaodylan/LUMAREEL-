@@ -1,10 +1,11 @@
 import React from 'react';
 import { useApp, PageView } from '../context/AppContext';
-import { Home, Ticket, Archive, CreditCard, UserRound, Menu, Settings } from 'lucide-react';
+import { PWAInstallButton } from './PWAInstallButton';
+import { Home, Ticket, Archive, CreditCard, UserRound, Settings } from 'lucide-react';
 
 /** Navigation desktop LUMARÉEL: sidebar fixe adaptée aux destinations réelles de l'application. */
 export const DesktopSidebar: React.FC = () => {
-  const { currentPage, setCurrentPage, platformSettings, t } = useApp();
+  const { currentPage, setCurrentPage, platformSettings, language, setLanguage, t } = useApp();
   if (['splash', 'gate_scanner', 'admin'].includes(currentPage)) return null;
 
   const items: Array<{label:string; page:PageView; icon:React.ComponentType<{size?:number;strokeWidth?:number;fill?:string;className?:string}>}> = [
@@ -25,8 +26,27 @@ export const DesktopSidebar: React.FC = () => {
         <span>{label}</span>
       </button>})}
     </nav>
-    <div className="mt-auto flex flex-col gap-1">
-      <button onClick={()=>go('profile')} className="group flex h-12 items-center gap-4 rounded-lg px-3 text-base hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] cursor-pointer"><Menu size={24} className="transition-transform group-hover:scale-105"/><span>{t('nav.more')}</span></button>
+    <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-white/10">
+      <PWAInstallButton variant="sidebar" />
+      <div className="flex items-center justify-between px-3 py-1">
+        <span className="text-xs text-neutral-500">{language === 'en' ? 'Language' : 'Langue'}</span>
+        <div className="flex items-center p-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-agrandir-bold">
+          <button
+            type="button"
+            onClick={() => setLanguage('fr')}
+            className={`px-2.5 py-0.5 rounded-full cursor-pointer transition-colors ${language === 'fr' ? 'bg-white text-black' : 'text-neutral-400 hover:text-white'}`}
+          >
+            FR
+          </button>
+          <button
+            type="button"
+            onClick={() => setLanguage('en')}
+            className={`px-2.5 py-0.5 rounded-full cursor-pointer transition-colors ${language === 'en' ? 'bg-white text-black' : 'text-neutral-400 hover:text-white'}`}
+          >
+            EN
+          </button>
+        </div>
+      </div>
       <button onClick={()=>go('profile')} className="flex h-10 items-center gap-3 rounded-lg px-3 text-sm text-neutral-500 hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] cursor-pointer"><Settings size={19}/><span>{t('nav.accountSettings')}</span></button>
     </div>
   </aside>;

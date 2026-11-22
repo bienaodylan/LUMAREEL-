@@ -34,10 +34,25 @@
     font-family: var(--font-agrandir) !important;
   }
 
-  body {
+  html, body {
     background-color: #000000;
     color: #FFFFFF;
     letter-spacing: -0.01em;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  @media (display-mode: standalone) {
+    body {
+      padding-top: env(safe-area-inset-top, 0px);
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    input, textarea, select {
+      -webkit-user-select: text;
+      user-select: text;
+    }
   }
 
   h1, h2, h3, h4, h5, h6 {
