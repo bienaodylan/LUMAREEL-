@@ -51,8 +51,9 @@ BEGIN
      OR v_filtered_def !~* 'BLOCKED_STOCK_STILL_LINKED' THEN
     RAISE EXCEPTION 'Filtered audit RPC must retain all known anomaly codes';
   END IF;
-  IF v_legacy_def !~* 'lumareel_audit_physical_nfc_consistency_filtered_page' THEN
-    RAISE EXCEPTION 'Legacy pagination RPC must delegate to the filtered implementation with no filter';
+  IF v_legacy_def !~* 'lumareel_audit_physical_nfc_consistency_filtered_page'
+     OR v_legacy_def !~* '-\s*''issue_code''' THEN
+    RAISE EXCEPTION 'Legacy pagination RPC must delegate without a filter and preserve its response shape';
   END IF;
   IF v_filtered_def ~* 'jsonb_build_object\s*\([^)]*''(chip_reference|raw_uid|card_key)''\s*,' THEN
     RAISE EXCEPTION 'Filtered audit RPC must not serialize NFC references, raw UIDs, or card keys';
