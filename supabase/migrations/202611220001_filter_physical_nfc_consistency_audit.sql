@@ -142,7 +142,7 @@ LANGUAGE sql SECURITY DEFINER SET search_path = pg_catalog
 AS $$
   SELECT public.lumareel_audit_physical_nfc_consistency_filtered_page(
     p_limit, p_offset, NULL::text
-  );
+  ) - 'issue_code';
 $$;
 
 REVOKE ALL ON FUNCTION public.lumareel_audit_physical_nfc_consistency_filtered_page(integer,integer,text) FROM PUBLIC, anon;
