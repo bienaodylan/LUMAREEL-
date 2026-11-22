@@ -17,7 +17,8 @@ DECLARE
     'public.lumareel_update_received_card_status(uuid,text,text,text)'::regprocedure,
     'public.lumareel_replace_physical_card(uuid,uuid,uuid,text)'::regprocedure,
     'public.lumareel_audit_physical_nfc_consistency(integer)'::regprocedure,
-    'public.lumareel_audit_physical_nfc_consistency_page(integer,integer)'::regprocedure
+    'public.lumareel_audit_physical_nfc_consistency_page(integer,integer)'::regprocedure,
+    'public.lumareel_audit_physical_nfc_consistency_filtered_page(integer,integer,text)'::regprocedure
   ];
   v_restricted_functions regprocedure[] := ARRAY[
     'public.lumareel_current_admin_role()'::regprocedure,
@@ -27,7 +28,8 @@ DECLARE
     'public.lumareel_update_received_card_status(uuid,text,text,text)'::regprocedure,
     'public.lumareel_replace_physical_card(uuid,uuid,uuid,text)'::regprocedure,
     'public.lumareel_audit_physical_nfc_consistency(integer)'::regprocedure,
-    'public.lumareel_audit_physical_nfc_consistency_page(integer,integer)'::regprocedure
+    'public.lumareel_audit_physical_nfc_consistency_page(integer,integer)'::regprocedure,
+    'public.lumareel_audit_physical_nfc_consistency_filtered_page(integer,integer,text)'::regprocedure
   ];
 BEGIN
   SELECT pg_catalog.pg_get_functiondef('public.lumareel_current_admin_role()'::regprocedure)
