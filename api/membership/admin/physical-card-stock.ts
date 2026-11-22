@@ -5,6 +5,13 @@ const CHIP_TYPES = new Set(['MIFARE_DESFIRE_EV2', 'MIFARE_DESFIRE_EV3', 'OTHER']
 const VALID_STATUSES = new Set(['verified', 'ready', 'shipped', 'delivered', 'blocked', 'returned']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NFC_REFERENCE = /^[A-Za-z0-9_-]{16,160}$/;
+const AUDIT_ISSUE_CODES = new Set([
+  'STOCK_WITHOUT_ACTIVE_NFC',
+  'LINKED_STOCK_MISSING_NFC_REFERENCE',
+  'STOCK_NFC_METADATA_MISMATCH',
+  'ACTIVE_NFC_WITHOUT_PHYSICAL_STOCK',
+  'BLOCKED_STOCK_STILL_LINKED',
+]);
 
 class InputError extends Error {}
 
@@ -39,14 +46,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (auditMode === 'consistency') {
         const rawLimit = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
         const rawOffset = Array.isArray(req.query.offset) ? req.query.offset[0] : req.query.offset;
+        const rawIssueCode = Array.isArray(req.query.issue_code) ? req.query.issue_code[0] : req.query.issue_code;
         const limit = rawLimit === undefined ? 100 : Number(rawLimit);
         const offset = rawOffset === undefined ? 0 : Number(rawOffset);
+        const issueCode = rawIssueCode === undefined || rawIssueCode === '' ? null : rawIssueCode;
         if (!Number.isInteger(limit) || limit < 1 || limit > 500
             || !Number.isInteger(offset) || offset < 0 || offset > 100000) {
           return res.status(400).json({ success: false, error: 'Pagination invalide : limit 1–500 et offset 0–100000.' });
         }
-        const { data, error } = await auth.db.rpc('lumareel_audit_physical_nfc_consistency_page', {
-          p_limit: limit, p_offset: offset,
+        if (issueCode !== null && !AUDIT_ISSUE_CODES.has(issueCode)) {
+          return res.status(400).json({ success: false, error: 'Code d’anomalie NFC invalide.' });
+        }
+        const { data, error } = await auth.db.rpc('lumareel_audit_physical_nfc_consistency_filtered_page', {
+          p_limit: limit, p_offset: offset, p_issue_code: issueCode,
         });
         if (error) {
           const statusCode = error.code === '42501' ? 403 : error.code === '22023' ? 400 : 500;
