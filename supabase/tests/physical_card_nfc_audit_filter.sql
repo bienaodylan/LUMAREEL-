@@ -54,7 +54,7 @@ BEGIN
   IF v_legacy_def !~* 'lumareel_audit_physical_nfc_consistency_filtered_page' THEN
     RAISE EXCEPTION 'Legacy pagination RPC must delegate to the filtered implementation with no filter';
   END IF;
-  IF v_filtered_def ~* 'jsonb_build_object\s*\([^)]*(chip_reference|raw_uid|card_key)' THEN
+  IF v_filtered_def ~* 'jsonb_build_object\s*\([^)]*''(chip_reference|raw_uid|card_key)''\s*,' THEN
     RAISE EXCEPTION 'Filtered audit RPC must not serialize NFC references, raw UIDs, or card keys';
   END IF;
 END
