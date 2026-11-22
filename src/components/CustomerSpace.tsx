@@ -24,9 +24,11 @@ import {
   Share2,
   AlertCircle,
   ArrowLeft,
-  X
+  X,
+  Loader2,
+  Copy
 } from 'lucide-react';
-
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { formatDateLong } from '../utils/dateUtils';
 
 type ScrollableTab = 'tickets' | 'transfer' | 'past';
@@ -38,11 +40,14 @@ export const CustomerSpace: React.FC = () => {
   const [qrCodeDataUrls, setQrCodeDataUrls] = useState<Record<string, string>>({});
   const [modalQrCodeUrl, setModalQrCodeUrl] = useState<string>('');
 
-  // États pour le transfert de billet
+  // États pour le transfert de billet réel (côté serveur)
   const [transferTicketId, setTransferTicketId] = useState<string>('');
   const [recipientName, setRecipientName] = useState<string>('');
   const [recipientContact, setRecipientContact] = useState<string>('');
+  const [isTransferring, setIsTransferring] = useState<boolean>(false);
   const [transferSuccessToken, setTransferSuccessToken] = useState<string | null>(null);
+  const [transferredToSummary, setTransferredToSummary] = useState<{ name: string; email: string } | null>(null);
+  const [copiedTransferToken, setCopiedTransferToken] = useState<boolean>(false);
 
   useEffect(() => {
     refreshCustomerOrders();
@@ -56,10 +61,13 @@ export const CustomerSpace: React.FC = () => {
     }
   });
 
-  // Generate QR codes for all tickets in real time
+  // Seuls les billets encore valides peuvent être transférés
+  const transferableTickets = allTickets.filter((tkt) => tkt.status === 'valid');
+
+  // Generate QR codes for all valid/used tickets in real time
   useEffect(() => {
     allTickets.forEach((ticket) => {
-      if (!qrCodeDataUrls[ticket.id]) {
+      if (ticket.status !== 'cancelled' && !qrCodeDataUrls[ticket.id]) {
         QRCode.toDataURL(ticket.token, {
           margin: 1,
           color: { dark: '#000000', light: '#ffffff' },
@@ -88,21 +96,79 @@ export const CustomerSpace: React.FC = () => {
     window.print();
   };
 
-  // Traitement du transfert de billet
-  const handleConfirmTransfer = (e: React.FormEvent) => {
+  // Traitement réel du transfert de billet côté serveur (révocation ancien QR + émission nouveau billet destinataire)
+  const handleConfirmTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!transferTicketId || !recipientName || !recipientContact) {
+    const cleanName = recipientName.trim();
+    const cleanEmail = recipientContact.trim().toLowerCase();
+
+    if (!transferTicketId || !cleanName || !cleanEmail) {
       showToast(t('orders.fillRecipientError'), 'error');
       return;
     }
-    const token = `TRF_${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-    setTransferSuccessToken(token);
-    showToast(
-      t('orders.transferSuccessToast')
-        .replace('{name}', recipientName)
-        .replace('{token}', token),
-      'success'
-    );
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      showToast(
+        language === 'en'
+          ? 'Please enter a valid email address for the recipient.'
+          : 'Veuillez saisir une adresse e-mail valide pour le destinataire.',
+        'error'
+      );
+      return;
+    }
+
+    const selectedTicket = transferableTickets.find((tkt) => tkt.id === transferTicketId);
+    const senderEmail = (currentUser?.email || selectedTicket?.holderEmail || '').trim().toLowerCase();
+
+    setIsTransferring(true);
+    try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (isSupabaseConfigured) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session?.access_token) {
+          headers.Authorization = `Bearer ${sessionData.session.access_token}`;
+        }
+      }
+
+      const res = await fetch('/api/tickets/transfer', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          ticketId: transferTicketId,
+          senderEmail,
+          recipientName: cleanName,
+          recipientEmail: cleanEmail,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data?.success || !data?.transferToken) {
+        throw new Error(
+          data?.error ||
+            (language === 'en' ? 'Unable to transfer this ticket.' : 'Impossible de transférer ce billet.')
+        );
+      }
+
+      setTransferSuccessToken(data.transferToken);
+      setTransferredToSummary({ name: cleanName, email: cleanEmail });
+      setTransferTicketId('');
+      showToast(
+        t('orders.transferSuccessToast')
+          .replace('{name}', cleanName)
+          .replace('{token}', data.transferToken),
+        'success'
+      );
+      await refreshCustomerOrders();
+    } catch (err: any) {
+      showToast(
+        err?.message ||
+          (language === 'en' ? 'Transfer failed. Please try again.' : 'Échec du transfert. Veuillez réessayer.'),
+        'error'
+      );
+    } finally {
+      setIsTransferring(false);
+    }
   };
 
   const tabsConfig: Array<{ id: ScrollableTab; label: string; count?: number; highlight?: boolean }> = [
@@ -219,10 +285,16 @@ export const CustomerSpace: React.FC = () => {
                 const officialPoster = matchingEvent?.officialPoster || matchingEvent?.bannerImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg';
                 const qrUrl = qrCodeDataUrls[ticket.id];
 
+                const isCancelled = ticket.status === 'cancelled';
+
                 return (
                   <div
                     key={ticket.id}
-                    className="bg-[#0d0d0d] border border-white/15 rounded-2xl sm:rounded-3xl shadow-2xl hover:border-white/30 transition-all group overflow-hidden flex flex-row items-stretch relative"
+                    className={`bg-[#0d0d0d] border rounded-2xl sm:rounded-3xl shadow-2xl transition-all group overflow-hidden flex flex-row items-stretch relative ${
+                      isCancelled
+                        ? 'border-white/10 opacity-60'
+                        : 'border-white/15 hover:border-white/30'
+                    }`}
                   >
                     {/* GAUCHE : AFFICHE OFFICIELLE VERTICALE DU CONCERT */}
                     <div className="w-24 sm:w-44 md:w-56 shrink-0 relative bg-black border-r border-white/10 overflow-hidden">
@@ -256,10 +328,16 @@ export const CustomerSpace: React.FC = () => {
                             className={`text-[8px] sm:text-[9px] font-agrandir-semibold tracking-wider uppercase px-2 sm:px-2.5 py-0.5 rounded-full border shrink-0 ${
                               ticket.status === 'valid'
                                 ? 'border-emerald-500/50 text-emerald-400 bg-emerald-950/30'
+                                : isCancelled
+                                ? 'border-rose-500/40 text-rose-300 bg-rose-950/30'
                                 : 'border-amber-500/50 text-amber-400 bg-amber-950/30'
                             }`}
                           >
-                            {ticket.status === 'valid' ? t('orders.validEntry') : t('orders.used')}
+                            {ticket.status === 'valid'
+                              ? t('orders.validEntry')
+                              : isCancelled
+                              ? (language === 'en' ? 'Transferred' : 'Transféré')
+                              : t('orders.used')}
                           </span>
                         </div>
 
@@ -306,52 +384,70 @@ export const CustomerSpace: React.FC = () => {
 
                     {/* DROITE : PETIT CARRÉ DÉTACHÉ POUR LE QR CODE */}
                     <div className="w-28 sm:w-44 md:w-56 shrink-0 bg-[#121212] p-2.5 sm:p-4 flex flex-col items-center justify-between text-center shadow-inner">
-                      <div className="w-full flex flex-col items-center">
-                        <div className="text-[8px] sm:text-[9px] font-agrandir-semibold tracking-wider text-[#d4af37] uppercase mb-1 sm:mb-1.5 flex items-center justify-center gap-1">
-                          <QrCode className="w-3 h-3 shrink-0" />
-                          <span className="hidden sm:inline">PASS QR</span>
-                        </div>
-
-                        <div
-                          className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 mx-auto bg-white rounded-xl sm:rounded-2xl p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative group cursor-pointer"
-                          onClick={() => setSelectedTicketForQr(ticket)}
-                        >
-                          {qrUrl && qrUrl.trim() !== '' ? (
-                            <img
-                              src={qrUrl}
-                              alt={`QR Code ${ticket.serialNumber}`}
-                              className="w-full h-full object-contain"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-black text-[9px] sm:text-xs">
-                              {t('orders.generating')}
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-black/60 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-agrandir-semibold">
-                            {t('orders.enlarge')}
+                      {isCancelled ? (
+                        <div className="w-full flex-1 flex flex-col items-center justify-center gap-2 text-center px-1">
+                          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-300">
+                            <Ban className="w-5 h-5" />
                           </div>
+                          <div className="text-[10px] font-agrandir-bold uppercase tracking-wider text-rose-300">
+                            {language === 'en' ? 'QR Revoked' : 'QR révoqué'}
+                          </div>
+                          <p className="text-[9px] text-neutral-400 leading-snug">
+                            {language === 'en'
+                              ? 'Transferred to new holder'
+                              : 'Transféré au nouveau porteur'}
+                          </p>
                         </div>
-                      </div>
+                      ) : (
+                        <>
+                          <div className="w-full flex flex-col items-center">
+                            <div className="text-[8px] sm:text-[9px] font-agrandir-semibold tracking-wider text-[#d4af37] uppercase mb-1 sm:mb-1.5 flex items-center justify-center gap-1">
+                              <QrCode className="w-3 h-3 shrink-0" />
+                              <span className="hidden sm:inline">PASS QR</span>
+                            </div>
 
-                      <div className="w-full space-y-1.5 mt-2 pt-2 border-t border-white/10">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedTicketForQr(ticket)}
-                          className="w-full py-1.5 sm:py-2 text-[8px] sm:text-[10px] font-agrandir-semibold tracking-wider uppercase bg-white text-black rounded-full hover:bg-neutral-200 transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm"
-                        >
-                          <QrCode className="w-3 h-3 shrink-0" />
-                          <span>{t('orders.viewQr')}</span>
-                        </button>
+                            <div
+                              className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 mx-auto bg-white rounded-xl sm:rounded-2xl p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative group cursor-pointer"
+                              onClick={() => setSelectedTicketForQr(ticket)}
+                            >
+                              {qrUrl && qrUrl.trim() !== '' ? (
+                                <img
+                                  src={qrUrl}
+                                  alt={`QR Code ${ticket.serialNumber}`}
+                                  className="w-full h-full object-contain"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-black text-[9px] sm:text-xs">
+                                  {t('orders.generating')}
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/60 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-agrandir-semibold">
+                                {t('orders.enlarge')}
+                              </div>
+                            </div>
+                          </div>
 
-                        <button
-                          type="button"
-                          onClick={handlePrintTicket}
-                          className="hidden sm:flex w-full py-1.5 text-[8px] sm:text-[9px] font-agrandir-regular tracking-wider uppercase border border-white/20 hover:border-white text-[#bbb] hover:text-white rounded-full transition-colors items-center justify-center gap-1.5 cursor-pointer bg-white/5"
-                        >
-                          <Printer className="w-3 h-3 shrink-0" />
-                          <span>{t('orders.printUpper')}</span>
-                        </button>
-                      </div>
+                          <div className="w-full space-y-1.5 mt-2 pt-2 border-t border-white/10">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedTicketForQr(ticket)}
+                              className="w-full py-1.5 sm:py-2 text-[8px] sm:text-[10px] font-agrandir-semibold tracking-wider uppercase bg-white text-black rounded-full hover:bg-neutral-200 transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm"
+                            >
+                              <QrCode className="w-3 h-3 shrink-0" />
+                              <span>{t('orders.viewQr')}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handlePrintTicket}
+                              className="hidden sm:flex w-full py-1.5 text-[8px] sm:text-[9px] font-agrandir-regular tracking-wider uppercase border border-white/20 hover:border-white text-[#bbb] hover:text-white rounded-full transition-colors items-center justify-center gap-1.5 cursor-pointer bg-white/5"
+                            >
+                              <Printer className="w-3 h-3 shrink-0" />
+                              <span>{t('orders.printUpper')}</span>
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                   </div>
@@ -377,26 +473,41 @@ export const CustomerSpace: React.FC = () => {
             </p>
           </div>
 
-          {allTickets.length === 0 ? (
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-neutral-400">
-              {t('orders.noTransferTickets')}
-            </div>
-          ) : transferSuccessToken ? (
+          {transferSuccessToken ? (
             <div className="p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-center space-y-3">
               <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
               <div className="space-y-1">
                 <div className="font-agrandir-extrabold text-white uppercase text-base">{t('orders.transferValidated')}</div>
                 <div className="text-xs text-neutral-300">
-                  {t('orders.transferSuccessDesc')} <strong>{recipientName}</strong>.
+                  {t('orders.transferSuccessDesc')} <strong>{transferredToSummary?.name || recipientName}</strong>{' '}
+                  ({transferredToSummary?.email || recipientContact}).
                 </div>
-                <div className="p-2.5 rounded-xl bg-black/60 border border-emerald-500/30 text-xs font-mono text-[#d4af37] mt-2">
-                  {t('orders.transferToken')} {transferSuccessToken}
+                <p className="text-[11px] text-neutral-400">
+                  {language === 'en'
+                    ? 'Your old QR code has been permanently revoked and a brand-new ticket is now available in the recipient’s space.'
+                    : 'Votre ancien QR code a été révoqué définitivement et un nouveau billet valide est disponible dans l’espace du destinataire.'}
+                </p>
+                <div className="p-2.5 rounded-xl bg-black/60 border border-emerald-500/30 text-xs font-mono text-[#d4af37] mt-2 flex items-center justify-between gap-2">
+                  <span className="truncate">{t('orders.transferToken')} {transferSuccessToken}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(transferSuccessToken);
+                      setCopiedTransferToken(true);
+                      setTimeout(() => setCopiedTransferToken(false), 2000);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] inline-flex items-center gap-1 cursor-pointer shrink-0"
+                  >
+                    {copiedTransferToken ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedTransferToken ? (language === 'en' ? 'Copied' : 'Copié') : (language === 'en' ? 'Copy' : 'Copier')}</span>
+                  </button>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   setTransferSuccessToken(null);
+                  setTransferredToSummary(null);
                   setRecipientName('');
                   setRecipientContact('');
                 }}
@@ -404,6 +515,10 @@ export const CustomerSpace: React.FC = () => {
               >
                 {t('orders.anotherTransfer')}
               </button>
+            </div>
+          ) : transferableTickets.length === 0 ? (
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-neutral-400">
+              {t('orders.noTransferTickets')}
             </div>
           ) : (
             <form onSubmit={handleConfirmTransfer} className="space-y-4">
@@ -416,9 +531,10 @@ export const CustomerSpace: React.FC = () => {
                   onChange={(e) => setTransferTicketId(e.target.value)}
                   className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-[#d4af37]"
                   required
+                  disabled={isTransferring}
                 >
                   <option value="">{t('orders.chooseValidTicket')}</option>
-                  {allTickets.map((tkt) => (
+                  {transferableTickets.map((tkt) => (
                     <option key={tkt.id} value={tkt.id}>
                       {tkt.eventTitle} — {tkt.categoryName} ({tkt.serialNumber})
                     </option>
@@ -437,20 +553,22 @@ export const CustomerSpace: React.FC = () => {
                   placeholder={t('orders.recipientName')}
                   className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-[#d4af37]"
                   required
+                  disabled={isTransferring}
                 />
               </div>
 
               <div>
                 <label className="text-[10px] uppercase font-agrandir-semibold text-[#888] block mb-1">
-                  {t('orders.recipientContactLabel')}
+                  {language === 'en' ? 'Recipient email address' : 'Adresse e-mail du destinataire'}
                 </label>
                 <input
-                  type="text"
+                  type="email"
                   value={recipientContact}
                   onChange={(e) => setRecipientContact(e.target.value)}
-                  placeholder={t('orders.recipientContact')}
+                  placeholder="ami@exemple.com"
                   className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-[#d4af37]"
                   required
+                  disabled={isTransferring}
                 />
               </div>
 
@@ -463,9 +581,17 @@ export const CustomerSpace: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full py-3.5 rounded-full bg-white text-black font-agrandir-extrabold text-xs uppercase tracking-wider hover:bg-neutral-200 transition-colors cursor-pointer shadow-lg"
+                disabled={isTransferring}
+                className="w-full py-3.5 rounded-full bg-white text-black font-agrandir-extrabold text-xs uppercase tracking-wider hover:bg-neutral-200 transition-colors cursor-pointer shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {t('orders.confirmTransfer')}
+                {isTransferring ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{language === 'en' ? 'Transferring...' : 'Transfert en cours...'}</span>
+                  </>
+                ) : (
+                  <span>{t('orders.confirmTransfer')}</span>
+                )}
               </button>
             </form>
           )}

@@ -683,69 +683,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       </section>
 
       {/* =================================================================== */}
-      {/* 2. PURE EDITORIAL IMAGES — NO NESTED BOX SOUP                       */}
-      {/* =================================================================== */}
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-14 sm:pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          {/* Visual 1: Arrival & Fast-track */}
-          <figure className="relative rounded-2xl sm:rounded-3xl overflow-hidden aspect-[4/3] sm:aspect-[16/10] bg-[#0D0D0D]">
-            {!failedImages['crowd'] ? (
-              <img
-                src={concertsCrowdImg}
-                alt={c.img1Title}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-                onError={() => markImageFailed('crowd')}
-                className="w-full h-full object-cover object-center"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[#1C160E] to-[#070707]" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/45 to-black/10" />
-            <figcaption className="absolute inset-x-0 bottom-0 p-5 sm:p-7 text-left space-y-1.5">
-              <div className="text-[10px] font-mono tracking-[0.2em] text-[#C8B282] uppercase">
-                {c.img1Kicker}
-              </div>
-              <h2 className="text-lg sm:text-2xl font-agrandir-extrabold text-white leading-tight">
-                {c.img1Title}
-              </h2>
-              <p className="text-xs sm:text-sm text-neutral-200 font-light leading-relaxed max-w-md">
-                {c.img1Desc}
-              </p>
-            </figcaption>
-          </figure>
-
-          {/* Visual 2: Front-row VIP, Drink & Meet & Greet */}
-          <figure className="relative rounded-2xl sm:rounded-3xl overflow-hidden aspect-[4/3] sm:aspect-[16/10] bg-[#0D0D0D]">
-            {!failedImages['vip'] ? (
-              <img
-                src={vipMezzanineImg}
-                alt={c.img2Title}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-                onError={() => markImageFailed('vip')}
-                className="w-full h-full object-cover object-center"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[#1C1810] to-[#070707]" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/45 to-black/10" />
-            <figcaption className="absolute inset-x-0 bottom-0 p-5 sm:p-7 text-left space-y-1.5">
-              <div className="text-[10px] font-mono tracking-[0.2em] text-[#C8B282] uppercase">
-                {c.img2Kicker}
-              </div>
-              <h2 className="text-lg sm:text-2xl font-agrandir-extrabold text-white leading-tight">
-                {c.img2Title}
-              </h2>
-              <p className="text-xs sm:text-sm text-neutral-200 font-light leading-relaxed max-w-md">
-                {c.img2Desc}
-              </p>
-            </figcaption>
-          </figure>
-        </div>
-      </section>
-
-      {/* =================================================================== */}
       {/* 3. ALL 8 OFFICIAL PERKS — CLEAN OPEN EDITORIAL LIST (ZERO BOXES)    */}
       {/* =================================================================== */}
       <section id="section-benefits" className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8 pb-16 sm:pb-24">

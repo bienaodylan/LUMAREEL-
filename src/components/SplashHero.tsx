@@ -130,54 +130,17 @@ export const SplashHero: React.FC = () => {
         </nav>
       </div>
 
-      {/* 4. Pied de page (Footer) */}
-      <div className="relative z-20 w-full flex flex-col items-center">
-        {/* Bandeau d'information centré avec puce lumineuse */}
-        <div className="mb-4 sm:mb-5 px-4 text-center">
+      {/* 4. Bandeau prochain concert */}
+      <div className="relative z-20 w-full flex flex-col items-center pb-8">
+        <div className="px-4 text-center">
           <button
             onClick={() => handleNavigate('home')}
             className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] font-agrandir-regular tracking-[0.22em] text-[#888] hover:text-white uppercase transition-colors cursor-pointer"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] shadow-[0_0_8px_#d4af37] animate-pulse" />
-            <span>PROCHAIN CONCERT · JEUNE LION · 19 DÉC. 2026 · J-53</span>
+            <span>PROCHAIN CONCERT · JEUNE LION · 19 DÉC. 2026</span>
           </button>
         </div>
-
-        {/* Bottom Bar collée en bas de l'écran */}
-        <footer className="w-full px-6 sm:px-12 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-[10px] sm:text-[11px] font-agrandir-regular tracking-[0.22em] text-[#444] uppercase border-t border-[#121212]">
-          <div className="text-left">
-            <span>© 2026 ARÉEL GROUPE / LUMAREEL CO.</span>
-          </div>
-
-          <div className="flex items-center gap-4 sm:gap-6 text-right">
-            <a
-              href="https://instagram.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#888] transition-colors"
-            >
-              INSTAGRAM
-            </a>
-            <span>·</span>
-            <a
-              href="https://tiktok.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#888] transition-colors"
-            >
-              TIKTOK
-            </a>
-            <span>·</span>
-            <a
-              href="https://snapchat.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-[#888] transition-colors"
-            >
-              SNAPCHAT
-            </a>
-          </div>
-        </footer>
       </div>
 
       {/* MODAL : PARTENAIRES */}
@@ -235,7 +198,7 @@ export const SplashHero: React.FC = () => {
                 <span className="text-[#d4af37] font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
                   TRANSACTIONS SÉCURISÉES
                 </span>
-                <p className="text-white font-agrandir-semibold">GeniusPay CI &amp; Wave</p>
+                <p className="text-white font-agrandir-semibold">PayMeTrust &amp; Mobile Money</p>
                 <p className="text-[#777] text-[11px]">Paiement instantané mobile &amp; cartes</p>
               </div>
             </div>

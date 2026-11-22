@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { FloatingAppNavbar } from './components/FloatingAppNavbar';
@@ -9,7 +9,6 @@ import { ArchiveView } from './components/ArchiveView';
 import { NewsView } from './components/NewsView';
 import { OrganizersView } from './components/OrganizersView';
 import { CustomerSpace } from './components/CustomerSpace';
-import { LumareelWalletView } from './components/LumareelWalletView';
 import { ProfileView } from './components/ProfileView';
 import { ScannerView } from './components/ScannerView';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -24,8 +23,72 @@ import { usePWAInstall } from './hooks/usePWAInstall';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const MainApp: React.FC = () => {
-  const { currentPage, toast } = useApp();
+  const { currentPage, setCurrentPage, toast, showToast, refreshCustomerOrders, refreshEvents, language } = useApp();
   const { isStandalone } = usePWAInstall();
+
+  // Vérification automatique au retour de la page de paiement PayMeTrust (?payment_status=...&ref=PMT-...)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment_status');
+    const ref = params.get('ref');
+    if (!paymentStatus || !ref || !ref.startsWith('PMT-')) return;
+
+    const cleanUrl = () => {
+      try {
+        window.history.replaceState({}, '', window.location.pathname);
+      } catch {
+        // ignore
+      }
+    };
+
+    if (paymentStatus === 'cancelled') {
+      showToast(
+        language === 'en'
+          ? 'PayMeTrust payment was cancelled.'
+          : 'Le paiement PayMeTrust a été annulé.',
+        'info'
+      );
+      cleanUrl();
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/payments/paymetrust/verify/${encodeURIComponent(ref)}`);
+        const data = await res.json();
+        if (cancelled) return;
+
+        if (res.ok && data?.success && data?.transaction?.status === 'SUCCESS') {
+          await Promise.all([refreshCustomerOrders(), refreshEvents()]);
+          const isCard = ref.startsWith('PMT-CARD-');
+          showToast(
+            isCard
+              ? (language === 'en' ? 'Black Card payment confirmed! Your card is ready.' : 'Paiement Black Card confirmé ! Votre carte est prête.')
+              : (language === 'en' ? 'Payment confirmed! Your tickets are available.' : 'Paiement confirmé ! Vos billets sont disponibles.'),
+            'success'
+          );
+          setCurrentPage(isCard ? 'member_card' : 'client_space');
+        } else {
+          showToast(
+            language === 'en'
+              ? 'Payment is being confirmed by PayMeTrust…'
+              : 'Paiement en cours de confirmation par PayMeTrust…',
+            'info'
+          );
+        }
+      } catch {
+        // silently ignore network error on return check
+      } finally {
+        cleanUrl();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
 

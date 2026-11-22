@@ -135,8 +135,19 @@ export const CheckoutModal: React.FC = () => {
     setIsCountryDrawerOpen(false);
   };
 
-  // Étape 4 : Simulation passerelle & Résultat
-  const [isSimulatingGateway, setIsSimulatingGateway] = useState<boolean>(false);
+  // Étape 4 : Passerelle PayMeTrust & Résultat
+  const [paymetrustTx, setPaymetrustTx] = useState<{
+    id: string;
+    reference: string;
+    status: string;
+    amount: number;
+    currency: string;
+    channel: string;
+    paymentUrl?: string;
+    mode: 'live' | 'awaiting_keys';
+    environment: string;
+  } | null>(null);
+  const [pendingOrderRef, setPendingOrderRef] = useState<string>('');
   const [gatewayProcessing, setGatewayProcessing] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
@@ -153,6 +164,8 @@ export const CheckoutModal: React.FC = () => {
       setQuantities(initial);
       setStep(1);
       setLockSeconds(20 * 60);
+      setPaymetrustTx(null);
+      setPendingOrderRef('');
     }
   }, [checkoutEvent?.id]);
 
@@ -252,7 +265,7 @@ export const CheckoutModal: React.FC = () => {
     setStep(3);
   };
 
-  const handleTriggerPayment = () => {
+  const handleTriggerPayment = async () => {
     if (paymentMethod !== 'card') {
       const pPhone = paymentPhoneNumber.trim();
       if (!pPhone) {
@@ -263,148 +276,140 @@ export const CheckoutModal: React.FC = () => {
         showToast(t('checkout.errPhoneInvalid'), 'error');
         return;
       }
-    } else {
-      const cleanCard = cardNumber.replace(/\s+/g, '');
-      if (!cleanCard || cleanCard.length < 15) {
-        showToast(t('checkout.errCardNum'), 'error');
-        return;
-      }
-      if (!cardExp.trim() || !cardExp.includes('/')) {
-        showToast(t('checkout.errCardExp'), 'error');
-        return;
-      }
-      if (!cardCvv.trim() || cardCvv.length < 3) {
-        showToast(t('checkout.errCardCvv'), 'error');
-        return;
-      }
     }
 
-    // Étape 4 : simulation redirection vers passerelle tierce (Wave / Mobile Money)
-    setIsSimulatingGateway(true);
-    setStep(4);
-  };
+    const selectedItems = categories
+      .filter((c) => (quantities[c.id] || 0) > 0)
+      .map((c) => ({ categoryId: c.id, quantity: quantities[c.id] }));
 
-  const handleApproveGatewaySimulation = async () => {
-    setGatewayProcessing(true);
+    if (selectedItems.length === 0) {
+      showToast(language === 'en' ? 'Please select at least 1 ticket.' : 'Veuillez sélectionner au moins 1 billet.', 'error');
+      return;
+    }
+
+    const customerFullPhone = paymentPhoneNumber
+      ? `${paymentDialCode} ${paymentPhoneNumber}`.trim()
+      : (customerPhoneNumber ? `${customerDialCode} ${customerPhoneNumber}`.trim() : '');
+
     setIsSubmitting(true);
-
     try {
-      let order: Order | null = null;
-      let tickets: Ticket[] = [];
-      const customerFullPhone = paymentPhoneNumber 
-        ? `${paymentDialCode} ${paymentPhoneNumber}`.trim()
-        : (customerPhoneNumber ? `${customerDialCode} ${customerPhoneNumber}`.trim() : '');
-
-      // Essai de confirmation API côté serveur
-      try {
-        const primaryCat = categories.find((c) => (quantities[c.id] || 0) > 0) || categories[0];
-        const res = await fetch('/api/orders/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            customerId: currentUser?.id || 'guest',
-            customerName,
-            customerEmail,
-            customerPhone: customerFullPhone,
-            eventId: checkoutEvent.id,
-            categoryId: primaryCat.id,
-            quantity: totalQuantity,
-          }),
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success && data.order) {
-            order = data.order;
-            const payRes = await fetch(`/api/orders/${data.order.id}/pay-sandbox`, { method: 'POST' });
-            if (payRes.ok) {
-              const payData = await payRes.json();
-              if (payData.success && payData.tickets) {
-                tickets = payData.tickets;
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Backend unavailable, generating client fallback order', err);
-      }
-
-      // Si le backend direct n'est pas actif (ex: déploiement statique), émettre les billets certifiés client-side
-      if (!tickets || tickets.length === 0 || !order) {
-        const orderId = `ord_${Date.now()}`;
-        const orderRef = `LMR-${Math.floor(1000 + Math.random() * 9000)}`;
-        const generatedTickets: Ticket[] = [];
-
-        let tIndex = 1;
-        for (const cat of categories) {
-          const count = quantities[cat.id] || 0;
-          for (let i = 0; i < count; i++) {
-            generatedTickets.push({
-              id: `tkt_${Date.now()}_${tIndex}`,
-              orderId,
-              orderRef,
-              eventId: checkoutEvent.id,
-              eventTitle: checkoutEvent.title,
-              eventDate: checkoutEvent.date,
-              eventTime: checkoutEvent.time,
-              eventVenue: checkoutEvent.venue,
-              categoryId: cat.id,
-              categoryName: cat.name,
-              serialNumber: `LR-2026-${checkoutEvent.artist.substring(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
-              token: `LUMAREEL:TKT:LR-2026-${Math.random().toString(36).substring(2, 9).toUpperCase()}`,
-              holderName: `${customerName}${totalQuantity > 1 ? ` (${tIndex}/${totalQuantity})` : ''}`,
-              holderEmail: customerEmail,
-              status: 'valid',
-              issuedAt: new Date().toISOString(),
-            });
-            tIndex++;
-          }
-        }
-
-        tickets = generatedTickets;
-
-        const primaryCat = categories.find((c) => (quantities[c.id] || 0) > 0) || categories[0];
-        order = {
-          id: orderId,
-          reference: orderRef,
+      // 1. Création de la commande en attente côté serveur (tarifs vérifiés serveur)
+      const orderRes = await fetch('/api/orders/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           customerId: currentUser?.id || 'guest',
-          customerName,
-          customerEmail,
+          customerName: customerName.trim(),
+          customerEmail: customerEmail.trim(),
           customerPhone: customerFullPhone,
           eventId: checkoutEvent.id,
-          eventTitle: checkoutEvent.title,
-          eventDate: checkoutEvent.date,
-          eventVenue: checkoutEvent.venue,
-          categoryId: primaryCat.id,
-          categoryName: primaryCat.name,
+          categoryId: selectedItems[0].categoryId,
           quantity: totalQuantity,
-          unitPrice: primaryCat.price,
-          totalAmount: finalTotalAmount,
-          currency: 'FCFA',
-          paymentStatus: 'completed',
+          items: selectedItems,
           paymentProvider: paymentMethod,
-          paymentRef: `${paymentMethod.toUpperCase()}_${Date.now()}`,
-          createdAt: new Date().toISOString(),
-          paidAt: new Date().toISOString(),
-          tickets: generatedTickets,
-        };
+        }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok || !orderData?.success || !orderData?.order) {
+        throw new Error(orderData?.error || (language === 'en' ? 'Unable to create order.' : 'Impossible de créer la commande.'));
       }
 
-      // Finalisation et enregistrement
-      if (order) {
-        setCreatedOrder(order);
-        setIssuedTickets(tickets);
-        addLocalOrder(order);
-        setIsSimulatingGateway(false);
-        showToast(language === 'en' ? 'Payment confirmed! Tickets successfully issued.' : 'Paiement confirmé avec succès ! Vos billets certifiés sont émis.', 'success');
-        refreshEvents();
-        refreshCustomerOrders();
+      const pendingOrder: Order = orderData.order;
+      setPendingOrderRef(pendingOrder.reference);
+
+      // 2. Initialisation de la transaction sur l'agrégateur PayMeTrust
+      const initRes = await fetch('/api/payments/paymetrust/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'ticket_order',
+          orderId: pendingOrder.id,
+          channel: paymentMethod,
+          customerName: customerName.trim(),
+          customerEmail: customerEmail.trim(),
+          customerPhone: customerFullPhone,
+        }),
+      });
+      const initData = await initRes.json();
+      if (!initRes.ok || !initData?.success || !initData?.transaction) {
+        throw new Error(initData?.error || (language === 'en' ? 'Unable to start PayMeTrust payment.' : 'Impossible de démarrer le paiement PayMeTrust.'));
       }
+
+      setPaymetrustTx(initData.transaction);
+      setStep(4);
     } catch (err: any) {
-      showToast(err.message || t('checkout.errUnexpected'), 'error');
+      showToast(err?.message || t('checkout.errUnexpected'), 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const applyConfirmedOrder = (order: Order, tickets: Ticket[]) => {
+    setCreatedOrder(order);
+    setIssuedTickets(tickets);
+    addLocalOrder(order);
+    setPaymetrustTx(null);
+    showToast(
+      language === 'en'
+        ? 'Payment confirmed! Certified tickets issued.'
+        : 'Paiement confirmé avec succès ! Vos billets certifiés sont émis.',
+      'success'
+    );
+    refreshEvents();
+    refreshCustomerOrders();
+  };
+
+  const handleConfirmPayMeTrustPreview = async () => {
+    if (!paymetrustTx) return;
+    setGatewayProcessing(true);
+    try {
+      const res = await fetch('/api/payments/paymetrust/confirm-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference: paymetrustTx.reference }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success || !data?.fulfillment?.order) {
+        throw new Error(data?.error || (language === 'en' ? 'Unable to validate payment.' : 'Impossible de valider le paiement.'));
+      }
+      applyConfirmedOrder(data.fulfillment.order, data.fulfillment.tickets || data.fulfillment.order.tickets || []);
+    } catch (err: any) {
+      showToast(err?.message || t('checkout.errUnexpected'), 'error');
     } finally {
       setGatewayProcessing(false);
-      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyPayMeTrustStatus = async () => {
+    if (!paymetrustTx) return;
+    setGatewayProcessing(true);
+    try {
+      const res = await fetch(`/api/payments/paymetrust/verify/${encodeURIComponent(paymetrustTx.reference)}`);
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        throw new Error(data?.error || (language === 'en' ? 'Verification failed.' : 'Vérification impossible.'));
+      }
+      if (data.transaction?.status === 'SUCCESS' && data.fulfillment?.order) {
+        applyConfirmedOrder(data.fulfillment.order, data.fulfillment.tickets || data.fulfillment.order.tickets || []);
+      } else if (data.transaction?.status === 'FAILED' || data.transaction?.status === 'EXPIRED' || data.transaction?.status === 'CANCELLED') {
+        showToast(
+          language === 'en'
+            ? 'Payment was declined or expired. Please try again.'
+            : 'Le paiement a été refusé ou a expiré. Veuillez réessayer.',
+          'error'
+        );
+      } else {
+        showToast(
+          language === 'en'
+            ? 'Payment still pending on PayMeTrust. Confirm on your phone then retry.'
+            : 'Paiement en attente sur PayMeTrust. Validez sur votre téléphone puis réessayez.',
+          'info'
+        );
+      }
+    } catch (err: any) {
+      showToast(err?.message || t('checkout.errUnexpected'), 'error');
+    } finally {
+      setGatewayProcessing(false);
     }
   };
 
@@ -413,7 +418,8 @@ export const CheckoutModal: React.FC = () => {
     setCreatedOrder(null);
     setIssuedTickets([]);
     setStep(1);
-    setIsSimulatingGateway(false);
+    setPaymetrustTx(null);
+    setPendingOrderRef('');
   };
 
   const handleStepBack = () => {
@@ -424,8 +430,8 @@ export const CheckoutModal: React.FC = () => {
     } else if (step === 3) {
       setStep(2);
     } else if (step === 4) {
-      if (isSimulatingGateway) {
-        setIsSimulatingGateway(false);
+      if (paymetrustTx && !createdOrder) {
+        setPaymetrustTx(null);
         setStep(3);
       } else {
         handleClose();
@@ -1028,46 +1034,17 @@ export const CheckoutModal: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-agrandir-bold text-neutral-300 mb-1">
-                      {language === 'en' ? 'Card number' : 'Numéro de carte bancaire'} <span className="text-[#d4af37]">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      placeholder="4000 1234 5678 9010"
-                      className="w-full bg-[#141414] border border-white/20 rounded-2xl px-4 py-3 text-sm text-white font-mono placeholder-neutral-600 focus:outline-none focus:border-white"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-agrandir-bold text-neutral-300 mb-1">
-                        {language === 'en' ? 'Expiry (MM/YY)' : 'Expiration (MM/AA)'} <span className="text-[#d4af37]">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={cardExp}
-                        onChange={(e) => setCardExp(e.target.value)}
-                        placeholder={language === 'en' ? 'MM/YY' : 'MM/AA'}
-                        maxLength={5}
-                        className="w-full bg-[#141414] border border-white/20 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-neutral-600 focus:outline-none focus:border-white"
-                      />
+                <div className="p-4 rounded-2xl bg-[#141414] border border-white/15 flex items-start gap-3 text-left">
+                  <Lock className="w-5 h-5 text-[#d4af37] shrink-0 mt-0.5" />
+                  <div className="space-y-1 text-xs">
+                    <div className="font-agrandir-bold text-white">
+                      {language === 'en' ? 'Visa / Mastercard via PayMeTrust' : 'Visa / Mastercard sécurisé via PayMeTrust'}
                     </div>
-                    <div>
-                      <label className="block text-xs font-agrandir-bold text-neutral-300 mb-1">
-                        CVV <span className="text-[#d4af37]">*</span>
-                      </label>
-                      <input
-                        type="password"
-                        value={cardCvv}
-                        onChange={(e) => setCardCvv(e.target.value)}
-                        maxLength={4}
-                        placeholder="•••"
-                        className="w-full bg-[#141414] border border-white/20 rounded-xl px-4 py-2.5 text-xs text-white font-mono placeholder-neutral-600 focus:outline-none focus:border-white"
-                      />
-                    </div>
+                    <p className="text-neutral-400 leading-relaxed">
+                      {language === 'en'
+                        ? 'Your card details are entered directly on PayMeTrust’s encrypted checkout page. LUMARÉEL never stores your card number.'
+                        : 'Vos informations bancaires sont saisies directement sur la page chiffrée PayMeTrust. LUMARÉEL ne stocke jamais votre numéro de carte.'}
+                    </p>
                   </div>
                 </div>
               )}
@@ -1083,90 +1060,142 @@ export const CheckoutModal: React.FC = () => {
                   <span className="font-agrandir-bold text-white">{t('checkout.total')}</span>
                   <span className="font-mono font-agrandir-extrabold text-[#d4af37] text-base">{finalTotalAmount.toLocaleString('fr-FR')} F CFA</span>
                 </div>
+                <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 pt-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span>{language === 'en' ? 'Secured by PayMeTrust' : 'Paiement sécurisé par PayMeTrust'}</span>
+                </div>
               </div>
 
               {/* BOUTON D'ACTION PRINCIPAL */}
               <button
                 type="button"
                 onClick={handleTriggerPayment}
-                className="w-full py-4 rounded-2xl bg-[#d4af37] hover:bg-[#c49f27] active:scale-[0.99] text-black font-agrandir-extrabold text-base transition-all cursor-pointer shadow-xl shadow-[#d4af37]/20 flex items-center justify-center gap-2"
+                disabled={isSubmitting}
+                className="w-full py-4 rounded-2xl bg-[#d4af37] hover:bg-[#c49f27] active:scale-[0.99] text-black font-agrandir-extrabold text-base transition-all cursor-pointer shadow-xl shadow-[#d4af37]/20 flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <span>
-                  {t('checkout.payBtn')} {paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : paymentMethod === 'moov_money' ? 'Moov' : (language === 'en' ? 'Card' : 'Carte')}
-                </span>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{language === 'en' ? 'Connecting to PayMeTrust...' : 'Connexion à PayMeTrust...'}</span>
+                  </>
+                ) : (
+                  <span>
+                    {t('checkout.payBtn')} {paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : paymentMethod === 'moov_money' ? 'Moov' : (language === 'en' ? 'Card' : 'Carte')}
+                  </span>
+                )}
               </button>
             </div>
           )}
 
           {/* ===================================================================== */}
-          {/* ÉTAPE 4 : CONFIRMATION DU PAIEMENT */}
+          {/* ÉTAPE 4 : CONFIRMATION PAYMETRUST & BILLETS ÉMIS */}
           {/* ===================================================================== */}
           {step === 4 && (
             <div>
-              {/* INTERFACE DE CONFIRMATION DU PAIEMENT (WAVE / MOBILE MONEY) */}
-              {isSimulatingGateway && (
+              {/* CAS A : PASSERELLE PAYMETRUST ACTIVE */}
+              {paymetrustTx && !createdOrder && (
                 <div className="py-4 space-y-6 text-center animate-fadeIn">
-                  <div className="p-6 rounded-3xl bg-[#0f172a] border border-[#1DC3F2]/40 text-white max-w-md mx-auto shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#1DC3F2] via-[#FF7900] to-[#FFCC00]" />
+                  <div className="p-6 rounded-3xl bg-[#0e0e0e] border border-[#d4af37]/30 text-white max-w-md mx-auto shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#d4af37] via-white/80 to-[#d4af37]" />
 
-                    <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
-                      {paymentMethod === 'wave' ? '🌊' : paymentMethod === 'orange_money' ? '🟠' : paymentMethod === 'mtn_momo' ? '🟡' : '💳'}
+                    <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center mx-auto mb-4 text-2xl">
+                      {paymentMethod === 'wave' ? '🌊' : paymentMethod === 'orange_money' ? '🟠' : paymentMethod === 'mtn_momo' ? '🟡' : paymentMethod === 'djamo' ? '🟣' : paymentMethod === 'moov_money' ? '🔵' : '💳'}
                     </div>
 
-                    <div className="text-[10px] uppercase tracking-widest text-[#1DC3F2] font-agrandir-bold mb-1">
-                      {t('checkout.securePaymentTitle')} · {paymentMethod.toUpperCase()}
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-[#d4af37] font-mono font-bold mb-1">
+                      PAYMETRUST · {paymetrustTx.channel.replace('_', ' ').toUpperCase()}
                     </div>
 
                     <h3 className="font-agrandir-extrabold text-xl uppercase tracking-tight text-white mb-2">
-                      {t('checkout.confirmPaymentHeading')}
+                      {paymetrustTx.mode === 'live'
+                        ? (language === 'en' ? 'Finalize on PayMeTrust' : 'Finalisez sur PayMeTrust')
+                        : (language === 'en' ? 'PayMeTrust Checkout Ready' : 'Paiement PayMeTrust prêt')}
                     </h3>
 
-                    <div className="bg-black/50 p-4 rounded-2xl border border-white/10 my-4 text-xs space-y-2 text-left">
+                    <div className="bg-black/60 p-4 rounded-2xl border border-white/10 my-4 text-xs space-y-2 text-left">
                       <div className="flex justify-between">
                         <span className="text-[#888]">{t('checkout.merchant')}</span>
-                        <strong className="text-white">{t('checkout.merchantName')}</strong>
+                        <strong className="text-white">LUMARÉEL CO.</strong>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#888]">{t('checkout.amountToConfirm')}</span>
-                        <strong className="text-[#d4af37] font-mono text-sm">{finalTotalAmount.toLocaleString('fr-FR')} FCFA</strong>
+                        <strong className="text-[#d4af37] font-mono text-sm">{paymetrustTx.amount.toLocaleString('fr-FR')} FCFA</strong>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#888]">{t('checkout.orderRef')}</span>
-                        <span className="text-white font-mono">LMR-{Math.floor(1000 + Math.random() * 9000)}</span>
+                        <span className="text-white font-mono">{pendingOrderRef || paymetrustTx.reference}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#888]">{t('checkout.debitedAccount')}</span>
-                        <span className="text-white font-mono">{paymentDialCode} {paymentPhoneNumber}</span>
+                        <span className="text-[#888]">Réf. PayMeTrust</span>
+                        <span className="text-white font-mono text-[11px]">{paymetrustTx.reference}</span>
                       </div>
+                      {paymentMethod !== 'card' && paymentPhoneNumber && (
+                        <div className="flex justify-between">
+                          <span className="text-[#888]">{t('checkout.debitedAccount')}</span>
+                          <span className="text-white font-mono">{paymentDialCode} {paymentPhoneNumber}</span>
+                        </div>
+                      )}
                     </div>
 
-                    <p className="text-xs text-[#aaa] leading-relaxed mb-6">
-                      {t('checkout.simulationInstruction')}
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={handleApproveGatewaySimulation}
-                      disabled={gatewayProcessing}
-                      className="w-full py-4 rounded-full bg-[#1DC3F2] hover:bg-[#1bb2dc] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
-                    >
-                      {gatewayProcessing ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>{t('checkout.validatingDebit')}</span>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-4 h-4" />
-                          <span>{t('checkout.simulateApproval')}</span>
-                        </>
-                      )}
-                    </button>
+                    {paymetrustTx.mode === 'live' && paymetrustTx.paymentUrl ? (
+                      <div className="space-y-3">
+                        <p className="text-xs text-neutral-300 leading-relaxed">
+                          {language === 'en'
+                            ? 'Continue to the encrypted PayMeTrust page to approve your payment. Your tickets will be issued immediately upon confirmation.'
+                            : 'Continuez sur la page chiffrée PayMeTrust pour valider votre règlement. Vos billets seront émis dès confirmation.'}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            window.location.href = paymetrustTx.paymentUrl!;
+                          }}
+                          className="w-full py-4 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+                        >
+                          <Lock className="w-4 h-4" />
+                          <span>{language === 'en' ? 'Open PayMeTrust Payment' : 'Payer sur PayMeTrust'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleVerifyPayMeTrustStatus}
+                          disabled={gatewayProcessing}
+                          className="w-full py-3 rounded-full border border-[#d4af37]/50 hover:border-[#d4af37] text-[#d4af37] font-agrandir-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                        >
+                          {gatewayProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                          <span>{language === 'en' ? 'I already paid — Check status' : 'J’ai déjà payé — Vérifier'}</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <p className="text-xs text-neutral-400 leading-relaxed">
+                          {language === 'en'
+                            ? 'PayMeTrust API keys are not configured yet on this environment. You can validate this order in preview mode to test ticket issuance.'
+                            : 'Les clés API PayMeTrust ne sont pas encore renseignées sur cet environnement. Vous pouvez valider cette commande en mode prévisualisation pour tester l’émission réelle des billets.'}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleConfirmPayMeTrustPreview}
+                          disabled={gatewayProcessing}
+                          className="w-full py-4 rounded-full bg-[#d4af37] hover:bg-[#c49f27] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
+                        >
+                          {gatewayProcessing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>{t('checkout.validatingDebit')}</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>{language === 'en' ? 'Confirm payment & issue tickets' : 'Valider le paiement et émettre les billets'}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
 
                     <button
                       type="button"
                       onClick={() => {
-                        setIsSimulatingGateway(false);
+                        setPaymetrustTx(null);
                         setStep(3);
                       }}
                       className="w-full mt-3 py-3 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-semibold uppercase tracking-wider text-[#aaa] hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-2 active:scale-95"
@@ -1179,7 +1208,7 @@ export const CheckoutModal: React.FC = () => {
               )}
 
               {/* CAS B : PAIEMENT CONFIRMÉ & BILLETS ÉMIS AVEC QR CODES */}
-              {!isSimulatingGateway && createdOrder && (
+              {!paymetrustTx && createdOrder && (
                 <div className="text-center py-4 space-y-5 animate-fadeIn">
                   <div className="w-14 h-14 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/40 flex items-center justify-center mx-auto text-[#d4af37]">
                     <CheckCircle2 className="w-8 h-8" />
