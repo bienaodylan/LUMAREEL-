@@ -14,15 +14,16 @@ import {
   Lock,
   Loader2,
   Sparkles,
-  ExternalLink
+  ExternalLink,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { PageBackBar } from './PageBackBar';
 
 export const CardVerificationView: React.FC<{ token?: string; onBack?: () => void }> = ({
   token: propToken,
   onBack,
 }) => {
-  const { setCurrentPage, language, t } = useApp();
+  const { goBack, language, t } = useApp();
   const [tokenInput, setTokenInput] = useState(propToken || '');
   const [result, setResult] = useState<PublicCardVerificationResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -71,21 +72,12 @@ export const CardVerificationView: React.FC<{ token?: string; onBack?: () => voi
     <div className="min-h-screen bg-black text-[#EFEFEF] font-agrandir-regular pb-32 pt-8 sm:pt-14 px-4 sm:px-8">
       <div className="max-w-2xl mx-auto space-y-8">
         
-        {/* Navigation Return */}
-        <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={() => onBack ? onBack() : setCurrentPage('home')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-agrandir-bold tracking-wider text-white transition-all cursor-pointer group"
-          >
-            <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-1 transition-transform" />
-            <span>{t('verify.backToSite')}</span>
-          </button>
+        {/* Barre uniforme Retour à la page précédente + Croix */}
+        <PageBackBar onBack={onBack || goBack} onClose={onBack || goBack} />
 
-          <div className="flex items-center gap-2 text-xs font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
-            <Lock className="w-3.5 h-3.5" />
-            <span>{t('verify.officialRegistry')}</span>
-          </div>
+        <div className="flex items-center justify-center gap-2 text-xs font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
+          <Lock className="w-3.5 h-3.5" />
+          <span>{t('verify.officialRegistry')}</span>
         </div>
 
         {/* Header */}

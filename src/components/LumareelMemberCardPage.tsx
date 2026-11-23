@@ -3,25 +3,41 @@ import { useApp } from '../context/AppContext';
 import { LumareelWalletView } from './LumareelWalletView';
 import { LumareelCardLandingPage } from './LumareelCardLandingPage';
 import { supabase } from '../lib/supabaseClient';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { MembershipCard } from '../types';
+import { loadStoredMemberCard, saveStoredMemberCard } from '../utils/memberCardStorage';
+import { PageBackBar } from './PageBackBar';
 
 /**
- * Page officielle "Black Card" :
- * - Sans carte commandée : présente la page de commande de la Black Card.
+ * Page officielle "LUMARÉEL Black Card" :
+ * - Sans carte commandée : présente la page de commande de la LUMARÉEL Black Card.
  * - Dès que la carte est commandée / active : affiche directement la carte installée
- *   et ses avantages sans boutons de bascule superflus.
+ *   (même en mode pré-configuration/simulation avant connexion des clés Live).
  */
 export const LumareelMemberCardPage: React.FC = () => {
-  const { currentUser, setCurrentPage, t } = useApp();
-  const [membershipStatus, setMembershipStatus] = useState<'loading' | 'none' | 'owned'>('loading');
-  const [activeCardNumber, setActiveCardNumber] = useState<string | undefined>(undefined);
-  const [ownedCard, setOwnedCard] = useState<MembershipCard | null>(null);
+  const { currentUser } = useApp();
+  const [membershipStatus, setMembershipStatus] = useState<'loading' | 'none' | 'owned'>(() =>
+    loadStoredMemberCard(currentUser?.email) ? 'owned' : 'loading'
+  );
+  const [activeCardNumber, setActiveCardNumber] = useState<string | undefined>(() =>
+    loadStoredMemberCard(currentUser?.email)?.cardNumber
+  );
+  const [ownedCard, setOwnedCard] = useState<MembershipCard | null>(() =>
+    loadStoredMemberCard(currentUser?.email)
+  );
 
   const loadStatus = useCallback(async () => {
+    const localCard = loadStoredMemberCard(currentUser?.email);
+
     if (!currentUser?.email) {
-      setMembershipStatus('none');
-      setOwnedCard(null);
+      if (localCard) {
+        setOwnedCard(localCard);
+        setActiveCardNumber(localCard.cardNumber);
+        setMembershipStatus('owned');
+      } else {
+        setOwnedCard(null);
+        setMembershipStatus('none');
+      }
       return;
     }
 
@@ -42,16 +58,27 @@ export const LumareelMemberCardPage: React.FC = () => {
       const result = rawText ? JSON.parse(rawText) : null;
 
       if (result?.success && result?.hasCard && result?.card) {
+        saveStoredMemberCard(result.card, currentUser.email);
         setActiveCardNumber(result.card.cardNumber);
         setOwnedCard(result.card);
+        setMembershipStatus('owned');
+      } else if (localCard) {
+        setActiveCardNumber(localCard.cardNumber);
+        setOwnedCard(localCard);
         setMembershipStatus('owned');
       } else {
         setOwnedCard(null);
         setMembershipStatus('none');
       }
     } catch {
-      setOwnedCard(null);
-      setMembershipStatus('none');
+      if (localCard) {
+        setActiveCardNumber(localCard.cardNumber);
+        setOwnedCard(localCard);
+        setMembershipStatus('owned');
+      } else {
+        setOwnedCard(null);
+        setMembershipStatus('none');
+      }
     }
   }, [currentUser?.email]);
 
@@ -60,23 +87,19 @@ export const LumareelMemberCardPage: React.FC = () => {
   }, [loadStatus]);
 
   const handleCardIssued = (card: MembershipCard) => {
+    saveStoredMemberCard(card, currentUser?.email);
     setOwnedCard(card);
     setActiveCardNumber(card.cardNumber);
     setMembershipStatus('owned');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   return (
     <div className="min-h-screen w-full bg-[#050505] text-white pb-12">
-      {/* Barre supérieure épurée : bouton Retour uniquement */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-7 pb-2 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => setCurrentPage('home')}
-          className="min-h-[44px] inline-flex items-center gap-2 px-3.5 py-2 rounded-full border border-white/12 bg-white/[0.04] text-xs font-agrandir-bold tracking-wider text-neutral-300 transition hover:bg-white/10 hover:text-white cursor-pointer"
-        >
-          <ArrowLeft className="h-4 w-4 text-[#d4af37]" />
-          <span>{t('nav.backHome')}</span>
-        </button>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8">
+        <PageBackBar className="mb-2" />
       </div>
 
       {membershipStatus === 'loading' ? (
@@ -90,7 +113,14 @@ export const LumareelMemberCardPage: React.FC = () => {
           hasActiveCard={false}
           activeCardNumber={activeCardNumber}
           onCardIssued={handleCardIssued}
-          onGoToWallet={() => loadStatus()}
+          onGoToWallet={() => {
+            const localCard = ownedCard || loadStoredMemberCard(currentUser?.email);
+            if (localCard) {
+              handleCardIssued(localCard);
+            } else {
+              loadStatus();
+            }
+          }}
         />
       )}
     </div>

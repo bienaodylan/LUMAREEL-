@@ -14,7 +14,8 @@ export const translations = {
     'nav.myCard': 'Ma carte',
     'nav.scanner': 'Contrôle Accès',
     'nav.back': 'RETOUR',
-    'nav.backHome': 'RETOUR À L’ACCUEIL',
+    'nav.backHome': 'RETOUR À LA PAGE PRÉCÉDENTE',
+    'nav.backPrevious': 'Retour à la page précédente',
     'nav.close': 'Fermer',
     'nav.more': 'Plus',
     'nav.accountSettings': 'Paramètres du compte',
@@ -87,7 +88,7 @@ export const translations = {
     'detail.remaining': 'billets restants',
 
     // Archive View
-    'archive.backHome': 'Retour à l’accueil',
+    'archive.backHome': 'Retour à la page précédente',
     'archive.kicker': 'ARCHIVES OFFICIELLES',
     'archive.heroTitle1': 'Les scènes',
     'archive.heroTitle2': 'qu’on a fait vibrer.',
@@ -116,7 +117,7 @@ export const translations = {
 
     // News View
     'news.title': 'ACTUALITÉS & COMMUNIQUÉS',
-    'news.backHome': 'RETOUR À L’ACCUEIL',
+    'news.backHome': 'RETOUR À LA PAGE PRÉCÉDENTE',
     'news.readTime': 'min de lecture',
     'news.officialRelease': 'COMMUNIQUÉ OFFICIEL',
     'news.share': 'Partager',
@@ -299,7 +300,7 @@ export const translations = {
     'checkout.viewEmail': 'Consulter mon e-mail de confirmation',
     'checkout.closePreview': 'Fermer l\'aperçu',
     'checkout.accessClientSpace': 'Accéder à mon espace client',
-    'checkout.backToHome': 'RETOUR À L\'ACCUEIL',
+    'checkout.backToHome': 'RETOUR À LA PAGE PRÉCÉDENTE',
     'checkout.printPdf': 'IMPRIMER / PDF (A4)',
     'checkout.selectCountryTitle': 'Sélecteur de Pays & Indicatif',
     'checkout.selectCountryDesc': 'Sélectionnez un pays dans la liste. Seul son indicatif apparaîtra dans votre case.',
@@ -377,7 +378,8 @@ export const translations = {
     'nav.myCard': 'My Card',
     'nav.scanner': 'Access Control',
     'nav.back': 'BACK',
-    'nav.backHome': 'BACK TO HOME',
+    'nav.backHome': 'BACK TO PREVIOUS PAGE',
+    'nav.backPrevious': 'Back to previous page',
     'nav.close': 'Close',
     'nav.more': 'More',
     'nav.accountSettings': 'Account settings',
@@ -450,7 +452,7 @@ export const translations = {
     'detail.remaining': 'tickets left',
 
     // Archive View
-    'archive.backHome': 'Back to home',
+    'archive.backHome': 'Back to previous page',
     'archive.kicker': 'OFFICIAL ARCHIVES',
     'archive.heroTitle1': 'The stages',
     'archive.heroTitle2': 'we set ablaze.',
@@ -479,7 +481,7 @@ export const translations = {
 
     // News View
     'news.title': 'NEWS & PRESS RELEASES',
-    'news.backHome': 'BACK TO HOME',
+    'news.backHome': 'BACK TO PREVIOUS PAGE',
     'news.readTime': 'min read',
     'news.officialRelease': 'OFFICIAL RELEASE',
     'news.share': 'Share',
@@ -662,7 +664,7 @@ export const translations = {
     'checkout.viewEmail': 'View confirmation email',
     'checkout.closePreview': 'Close preview',
     'checkout.accessClientSpace': 'Go to my orders',
-    'checkout.backToHome': 'BACK TO HOME',
+    'checkout.backToHome': 'BACK TO PREVIOUS PAGE',
     'checkout.printPdf': 'PRINT / PDF (A4)',
     'checkout.selectCountryTitle': 'Country & Dial Code',
     'checkout.selectCountryDesc': 'Choose a country from the list.',

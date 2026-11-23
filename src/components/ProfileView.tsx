@@ -14,13 +14,14 @@ import {
   Crown,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { PageBackBar } from './PageBackBar';
 
 /**
  * ProfileView.tsx — Espace Compte & Préférences de l'application LUMARÉEL.
  * Permet de basculer la langue directement (Français / Anglais), de gérer le compte et l'accès Super Admin.
  */
 export const ProfileView: React.FC = () => {
-  const { currentUser, setCurrentUser, setCurrentPage, setIsAuthModalOpen, showToast, language, setLanguage, t } = useApp();
+  const { currentUser, setCurrentUser, setCurrentPage, goBack, setIsAuthModalOpen, showToast, language, setLanguage, t } = useApp();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -76,28 +77,8 @@ export const ProfileView: React.FC = () => {
   return (
     <div className="min-h-screen w-full max-w-2xl mx-auto bg-transparent text-white font-agrandir-regular select-none pb-20 pt-4 sm:pt-10 px-4 sm:px-6 overflow-x-clip">
       
-      {/* Barre de retour supérieure */}
-      <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10">
-        <button
-          type="button"
-          onClick={() => setCurrentPage('home')}
-          className="min-h-[42px] inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
-          title={t('nav.backHome')}
-        >
-          <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
-          <span>{t('nav.back')}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setCurrentPage('home')}
-          className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
-          title={t('nav.backHome')}
-          aria-label={t('nav.close')}
-        >
-          <X className="w-4 h-4 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-transform duration-200" />
-        </button>
-      </div>
+      {/* Barre uniforme Retour à la page précédente + Croix */}
+      <PageBackBar className="mb-4" />
       
       {/* INFORMATIONS COMPTE ACTIF */}
       <div className="px-2 sm:px-4 py-5 border-b border-white/10 flex items-center justify-between gap-3">

@@ -76,7 +76,7 @@ interface AuthorizedEvent {
 }
 
 export const ScannerView: React.FC = () => {
-  const { currentUser, setCurrentPage } = useApp();
+  const { currentUser, setCurrentPage, goBack } = useApp();
 
   const [authStatus, setAuthStatus] = useState<'checking' | 'authorized' | 'denied'>('checking');
   const [deniedReason, setDeniedReason] = useState<string>('');
@@ -786,11 +786,12 @@ export const ScannerView: React.FC = () => {
             </form>
 
             <button
-              onClick={() => setCurrentPage('home')}
+              type="button"
+              onClick={goBack}
               className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-agrandir-semibold text-[#888] hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-2"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Retour au site public</span>
+              <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Retour à la page précédente</span>
             </button>
           </div>
         </div>

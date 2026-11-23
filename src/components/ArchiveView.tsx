@@ -6,9 +6,10 @@ import {
   Maximize2, Film, ArrowLeft
 } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
+import { PageBackBar } from './PageBackBar';
 
 export const ArchiveView: React.FC = () => {
-  const { archives, setCurrentPage, language, t } = useApp();
+  const { archives, goBack, language, t } = useApp();
   const publicArchives = (archives || []).filter((item) => item.isPublished);
 
   // Active media mode per archive ('video' | 'photos')
@@ -56,19 +57,11 @@ export const ArchiveView: React.FC = () => {
       {/* Main content container avec espacement ajusté */}
       <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-8 lg:px-12 pt-4 sm:pt-10 pb-6 sm:pb-8 flex-1">
         
-        {/* Navigation & Section kicker */}
-        <div className="flex items-center justify-between gap-3 mb-6">
-          <button
-            onClick={() => setCurrentPage('home')}
-            className="min-h-[44px] flex items-center gap-2 text-xs font-agrandir-semibold text-[#888] hover:text-white uppercase tracking-wider transition-colors cursor-pointer shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>{t('archive.backHome')}</span>
-          </button>
+        {/* Barre uniforme Retour à la page précédente + Croix */}
+        <PageBackBar />
 
-          <div className="text-[10px] sm:text-[11px] font-agrandir-regular tracking-[0.2em] text-[#d4af37] uppercase truncate">
-            {t('archive.kicker')}
-          </div>
+        <div className="text-[10px] sm:text-[11px] font-agrandir-regular tracking-[0.2em] text-[#d4af37] uppercase mb-3">
+          {t('archive.kicker')}
         </div>
 
         {/* Hero headline matching exact typography:

@@ -24,7 +24,7 @@ export const FloatingAppNavbar: React.FC = () => {
   const navItems: Array<{
     page: PageView;
     label: string;
-    shortLines?: [string, string];
+    ariaLabel?: string;
     icon: React.ComponentType<{ className?: string }>;
   }> = [
     { page: 'home', label: isEn ? 'Home' : 'Accueil', icon: Home },
@@ -32,8 +32,8 @@ export const FloatingAppNavbar: React.FC = () => {
     { page: 'archive', label: 'Archives', icon: Film },
     {
       page: 'member_card',
-      label: 'LUMARÉEL Black Card',
-      shortLines: ['LUMARÉEL', 'Black Card'],
+      label: isEn ? 'Card' : 'Carte',
+      ariaLabel: 'LUMARÉEL Black Card',
       icon: CreditCard,
     },
     { page: 'profile', label: isEn ? 'Account' : 'Compte', icon: User },
@@ -65,7 +65,7 @@ export const FloatingAppNavbar: React.FC = () => {
               type="button"
               onClick={() => setCurrentPage(item.page)}
               whileTap={{ scale: 0.92 }}
-              aria-label={item.label}
+              aria-label={item.ariaLabel || item.label}
               aria-current={isActive ? 'page' : undefined}
               className="relative flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 outline-none cursor-pointer"
             >
@@ -76,22 +76,13 @@ export const FloatingAppNavbar: React.FC = () => {
                 }`}
               />
               <span
-                className={`text-center leading-[1.08] tracking-tight max-w-full ${
-                  item.shortLines ? 'text-[8.5px]' : 'text-[10px] truncate'
-                } ${
+                className={`text-center text-[10px] leading-[1.1] tracking-tight max-w-full truncate ${
                   isActive
                     ? 'font-agrandir-bold text-[#D4AF37]'
                     : 'font-agrandir-regular text-neutral-400'
                 }`}
               >
-                {item.shortLines ? (
-                  <>
-                    <span className="block">{item.shortLines[0]}</span>
-                    <span className="block">{item.shortLines[1]}</span>
-                  </>
-                ) : (
-                  item.label
-                )}
+                {item.label}
               </span>
             </motion.button>
           );

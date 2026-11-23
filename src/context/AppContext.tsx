@@ -26,7 +26,9 @@ export type PageView =
 
 interface AppContextType {
   currentPage: PageView;
+  previousPage: PageView;
   setCurrentPage: (page: PageView) => void;
+  goBack: () => void;
   hasEnteredPlatform: boolean;
   enterPlatform: () => void;
   currentUser: User | null;
@@ -203,7 +205,7 @@ function mapArchiveToDbRow(arch: ArchiveProduction): any {
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [hasEnteredPlatform, setHasEnteredPlatform] = useState<boolean>(true);
-  const [currentPage, setCurrentPage] = useState<PageView>(() => {
+  const [currentPage, setCurrentPageState] = useState<PageView>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       if (params.get('token') || params.get('page') === 'gate_scanner' || window.location.pathname.includes('scanner')) {
@@ -215,6 +217,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     return 'home';
   });
+  const [previousPage, setPreviousPage] = useState<PageView>('home');
+  const pageHistoryRef = useRef<PageView[]>([]);
+
+  const setCurrentPage = useCallback((nextPage: PageView) => {
+    setCurrentPageState((prev) => {
+      if (prev === nextPage) return prev;
+      if (prev !== 'splash') {
+        pageHistoryRef.current = [...pageHistoryRef.current.slice(-19), prev];
+        setPreviousPage(prev);
+      }
+      return nextPage;
+    });
+  }, []);
+
+  const goBack = useCallback(() => {
+    const history = pageHistoryRef.current;
+    if (history.length > 0) {
+      const target = history[history.length - 1];
+      pageHistoryRef.current = history.slice(0, -1);
+      setPreviousPage(pageHistoryRef.current[pageHistoryRef.current.length - 1] || 'home');
+      setCurrentPageState(target);
+      return;
+    }
+    setCurrentPageState('home');
+  }, []);
 
   const [selectedEventSlug, setSelectedEventSlug] = useState<string | null>(null);
 
@@ -825,7 +852,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const fetchCustomerOrdersFromBackend = async (email: string) => {
     try {
-      const res = await fetch(`/api/customer/orders?email=${encodeURIComponent(email)}`);
+      const headers: Record<string, string> = {};
+      if (isSupabaseConfigured) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+      }
+      const res = await fetch(`/api/customer/orders?email=${encodeURIComponent(email)}`, { headers });
       if (!res.ok) return;
       const data = await res.json();
       if (data.success && data.orders) {
@@ -922,11 +956,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    // 3. Envoi au backend Express pour persistance miroir
+    // 3. Envoi au backend pour persistance miroir & déclenchement e-mail Resend
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (isSupabaseConfigured) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) {
+          headers['Authorization'] = `Bearer ${session.access_token}`;
+        }
+      }
       await fetch('/api/orders', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(newOrder),
       });
     } catch {}
@@ -1158,7 +1199,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     <AppContext.Provider
       value={{
         currentPage,
+        previousPage,
         setCurrentPage,
+        goBack,
         hasEnteredPlatform,
         enterPlatform,
         currentUser,

@@ -9,6 +9,14 @@ import QRCode from 'qrcode';
 import { db } from './src/server/db';
 import { membershipService } from './src/server/membershipService';
 import { paymetrustService, PayMeTrustChannel } from './src/server/paymetrustService';
+import {
+  getResendFromAddress,
+  isResendConfigured,
+  sendBlackCardActivationEmail,
+  sendResendEmail,
+  sendTicketConfirmationEmail,
+  sendTicketTransferEmail,
+} from './api/_lib/emailService';
 import { createClient } from '@supabase/supabase-js';
 
 
@@ -557,7 +565,25 @@ async function startServer() {
     if (!tx) return null;
 
     if (tx.kind === 'ticket_order') {
-      return db.confirmPaymentAndIssueTickets(tx.orderId, providerTxId || tx.reference);
+      const confirmed = db.confirmPaymentAndIssueTickets(tx.orderId, providerTxId || tx.reference);
+      if (confirmed?.success && confirmed.order) {
+        void sendTicketConfirmationEmail({
+          to: confirmed.order.customerEmail,
+          customerName: confirmed.order.customerName,
+          orderReference: confirmed.order.reference,
+          eventTitle: confirmed.order.eventTitle,
+          eventDate: confirmed.order.eventDate,
+          eventVenue: confirmed.order.eventVenue,
+          categoryName: confirmed.order.categoryName,
+          totalAmount: Number(confirmed.order.totalAmount || 0),
+          currency: confirmed.order.currency || 'FCFA',
+          tickets: (confirmed.order.tickets || []).map((t: any) => ({
+            serialNumber: t.serialNumber,
+            holderName: t.holderName,
+          })),
+        });
+      }
+      return confirmed;
     }
 
     if (tx.kind === 'membership_card') {
@@ -577,6 +603,15 @@ async function startServer() {
         paymentReference: providerTxId || tx.reference,
         shippingAddress: meta.shippingAddress,
       });
+
+      void sendBlackCardActivationEmail({
+        to: issued.card.cardholderEmail,
+        cardholderName: issued.card.cardholderName,
+        cardNumber: issued.card.cardNumber,
+        expiresAt: issued.card.expiresAt,
+        orderReference: providerTxId || tx.reference,
+      });
+
       return { success: true, card: issued.card, physicalOrder: issued.physicalOrder };
     }
 
@@ -586,6 +621,42 @@ async function startServer() {
   // Public PayMeTrust readiness & supported channels (zero secrets exposed)
   app.get('/api/payments/paymetrust/config', (_req: Request, res: Response) => {
     res.json({ success: true, ...paymetrustService.getPublicConfig() });
+  });
+
+  // Admin-only launch readiness summary (booleans only, zero secrets exposed)
+  app.get('/api/payments/readiness', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    const cfg = paymetrustService.getPublicConfig();
+    return res.json({
+      success: true,
+      readiness: {
+        supabasePublicConfigured: Boolean(process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY),
+        supabaseServiceKeyConfigured: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+        paymetrustConfigured: cfg.configured,
+        paymetrustWebhookSecretConfigured: Boolean(process.env.PAYMETRUST_WEBHOOK_SECRET),
+        paymetrustEnvironment: cfg.environment,
+        resendConfigured: isResendConfigured(),
+        resendFrom: getResendFromAddress(),
+        adminApiKeyConfigured: Boolean(process.env.ADMIN_API_KEY),
+        publicUrl: resolvePublicBaseUrl(req),
+      },
+    });
+  });
+
+  // Admin-only Resend test email endpoint
+  app.post('/api/email/test', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    const to = String(req.body?.to || '').trim().toLowerCase();
+    const result = await sendResendEmail({
+      to,
+      subject: 'Test Resend réussi — LUMARÉEL CO.',
+      html: '<div style="background:#050505;color:#fff;padding:24px;font-family:sans-serif;"><h2 style="color:#d4af37;">LUMARÉEL CO.</h2><p>Votre intégration Resend est active et prête à envoyer les billets et confirmations LUMARÉEL Black Card.</p></div>',
+      text: 'LUMARÉEL CO. — Votre intégration Resend est active et prête pour la production.',
+      type: 'system_test',
+    });
+    return res.status(result.sent ? 200 : 400).json({ success: result.sent, ...result });
   });
 
   // Initiate PayMeTrust payment (server-authoritative amount lookup)
@@ -844,6 +915,19 @@ async function startServer() {
 
       if (!result.success) {
         return res.status(400).json(result);
+      }
+
+      if (result.newTicket) {
+        void sendTicketTransferEmail({
+          to: String(recipientEmail),
+          recipientName: String(recipientName),
+          senderName: resolvedSenderEmail || 'Un membre LUMARÉEL',
+          eventTitle: result.newTicket.eventTitle,
+          eventDate: result.newTicket.eventDate,
+          eventVenue: result.newTicket.eventVenue,
+          categoryName: result.newTicket.categoryName,
+          serialNumber: result.newTicket.serialNumber,
+        });
       }
 
       return res.json({

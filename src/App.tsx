@@ -19,6 +19,7 @@ import { LumareelMemberCardPage } from './components/LumareelMemberCardPage';
 import { CardVerificationView } from './components/CardVerificationView';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { usePWAInstall } from './hooks/usePWAInstall';
+import { saveStoredMemberCard } from './utils/memberCardStorage';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const MainApp: React.FC = () => {
@@ -62,6 +63,9 @@ const MainApp: React.FC = () => {
         if (res.ok && data?.success && data?.transaction?.status === 'SUCCESS') {
           await Promise.all([refreshCustomerOrders(), refreshEvents()]);
           const isCard = ref.startsWith('PMT-CARD-');
+          if (isCard && data?.fulfillment?.card) {
+            saveStoredMemberCard(data.fulfillment.card);
+          }
           showToast(
             isCard
               ? (language === 'en' ? 'LUMARÉEL Black Card payment confirmed! Your card is ready.' : 'Paiement LUMARÉEL Black Card confirmé ! Votre carte est prête.')
@@ -210,8 +214,8 @@ const AdminEmergencyAccess: React.FC<{ error: Error }> = ({ error }) => {
           <button type="button" onClick={() => window.location.reload()} className="rounded-xl border border-white/20 px-5 py-3 text-sm">
             Recharger
           </button>
-          <button type="button" onClick={() => setCurrentPage('home')} className="rounded-xl border border-white/20 px-5 py-3 text-sm">
-            Retour au site
+          <button type="button" onClick={() => setCurrentPage('home')} className="rounded-xl border border-white/20 px-5 py-3 text-sm cursor-pointer">
+            Retour à la page précédente
           </button>
         </div>
         <p className="mt-5 text-xs text-neutral-500">{events.length} événement(s) chargés dans cette session.</p>

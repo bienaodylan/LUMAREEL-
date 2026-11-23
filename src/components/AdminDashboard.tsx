@@ -437,7 +437,7 @@ const AdminDashboardContent: React.FC = () => {
  * l'administrateur conserve un accès direct au générateur de billets.
  */
 const AdminDashboardRecovery: React.FC<{ error: Error }> = ({ error }) => {
-  const { events, setCurrentPage } = useApp();
+  const { events, setCurrentPage, goBack } = useApp();
   const [printOpen, setPrintOpen] = useState(true);
 
   return (
@@ -470,10 +470,10 @@ const AdminDashboardRecovery: React.FC<{ error: Error }> = ({ error }) => {
           </button>
           <button
             type="button"
-            onClick={() => setCurrentPage('home')}
-            className="px-5 py-3 rounded-xl border border-white/20 text-white text-sm"
+            onClick={goBack}
+            className="px-5 py-3 rounded-xl border border-white/20 text-white text-sm cursor-pointer"
           >
-            Retour au site
+            Retour à la page précédente
           </button>
         </div>
         <p className="text-xs text-neutral-500 mt-5">

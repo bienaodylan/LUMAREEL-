@@ -16,8 +16,8 @@ import {
   Percent,
   Clock,
   Sparkles,
-  ArrowLeft,
 } from 'lucide-react';
+import { PageBackBar } from './PageBackBar';
 
 export const OrganizersView: React.FC = () => {
   const { events, refreshEvents, showToast, setCurrentPage, setSelectedEventSlug, language, t } = useApp();
@@ -167,17 +167,8 @@ export const OrganizersView: React.FC = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-6 sm:pt-10 pb-20">
-      <div className="mb-6">
-        <button
-          type="button"
-          onClick={() => setCurrentPage('home')}
-          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-agrandir-bold uppercase tracking-wider text-white transition-all cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37]" />
-          <span>{t('nav.backHome')}</span>
-        </button>
-      </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-10 pb-20">
+      <PageBackBar />
 
       {/* Top Section */}
       <div className="mb-10 pb-6 border-b border-[#1c1c1c] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">

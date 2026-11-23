@@ -9,6 +9,8 @@ import {
   MembershipCard,
 } from '../types';
 import { DigitalMembershipCard } from './DigitalMembershipCard';
+import { loadStoredMemberCard, saveStoredMemberCard } from '../utils/memberCardStorage';
+import { PageBackBar } from './PageBackBar';
 import {
   Ticket as TicketIcon,
   Mail,
@@ -45,6 +47,7 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
     currentUser,
     customerOrders,
     setCurrentPage,
+    goBack,
     showToast,
     language,
     t,
@@ -53,9 +56,19 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
   const locale = isEn ? 'en-US' : 'fr-FR';
 
   const [activeTab, setActiveTab] = useState<WalletTab>('tickets');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(!(initialCard || loadStoredMemberCard(currentUser?.email)));
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [wallet, setWallet] = useState<WalletOverview | null>(null);
+  const storedFallbackCard = loadStoredMemberCard(currentUser?.email);
+
+  const parseJsonSafely = async (res: Response): Promise<any | null> => {
+    try {
+      const text = await res.text();
+      return text && text.trim() ? JSON.parse(text) : null;
+    } catch {
+      return null;
+    }
+  };
 
   // Modales QR plein écran pour les billets & invitations
   const [selectedTicketForQr, setSelectedTicketForQr] = useState<Ticket | null>(null);
@@ -93,8 +106,11 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
 
       if (session?.access_token) {
         const res = await fetch('/api/wallet/overview', { headers });
-        const data = await res.json();
-        if (data.success && data.overview) {
+        const data = await parseJsonSafely(res);
+        if (data?.success && data?.overview) {
+          if (data.overview.card) {
+            saveStoredMemberCard(data.overview.card, currentUser?.email);
+          }
           setWallet(data.overview);
           return;
         }
@@ -105,8 +121,9 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
           `/api/membership/my-card?email=${encodeURIComponent(currentUser.email)}`,
           { headers }
         );
-        const cardData = await cardRes.json();
-        if (cardData.success && cardData.hasCard && cardData.card) {
+        const cardData = await parseJsonSafely(cardRes);
+        if (cardData?.success && cardData?.hasCard && cardData?.card) {
+          saveStoredMemberCard(cardData.card, currentUser.email);
           setWallet({
             user: {
               id: currentUser.id,
@@ -130,7 +147,9 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
         }
       }
 
-      setWallet(null);
+      if (!initialCard && !loadStoredMemberCard(currentUser?.email)) {
+        setWallet(null);
+      }
     } catch (err) {
       console.error('Error loading wallet overview:', err);
     } finally {
@@ -204,7 +223,7 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
     );
   }
 
-  const activeCard = wallet?.card || initialCard;
+  const activeCard = wallet?.card || initialCard || storedFallbackCard;
 
   // Fusionner les billets issus du wallet et des commandes locales complétées (sans doublons)
   const localTickets: Ticket[] = [];
@@ -221,7 +240,21 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
   });
 
   const invitations = wallet?.invitations || [];
-  const activities = wallet?.activities || [];
+  const activities =
+    (wallet?.activities && wallet.activities.length > 0)
+      ? wallet.activities
+      : activeCard
+      ? [
+          {
+            id: `act_init_${activeCard.id}`,
+            title: isEn ? 'LUMARÉEL Black Card Activated' : 'LUMARÉEL Black Card activée',
+            description: isEn
+              ? `Member reference ${activeCard.cardNumber} active for 3 years.`
+              : `Référence membre ${activeCard.cardNumber} active pour 3 ans.`,
+            timestamp: activeCard.issuedAt || new Date().toISOString(),
+          },
+        ]
+      : [];
 
   const tabs: Array<{ id: WalletTab; label: string; count?: number }> = [
     { id: 'tickets', label: isEn ? 'Tickets' : 'Billets', count: tickets.length },
@@ -230,20 +263,9 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
   ];
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 pt-2 pb-12 select-none font-agrandir-regular text-white">
-      {/* Barre de retour (uniquement si affichée hors page membre) */}
-      {!embedded && (
-        <div className="flex items-center justify-between gap-3 mb-6">
-          <button
-            type="button"
-            onClick={() => setCurrentPage('home')}
-            className="min-h-[44px] inline-flex items-center gap-2 text-xs font-agrandir-bold tracking-wider text-neutral-300 hover:text-white uppercase transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4 text-[#d4af37]" />
-            <span>{t('nav.back')}</span>
-          </button>
-        </div>
-      )}
+    <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-6 pb-12 select-none font-agrandir-regular text-white">
+      {/* Barre uniforme Retour à la page précédente + Croix (hors page membre) */}
+      {!embedded && <PageBackBar />}
 
       {/* ===================================================================== */}
       {/* CARTE NOIRE INSTALLÉE — PRÉSENTATION BANCAIRE OUVERTE (ZÉRO BLOCS)    */}

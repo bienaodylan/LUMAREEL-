@@ -17,6 +17,22 @@
       "destination": "/api/payments?route=config"
     },
     {
+      "source": "/api/payments/paymetrust/webhook",
+      "destination": "/api/payments?route=webhook"
+    },
+    {
+      "source": "/api/payments/paymetrust/verify/:reference",
+      "destination": "/api/payments?route=verify&reference=:reference"
+    },
+    {
+      "source": "/api/payments/readiness",
+      "destination": "/api/payments?route=readiness"
+    },
+    {
+      "source": "/api/email/test",
+      "destination": "/api/payments?route=email-test"
+    },
+    {
       "source": "/api/membership/editions",
       "destination": "/api/payments?route=editions"
     },
@@ -27,6 +43,22 @@
     {
       "source": "/api/membership/order",
       "destination": "/api/payments?route=order"
+    },
+    {
+      "source": "/api/wallet/overview",
+      "destination": "/api/payments?route=wallet-overview"
+    },
+    {
+      "source": "/api/orders",
+      "destination": "/api/payments?route=orders"
+    },
+    {
+      "source": "/api/customer/orders",
+      "destination": "/api/payments?route=customer-orders"
+    },
+    {
+      "source": "/api/tickets/transfer",
+      "destination": "/api/payments?route=transfer-ticket"
     },
     {
       "source": "/((?!api/|assets/|uploads/).*)",

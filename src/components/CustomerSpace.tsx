@@ -30,11 +30,12 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { formatDateLong } from '../utils/dateUtils';
+import { PageBackBar } from './PageBackBar';
 
 type ScrollableTab = 'tickets' | 'transfer' | 'past';
 
 export const CustomerSpace: React.FC = () => {
-  const { currentUser, customerOrders, refreshCustomerOrders, events, setCurrentPage, showToast, language, t } = useApp();
+  const { currentUser, customerOrders, refreshCustomerOrders, events, setCurrentPage, goBack, showToast, language, t } = useApp();
   const [activeTab, setActiveTab] = useState<ScrollableTab>('tickets');
   const [selectedTicketForQr, setSelectedTicketForQr] = useState<Ticket | null>(null);
   const [qrCodeDataUrls, setQrCodeDataUrls] = useState<Record<string, string>>({});
@@ -180,28 +181,8 @@ export const CustomerSpace: React.FC = () => {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-10 pb-20 select-none font-agrandir-regular overflow-x-clip">
       
-      {/* Barre de retour supérieure */}
-      <div className="flex items-center justify-between gap-3 mb-6 pb-3 border-b border-white/10">
-        <button
-          type="button"
-          onClick={() => setCurrentPage('home')}
-          className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
-          title={t('nav.backHome')}
-        >
-          <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
-          <span>{t('nav.back')}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setCurrentPage('home')}
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
-          title={t('nav.backHome')}
-          aria-label={t('nav.close')}
-        >
-          <X className="w-4 h-4 sm:w-5 sm:h-5 text-neutral-300 group-hover:text-white group-hover:rotate-90 transition-transform duration-200" />
-        </button>
-      </div>
+      {/* Barre uniforme Retour à la page précédente + Croix */}
+      <PageBackBar />
 
       {/* 1. Page Header — "MES COMMANDES" */}
       <div className="mb-6 border-b border-white/10 pb-6">

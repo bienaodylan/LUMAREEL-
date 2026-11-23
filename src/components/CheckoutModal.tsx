@@ -452,21 +452,22 @@ export const CheckoutModal: React.FC = () => {
         {/* TOP HEADER & STEPPER PROGRESS BAR */}
         {/* ========================================================================= */}
         <div className="shrink-0 p-4 sm:p-5 border-b border-white/10 bg-[#080808] sm:rounded-t-3xl z-20">
-          <div className="flex items-center justify-between gap-4 mb-4">
+          <div className="flex items-center justify-between gap-3 mb-4">
             <button
               type="button"
               onClick={handleStepBack}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
+              className="min-h-[40px] inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group shrink-0"
+              aria-label={t('checkout.back')}
               title={t('checkout.back')}
             >
               <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
               <span>{t('nav.back')}</span>
             </button>
 
-            <div className="flex flex-col items-center justify-center text-center">
+            <div className="flex flex-col items-center justify-center text-center min-w-0">
               {step === 2 || step === 3 ? (
                 <>
-                  <h2 className="text-xs sm:text-sm font-agrandir-bold uppercase tracking-wider text-white">
+                  <h2 className="text-xs sm:text-sm font-agrandir-bold uppercase tracking-wider text-white truncate">
                     {t('checkout.orderSummary')}
                   </h2>
                   <div className="text-[11px] font-mono text-neutral-400 flex items-center gap-1.5 mt-0.5">
@@ -488,11 +489,11 @@ export const CheckoutModal: React.FC = () => {
             <button
               type="button"
               onClick={handleClose}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-neutral-300 hover:text-white hover:border-white transition-all cursor-pointer active:scale-95 shadow-md"
+              className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-neutral-300 hover:text-white hover:border-white transition-all cursor-pointer active:scale-95 shadow-md group"
               aria-label={t('nav.close')}
               title={t('nav.close')}
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform duration-200" />
             </button>
           </div>
 
@@ -1285,8 +1286,7 @@ export const CheckoutModal: React.FC = () => {
                       onClick={handleClose}
                       className="w-full sm:w-auto px-6 py-3.5 border border-white/20 hover:border-white text-[#aaa] hover:text-white rounded-full transition-colors text-xs font-agrandir-bold uppercase tracking-widest cursor-pointer flex items-center justify-center gap-2 active:scale-95"
                     >
-                      <ArrowLeft className="w-3.5 h-3.5" />
-                      <span>{t('checkout.backToHome')}</span>
+                      <span>{t('nav.close')}</span>
                     </button>
                   </div>
                 </div>

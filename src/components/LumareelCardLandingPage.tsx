@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
 import { MembershipEdition, MembershipPlan, MembershipCard } from '../types';
+import { saveStoredMemberCard } from '../utils/memberCardStorage';
 import {
   ArrowRight,
   Check,
@@ -441,8 +442,17 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setIsWizardOpen(false);
-        setIsWizardMinimized(false);
+        if (wizardStep === 4 && issuedResult?.card) {
+          const card = issuedResult.card;
+          setIsWizardOpen(false);
+          setIsWizardMinimized(false);
+          if (onCardIssued) onCardIssued(card);
+          else if (onGoToWallet) onGoToWallet();
+          else setCurrentPage('member_card');
+        } else {
+          setIsWizardOpen(false);
+          setIsWizardMinimized(false);
+        }
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -493,7 +503,26 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     setIsWizardOpen(true);
   };
 
+  const finishAndOpenInstalledCard = (card?: MembershipCard) => {
+    const targetCard = card || issuedResult?.card;
+    setIsWizardOpen(false);
+    setIsWizardMinimized(false);
+    if (targetCard) {
+      saveStoredMemberCard(targetCard, currentUser?.email);
+      if (onCardIssued) {
+        onCardIssued(targetCard);
+        return;
+      }
+    }
+    if (onGoToWallet) onGoToWallet();
+    else setCurrentPage('member_card');
+  };
+
   const closeAdmissionWizard = () => {
+    if (wizardStep === 4 && issuedResult?.card) {
+      finishAndOpenInstalledCard(issuedResult.card);
+      return;
+    }
     setIsWizardOpen(false);
     setIsWizardMinimized(false);
   };
@@ -616,13 +645,11 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
         throw new Error(c.toastOrderErr);
       }
 
+      saveStoredMemberCard(issuedCard, currentUser?.email);
       setIssuedResult({ card: issuedCard, qrDataUrl: '' });
       setWizardStep(4);
       showToast(c.toastActivated, 'success');
       fetchEditionAndPlans();
-      if (onCardIssued) {
-        onCardIssued(issuedCard);
-      }
     } catch (err: any) {
       const rawMsg = typeof err?.message === 'string' ? err.message : '';
       const isPatternError = /expected pattern|unexpected token|json/i.test(rawMsg);
@@ -1410,11 +1437,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                       <div className="flex items-center justify-center">
                         <button
                           type="button"
-                          onClick={() => {
-                            closeAdmissionWizard();
-                            if (onGoToWallet) onGoToWallet();
-                            else setCurrentPage('member_card');
-                          }}
+                          onClick={() => finishAndOpenInstalledCard(issuedResult.card)}
                           className="w-full sm:w-auto min-h-[50px] px-8 py-3.5 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs uppercase tracking-wider shadow-[0_6px_24px_rgba(255,255,255,0.22)] cursor-pointer transition-colors"
                         >
                           {c.wiz4Cta}
