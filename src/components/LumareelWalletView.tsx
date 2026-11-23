@@ -198,7 +198,7 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
       <div className="w-full max-w-xl mx-auto px-4 pt-16 pb-24 flex flex-col items-center justify-center min-h-[55vh] space-y-3">
         <RefreshCw className="w-6 h-6 animate-spin text-[#d4af37]" />
         <p className="text-xs text-neutral-400">
-          {isEn ? 'Loading your Black Card...' : 'Chargement de votre Black Card...'}
+          {isEn ? 'Loading your LUMARÉEL Black Card...' : 'Chargement de votre LUMARÉEL Black Card...'}
         </p>
       </div>
     );
@@ -263,7 +263,7 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
       {/* ===================================================================== */}
       <div className="border-b border-white/10">
         <nav
-          aria-label={isEn ? 'Black Card sections' : 'Sections Black Card'}
+          aria-label={isEn ? 'LUMARÉEL Black Card sections' : 'Sections LUMARÉEL Black Card'}
           className="grid grid-cols-3"
         >
           {tabs.map((tab) => {

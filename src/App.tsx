@@ -64,7 +64,7 @@ const MainApp: React.FC = () => {
           const isCard = ref.startsWith('PMT-CARD-');
           showToast(
             isCard
-              ? (language === 'en' ? 'Black Card payment confirmed! Your card is ready.' : 'Paiement Black Card confirmé ! Votre carte est prête.')
+              ? (language === 'en' ? 'LUMARÉEL Black Card payment confirmed! Your card is ready.' : 'Paiement LUMARÉEL Black Card confirmé ! Votre carte est prête.')
               : (language === 'en' ? 'Payment confirmed! Your tickets are available.' : 'Paiement confirmé ! Vos billets sont disponibles.'),
             'success'
           );
@@ -89,11 +89,18 @@ const MainApp: React.FC = () => {
     };
   }, []);
 
+  // Remet le scroll en haut proprement lors d'un changement de page
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
+  }, [currentPage]);
+
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
   const hasMobileTopHeader = currentPage === 'home' || currentPage === 'discover';
 
   return (
-    <div className="min-h-screen w-full max-w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative overflow-x-clip">
+    <div className="min-h-screen w-full max-w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative">
       {/* Indicateur hors-ligne discret pour la PWA */}
       <OfflineIndicator />
 

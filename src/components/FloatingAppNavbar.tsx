@@ -24,12 +24,18 @@ export const FloatingAppNavbar: React.FC = () => {
   const navItems: Array<{
     page: PageView;
     label: string;
+    shortLines?: [string, string];
     icon: React.ComponentType<{ className?: string }>;
   }> = [
     { page: 'home', label: isEn ? 'Home' : 'Accueil', icon: Home },
     { page: 'client_space', label: isEn ? 'Tickets' : 'Billets', icon: Ticket },
     { page: 'archive', label: 'Archives', icon: Film },
-    { page: 'member_card', label: 'Black Card', icon: CreditCard },
+    {
+      page: 'member_card',
+      label: 'LUMARÉEL Black Card',
+      shortLines: ['LUMARÉEL', 'Black Card'],
+      icon: CreditCard,
+    },
     { page: 'profile', label: isEn ? 'Account' : 'Compte', icon: User },
   ];
 
@@ -61,22 +67,31 @@ export const FloatingAppNavbar: React.FC = () => {
               whileTap={{ scale: 0.92 }}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
-              className="relative flex min-h-[50px] flex-col items-center justify-center gap-1 rounded-xl px-1 py-1 outline-none cursor-pointer"
+              className="relative flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-xl px-0.5 py-1 outline-none cursor-pointer"
             >
               <Icon
                 aria-hidden="true"
-                className={`h-[21px] w-[21px] transition-colors ${
+                className={`h-[20px] w-[20px] shrink-0 transition-colors ${
                   isActive ? 'text-[#D4AF37] stroke-[2.35]' : 'text-neutral-400 stroke-[1.75]'
                 }`}
               />
               <span
-                className={`text-[10px] leading-none tracking-tight truncate max-w-full ${
+                className={`text-center leading-[1.08] tracking-tight max-w-full ${
+                  item.shortLines ? 'text-[8.5px]' : 'text-[10px] truncate'
+                } ${
                   isActive
                     ? 'font-agrandir-bold text-[#D4AF37]'
                     : 'font-agrandir-regular text-neutral-400'
                 }`}
               >
-                {item.label}
+                {item.shortLines ? (
+                  <>
+                    <span className="block">{item.shortLines[0]}</span>
+                    <span className="block">{item.shortLines[1]}</span>
+                  </>
+                ) : (
+                  item.label
+                )}
               </span>
             </motion.button>
           );

@@ -38,9 +38,10 @@ export const LumareelMemberCardPage: React.FC = () => {
         `/api/membership/my-card?email=${encodeURIComponent(currentUser.email)}`,
         { headers }
       );
-      const result = await response.json();
+      const rawText = await response.text();
+      const result = rawText ? JSON.parse(rawText) : null;
 
-      if (result.success && result.hasCard && result.card) {
+      if (result?.success && result?.hasCard && result?.card) {
         setActiveCardNumber(result.card.cardNumber);
         setOwnedCard(result.card);
         setMembershipStatus('owned');
@@ -65,7 +66,7 @@ export const LumareelMemberCardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full overflow-x-clip bg-[#050505] text-white pb-12">
+    <div className="min-h-screen w-full bg-[#050505] text-white pb-12">
       {/* Barre supérieure épurée : bouton Retour uniquement */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-7 pb-2 flex items-center justify-between gap-3">
         <button

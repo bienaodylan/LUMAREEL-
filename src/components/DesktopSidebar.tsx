@@ -15,14 +15,14 @@ export const DesktopSidebar: React.FC = () => {
     {label: t('nav.account'), page:'profile', icon:UserRound},
   ];
   const go = (page:PageView) => setCurrentPage(page);
-  return <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[244px] flex-col border-r border-[#dbdbdb] bg-white px-3 pb-5 pt-6 text-[#262626] dark:border-[#262626] dark:bg-black dark:text-white">
-    <button onClick={()=>go('home')} aria-label={`LUMARÉEL ${t('nav.home')}`} className="mb-8 flex h-12 items-center px-3 cursor-pointer">
+  return <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[244px] flex-col overflow-y-auto border-r border-[#dbdbdb] bg-white px-3 pb-5 pt-6 text-[#262626] dark:border-[#262626] dark:bg-black dark:text-white">
+    <button onClick={()=>go('home')} aria-label={`LUMARÉEL ${t('nav.home')}`} className="mb-8 flex h-12 shrink-0 items-center px-3 cursor-pointer">
       <img src="/assets/logo-lumareel.png" alt={platformSettings.platformName || 'LUMARÉEL'} className="h-8 w-auto object-contain"/>
     </button>
     <nav className="flex flex-col gap-1">
-      {items.map(({label,page,icon:Icon})=>{const active=currentPage===page;return <button key={page} onClick={()=>go(page)} aria-current={active?'page':undefined} className={`group flex h-12 items-center gap-4 rounded-lg px-3 text-left text-base transition-colors hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] cursor-pointer ${active?'font-bold':''}`}>
-        <Icon size={24} strokeWidth={active?2.6:1.9} fill={active&&page==='home'?'currentColor':'none'} className="shrink-0 transition-transform group-hover:scale-105"/>
-        <span>{label}</span>
+      {items.map(({label,page,icon:Icon})=>{const active=currentPage===page||(page==='member_card'&&currentPage==='card');return <button key={page} onClick={()=>go(page)} aria-current={active?'page':undefined} className={`group flex min-h-12 items-center gap-3.5 rounded-lg px-3 py-2 text-left text-[15px] leading-snug transition-colors hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] cursor-pointer ${active?'font-bold':''}`}>
+        <Icon size={22} strokeWidth={active?2.5:1.9} fill={active&&page==='home'?'currentColor':'none'} className="shrink-0 transition-transform group-hover:scale-105"/>
+        <span className="min-w-0">{label}</span>
       </button>})}
     </nav>
     <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-white/10">

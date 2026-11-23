@@ -87,7 +87,7 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
               setIsFlipped((prev) => !prev);
             }
           }}
-          aria-label={isEn ? 'Flip your LUMARÉEL Black Card' : 'Retourner votre Black Card LUMARÉEL'}
+          aria-label={isEn ? 'Flip your LUMARÉEL Black Card' : 'Retourner votre LUMARÉEL Black Card'}
         >
           <motion.div
             animate={{ rotateY: isFlipped ? 180 : 0 }}

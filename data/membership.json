@@ -6,12 +6,12 @@
       "editionCode": "FOUNDERS_2026",
       "description": "Adhésion 3 ans limitée à 100 membres. Carte noire officielle avec 8 avantages VIP & partenaires.",
       "quota": 100,
-      "allocatedCount": 2,
+      "allocatedCount": 3,
       "startsAt": "2026-11-10T14:09:28.858Z",
       "endsAt": "2029-11-10T14:09:28.859Z",
       "status": "active",
       "createdAt": "2026-11-10T14:09:28.858Z",
-      "updatedAt": "2026-11-11T22:46:14.784Z"
+      "updatedAt": "2026-11-23T00:27:08.981Z"
     }
   ],
   "plans": [
@@ -63,6 +63,23 @@
       "completedAt": "2026-11-11T22:46:14.784Z",
       "createdAt": "2026-11-11T22:46:14.784Z",
       "updatedAt": "2026-11-11T22:46:14.784Z"
+    },
+    {
+      "id": "mord_cce8bc9ee91fa554",
+      "userId": "usr_ff9dd119966e",
+      "planId": "plan_founders_annual",
+      "editionId": "ed_founders_2026",
+      "amount": 50000,
+      "currency": "FCFA",
+      "orderReference": "pmt_preview_1795393628980",
+      "paymentProvider": "wave",
+      "paymentMethod": "wave",
+      "paymentStatus": "completed",
+      "paymentReference": "pmt_preview_1795393628980",
+      "orderStatus": "completed",
+      "completedAt": "2026-11-23T00:27:08.981Z",
+      "createdAt": "2026-11-23T00:27:08.981Z",
+      "updatedAt": "2026-11-23T00:27:08.981Z"
     }
   ],
   "cards": [
@@ -156,6 +173,25 @@
       "createdAt": "2026-11-11T22:46:14.784Z",
       "updatedAt": "2026-11-11T22:46:14.786Z",
       "walletBalance": 210000
+    },
+    {
+      "id": "crd_24ee623053525d77",
+      "userId": "usr_ff9dd119966e",
+      "planId": "plan_founders_annual",
+      "editionId": "ed_founders_2026",
+      "membershipOrderId": "mord_cce8bc9ee91fa554",
+      "cardNumber": "LMR-2026-0005",
+      "cardSequence": 5,
+      "cardholderName": "TEST LUMAREEL",
+      "cardholderEmail": "test.bc@lumareel.ci",
+      "cardStatus": "active",
+      "issuedAt": "2026-11-23T00:27:08.981Z",
+      "validFrom": "2026-11-23T00:27:08.981Z",
+      "expiresAt": "2029-11-25T00:27:08.981Z",
+      "physicalCardStatus": "approved",
+      "qrToken": "LMR_SEC_1870289384d59a2957be1400128652d15c5c23c2700137c647e9e42a73121b4a",
+      "createdAt": "2026-11-23T00:27:08.981Z",
+      "updatedAt": "2026-11-23T00:27:08.981Z"
     }
   ],
   "qrTokens": [
@@ -175,6 +211,17 @@
       "isCurrent": true,
       "status": "active",
       "issuedAt": "2026-11-11T22:46:14.785Z",
+      "verificationCount": 0
+    },
+    {
+      "id": "qrt_7896b265f75ec6aa",
+      "cardId": "crd_24ee623053525d77",
+      "tokenHash": "cc6d4ce4eca224cee386001cf098f6044ac5f36ebe0c63016af70fe68d5f2fac",
+      "tokenPrefix": "LMR_SEC_",
+      "tokenVersion": 1,
+      "isCurrent": true,
+      "status": "active",
+      "issuedAt": "2026-11-23T00:27:08.982Z",
       "verificationCount": 0
     }
   ],
@@ -414,6 +461,84 @@
       "validUntil": "2027-11-12T22:46:14.784Z",
       "status": "available",
       "createdAt": "2026-11-11T22:46:14.784Z"
+    },
+    {
+      "id": "ent_5ab205e7e491",
+      "cardId": "crd_24ee623053525d77",
+      "benefitId": "ben_cd8d804bb7c9",
+      "benefitName": "Prévente Privée Exclusive",
+      "benefitType": "private_presale",
+      "quantity": 10,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-23T00:27:08.981Z",
+      "validUntil": "2029-11-25T00:27:08.981Z",
+      "status": "available",
+      "createdAt": "2026-11-23T00:27:08.981Z"
+    },
+    {
+      "id": "ent_5b6cafd7b4ed",
+      "cardId": "crd_24ee623053525d77",
+      "benefitId": "ben_29e64741a179",
+      "benefitName": "Coupe-File & Accueil Prioritaire",
+      "benefitType": "priority_access",
+      "quantity": 50,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-23T00:27:08.981Z",
+      "validUntil": "2029-11-25T00:27:08.981Z",
+      "status": "available",
+      "createdAt": "2026-11-23T00:27:08.981Z"
+    },
+    {
+      "id": "ent_4fe52478af43",
+      "cardId": "crd_24ee623053525d77",
+      "benefitId": "ben_76eaadf625ca",
+      "benefitName": "Accès VIP & Espaces Réservés",
+      "benefitType": "vip_lounge",
+      "quantity": 20,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-23T00:27:08.981Z",
+      "validUntil": "2029-11-25T00:27:08.981Z",
+      "status": "available",
+      "createdAt": "2026-11-23T00:27:08.981Z"
+    },
+    {
+      "id": "ent_687353cde02d",
+      "cardId": "crd_24ee623053525d77",
+      "benefitId": "ben_da9fe6d59dd4",
+      "benefitName": "Expérience Rencontre Artistes & Immersion Scénique",
+      "benefitType": "artist_experience",
+      "quantity": 2,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-23T00:27:08.981Z",
+      "validUntil": "2029-11-25T00:27:08.981Z",
+      "status": "available",
+      "createdAt": "2026-11-23T00:27:08.981Z"
+    },
+    {
+      "id": "ent_0a04a39aedb3",
+      "cardId": "crd_24ee623053525d77",
+      "benefitId": "ben_644ffed3123a",
+      "benefitName": "Tarif Préférentiel Membre (-15%)",
+      "benefitType": "preferential_rate",
+      "quantity": 100,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-23T00:27:08.981Z",
+      "validUntil": "2029-11-25T00:27:08.981Z",
+      "status": "available",
+      "createdAt": "2026-11-23T00:27:08.981Z"
+    },
+    {
+      "id": "ent_188c605e522b",
+      "cardId": "crd_24ee623053525d77",
+      "benefitId": "ben_e4a5bd35b601",
+      "benefitName": "Coffret Physique Collector & Surprise Annuelle",
+      "benefitType": "gift_surprise",
+      "quantity": 1,
+      "usedQuantity": 0,
+      "validFrom": "2026-11-23T00:27:08.981Z",
+      "validUntil": "2029-11-25T00:27:08.981Z",
+      "status": "available",
+      "createdAt": "2026-11-23T00:27:08.981Z"
     }
   ],
   "redemptions": [],
@@ -512,6 +637,37 @@
       "approvedAt": "2026-11-11T22:46:14.784Z",
       "createdAt": "2026-11-11T22:46:14.784Z",
       "updatedAt": "2026-11-11T22:46:14.784Z"
+    },
+    {
+      "id": "pord_3e9e04e12bde4514",
+      "cardId": "crd_24ee623053525d77",
+      "userId": "usr_ff9dd119966e",
+      "orderNumber": "ORD-PVC-0005",
+      "cardNumber": "LMR-2026-0005",
+      "cardholderName": "TEST LUMAREEL",
+      "cardholderEmail": "test.bc@lumareel.ci",
+      "cardholderPhone": "+2250700000000",
+      "editionName": "LUMARÉEL FOUNDERS EDITION",
+      "shippingAddress": {
+        "street": "Retrait en main propre / Salon VIP",
+        "city": "Abidjan",
+        "country": "Côte d’Ivoire"
+      },
+      "productionStatus": "approved",
+      "reprintCount": 0,
+      "reprintReasons": [],
+      "historyNotes": [
+        {
+          "timestamp": "2026-11-23T00:27:08.981Z",
+          "operator": "Système Billetterie LUMARÉEL",
+          "status": "approved",
+          "note": "Paiement confirmé. Carte physique approuvée pour production immédiate en atelier."
+        }
+      ],
+      "requestedAt": "2026-11-23T00:27:08.981Z",
+      "approvedAt": "2026-11-23T00:27:08.981Z",
+      "createdAt": "2026-11-23T00:27:08.981Z",
+      "updatedAt": "2026-11-23T00:27:08.981Z"
     }
   ],
   "inventory": [
@@ -520,14 +676,14 @@
       "itemType": "blank_pvc_card",
       "sku": "PVC-CR80-BLK-MATTE",
       "totalQuantity": 250,
-      "reservedQuantity": 2,
-      "availableQuantity": 248,
+      "reservedQuantity": 3,
+      "availableQuantity": 247,
       "minThresholdAlert": 20,
       "unit": "cartes",
       "notes": "PVC vierge noir mat teinté dans la masse pour gravure & impression recto/verso.",
       "id": "inv_fbca272c0863",
       "lastRestockedAt": "2026-11-10T14:33:27.392Z",
-      "updatedAt": "2026-11-11T22:46:14.784Z"
+      "updatedAt": "2026-11-23T00:27:08.981Z"
     },
     {
       "itemName": "Ruban Doré Chaud Métallique (Gold Foil)",
@@ -776,6 +932,19 @@
       "actorId": "SYSTEM",
       "actionType": "CARD_ISSUED",
       "entityType": "membership_card",
+      "entityId": "crd_24ee623053525d77",
+      "details": {
+        "cardNumber": "LMR-2026-0005",
+        "cardholderName": "TEST LUMAREEL",
+        "sequence": 5
+      },
+      "id": "mev_48c34ccb79f8",
+      "createdAt": "2026-11-23T00:27:08.982Z"
+    },
+    {
+      "actorId": "SYSTEM",
+      "actionType": "CARD_ISSUED",
+      "entityType": "membership_card",
       "entityId": "crd_0e5c897fd878946e",
       "details": {
         "cardNumber": "LMR-2026-0004",
@@ -840,5 +1009,5 @@
       "createdAt": "2026-11-10T14:09:37.497Z"
     }
   ],
-  "lastAssignedSequence": 4
+  "lastAssignedSequence": 5
 }

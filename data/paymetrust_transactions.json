@@ -1,1 +1,25 @@
-[]
+[
+  {
+    "id": "pmt_6f3086c90a51746a",
+    "reference": "PMT-CARD-D6173EA8",
+    "kind": "membership_card",
+    "orderId": "mb_2ef0151e0ba1",
+    "amount": 50000,
+    "currency": "XOF",
+    "channel": "wave",
+    "customerName": "TEST LUMAREEL",
+    "customerEmail": "test.bc@lumareel.ci",
+    "customerPhone": "+2250700000000",
+    "status": "SUCCESS",
+    "environment": "sandbox",
+    "mode": "awaiting_keys",
+    "metadata": {
+      "planId": "plan_founders_annual",
+      "userId": "usr_ff9dd119966e"
+    },
+    "createdAt": "2026-11-23T00:27:08.881Z",
+    "updatedAt": "2026-11-23T00:27:08.980Z",
+    "providerTransactionId": "pmt_preview_1795393628980",
+    "paidAt": "2026-11-23T00:27:08.980Z"
+  }
+]

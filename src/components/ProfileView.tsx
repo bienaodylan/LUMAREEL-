@@ -151,7 +151,7 @@ export const ProfileView: React.FC = () => {
           <ChevronRight className="w-4 h-4 text-neutral-500" />
         </button>
 
-        {/* Ma LUMARÉEL CARD */}
+        {/* Ma LUMARÉEL Black Card */}
         <button
           type="button"
           onClick={() => setCurrentPage('card')}
@@ -162,9 +162,6 @@ export const ProfileView: React.FC = () => {
             <div>
               <span className="text-sm font-agrandir-bold text-white group-hover:text-[#d4af37] transition-colors block">
                 {t('profile.myCard')}
-              </span>
-              <span className="text-[10px] text-neutral-400 font-mono block">
-                {t('profile.myCardSub')}
               </span>
             </div>
           </div>

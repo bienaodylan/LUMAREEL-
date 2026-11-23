@@ -30,12 +30,12 @@ interface LumareelCardLandingPageProps {
 
 const CARD_COPY = {
   fr: {
-    eyebrow: 'LA CARTE NOIRE LUMARÉEL',
+    eyebrow: 'LUMARÉEL BLACK CARD',
     heroTitle1: 'VOS CONCERTS',
     heroTitle2: 'ENTRE VOS MAINS.',
     heroSub:
       'Coupe-file, parking réservé, premiers rangs VIP, boisson offerte, préventes, Meet & Greet et réductions partenaires — tout dans une seule carte.',
-    ctaPrimary: 'Prendre ma Black Card',
+    ctaPrimary: 'Prendre ma LUMARÉEL Black Card',
     ctaSecondary: 'Voir les 8 avantages',
     syncProof: (q: number) => `${q} cartes dispo · 8 avantages inclus`,
     flipHint: 'Touchez la carte pour la retourner',
@@ -96,7 +96,7 @@ const CARD_COPY = {
     // Section 4: Order
     ownKicker: 'SÉRIE LIMITÉE',
     ownTitle: 'Prenez la vôtre.',
-    ownDesc: 'Votre Black Card LUMARÉEL avec vos 8 avantages actifs tout de suite, valable 3 ans.',
+    ownDesc: 'Votre LUMARÉEL Black Card avec vos 8 avantages actifs tout de suite, valable 3 ans.',
     seeFront: 'Voir devant',
     seeBack: 'Voir derrière',
     flipAria: 'Retourner la carte',
@@ -109,7 +109,7 @@ const CARD_COPY = {
     perThreeYears: '3 Ans',
     freeShip: 'Livraison gratuite',
     boxMeta: (rem: number, q: number) => `Encore ${rem} dispo sur ${q} · Pass téléphone immédiat`,
-    getCardUpper: 'Commander ma Black Card',
+    getCardUpper: 'Commander ma LUMARÉEL Black Card',
     shipNote: 'Livrée en moins de 24h · Vos 8 avantages fonctionnent déjà sur téléphone.',
     // Footer
     footTag: 'La carte noire pour vivre tous vos concerts LUMARÉEL en VIP.',
@@ -127,14 +127,14 @@ const CARD_COPY = {
     footApply: 'Commander',
     footRights: '© 2026 LUMARÉEL CO.',
     footLoc: 'Abidjan · Live Network',
-    // Wizard
-    wizHeader: (s: number) => `COMMANDE · ÉTAPE ${s} / 5`,
+    // Wizard (4 steps: Name -> Contact/Delivery -> Payment -> Confirmation)
+    wizHeader: (s: number) => `COMMANDE · ÉTAPE ${s} / 4`,
     wizTitle: 'LUMARÉEL Black Card',
     wiz1Title: '1. Votre nom complet',
-    wiz1Sub: 'Pour lier votre Black Card à votre compte membre.',
+    wiz1Sub: 'Pour lier votre LUMARÉEL Black Card à votre compte membre.',
     wiz1Label: 'Nom complet *',
     wiz1Plan: 'Formule choisie',
-    wiz1PlanFallback: 'Black Card 3 Ans',
+    wiz1PlanFallback: 'LUMARÉEL Black Card 3 Ans',
     wiz1PlanDesc: 'Carte physique + Pass téléphone + Les 8 avantages inclus',
     wiz1Valid: '3 ans',
     wiz1Next: 'Continuer',
@@ -146,60 +146,50 @@ const CARD_COPY = {
     wiz2Address: 'Quartier / Adresse *',
     wiz2Back: 'Retour',
     wiz2Next: 'Continuer',
-    wiz3Title: '3. Vos goûts musicaux',
-    wiz3Sub: 'Pour recevoir les bonnes préventes et invitations Meet & Greet.',
-    wiz3Genre: 'Ce que vous aimez écouter',
-    wiz3Genres: [
-      { value: 'Afrobeats & Live Acoustic', label: 'Afrobeats & Live' },
-      { value: 'Jazz, Soul & R&B', label: 'Jazz, Soul & R&B' },
-      { value: 'Grands Concerts & Festivals', label: 'Grands Concerts & Festivals' },
-      { value: 'Loges VIP & Dégustations', label: 'Soirées VIP & Meet & Greet' },
-    ],
-    wiz3Ref: 'Code parrain (si vous en avez un)',
-    wiz3Next: 'Paiement',
-    wiz4Title: '4. Paiement rapide',
-    wiz4Sub: 'Votre pass et vos 8 avantages sont prêts dès que c’est validé.',
-    wiz4Methods: [
+    wiz3Title: '3. Paiement rapide',
+    wiz3Sub: 'Votre LUMARÉEL Black Card et vos 8 avantages sont prêts dès validation.',
+    wiz3Methods: [
       { id: 'wave', label: 'Wave', desc: '0% frais' },
       { id: 'orange_money', label: 'Orange Money', desc: 'Mobile' },
       { id: 'mtn_momo', label: 'MTN MoMo', desc: 'Rapide' },
       { id: 'djamo', label: 'Djamo', desc: 'Carte' },
       { id: 'card', label: 'Carte Bancaire', desc: 'Visa / MC' },
     ],
-    wiz4Membership: 'Black Card 3 Ans (8 avantages)',
-    wiz4CardDelivery: 'Livraison (< 24h)',
-    wiz4Included: 'Gratuite',
-    wiz4Bonus: 'Rafraîchissement & avantages',
-    wiz4BonusVal: 'Inclus',
-    wiz4Total: 'Total à payer',
-    wiz4Submitting: 'Validation...',
-    wiz4Submit: 'Valider et payer',
-    wiz5Kicker: 'C’EST TOUT BON !',
-    wiz5Title: 'BIENVENUE AU CLUB',
-    wiz5Desc: (num: string) =>
-      `Votre référence membre : ${num}. Votre pass et tous vos 8 avantages sont déjà actifs.`,
-    wiz5Holder: 'Titulaire',
-    wiz5Number: 'Référence',
-    wiz5Box: 'Livraison',
-    wiz5Prep: 'En moins de 24h',
-    wiz5Cta: 'Voir mon Pass',
+    wiz3Membership: 'LUMARÉEL Black Card 3 Ans (8 avantages)',
+    wiz3CardDelivery: 'Livraison (< 24h)',
+    wiz3Included: 'Gratuite',
+    wiz3Bonus: 'Rafraîchissement & avantages',
+    wiz3BonusVal: 'Inclus',
+    wiz3Total: 'Total à payer',
+    wiz3Submitting: 'Validation...',
+    wiz3Submit: 'Valider et payer',
+    wiz4Kicker: 'C’EST TOUT BON !',
+    wiz4Title: 'BIENVENUE AU CLUB',
+    wiz4Desc: (num: string) =>
+      `Votre référence membre : ${num}. Votre LUMARÉEL Black Card est déjà active.`,
+    wiz4Holder: 'Titulaire',
+    wiz4Number: 'Référence',
+    wiz4Box: 'Livraison',
+    wiz4Prep: 'En moins de 24h',
+    wiz4Cta: 'Voir ma LUMARÉEL Black Card',
     wizMinimize: 'Réduire',
     wizResume: 'Reprendre',
     wizCancel: 'Annuler la commande',
     wizMissingName: 'Entrez votre nom complet pour continuer.',
     wizMissingContact: 'Entrez votre e-mail et votre numéro de téléphone.',
+    wizInvalidEmail: 'Entrez une adresse e-mail valide.',
     toastMissing: 'Mettez votre nom complet et votre e-mail.',
-    toastOrderErr: 'Impossible de valider votre commande.',
+    toastOrderErr: 'Impossible de valider votre commande pour le moment. Réessayez.',
     toastActivated: 'Votre LUMARÉEL Black Card est prête.',
-    toastGenericErr: 'Petit souci lors de la validation.',
+    toastGenericErr: 'Petit souci lors de la validation. Réessayez dans un instant.',
   },
   en: {
-    eyebrow: 'THE LUMARÉEL BLACK CARD',
+    eyebrow: 'LUMARÉEL BLACK CARD',
     heroTitle1: 'YOUR CONCERTS',
     heroTitle2: 'IN YOUR HANDS.',
     heroSub:
-      'Skip the line, reserved parking, front-row VIP seats, free drink, presales, Meet & Greet, and partner discounts — all in one black card.',
-    ctaPrimary: 'Get Your Black Card',
+      'Skip the line, reserved parking, front-row VIP seats, free drink, presales, Meet & Greet, and partner discounts — all in one LUMARÉEL Black Card.',
+    ctaPrimary: 'Get My LUMARÉEL Black Card',
     ctaSecondary: 'See all 8 perks',
     syncProof: (q: number) => `${q} cards available · 8 perks included`,
     flipHint: 'Tap card to flip',
@@ -273,10 +263,10 @@ const CARD_COPY = {
     perThreeYears: '3 Years',
     freeShip: 'Free delivery',
     boxMeta: (rem: number, q: number) => `${rem} / ${q} remaining · Instant digital pass`,
-    getCardUpper: 'Order My Black Card',
+    getCardUpper: 'Order My LUMARÉEL Black Card',
     shipNote: 'Delivered in under 24h · All 8 perks work right away on your phone.',
     // Footer
-    footTag: 'The black card to experience every LUMARÉEL concert in VIP.',
+    footTag: 'The LUMARÉEL Black Card to experience every concert in VIP.',
     footProd: 'The Card',
     footCard: 'Back to top',
     footOrders: 'My Orders',
@@ -291,14 +281,14 @@ const CARD_COPY = {
     footApply: 'Order now',
     footRights: '© 2026 LUMARÉEL CO.',
     footLoc: 'Abidjan · Live Network',
-    // Wizard
-    wizHeader: (s: number) => `ORDER · STEP ${s} / 5`,
+    // Wizard (4 steps)
+    wizHeader: (s: number) => `ORDER · STEP ${s} / 4`,
     wizTitle: 'LUMARÉEL Black Card',
     wiz1Title: '1. Your Full Name',
-    wiz1Sub: 'To link your Black Card to your member account.',
+    wiz1Sub: 'To link your LUMARÉEL Black Card to your member account.',
     wiz1Label: 'Full name *',
     wiz1Plan: 'Selected Plan',
-    wiz1PlanFallback: '3-Year Black Card',
+    wiz1PlanFallback: 'LUMARÉEL Black Card 3 Years',
     wiz1PlanDesc: 'Physical card + Digital pass + All 8 perks included',
     wiz1Valid: '3 years',
     wiz1Next: 'Continue',
@@ -310,52 +300,42 @@ const CARD_COPY = {
     wiz2Address: 'Delivery Address *',
     wiz2Back: 'Back',
     wiz2Next: 'Continue',
-    wiz3Title: '3. Music Preferences',
-    wiz3Sub: 'So we send you the right presales and Meet & Greet invites.',
-    wiz3Genre: 'What you love listening to',
-    wiz3Genres: [
-      { value: 'Afrobeats & Live Acoustic', label: 'Afrobeats & Live' },
-      { value: 'Jazz, Soul & R&B', label: 'Jazz, Soul & R&B' },
-      { value: 'Grands Concerts & Festivals', label: 'Concerts & Festivals' },
-      { value: 'Loges VIP & Dégustations', label: 'VIP & Meet & Greet' },
-    ],
-    wiz3Ref: 'Referral code (optional)',
-    wiz3Next: 'Payment',
-    wiz4Title: '4. Fast Payment',
-    wiz4Sub: 'Your pass and all 8 perks activate as soon as you confirm.',
-    wiz4Methods: [
+    wiz3Title: '3. Fast Payment',
+    wiz3Sub: 'Your LUMARÉEL Black Card activates as soon as you confirm.',
+    wiz3Methods: [
       { id: 'wave', label: 'Wave', desc: '0% fee' },
       { id: 'orange_money', label: 'Orange Money', desc: 'Mobile' },
       { id: 'mtn_momo', label: 'MTN MoMo', desc: 'Instant' },
       { id: 'djamo', label: 'Djamo', desc: 'Card' },
       { id: 'card', label: 'Bank Card', desc: 'Visa / MC' },
     ],
-    wiz4Membership: '3-Year Black Card (8 perks)',
-    wiz4CardDelivery: 'Delivery (< 24h)',
-    wiz4Included: 'Free',
-    wiz4Bonus: 'Drink & VIP perks',
-    wiz4BonusVal: 'Included',
-    wiz4Total: 'Total',
-    wiz4Submitting: 'Activating...',
-    wiz4Submit: 'Confirm & Pay',
-    wiz5Kicker: 'ALL SET!',
-    wiz5Title: 'WELCOME TO THE CLUB',
-    wiz5Desc: (num: string) =>
-      `Your member reference: ${num}. Your digital pass and all 8 perks are already active.`,
-    wiz5Holder: 'Holder',
-    wiz5Number: 'Reference',
-    wiz5Box: 'Delivery',
-    wiz5Prep: 'Under 24h',
-    wiz5Cta: 'Open My Pass',
+    wiz3Membership: 'LUMARÉEL Black Card 3 Years (8 perks)',
+    wiz3CardDelivery: 'Delivery (< 24h)',
+    wiz3Included: 'Free',
+    wiz3Bonus: 'Drink & VIP perks',
+    wiz3BonusVal: 'Included',
+    wiz3Total: 'Total',
+    wiz3Submitting: 'Activating...',
+    wiz3Submit: 'Confirm & Pay',
+    wiz4Kicker: 'ALL SET!',
+    wiz4Title: 'WELCOME TO THE CLUB',
+    wiz4Desc: (num: string) =>
+      `Your member reference: ${num}. Your LUMARÉEL Black Card is now active.`,
+    wiz4Holder: 'Holder',
+    wiz4Number: 'Reference',
+    wiz4Box: 'Delivery',
+    wiz4Prep: 'Under 24h',
+    wiz4Cta: 'Open My LUMARÉEL Black Card',
     wizMinimize: 'Minimize',
     wizResume: 'Resume',
     wizCancel: 'Cancel order',
     wizMissingName: 'Please enter your full name to continue.',
     wizMissingContact: 'Please enter your email and mobile number.',
+    wizInvalidEmail: 'Please enter a valid email address.',
     toastMissing: 'Please enter your full name and email address.',
-    toastOrderErr: 'Unable to process your card order.',
+    toastOrderErr: 'Unable to process your card order right now. Please try again.',
     toastActivated: 'Your LUMARÉEL Black Card is ready.',
-    toastGenericErr: 'Error processing request.',
+    toastGenericErr: 'Error processing your order. Please try again.',
   },
 } as const;
 
@@ -380,17 +360,15 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   // Image fallback tracking
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
 
-  // Multi-step Order Wizard
+  // Multi-step Order Wizard (4 clean steps: Name -> Contact -> Payment -> Done)
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isWizardMinimized, setIsWizardMinimized] = useState(false);
-  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
   const [applicantName, setApplicantName] = useState(currentUser?.name || '');
   const [applicantEmail, setApplicantEmail] = useState(currentUser?.email || '');
   const [applicantPhone, setApplicantPhone] = useState('');
   const [applicantCity, setApplicantCity] = useState('Abidjan');
   const [applicantAddress, setApplicantAddress] = useState('Cocody Danga');
-  const [musicInterest, setMusicInterest] = useState('Afrobeats & Live Acoustic');
-  const [referralCode, setReferralCode] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<
     'wave' | 'orange_money' | 'mtn_momo' | 'djamo' | 'card'
   >('wave');
@@ -399,6 +377,16 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     card: MembershipCard;
     qrDataUrl: string;
   } | null>(null);
+
+  const parseJsonSafely = async (res: Response): Promise<any | null> => {
+    try {
+      const text = await res.text();
+      if (!text || !text.trim()) return null;
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
+  };
 
   useEffect(() => {
     fetchEditionAndPlans();
@@ -413,13 +401,15 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     }
   }, [currentUser]);
 
-  // Freeze background page completely while the Black Card order modal is expanded
+  // Freeze background page cleanly while the LUMARÉEL Black Card order modal is expanded
   useEffect(() => {
     if (!isWizardOpen || isWizardMinimized || typeof window === 'undefined') return;
 
     const scrollY = window.scrollY || window.pageYOffset || 0;
     const html = document.documentElement;
     const body = document.body;
+    const isFinePointer = window.matchMedia?.('(pointer: fine)')?.matches ?? false;
+    const scrollbarWidth = Math.max(0, window.innerWidth - html.clientWidth);
 
     const prevHtmlOverflow = html.style.overflow;
     const prevHtmlOverscroll = html.style.overscrollBehavior;
@@ -430,16 +420,24 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     const prevBodyWidth = body.style.width;
     const prevBodyOverflow = body.style.overflow;
     const prevBodyOverscroll = body.style.overscrollBehavior;
+    const prevBodyPaddingRight = body.style.paddingRight;
 
     html.style.overflow = 'hidden';
     html.style.overscrollBehavior = 'none';
-    body.style.position = 'fixed';
-    body.style.top = `-${scrollY}px`;
-    body.style.left = '0';
-    body.style.right = '0';
-    body.style.width = '100%';
     body.style.overflow = 'hidden';
     body.style.overscrollBehavior = 'none';
+
+    if (isFinePointer) {
+      if (scrollbarWidth > 0) {
+        body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+    } else {
+      body.style.position = 'fixed';
+      body.style.top = `-${scrollY}px`;
+      body.style.left = '0';
+      body.style.right = '0';
+      body.style.width = '100%';
+    }
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -460,7 +458,10 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       body.style.width = prevBodyWidth;
       body.style.overflow = prevBodyOverflow;
       body.style.overscrollBehavior = prevBodyOverscroll;
-      window.scrollTo(0, scrollY);
+      body.style.paddingRight = prevBodyPaddingRight;
+      if (!isFinePointer) {
+        window.scrollTo(0, scrollY);
+      }
     };
   }, [isWizardOpen, isWizardMinimized]);
 
@@ -468,8 +469,8 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     try {
       setLoading(true);
       const res = await fetch('/api/membership/editions');
-      const data = await res.json();
-      if (data.success) {
+      const data = await parseJsonSafely(res);
+      if (data?.success) {
         setEdition(data.activeEdition || data.editions?.[0] || null);
         setPlans(data.plans || []);
         if (data.plans?.length > 0) {
@@ -506,8 +507,13 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   };
 
   const handleWizardNextStep2 = () => {
-    if (!applicantEmail.trim() || !applicantPhone.trim()) {
+    const cleanEmail = applicantEmail.trim();
+    if (!cleanEmail || !applicantPhone.trim()) {
       showToast(c.wizMissingContact, 'error');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      showToast(c.wizInvalidEmail, 'error');
       return;
     }
     setWizardStep(3);
@@ -515,8 +521,16 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
   const handleCompleteAdmission = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!applicantName.trim() || !applicantEmail.trim()) {
+    const cleanName = applicantName.trim();
+    const cleanEmail = applicantEmail.trim().toLowerCase();
+    const cleanPhone = applicantPhone.trim();
+
+    if (!cleanName || !cleanEmail) {
       showToast(c.toastMissing, 'error');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      showToast(c.wizInvalidEmail, 'error');
       return;
     }
 
@@ -527,58 +541,92 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
         street: applicantAddress.trim() || 'Abidjan',
         city: applicantCity.trim() || 'Abidjan',
         country: 'Côte d’Ivoire',
-        recipientName: applicantName.trim(),
+        recipientName: cleanName,
+      };
+
+      const orderPayload = {
+        kind: 'membership_card',
+        planId,
+        channel: paymentMethod,
+        customerName: cleanName,
+        customerEmail: cleanEmail,
+        customerPhone: cleanPhone,
+        shippingAddress,
+        userId: currentUser?.id,
       };
 
       // 1. Initier la session de paiement PayMeTrust côté serveur
       const initRes = await fetch('/api/payments/paymetrust/initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kind: 'membership_card',
-          planId,
-          channel: paymentMethod,
-          customerName: applicantName.trim(),
-          customerEmail: applicantEmail.trim(),
-          customerPhone: applicantPhone.trim(),
-          shippingAddress,
-          userId: currentUser?.id,
-        }),
+        body: JSON.stringify(orderPayload),
       });
-      const initData = await initRes.json();
-      if (!initRes.ok || !initData.success || !initData.transaction) {
-        throw new Error(initData.error || c.toastOrderErr);
+      const initData = await parseJsonSafely(initRes);
+
+      let issuedCard: MembershipCard | null = null;
+
+      if (initRes.ok && initData?.success && initData?.transaction) {
+        const tx = initData.transaction;
+
+        // 2a. Mode live PayMeTrust : redirection sécurisée vers la page de paiement officielle
+        if (tx.mode === 'live' && typeof tx.paymentUrl === 'string' && /^https?:\/\//i.test(tx.paymentUrl)) {
+          window.location.assign(tx.paymentUrl);
+          return;
+        }
+
+        // 2b. Mode pré-configuration : validation côté serveur
+        const confirmRes = await fetch('/api/payments/paymetrust/confirm-preview', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reference: tx.reference,
+            previewPayload: orderPayload,
+          }),
+        });
+        const confirmData = await parseJsonSafely(confirmRes);
+        if (!confirmRes.ok || !confirmData?.success || !confirmData?.fulfillment?.card) {
+          throw new Error(confirmData?.error || c.toastOrderErr);
+        }
+        issuedCard = confirmData.fulfillment.card;
+      } else if (initData?.error) {
+        throw new Error(initData.error);
+      } else {
+        // Fallback sécurisé si la route PayMeTrust n'est pas montée sur cet environnement
+        const fallbackRes = await fetch('/api/membership/order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: currentUser?.id,
+            planId,
+            fullName: cleanName,
+            email: cleanEmail,
+            phone: cleanPhone,
+            paymentMethod,
+            shippingAddress,
+          }),
+        });
+        const fallbackData = await parseJsonSafely(fallbackRes);
+        if (!fallbackRes.ok || !fallbackData?.success || !fallbackData?.card) {
+          throw new Error(fallbackData?.error || c.toastOrderErr);
+        }
+        issuedCard = fallbackData.card;
       }
 
-      const tx = initData.transaction;
-
-      // 2a. Mode live PayMeTrust : redirection vers la page de paiement officielle
-      if (tx.mode === 'live' && tx.paymentUrl) {
-        window.location.assign(tx.paymentUrl);
-        return;
+      if (!issuedCard) {
+        throw new Error(c.toastOrderErr);
       }
 
-      // 2b. Mode pré-configuration (clés PayMeTrust pas encore renseignées) : validation côté serveur
-      const confirmRes = await fetch('/api/payments/paymetrust/confirm-preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference: tx.reference }),
-      });
-      const confirmData = await confirmRes.json();
-      if (!confirmRes.ok || !confirmData.success || !confirmData.fulfillment?.card) {
-        throw new Error(confirmData.error || c.toastOrderErr);
-      }
-
-      const issuedCard: MembershipCard = confirmData.fulfillment.card;
       setIssuedResult({ card: issuedCard, qrDataUrl: '' });
-      setWizardStep(5);
+      setWizardStep(4);
       showToast(c.toastActivated, 'success');
       fetchEditionAndPlans();
       if (onCardIssued) {
         onCardIssued(issuedCard);
       }
     } catch (err: any) {
-      showToast(err.message || c.toastGenericErr, 'error');
+      const rawMsg = typeof err?.message === 'string' ? err.message : '';
+      const isPatternError = /expected pattern|unexpected token|json/i.test(rawMsg);
+      showToast(isPatternError || !rawMsg ? c.toastOrderErr : rawMsg, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -609,7 +657,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
         : c.perThreeYears;
 
   return (
-    <div className="w-full min-h-screen overflow-x-hidden bg-[#050505] text-[#F2F2F2] font-agrandir-regular selection:bg-[#C8B282] selection:text-black">
+    <div className="w-full min-h-screen bg-[#050505] text-[#F2F2F2] font-agrandir-regular selection:bg-[#C8B282] selection:text-black">
       {/* =================================================================== */}
       {/* 1. HERO — FULL-BLEED IMAGE + TEXT OVERLAY + ANIMATED 3D BLACK CARD  */}
       {/* =================================================================== */}
@@ -1071,8 +1119,8 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-5 gap-2 mt-4">
-                      {[1, 2, 3, 4, 5].map((s) => (
+                    <div className="grid grid-cols-4 gap-2 mt-4">
+                      {[1, 2, 3, 4].map((s) => (
                         <div
                           key={s}
                           className={`h-1 rounded-full transition-all duration-300 ${
@@ -1200,57 +1248,19 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     )}
 
                     {wizardStep === 3 && (
-                      <div className="space-y-5">
+                      <form
+                        id="black-card-checkout-form"
+                        noValidate
+                        onSubmit={handleCompleteAdmission}
+                        className="space-y-5"
+                      >
                         <div>
                           <h4 className="text-base font-agrandir-bold text-white uppercase">{c.wiz3Title}</h4>
                           <p className="text-xs text-neutral-400 font-light mt-1">{c.wiz3Sub}</p>
                         </div>
 
-                        <div className="space-y-2">
-                          <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
-                            {c.wiz3Genre}
-                          </label>
-                          <select
-                            value={musicInterest}
-                            onChange={(e) => setMusicInterest(e.target.value)}
-                            className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-sm outline-none cursor-pointer"
-                          >
-                            {c.wiz3Genres.map((g) => (
-                              <option key={g.value} value={g.value}>
-                                {g.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
-                            {c.wiz3Ref}
-                          </label>
-                          <input
-                            type="text"
-                            value={referralCode}
-                            onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                            placeholder="BLACK-VIP-2026"
-                            className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white font-mono text-sm uppercase tracking-wider outline-none"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {wizardStep === 4 && (
-                      <form
-                        id="black-card-checkout-form"
-                        onSubmit={handleCompleteAdmission}
-                        className="space-y-5"
-                      >
-                        <div>
-                          <h4 className="text-base font-agrandir-bold text-white uppercase">{c.wiz4Title}</h4>
-                          <p className="text-xs text-neutral-400 font-light mt-1">{c.wiz4Sub}</p>
-                        </div>
-
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                          {c.wiz4Methods.map((m) => (
+                          {c.wiz3Methods.map((m) => (
                             <button
                               key={m.id}
                               type="button"
@@ -1272,26 +1282,26 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
                         <div className="py-3 border-y border-white/10 space-y-2 text-xs">
                           <div className="flex justify-between gap-2 text-neutral-400">
-                            <span>{c.wiz4Membership}</span>
+                            <span>{c.wiz3Membership}</span>
                             <span className="font-mono text-white tabular-nums shrink-0">{formattedPrice}</span>
                           </div>
                           <div className="flex justify-between gap-2 text-neutral-400">
-                            <span>{c.wiz4CardDelivery}</span>
-                            <span className="text-[#B8F249] font-mono shrink-0">{c.wiz4Included}</span>
+                            <span>{c.wiz3CardDelivery}</span>
+                            <span className="text-[#B8F249] font-mono shrink-0">{c.wiz3Included}</span>
                           </div>
                           <div className="flex justify-between gap-2 text-neutral-400">
-                            <span>{c.wiz4Bonus}</span>
-                            <span className="text-[#C8B282] font-mono shrink-0">{c.wiz4BonusVal}</span>
+                            <span>{c.wiz3Bonus}</span>
+                            <span className="text-[#C8B282] font-mono shrink-0">{c.wiz3BonusVal}</span>
                           </div>
                           <div className="border-t border-white/10 pt-2 flex justify-between gap-2 font-agrandir-extrabold text-sm text-white">
-                            <span>{c.wiz4Total}</span>
+                            <span>{c.wiz3Total}</span>
                             <span className="text-[#C8B282] font-mono tabular-nums shrink-0">{formattedPrice}</span>
                           </div>
                         </div>
                       </form>
                     )}
 
-                    {wizardStep === 5 && issuedResult && (
+                    {wizardStep === 4 && issuedResult && (
                       <div className="text-center space-y-5 py-2">
                         <div className="w-14 h-14 rounded-full bg-[#B8F249]/15 text-[#B8F249] border border-[#B8F249]/40 flex items-center justify-center mx-auto">
                           <CheckCircle2 className="w-7 h-7" />
@@ -1299,30 +1309,30 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
                         <div className="space-y-2">
                           <span className="text-[10px] font-mono tracking-widest text-[#C8B282] uppercase">
-                            {c.wiz5Kicker}
+                            {c.wiz4Kicker}
                           </span>
-                          <h3 className="text-2xl font-agrandir-extrabold uppercase text-white">{c.wiz5Title}</h3>
+                          <h3 className="text-2xl font-agrandir-extrabold uppercase text-white">{c.wiz4Title}</h3>
                           <p className="text-xs text-neutral-300 font-light max-w-md mx-auto">
-                            {c.wiz5Desc(issuedResult.card.cardNumber)}
+                            {c.wiz4Desc(issuedResult.card.cardNumber)}
                           </p>
                         </div>
 
                         <div className="py-3 border-y border-white/10 max-w-md mx-auto text-left space-y-2 text-xs">
                           <div className="flex justify-between gap-2">
-                            <span className="text-neutral-400">{c.wiz5Holder}</span>
+                            <span className="text-neutral-400">{c.wiz4Holder}</span>
                             <strong className="text-white uppercase font-mono truncate">
                               {issuedResult.card.cardholderName}
                             </strong>
                           </div>
                           <div className="flex justify-between gap-2">
-                            <span className="text-neutral-400">{c.wiz5Number}</span>
+                            <span className="text-neutral-400">{c.wiz4Number}</span>
                             <strong className="text-[#C8B282] font-mono tabular-nums">
                               {issuedResult.card.cardNumber}
                             </strong>
                           </div>
                           <div className="flex justify-between gap-2">
-                            <span className="text-neutral-400">{c.wiz5Box}</span>
-                            <span className="text-[#B8F249] font-mono">{c.wiz5Prep}</span>
+                            <span className="text-neutral-400">{c.wiz4Box}</span>
+                            <span className="text-[#B8F249] font-mono">{c.wiz4Prep}</span>
                           </div>
                         </div>
                       </div>
@@ -1376,27 +1386,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         </button>
 
                         <button
-                          type="button"
-                          onClick={() => setWizardStep(4)}
-                          className="flex-1 sm:flex-none min-h-[50px] px-7 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_6px_24px_rgba(255,255,255,0.22)] cursor-pointer transition-colors"
-                        >
-                          <span>{c.wiz3Next}</span>
-                          <ChevronRight className="w-4 h-4 shrink-0" />
-                        </button>
-                      </div>
-                    )}
-
-                    {wizardStep === 4 && (
-                      <div className="flex items-center justify-between gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setWizardStep(3)}
-                          className="min-h-[48px] px-4 rounded-full border border-white/15 text-xs font-agrandir-semibold text-neutral-300 hover:text-white hover:border-white/30 cursor-pointer transition-colors shrink-0"
-                        >
-                          {c.wiz2Back}
-                        </button>
-
-                        <button
                           type="submit"
                           form="black-card-checkout-form"
                           disabled={isSubmitting}
@@ -1405,11 +1394,11 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                           {isSubmitting ? (
                             <>
                               <RotateCw className="w-4 h-4 animate-spin text-black shrink-0" />
-                              <span>{c.wiz4Submitting}</span>
+                              <span>{c.wiz3Submitting}</span>
                             </>
                           ) : (
                             <>
-                              <span>{c.wiz4Submit}</span>
+                              <span>{c.wiz3Submit}</span>
                               <Check className="w-4 h-4 text-black shrink-0" />
                             </>
                           )}
@@ -1417,7 +1406,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                       </div>
                     )}
 
-                    {wizardStep === 5 && issuedResult && (
+                    {wizardStep === 4 && issuedResult && (
                       <div className="flex items-center justify-center">
                         <button
                           type="button"
@@ -1428,7 +1417,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                           }}
                           className="w-full sm:w-auto min-h-[50px] px-8 py-3.5 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs uppercase tracking-wider shadow-[0_6px_24px_rgba(255,255,255,0.22)] cursor-pointer transition-colors"
                         >
-                          {c.wiz5Cta}
+                          {c.wiz4Cta}
                         </button>
                       </div>
                     )}

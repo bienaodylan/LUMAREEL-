@@ -210,7 +210,7 @@ export class MembershipService {
     const foundersPlan: MembershipPlan = {
       id: planId,
       editionId,
-      name: 'Black Card 3 Ans',
+      name: 'LUMARÉEL Black Card 3 Ans',
       description:
         'Accès complet 3 ans : carte noire officielle LUMARÉEL, accès prioritaire, parking réservé, placement VIP aux premiers rangs, rafraîchissement offert, préventes, Meet & Greet et réductions partenaires.',
       price: 50000,
