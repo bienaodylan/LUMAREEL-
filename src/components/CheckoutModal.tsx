@@ -988,7 +988,7 @@ export const CheckoutModal: React.FC = () => {
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: 'wave', label: 'Wave', logo: 'https://cdn.simpleicons.org/wave/1A73E8', fallback: 'WAVE' },
+                    { id: 'wave', label: 'Wave', logo: 'https://arcencielconsultingpro.com/gallery/upscalemedia-transformed%202.jpg', fallback: 'WAVE' },
                     { id: 'orange_money', label: 'Orange Money', logo: 'https://cdn.simpleicons.org/orange/FF7900', fallback: 'ORANGE' },
                     { id: 'mtn_momo', label: 'MTN MoMo', logo: 'https://cdn.simpleicons.org/mtn/FFCC00', fallback: 'MTN' },
                     { id: 'moov_money', label: 'Moov Money', logo: 'https://cdn.simpleicons.org/moov/0065B3', fallback: 'MOOV' },
