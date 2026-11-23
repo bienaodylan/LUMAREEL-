@@ -266,6 +266,11 @@ export const CheckoutModal: React.FC = () => {
   };
 
   const handleTriggerPayment = async () => {
+    if (!currentUser || !currentUser.emailVerified) {
+      setIsAuthModalOpen(true);
+      showToast(language === 'en' ? 'Sign in with a verified email to purchase tickets.' : 'Connectez-vous avec un e-mail vérifié pour acheter des billets.', 'error');
+      return;
+    }
     if (paymentMethod !== 'card') {
       const pPhone = paymentPhoneNumber.trim();
       if (!pPhone) {
