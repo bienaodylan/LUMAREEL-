@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useApp } from '../context/AppContext';
+import { useApp } from '../context/AppContext';\nimport { supabase } from '../lib/supabaseClient';
 import { MembershipEdition, MembershipPlan, MembershipCard } from '../types';
 import { saveStoredMemberCard } from '../utils/memberCardStorage';
 import {
