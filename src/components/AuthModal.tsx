@@ -54,7 +54,7 @@ export const AuthModal: React.FC = () => {
       return;
     }
 
-    if (!password || password.length < 6) {
+    if (!password || password.length < 8) {
       showToast(t('auth.invalidPassword'), 'error');
       return;
     }
