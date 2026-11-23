@@ -154,7 +154,7 @@ const CARD_COPY = {
       { id: 'wave', label: 'Wave', desc: '0% frais' },
       { id: 'orange_money', label: 'Orange Money', desc: 'Mobile' },
       { id: 'mtn_momo', label: 'MTN MoMo', desc: 'Rapide' },
-      { id: 'djamo', label: 'Djamo', desc: 'Carte' },
+      { id: 'moov_money', label: 'Moov Money', desc: 'Flooz' },
       { id: 'card', label: 'Carte Bancaire', desc: 'Visa / MC' },
     ],
     wiz3Membership: 'LUMARÉEL Black Card 3 Ans (8 avantages)',
@@ -308,7 +308,7 @@ const CARD_COPY = {
       { id: 'wave', label: 'Wave', desc: '0% fee' },
       { id: 'orange_money', label: 'Orange Money', desc: 'Mobile' },
       { id: 'mtn_momo', label: 'MTN MoMo', desc: 'Instant' },
-      { id: 'djamo', label: 'Djamo', desc: 'Card' },
+      { id: 'moov_money', label: 'Moov Money', desc: 'Flooz' },
       { id: 'card', label: 'Bank Card', desc: 'Visa / MC' },
     ],
     wiz3Membership: 'LUMARÉEL Black Card 3 Years (8 perks)',
@@ -372,7 +372,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const [applicantCity, setApplicantCity] = useState('Abidjan');
   const [applicantAddress, setApplicantAddress] = useState('Cocody Danga');
   const [paymentMethod, setPaymentMethod] = useState<
-    'wave' | 'orange_money' | 'mtn_momo' | 'djamo' | 'card'
+    'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'card'
   >('wave');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [issuedResult, setIssuedResult] = useState<{
@@ -1298,16 +1298,23 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                               key={m.id}
                               type="button"
                               onClick={() => setPaymentMethod(m.id as any)}
-                              className={`min-h-[64px] p-3 rounded-xl border text-left transition-colors cursor-pointer ${
+                              className={`min-h-[76px] p-3 rounded-xl border text-left transition-colors cursor-pointer ${
                                 paymentMethod === m.id
                                   ? 'bg-[#C8B282]/15 border-[#C8B282] text-white'
                                   : 'bg-white/5 border-white/10 text-neutral-400 hover:border-white/20'
                               }`}
                             >
-                              <CreditCard className="w-4 h-4 text-[#C8B282] mb-1" />
-                              <div className="font-agrandir-bold text-xs text-white uppercase truncate">
-                                {m.label}
+                              <div className="h-7 flex items-center justify-start gap-1.5 mb-1.5">
+                                {m.id === 'wave' && <img src="https://arcencielconsultingpro.com/gallery/upscalemedia-transformed%202.jpg" alt="Wave" className="h-6 w-auto max-w-[76px] object-contain" loading="eager" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                                {m.id === 'orange_money' && <img src="https://cdn.simpleicons.org/orange/FF7900" alt="Orange Money" className="h-6 w-auto max-w-[76px] object-contain" loading="eager" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                                {m.id === 'mtn_momo' && <img src="https://cdn.simpleicons.org/mtn/FFCC00" alt="MTN MoMo" className="h-6 w-auto max-w-[76px] object-contain" loading="eager" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                                {m.id === 'moov_money' && <img src="https://cdn.simpleicons.org/moov/0065B3" alt="Moov Money" className="h-6 w-auto max-w-[76px] object-contain" loading="eager" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                                {m.id === 'card' && <>
+                                  <img src="https://cdn.simpleicons.org/visa/1A1F71" alt="Visa" className="h-5 w-auto max-w-[42px] object-contain" loading="eager" />
+                                  <img src="https://cdn.simpleicons.org/mastercard/EB001B" alt="Mastercard" className="h-5 w-auto max-w-[34px] object-contain" loading="eager" />
+                                </>}
                               </div>
+                              <div className="font-agrandir-bold text-xs text-white uppercase truncate">{m.label}</div>
                               <div className="text-[10px] text-neutral-400 font-mono">{m.desc}</div>
                             </button>
                           ))}
