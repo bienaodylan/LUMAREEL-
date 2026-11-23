@@ -1,9 +1,8 @@
 name: LUMAREEL CI
 on:
   pull_request:
-    branches: [main]
   push:
-    branches: [main, 'fix/**']
+    branches: [main, 'fix/**', 'feat/**']
 jobs:
   validate:
     runs-on: ubuntu-latest
