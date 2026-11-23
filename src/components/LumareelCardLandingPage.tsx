@@ -581,7 +581,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
         customerEmail: cleanEmail,
         customerPhone: cleanPhone,
         shippingAddress,
-        userId: currentUser?.id,
+        userId: currentUser.id,
       };
 
       // 1. Initier la session de paiement PayMeTrust côté serveur
@@ -625,7 +625,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: currentUser?.id,
+            userId: currentUser.id,
             planId,
             fullName: cleanName,
             email: cleanEmail,
