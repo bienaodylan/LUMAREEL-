@@ -287,3 +287,9 @@ La migration `202611220001_filter_physical_nfc_consistency_audit.sql` ajoute le 
 Le RPC paginé historique `lumareel_audit_physical_nfc_consistency_page(p_limit,p_offset)` est conservé comme wrapper sans filtre pour compatibilité. Le endpoint admin existant accepte maintenant `issue_code` facultatif, validé côté API, et la console propose un filtre par type d'anomalie. Les réponses obsolètes de filtres précédents sont ignorées côté interface pour éviter qu'une requête lente remplace le filtre courant.
 
 Tests SQL catalogués : `supabase/tests/physical_card_nfc_audit_filter.sql` et `supabase/tests/physical_card_security_definer_search_path.sql`. À exécuter après les migrations sur une base non-production. Vérifier le total filtré, les pages, un code invalide (SQLSTATE 22023 / HTTP 400), l'accès non-super-admin (SQLSTATE 42501 / HTTP 403), ainsi que l'absence de références NFC opaques dans la réponse. Cette livraison n'applique aucune migration à Supabase.
+
+## 16. Pagination déterministe et paramètres d'audit NFC
+
+Le RPC filtré `lumareel_audit_physical_nfc_consistency_filtered_page` utilise un ordre stable incluant le code d'anomalie, la carte membre, le stock et le credential ; l'agrégation JSON conserve explicitement cet ordre. Cela réduit le risque de doublons ou de lignes manquantes entre pages lorsque plusieurs anomalies partagent des clés de tri.
+
+Le GET d'audit rejette les paramètres répétés `audit`, `limit`, `offset` et `issue_code` afin d'éviter les interprétations ambiguës. Les valeurs invalides restent refusées avant l'appel RPC. Aucun changement de données n'est effectué.
