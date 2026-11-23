@@ -711,6 +711,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         userId,
       } = body;
 
+      if (kind === 'membership_card') {
+        const auth = await getAuthenticatedUser(req);
+        if (!auth?.user?.email || !auth.user.email_confirmed_at) {
+          return res.status(401).json({ success: false, error: 'Compte authentifié avec e-mail vérifié requis pour commander une carte.' });
+        }
+        if (userId && userId !== auth.user.id) {
+          return res.status(403).json({ success: false, error: 'Le compte de commande ne correspond pas à la session authentifiée.' });
+        }
+      }
+
       const cleanName = String(customerName || '').trim();
       const cleanEmail = String(customerEmail || '').trim().toLowerCase();
       const cleanPhone = String(customerPhone || '').trim();
