@@ -54,19 +54,19 @@ export const ArchiveView: React.FC = () => {
       </div>
 
       {/* Main content container avec espacement ajusté */}
-      <div className="relative z-10 max-w-7xl mx-auto w-full px-6 sm:px-10 lg:px-12 pt-6 sm:pt-10 pb-6 sm:pb-8 flex-1">
+      <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-8 lg:px-12 pt-4 sm:pt-10 pb-6 sm:pb-8 flex-1">
         
         {/* Navigation & Section kicker */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between gap-3 mb-6">
           <button
             onClick={() => setCurrentPage('home')}
-            className="flex items-center gap-2 text-xs font-agrandir-semibold text-[#888] hover:text-white uppercase tracking-wider transition-colors cursor-pointer"
+            className="min-h-[44px] flex items-center gap-2 text-xs font-agrandir-semibold text-[#888] hover:text-white uppercase tracking-wider transition-colors cursor-pointer shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>{t('archive.backHome')}</span>
           </button>
 
-          <div className="text-[11px] font-agrandir-regular tracking-[0.25em] text-[#d4af37] uppercase">
+          <div className="text-[10px] sm:text-[11px] font-agrandir-regular tracking-[0.2em] text-[#d4af37] uppercase truncate">
             {t('archive.kicker')}
           </div>
         </div>
@@ -74,10 +74,10 @@ export const ArchiveView: React.FC = () => {
         {/* Hero headline matching exact typography:
             "Les scènes" in bold white sans + "qu'on a fait vibrer." in italic serif */}
         <div className="mb-4">
-          <h1 className="font-agrandir-extrabold text-5xl sm:text-7xl md:text-8xl tracking-tight text-white leading-[0.95] text-balance uppercase">
+          <h1 className="font-agrandir-extrabold text-4xl sm:text-6xl md:text-7xl tracking-tight text-white leading-[0.98] text-balance uppercase break-words">
             {t('archive.heroTitle1')}
           </h1>
-          <h2 className="font-editorial-italic font-normal text-5xl sm:text-7xl md:text-8xl text-[#F2F2F2] tracking-tight leading-[1.05] mt-1 text-balance">
+          <h2 className="font-editorial-italic font-normal text-4xl sm:text-6xl md:text-7xl text-[#F2F2F2] tracking-tight leading-[1.06] mt-1 text-balance break-words">
             {t('archive.heroTitle2')}
           </h2>
         </div>

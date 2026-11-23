@@ -74,14 +74,14 @@ export const ProfileView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-white font-agrandir-regular select-none pb-36 pt-6 sm:pt-10 max-w-2xl mx-auto px-4 sm:px-0">
+    <div className="min-h-screen w-full max-w-2xl mx-auto bg-transparent text-white font-agrandir-regular select-none pb-20 pt-4 sm:pt-10 px-4 sm:px-6 overflow-x-clip">
       
       {/* Barre de retour supérieure */}
       <div className="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-white/10">
         <button
           type="button"
           onClick={() => setCurrentPage('home')}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
+          className="min-h-[42px] inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-bold tracking-wider text-white hover:border-white transition-all uppercase cursor-pointer backdrop-blur-md active:scale-95 shadow-md group"
           title={t('nav.backHome')}
         >
           <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
@@ -91,7 +91,7 @@ export const ProfileView: React.FC = () => {
         <button
           type="button"
           onClick={() => setCurrentPage('home')}
-          className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
+          className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-md group"
           title={t('nav.backHome')}
           aria-label={t('nav.close')}
         >
@@ -100,16 +100,16 @@ export const ProfileView: React.FC = () => {
       </div>
       
       {/* INFORMATIONS COMPTE ACTIF */}
-      <div className="px-6 py-6 border-b border-white/10 flex items-center justify-between">
-        <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-full bg-white/10 border border-white/15 flex items-center justify-center font-agrandir-extrabold text-base text-white shadow-inner">
+      <div className="px-2 sm:px-4 py-5 border-b border-white/10 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-11 h-11 rounded-full bg-white/10 border border-white/15 flex items-center justify-center font-agrandir-extrabold text-sm text-white shadow-inner shrink-0">
             {currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'LR'}
           </div>
-          <div>
-            <div className="font-agrandir-bold text-base text-white flex items-center gap-2">
-              <span>{currentUser?.name || t('profile.visitor')}</span>
+          <div className="min-w-0 flex-1">
+            <div className="font-agrandir-bold text-sm sm:text-base text-white truncate">
+              {currentUser?.name || t('profile.visitor')}
             </div>
-            <div className="text-xs text-neutral-400 mt-0.5">
+            <div className="text-xs text-neutral-400 mt-0.5 truncate">
               {currentUser?.email || t('profile.notConnected')}
             </div>
           </div>
@@ -119,7 +119,7 @@ export const ProfileView: React.FC = () => {
           <button
             type="button"
             onClick={() => setCurrentPage('admin')}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-agrandir-bold transition-all cursor-pointer shadow-md active:scale-95"
+            className="min-h-[40px] flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-agrandir-bold transition-all cursor-pointer shadow-md active:scale-95 shrink-0"
             title={t('nav.admin')}
           >
             <span>{t('nav.admin')}</span>

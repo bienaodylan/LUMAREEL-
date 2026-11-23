@@ -65,13 +65,13 @@ export const LumareelMemberCardPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-[#050505] text-white pb-16">
+    <div className="min-h-screen w-full overflow-x-clip bg-[#050505] text-white pb-12">
       {/* Barre supérieure épurée : bouton Retour uniquement */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8 pb-3 flex items-center justify-between gap-3">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-3 sm:pt-7 pb-2 flex items-center justify-between gap-3">
         <button
           type="button"
           onClick={() => setCurrentPage('home')}
-          className="min-h-[44px] inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/15 bg-white/5 text-xs font-agrandir-bold tracking-wider text-neutral-300 transition hover:bg-white/10 hover:text-white cursor-pointer"
+          className="min-h-[44px] inline-flex items-center gap-2 px-3.5 py-2 rounded-full border border-white/12 bg-white/[0.04] text-xs font-agrandir-bold tracking-wider text-neutral-300 transition hover:bg-white/10 hover:text-white cursor-pointer"
         >
           <ArrowLeft className="h-4 w-4 text-[#d4af37]" />
           <span>{t('nav.backHome')}</span>
@@ -83,9 +83,7 @@ export const LumareelMemberCardPage: React.FC = () => {
           <RefreshCw className="w-6 h-6 animate-spin text-[#d4af37]" />
         </div>
       ) : membershipStatus === 'owned' ? (
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <LumareelWalletView embedded initialCard={ownedCard} />
-        </div>
+        <LumareelWalletView embedded initialCard={ownedCard} />
       ) : (
         <LumareelCardLandingPage
           hasActiveCard={false}

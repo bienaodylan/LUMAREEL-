@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
 import { MembershipEdition, MembershipPlan, MembershipCard } from '../types';
 import {
@@ -8,6 +9,8 @@ import {
   ChevronRight,
   CreditCard,
   Lock,
+  Maximize2,
+  Minus,
   RotateCw,
   X,
 } from 'lucide-react';
@@ -180,6 +183,11 @@ const CARD_COPY = {
     wiz5Box: 'Livraison',
     wiz5Prep: 'En moins de 24h',
     wiz5Cta: 'Voir mon Pass',
+    wizMinimize: 'Réduire',
+    wizResume: 'Reprendre',
+    wizCancel: 'Annuler la commande',
+    wizMissingName: 'Entrez votre nom complet pour continuer.',
+    wizMissingContact: 'Entrez votre e-mail et votre numéro de téléphone.',
     toastMissing: 'Mettez votre nom complet et votre e-mail.',
     toastOrderErr: 'Impossible de valider votre commande.',
     toastActivated: 'Votre LUMARÉEL Black Card est prête.',
@@ -339,6 +347,11 @@ const CARD_COPY = {
     wiz5Box: 'Delivery',
     wiz5Prep: 'Under 24h',
     wiz5Cta: 'Open My Pass',
+    wizMinimize: 'Minimize',
+    wizResume: 'Resume',
+    wizCancel: 'Cancel order',
+    wizMissingName: 'Please enter your full name to continue.',
+    wizMissingContact: 'Please enter your email and mobile number.',
     toastMissing: 'Please enter your full name and email address.',
     toastOrderErr: 'Unable to process your card order.',
     toastActivated: 'Your LUMARÉEL Black Card is ready.',
@@ -369,6 +382,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
   // Multi-step Order Wizard
   const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [isWizardMinimized, setIsWizardMinimized] = useState(false);
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [applicantName, setApplicantName] = useState(currentUser?.name || '');
   const [applicantEmail, setApplicantEmail] = useState(currentUser?.email || '');
@@ -399,6 +413,57 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     }
   }, [currentUser]);
 
+  // Freeze background page completely while the Black Card order modal is expanded
+  useEffect(() => {
+    if (!isWizardOpen || isWizardMinimized || typeof window === 'undefined') return;
+
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+    const html = document.documentElement;
+    const body = document.body;
+
+    const prevHtmlOverflow = html.style.overflow;
+    const prevHtmlOverscroll = html.style.overscrollBehavior;
+    const prevBodyPosition = body.style.position;
+    const prevBodyTop = body.style.top;
+    const prevBodyLeft = body.style.left;
+    const prevBodyRight = body.style.right;
+    const prevBodyWidth = body.style.width;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
+
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    body.style.position = 'fixed';
+    body.style.top = `-${scrollY}px`;
+    body.style.left = '0';
+    body.style.right = '0';
+    body.style.width = '100%';
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsWizardOpen(false);
+        setIsWizardMinimized(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      html.style.overflow = prevHtmlOverflow;
+      html.style.overscrollBehavior = prevHtmlOverscroll;
+      body.style.position = prevBodyPosition;
+      body.style.top = prevBodyTop;
+      body.style.left = prevBodyLeft;
+      body.style.right = prevBodyRight;
+      body.style.width = prevBodyWidth;
+      body.style.overflow = prevBodyOverflow;
+      body.style.overscrollBehavior = prevBodyOverscroll;
+      window.scrollTo(0, scrollY);
+    };
+  }, [isWizardOpen, isWizardMinimized]);
+
   const fetchEditionAndPlans = async () => {
     try {
       setLoading(true);
@@ -423,7 +488,29 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     setApplicantName(currentUser?.name?.toUpperCase() || applicantName || '');
     setApplicantEmail(currentUser?.email || applicantEmail || '');
     setWizardStep(1);
+    setIsWizardMinimized(false);
     setIsWizardOpen(true);
+  };
+
+  const closeAdmissionWizard = () => {
+    setIsWizardOpen(false);
+    setIsWizardMinimized(false);
+  };
+
+  const handleWizardNextStep1 = () => {
+    if (!applicantName.trim()) {
+      showToast(c.wizMissingName, 'error');
+      return;
+    }
+    setWizardStep(2);
+  };
+
+  const handleWizardNextStep2 = () => {
+    if (!applicantEmail.trim() || !applicantPhone.trim()) {
+      showToast(c.wizMissingContact, 'error');
+      return;
+    }
+    setWizardStep(3);
   };
 
   const handleCompleteAdmission = async (e: React.FormEvent) => {
@@ -874,380 +961,484 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       </section>
 
       {/* =================================================================== */}
-      {/* 4. MOBILE-FIRST 5-STEP ORDER SHEET / MODAL                          */}
+      {/* 4. LOCKED 5-STEP ORDER MODAL (PORTAL + FROZEN BACKDROP + PINNED CTA)*/}
       {/* =================================================================== */}
-      <AnimatePresence>
-        {isWizardOpen && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/85 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 24 }}
-              transition={{ duration: 0.2 }}
-              className="relative w-full max-w-xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-[#0B0B0B] border-t sm:border border-[#C8B282]/40 p-5 sm:p-8 shadow-2xl text-left"
-            >
-              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4 sm:hidden" />
-
-              <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-5">
-                <div className="min-w-0">
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-[#C8B282]">
-                    {c.wizHeader(wizardStep)}
-                  </span>
-                  <h3 className="font-agrandir-extrabold text-lg text-white uppercase mt-0.5 truncate">
-                    {c.wizTitle}
-                  </h3>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsWizardOpen(false)}
-                  className="w-11 h-11 rounded-full bg-white/5 hover:bg-white/15 flex items-center justify-center text-neutral-400 hover:text-white transition-colors cursor-pointer shrink-0"
-                  aria-label="Close"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-5 gap-2 mb-6">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <div
-                    key={s}
-                    className={`h-1 rounded-full transition-all duration-300 ${
-                      wizardStep >= s ? 'bg-[#C8B282]' : 'bg-white/10'
-                    }`}
-                  />
-                ))}
-              </div>
-
-              {wizardStep === 1 && (
-                <div className="space-y-5">
-                  <div>
-                    <h4 className="text-base font-agrandir-bold text-white uppercase">{c.wiz1Title}</h4>
-                    <p className="text-xs text-neutral-400 font-light mt-1">{c.wiz1Sub}</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
-                      {c.wiz1Label}
-                    </label>
-                    <input
-                      type="text"
-                      value={applicantName}
-                      onChange={(e) => setApplicantName(e.target.value.toUpperCase())}
-                      placeholder="VOTRE NOM COMPLET"
-                      required
-                      className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white font-mono text-sm uppercase tracking-wider outline-none"
-                    />
-                  </div>
-
-                  <div className="py-3.5 border-y border-white/10 flex items-center justify-between gap-4">
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {isWizardOpen && isWizardMinimized && (
+              <motion.div
+                key="black-card-wizard-minimized"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.18 }}
+                className="fixed left-4 right-4 sm:left-auto sm:right-6 bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:bottom-6 z-[90] sm:w-[340px]"
+              >
+                <div className="flex items-center justify-between gap-2 px-4 py-2.5 rounded-full bg-[#111111]/95 backdrop-blur-xl border border-[#C8B282]/45 shadow-[0_16px_48px_rgba(0,0,0,0.85)]">
+                  <button
+                    type="button"
+                    onClick={() => setIsWizardMinimized(false)}
+                    className="flex-1 min-w-0 flex items-center gap-2.5 text-left py-1 cursor-pointer"
+                  >
+                    <span className="w-2 h-2 rounded-full bg-[#C8B282] shrink-0" />
                     <div className="min-w-0">
-                      <span className="text-[10px] font-agrandir-bold text-[#C8B282] uppercase tracking-wider block">
-                        {c.wiz1Plan}
-                      </span>
-                      <strong className="text-sm font-agrandir-bold text-white uppercase">
-                        {activePlan?.name || c.wiz1PlanFallback}
-                      </strong>
-                      <p className="text-xs text-neutral-400 font-light">{c.wiz1PlanDesc}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-base sm:text-lg font-agrandir-extrabold text-[#C8B282] font-mono tabular-nums">
-                        {formattedPrice}
+                      <div className="text-[11px] font-agrandir-extrabold text-white uppercase truncate">
+                        {c.wizTitle}
                       </div>
-                      <span className="text-[10px] text-neutral-400 uppercase">{c.wiz1Valid}</span>
+                      <div className="text-[10px] font-mono text-[#C8B282] truncate">
+                        {c.wizHeader(wizardStep)} · {c.wizResume}
+                      </div>
                     </div>
-                  </div>
+                  </button>
 
-                  <div className="pt-2 flex justify-end">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       type="button"
-                      disabled={!applicantName.trim()}
-                      onClick={() => setWizardStep(2)}
-                      className="w-full sm:w-auto min-h-[48px] px-6 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 transition-colors"
+                      onClick={() => setIsWizardMinimized(false)}
+                      aria-label={c.wizResume}
+                      title={c.wizResume}
+                      className="w-9 h-9 rounded-full bg-white text-black hover:bg-[#C8B282] flex items-center justify-center transition-colors cursor-pointer"
                     >
-                      <span>{c.wiz1Next}</span>
-                      <ChevronRight className="w-4 h-4" />
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={closeAdmissionWizard}
+                      aria-label={c.wizCancel}
+                      title={c.wizCancel}
+                      className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-neutral-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
-              )}
+              </motion.div>
+            )}
 
-              {wizardStep === 2 && (
-                <div className="space-y-5">
-                  <div>
-                    <h4 className="text-base font-agrandir-bold text-white uppercase">{c.wiz2Title}</h4>
-                    <p className="text-xs text-neutral-400 font-light mt-1">{c.wiz2Sub}</p>
-                  </div>
+            {isWizardOpen && !isWizardMinimized && (
+              <motion.div
+                key="black-card-wizard-expanded"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                role="dialog"
+                aria-modal="true"
+                aria-label={c.wizTitle}
+                className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center sm:p-4 bg-black/85 backdrop-blur-md touch-none overscroll-none"
+              >
+                <motion.div
+                  initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 24, scale: 0.98 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  className="relative w-full max-w-xl max-h-[86dvh] sm:max-h-[84vh] flex flex-col overflow-hidden rounded-t-3xl sm:rounded-3xl bg-[#0B0B0B] border-t sm:border border-[#C8B282]/40 shadow-[0_24px_80px_rgba(0,0,0,0.95)] text-left touch-auto"
+                >
+                  {/* 1. FIXED TOP HEADER (NEVER SCROLLS AWAY) */}
+                  <div className="shrink-0 px-5 sm:px-7 pt-3.5 sm:pt-6 pb-4 border-b border-white/10 bg-[#0B0B0B]">
+                    <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-3 sm:hidden" />
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
-                        {c.wiz2Email}
-                      </label>
-                      <input
-                        type="email"
-                        value={applicantEmail}
-                        onChange={(e) => setApplicantEmail(e.target.value)}
-                        placeholder="email@domain.com"
-                        required
-                        className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-sm outline-none"
-                      />
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#C8B282] block">
+                          {c.wizHeader(wizardStep)}
+                        </span>
+                        <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white uppercase mt-0.5 truncate">
+                          {c.wizTitle}
+                        </h3>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setIsWizardMinimized(true)}
+                          className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/8 hover:bg-white/15 flex items-center justify-center text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                          aria-label={c.wizMinimize}
+                          title={c.wizMinimize}
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={closeAdmissionWizard}
+                          className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/8 hover:bg-white/15 flex items-center justify-center text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                          aria-label={c.wizCancel}
+                          title={c.wizCancel}
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
-                        {c.wiz2Phone}
-                      </label>
-                      <input
-                        type="tel"
-                        value={applicantPhone}
-                        onChange={(e) => setApplicantPhone(e.target.value)}
-                        placeholder="+225 07 00 00 00 00"
-                        required
-                        className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-sm outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
-                        {c.wiz2City}
-                      </label>
-                      <input
-                        type="text"
-                        value={applicantCity}
-                        onChange={(e) => setApplicantCity(e.target.value)}
-                        placeholder="Abidjan"
-                        className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-sm outline-none"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
-                        {c.wiz2Address}
-                      </label>
-                      <input
-                        type="text"
-                        value={applicantAddress}
-                        onChange={(e) => setApplicantAddress(e.target.value)}
-                        placeholder="Cocody, Zone 4..."
-                        className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-sm outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setWizardStep(1)}
-                      className="min-h-[44px] px-3 text-xs text-neutral-400 hover:text-white cursor-pointer"
-                    >
-                      {c.wiz2Back}
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={!applicantEmail.trim() || !applicantPhone.trim()}
-                      onClick={() => setWizardStep(3)}
-                      className="min-h-[48px] px-6 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-40 transition-colors"
-                    >
-                      <span>{c.wiz2Next}</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {wizardStep === 3 && (
-                <div className="space-y-5">
-                  <div>
-                    <h4 className="text-base font-agrandir-bold text-white uppercase">{c.wiz3Title}</h4>
-                    <p className="text-xs text-neutral-400 font-light mt-1">{c.wiz3Sub}</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
-                      {c.wiz3Genre}
-                    </label>
-                    <select
-                      value={musicInterest}
-                      onChange={(e) => setMusicInterest(e.target.value)}
-                      className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-sm outline-none cursor-pointer"
-                    >
-                      {c.wiz3Genres.map((g) => (
-                        <option key={g.value} value={g.value}>
-                          {g.label}
-                        </option>
+                    <div className="grid grid-cols-5 gap-2 mt-4">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <div
+                          key={s}
+                          className={`h-1 rounded-full transition-all duration-300 ${
+                            wizardStep >= s ? 'bg-[#C8B282]' : 'bg-white/10'
+                          }`}
+                        />
                       ))}
-                    </select>
+                    </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300">
-                      {c.wiz3Ref}
-                    </label>
-                    <input
-                      type="text"
-                      value={referralCode}
-                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                      placeholder="BLACK-VIP-2026"
-                      className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white font-mono text-sm uppercase tracking-wider outline-none"
-                    />
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setWizardStep(2)}
-                      className="min-h-[44px] px-3 text-xs text-neutral-400 hover:text-white cursor-pointer"
-                    >
-                      {c.wiz2Back}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setWizardStep(4)}
-                      className="min-h-[48px] px-6 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-bold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer transition-colors"
-                    >
-                      <span>{c.wiz3Next}</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {wizardStep === 4 && (
-                <form onSubmit={handleCompleteAdmission} className="space-y-5">
-                  <div>
-                    <h4 className="text-base font-agrandir-bold text-white uppercase">{c.wiz4Title}</h4>
-                    <p className="text-xs text-neutral-400 font-light mt-1">{c.wiz4Sub}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {c.wiz4Methods.map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => setPaymentMethod(m.id as any)}
-                        className={`min-h-[64px] p-3 rounded-xl border text-left transition-colors cursor-pointer ${
-                          paymentMethod === m.id
-                            ? 'bg-[#C8B282]/15 border-[#C8B282] text-white'
-                            : 'bg-white/5 border-white/10 text-neutral-400 hover:border-white/20'
-                        }`}
-                      >
-                        <CreditCard className="w-4 h-4 text-[#C8B282] mb-1" />
-                        <div className="font-agrandir-bold text-xs text-white uppercase truncate">
-                          {m.label}
+                  {/* 2. SCROLLABLE MIDDLE BODY (ONLY THIS MOVES) */}
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-7 py-5">
+                    {wizardStep === 1 && (
+                      <div className="space-y-5">
+                        <div>
+                          <h4 className="text-base font-agrandir-bold text-white uppercase">{c.wiz1Title}</h4>
+                          <p className="text-xs text-neutral-400 font-light mt-1">{c.wiz1Sub}</p>
                         </div>
-                        <div className="text-[10px] text-neutral-400 font-mono">{m.desc}</div>
-                      </button>
-                    ))}
+
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
+                            {c.wiz1Label}
+                          </label>
+                          <input
+                            type="text"
+                            value={applicantName}
+                            onChange={(e) => setApplicantName(e.target.value.toUpperCase())}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleWizardNextStep1();
+                              }
+                            }}
+                            placeholder="VOTRE NOM COMPLET"
+                            required
+                            className="w-full min-h-[48px] px-4 py-3 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white font-mono text-sm uppercase tracking-wider outline-none"
+                          />
+                        </div>
+
+                        <div className="py-3.5 border-y border-white/10 flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <span className="text-[10px] font-agrandir-bold text-[#C8B282] uppercase tracking-wider block">
+                              {c.wiz1Plan}
+                            </span>
+                            <strong className="text-sm font-agrandir-bold text-white uppercase">
+                              {activePlan?.name || c.wiz1PlanFallback}
+                            </strong>
+                            <p className="text-xs text-neutral-400 font-light">{c.wiz1PlanDesc}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="text-base sm:text-lg font-agrandir-extrabold text-[#C8B282] font-mono tabular-nums">
+                              {formattedPrice}
+                            </div>
+                            <span className="text-[10px] text-neutral-400 uppercase">{c.wiz1Valid}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {wizardStep === 2 && (
+                      <div className="space-y-5">
+                        <div>
+                          <h4 className="text-base font-agrandir-bold text-white uppercase">{c.wiz2Title}</h4>
+                          <p className="text-xs text-neutral-400 font-light mt-1">{c.wiz2Sub}</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
+                              {c.wiz2Email}
+                            </label>
+                            <input
+                              type="email"
+                              value={applicantEmail}
+                              onChange={(e) => setApplicantEmail(e.target.value)}
+                              placeholder="email@domain.com"
+                              required
+                              className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-sm outline-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
+                              {c.wiz2Phone}
+                            </label>
+                            <input
+                              type="tel"
+                              value={applicantPhone}
+                              onChange={(e) => setApplicantPhone(e.target.value)}
+                              placeholder="+225 07 00 00 00 00"
+                              required
+                              className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-sm outline-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
+                              {c.wiz2City}
+                            </label>
+                            <input
+                              type="text"
+                              value={applicantCity}
+                              onChange={(e) => setApplicantCity(e.target.value)}
+                              placeholder="Abidjan"
+                              className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-sm outline-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
+                              {c.wiz2Address}
+                            </label>
+                            <input
+                              type="text"
+                              value={applicantAddress}
+                              onChange={(e) => setApplicantAddress(e.target.value)}
+                              placeholder="Cocody, Zone 4..."
+                              className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-sm outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {wizardStep === 3 && (
+                      <div className="space-y-5">
+                        <div>
+                          <h4 className="text-base font-agrandir-bold text-white uppercase">{c.wiz3Title}</h4>
+                          <p className="text-xs text-neutral-400 font-light mt-1">{c.wiz3Sub}</p>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
+                            {c.wiz3Genre}
+                          </label>
+                          <select
+                            value={musicInterest}
+                            onChange={(e) => setMusicInterest(e.target.value)}
+                            className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white text-sm outline-none cursor-pointer"
+                          >
+                            {c.wiz3Genres.map((g) => (
+                              <option key={g.value} value={g.value}>
+                                {g.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
+                            {c.wiz3Ref}
+                          </label>
+                          <input
+                            type="text"
+                            value={referralCode}
+                            onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                            placeholder="BLACK-VIP-2026"
+                            className="w-full min-h-[46px] px-4 py-2.5 rounded-xl bg-black border border-white/20 focus:border-[#C8B282] text-white font-mono text-sm uppercase tracking-wider outline-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {wizardStep === 4 && (
+                      <form
+                        id="black-card-checkout-form"
+                        onSubmit={handleCompleteAdmission}
+                        className="space-y-5"
+                      >
+                        <div>
+                          <h4 className="text-base font-agrandir-bold text-white uppercase">{c.wiz4Title}</h4>
+                          <p className="text-xs text-neutral-400 font-light mt-1">{c.wiz4Sub}</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                          {c.wiz4Methods.map((m) => (
+                            <button
+                              key={m.id}
+                              type="button"
+                              onClick={() => setPaymentMethod(m.id as any)}
+                              className={`min-h-[64px] p-3 rounded-xl border text-left transition-colors cursor-pointer ${
+                                paymentMethod === m.id
+                                  ? 'bg-[#C8B282]/15 border-[#C8B282] text-white'
+                                  : 'bg-white/5 border-white/10 text-neutral-400 hover:border-white/20'
+                              }`}
+                            >
+                              <CreditCard className="w-4 h-4 text-[#C8B282] mb-1" />
+                              <div className="font-agrandir-bold text-xs text-white uppercase truncate">
+                                {m.label}
+                              </div>
+                              <div className="text-[10px] text-neutral-400 font-mono">{m.desc}</div>
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="py-3 border-y border-white/10 space-y-2 text-xs">
+                          <div className="flex justify-between gap-2 text-neutral-400">
+                            <span>{c.wiz4Membership}</span>
+                            <span className="font-mono text-white tabular-nums shrink-0">{formattedPrice}</span>
+                          </div>
+                          <div className="flex justify-between gap-2 text-neutral-400">
+                            <span>{c.wiz4CardDelivery}</span>
+                            <span className="text-[#B8F249] font-mono shrink-0">{c.wiz4Included}</span>
+                          </div>
+                          <div className="flex justify-between gap-2 text-neutral-400">
+                            <span>{c.wiz4Bonus}</span>
+                            <span className="text-[#C8B282] font-mono shrink-0">{c.wiz4BonusVal}</span>
+                          </div>
+                          <div className="border-t border-white/10 pt-2 flex justify-between gap-2 font-agrandir-extrabold text-sm text-white">
+                            <span>{c.wiz4Total}</span>
+                            <span className="text-[#C8B282] font-mono tabular-nums shrink-0">{formattedPrice}</span>
+                          </div>
+                        </div>
+                      </form>
+                    )}
+
+                    {wizardStep === 5 && issuedResult && (
+                      <div className="text-center space-y-5 py-2">
+                        <div className="w-14 h-14 rounded-full bg-[#B8F249]/15 text-[#B8F249] border border-[#B8F249]/40 flex items-center justify-center mx-auto">
+                          <CheckCircle2 className="w-7 h-7" />
+                        </div>
+
+                        <div className="space-y-2">
+                          <span className="text-[10px] font-mono tracking-widest text-[#C8B282] uppercase">
+                            {c.wiz5Kicker}
+                          </span>
+                          <h3 className="text-2xl font-agrandir-extrabold uppercase text-white">{c.wiz5Title}</h3>
+                          <p className="text-xs text-neutral-300 font-light max-w-md mx-auto">
+                            {c.wiz5Desc(issuedResult.card.cardNumber)}
+                          </p>
+                        </div>
+
+                        <div className="py-3 border-y border-white/10 max-w-md mx-auto text-left space-y-2 text-xs">
+                          <div className="flex justify-between gap-2">
+                            <span className="text-neutral-400">{c.wiz5Holder}</span>
+                            <strong className="text-white uppercase font-mono truncate">
+                              {issuedResult.card.cardholderName}
+                            </strong>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span className="text-neutral-400">{c.wiz5Number}</span>
+                            <strong className="text-[#C8B282] font-mono tabular-nums">
+                              {issuedResult.card.cardNumber}
+                            </strong>
+                          </div>
+                          <div className="flex justify-between gap-2">
+                            <span className="text-neutral-400">{c.wiz5Box}</span>
+                            <span className="text-[#B8F249] font-mono">{c.wiz5Prep}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="py-3 border-y border-white/10 space-y-2 text-xs">
-                    <div className="flex justify-between gap-2 text-neutral-400">
-                      <span>{c.wiz4Membership}</span>
-                      <span className="font-mono text-white tabular-nums shrink-0">{formattedPrice}</span>
-                    </div>
-                    <div className="flex justify-between gap-2 text-neutral-400">
-                      <span>{c.wiz4CardDelivery}</span>
-                      <span className="text-[#B8F249] font-mono shrink-0">{c.wiz4Included}</span>
-                    </div>
-                    <div className="flex justify-between gap-2 text-neutral-400">
-                      <span>{c.wiz4Bonus}</span>
-                      <span className="text-[#C8B282] font-mono shrink-0">{c.wiz4BonusVal}</span>
-                    </div>
-                    <div className="border-t border-white/10 pt-2 flex justify-between gap-2 font-agrandir-extrabold text-sm text-white">
-                      <span>{c.wiz4Total}</span>
-                      <span className="text-[#C8B282] font-mono tabular-nums shrink-0">{formattedPrice}</span>
-                    </div>
-                  </div>
+                  {/* 3. PINNED BOTTOM ACTION BAR — WHITE "CONTINUER" ALWAYS VISIBLE */}
+                  <div className="shrink-0 bg-[#0B0B0B] border-t border-white/15 px-5 sm:px-7 py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
+                    {wizardStep === 1 && (
+                      <div className="flex items-center justify-end">
+                        <button
+                          type="button"
+                          onClick={handleWizardNextStep1}
+                          className="w-full sm:w-auto min-h-[50px] px-7 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_6px_24px_rgba(255,255,255,0.22)] cursor-pointer transition-colors"
+                        >
+                          <span>{c.wiz1Next}</span>
+                          <ChevronRight className="w-4 h-4 shrink-0" />
+                        </button>
+                      </div>
+                    )}
 
-                  <div className="pt-2 flex items-center justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setWizardStep(3)}
-                      className="min-h-[44px] px-3 text-xs text-neutral-400 hover:text-white cursor-pointer"
-                    >
-                      {c.wiz2Back}
-                    </button>
+                    {wizardStep === 2 && (
+                      <div className="flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setWizardStep(1)}
+                          className="min-h-[48px] px-4 rounded-full border border-white/15 text-xs font-agrandir-semibold text-neutral-300 hover:text-white hover:border-white/30 cursor-pointer transition-colors shrink-0"
+                        >
+                          {c.wiz2Back}
+                        </button>
 
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="min-h-[48px] px-7 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-50 transition-colors"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <RotateCw className="w-4 h-4 animate-spin text-black" />
-                          <span>{c.wiz4Submitting}</span>
-                        </>
-                      ) : (
-                        <>
-                          <span>{c.wiz4Submit}</span>
-                          <Check className="w-4 h-4 text-black" />
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              )}
+                        <button
+                          type="button"
+                          onClick={handleWizardNextStep2}
+                          className="flex-1 sm:flex-none min-h-[50px] px-7 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_6px_24px_rgba(255,255,255,0.22)] cursor-pointer transition-colors"
+                        >
+                          <span>{c.wiz2Next}</span>
+                          <ChevronRight className="w-4 h-4 shrink-0" />
+                        </button>
+                      </div>
+                    )}
 
-              {wizardStep === 5 && issuedResult && (
-                <div className="text-center space-y-5 py-3">
-                  <div className="w-14 h-14 rounded-full bg-[#B8F249]/15 text-[#B8F249] border border-[#B8F249]/40 flex items-center justify-center mx-auto">
-                    <CheckCircle2 className="w-7 h-7" />
-                  </div>
+                    {wizardStep === 3 && (
+                      <div className="flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setWizardStep(2)}
+                          className="min-h-[48px] px-4 rounded-full border border-white/15 text-xs font-agrandir-semibold text-neutral-300 hover:text-white hover:border-white/30 cursor-pointer transition-colors shrink-0"
+                        >
+                          {c.wiz2Back}
+                        </button>
 
-                  <div className="space-y-2">
-                    <span className="text-[10px] font-mono tracking-widest text-[#C8B282] uppercase">
-                      {c.wiz5Kicker}
-                    </span>
-                    <h3 className="text-2xl font-agrandir-extrabold uppercase text-white">{c.wiz5Title}</h3>
-                    <p className="text-xs text-neutral-300 font-light max-w-md mx-auto">
-                      {c.wiz5Desc(issuedResult.card.cardNumber)}
-                    </p>
-                  </div>
+                        <button
+                          type="button"
+                          onClick={() => setWizardStep(4)}
+                          className="flex-1 sm:flex-none min-h-[50px] px-7 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_6px_24px_rgba(255,255,255,0.22)] cursor-pointer transition-colors"
+                        >
+                          <span>{c.wiz3Next}</span>
+                          <ChevronRight className="w-4 h-4 shrink-0" />
+                        </button>
+                      </div>
+                    )}
 
-                  <div className="py-3 border-y border-white/10 max-w-md mx-auto text-left space-y-2 text-xs">
-                    <div className="flex justify-between gap-2">
-                      <span className="text-neutral-400">{c.wiz5Holder}</span>
-                      <strong className="text-white uppercase font-mono truncate">
-                        {issuedResult.card.cardholderName}
-                      </strong>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                      <span className="text-neutral-400">{c.wiz5Number}</span>
-                      <strong className="text-[#C8B282] font-mono tabular-nums">
-                        {issuedResult.card.cardNumber}
-                      </strong>
-                    </div>
-                    <div className="flex justify-between gap-2">
-                      <span className="text-neutral-400">{c.wiz5Box}</span>
-                      <span className="text-[#B8F249] font-mono">{c.wiz5Prep}</span>
-                    </div>
-                  </div>
+                    {wizardStep === 4 && (
+                      <div className="flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setWizardStep(3)}
+                          className="min-h-[48px] px-4 rounded-full border border-white/15 text-xs font-agrandir-semibold text-neutral-300 hover:text-white hover:border-white/30 cursor-pointer transition-colors shrink-0"
+                        >
+                          {c.wiz2Back}
+                        </button>
 
-                  <div className="pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsWizardOpen(false);
-                        if (onGoToWallet) onGoToWallet();
-                        else setCurrentPage('member_card');
-                      }}
-                      className="w-full sm:w-auto min-h-[48px] px-8 py-3.5 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs uppercase tracking-wider cursor-pointer transition-colors"
-                    >
-                      {c.wiz5Cta}
-                    </button>
+                        <button
+                          type="submit"
+                          form="black-card-checkout-form"
+                          disabled={isSubmitting}
+                          className="flex-1 sm:flex-none min-h-[50px] px-7 py-3 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_6px_24px_rgba(255,255,255,0.22)] cursor-pointer disabled:opacity-60 transition-colors"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <RotateCw className="w-4 h-4 animate-spin text-black shrink-0" />
+                              <span>{c.wiz4Submitting}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>{c.wiz4Submit}</span>
+                              <Check className="w-4 h-4 text-black shrink-0" />
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    {wizardStep === 5 && issuedResult && (
+                      <div className="flex items-center justify-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            closeAdmissionWizard();
+                            if (onGoToWallet) onGoToWallet();
+                            else setCurrentPage('member_card');
+                          }}
+                          className="w-full sm:w-auto min-h-[50px] px-8 py-3.5 rounded-full bg-white hover:bg-[#C8B282] text-black font-agrandir-extrabold text-xs uppercase tracking-wider shadow-[0_6px_24px_rgba(255,255,255,0.22)] cursor-pointer transition-colors"
+                        >
+                          {c.wiz5Cta}
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
     </div>
   );
 };

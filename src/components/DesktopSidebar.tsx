@@ -1,6 +1,5 @@
 import React from 'react';
 import { useApp, PageView } from '../context/AppContext';
-import { PWAInstallButton } from './PWAInstallButton';
 import { Home, Ticket, Archive, CreditCard, UserRound, Settings } from 'lucide-react';
 
 /** Navigation desktop LUMARÉEL: sidebar fixe adaptée aux destinations réelles de l'application. */
@@ -27,7 +26,6 @@ export const DesktopSidebar: React.FC = () => {
       </button>})}
     </nav>
     <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-white/10">
-      <PWAInstallButton variant="sidebar" />
       <div className="flex items-center justify-between px-3 py-1">
         <span className="text-xs text-neutral-500">{language === 'en' ? 'Language' : 'Langue'}</span>
         <div className="flex items-center p-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-agrandir-bold">

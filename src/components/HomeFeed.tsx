@@ -206,12 +206,12 @@ const EventCardCountdown: React.FC<{
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-[#FFFFFF] pb-24 select-none">
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-transparent text-[#FFFFFF] pb-16 select-none">
       
       {/* =========================================================================
           1. SECTION PRINCIPALE : PROGRAMMATION OFFICIELLE
          ========================================================================= */}
-      <section className="relative z-30 w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-16 sm:pt-24">
+      <section className="relative z-30 w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] md:pt-12">
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
           <div className="min-w-0 pr-4">
             <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white tracking-tight uppercase whitespace-nowrap overflow-hidden text-ellipsis">
@@ -269,7 +269,7 @@ const EventCardCountdown: React.FC<{
                 key={event.id} 
                 ref={(el) => { cardRefs.current[idx] = el; }}
                 onClick={() => handleSelectArtistSlide(idx)} 
-                className="w-[76vw] sm:w-[380px] md:w-[420px] shrink-0 cursor-pointer group snap-start transition-all duration-300 select-none"
+                className="w-[82vw] max-w-[340px] sm:w-[380px] sm:max-w-none md:w-[420px] shrink-0 cursor-pointer group snap-start transition-all duration-300 select-none"
               >
                 
                 {/* Image 16:9 avec bordure jaune / or automatique dès que le concert est sélectionné ou au scroll */}
@@ -340,7 +340,7 @@ const EventCardCountdown: React.FC<{
 
             {/* Menu 0 : LUMARÉEL CARD (Founders Edition) */}
             <button 
-              onClick={() => setCurrentPage('card')} 
+              onClick={() => setCurrentPage('member_card')} 
               className="flex items-center justify-between w-full p-3 hover:bg-[#d4af37]/10 rounded-[16px] transition-colors cursor-pointer group"
             >
               <div className="flex items-center gap-4">

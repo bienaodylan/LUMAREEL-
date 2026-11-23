@@ -178,7 +178,7 @@ export const CustomerSpace: React.FC = () => {
   ];
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-10 pb-32 select-none font-agrandir-regular">
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-10 pb-20 select-none font-agrandir-regular overflow-x-clip">
       
       {/* Barre de retour supérieure */}
       <div className="flex items-center justify-between gap-3 mb-6 pb-3 border-b border-white/10">
@@ -297,7 +297,7 @@ export const CustomerSpace: React.FC = () => {
                     }`}
                   >
                     {/* GAUCHE : AFFICHE OFFICIELLE VERTICALE DU CONCERT */}
-                    <div className="w-24 sm:w-44 md:w-56 shrink-0 relative bg-black border-r border-white/10 overflow-hidden">
+                    <div className="w-20 sm:w-44 md:w-56 shrink-0 relative bg-black border-r border-white/10 overflow-hidden">
                       {officialPoster ? (
                         <img
                           src={officialPoster}
@@ -383,7 +383,7 @@ export const CustomerSpace: React.FC = () => {
                     </div>
 
                     {/* DROITE : PETIT CARRÉ DÉTACHÉ POUR LE QR CODE */}
-                    <div className="w-28 sm:w-44 md:w-56 shrink-0 bg-[#121212] p-2.5 sm:p-4 flex flex-col items-center justify-between text-center shadow-inner">
+                    <div className="w-24 sm:w-44 md:w-56 shrink-0 bg-[#121212] p-2 sm:p-4 flex flex-col items-center justify-between text-center shadow-inner">
                       {isCancelled ? (
                         <div className="w-full flex-1 flex flex-col items-center justify-center gap-2 text-center px-1">
                           <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-300">

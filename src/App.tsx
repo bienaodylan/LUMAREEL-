@@ -15,7 +15,6 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { TicketBatchPrintModal } from './components/TicketBatchPrintModal';
 import { CheckoutModal } from './components/CheckoutModal';
 import { AuthModal } from './components/AuthModal';
-import { LumareelCardView } from './components/LumareelCardView';
 import { LumareelMemberCardPage } from './components/LumareelMemberCardPage';
 import { CardVerificationView } from './components/CardVerificationView';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -91,9 +90,10 @@ const MainApp: React.FC = () => {
   }, []);
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
+  const hasMobileTopHeader = currentPage === 'home' || currentPage === 'discover';
 
   return (
-    <div className="min-h-screen w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative overflow-x-hidden">
+    <div className="min-h-screen w-full max-w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative overflow-x-clip">
       {/* Indicateur hors-ligne discret pour la PWA */}
       <OfflineIndicator />
 
@@ -105,22 +105,27 @@ const MainApp: React.FC = () => {
         </>
       )}
 
-      {/* Dynamic View Router avec transition de page fluide et espacement optimisé */}
+      {/* Dynamic View Router avec transition de page fluide et espacement adapté au mobile installé */}
       <main
-        className={`flex-1 w-full relative z-10 ${
+        className={`flex-1 w-full max-w-full min-w-0 relative z-10 ${
           !isAdminOrScanner
-            ? `${isStandalone ? 'pb-24' : 'pb-8'} sm:pb-10 md:pl-[244px]`
+            ? `${isStandalone ? 'pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))]' : 'pb-10'} md:pb-12 md:pl-[244px]`
             : ''
         }`}
+        style={
+          !isAdminOrScanner && !hasMobileTopHeader
+            ? { paddingTop: 'env(safe-area-inset-top, 0px)' }
+            : undefined
+        }
       >
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPage}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-full min-w-0"
           >
             {currentPage === 'splash' && <HomeFeed />}
             {currentPage === 'home' && <HomeFeed />}
@@ -131,7 +136,7 @@ const MainApp: React.FC = () => {
             {currentPage === 'organizers' && <OrganizersView />}
             {currentPage === 'client_space' && <CustomerSpace />}
             {currentPage === 'profile' && <ProfileView />}
-            {currentPage === 'card' && <LumareelCardView />}
+            {currentPage === 'card' && <LumareelMemberCardPage />}
             {currentPage === 'member_card' && <LumareelMemberCardPage />}
             {currentPage === 'card_verify' && <CardVerificationView />}
             {currentPage === 'gate_scanner' && <ScannerView />}
@@ -149,9 +154,13 @@ const MainApp: React.FC = () => {
 
       {/* Minimal Toast Notification */}
       {toast && (
-        <div className="fixed bottom-24 sm:bottom-28 right-6 z-50 bg-[#141414]/95 backdrop-blur-md border border-white/20 px-5 py-3 shadow-2xl font-agrandir-regular text-xs flex items-center gap-3 text-white animate-slideUp rounded-2xl">
+        <div
+          className={`fixed left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-[95] bg-[#141414]/95 backdrop-blur-md border border-white/20 px-4 py-3 shadow-2xl font-agrandir-regular text-xs flex items-center gap-3 text-white animate-slideUp rounded-2xl ${
+            isStandalone ? 'bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:bottom-8' : 'bottom-6 sm:bottom-8'
+          }`}
+        >
           <span
-            className={`w-2 h-2 rounded-full ${
+            className={`w-2 h-2 rounded-full shrink-0 ${
               toast.type === 'success'
                 ? 'bg-emerald-400'
                 : toast.type === 'error'
@@ -159,7 +168,7 @@ const MainApp: React.FC = () => {
                 : 'bg-white'
             }`}
           />
-          <span>{toast.message}</span>
+          <span className="min-w-0 break-words">{toast.message}</span>
         </div>
       )}
 

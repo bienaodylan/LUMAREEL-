@@ -1,31 +1,35 @@
 import React, { useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { MembershipCard } from '../types';
 import { useApp } from '../context/AppContext';
-import { RotateCw, CheckCircle2, Truck, Calendar } from 'lucide-react';
+import { RotateCw, Eye, EyeOff, RefreshCw } from 'lucide-react';
 
 const CARD_FRONT_IMG = '/assets/aistudio/IMG_6112_896cf3ce.png';
 const CARD_BACK_IMG = '/assets/aistudio/IMG_6111_952dcd49.png';
 
 interface DigitalMembershipCardProps {
   card: MembershipCard;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
   onRotateToken?: () => void;
   isRotatingToken?: boolean;
 }
 
 /**
- * Carte noire officielle LUMARÉEL installée dans l'espace membre.
- * Affiche fidèlement les visuels officiels recto/verso (aucune puce visible, aucun numéro
- * superposé) dans un écrin élégant prêt pour mobile iOS/Android.
+ * Présentation façon carte bancaire moderne (Apple Wallet / Revolut Metal).
+ * Aucune boîte lourde, aucun texte superposé sur le visuel officiel recto/verso.
  */
 export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
   card,
+  onRefresh,
+  isRefreshing = false,
 }) => {
   const { language } = useApp();
   const isEn = language === 'en';
   const locale = isEn ? 'en-US' : 'fr-FR';
   const prefersReducedMotion = useReducedMotion();
   const [isFlipped, setIsFlipped] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   const cleanMemberName = (card.cardholderName || 'MEMBRE LUMARÉEL')
     .replace(/^(mr\.?|mme\.?|m\.|dr\.?|pr\.?|ceo|founder|vip|président|ambassadeur)\s+/i, '')
@@ -33,54 +37,47 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
 
   const expiryFormatted = card.expiresAt
     ? new Date(card.expiresAt).toLocaleDateString(locale, {
+        month: '2-digit',
+        year: '2-digit',
+      })
+    : isEn
+    ? '3 Yrs'
+    : '3 Ans';
+
+  const issuedFormatted = card.validFrom
+    ? new Date(card.validFrom).toLocaleDateString(locale, {
+        day: '2-digit',
         month: 'short',
         year: 'numeric',
       })
-    : isEn
-    ? '3 Years'
-    : '3 Ans';
+    : '—';
 
   const deliveryLabel = (() => {
     switch (card.physicalCardStatus) {
       case 'delivered':
         return isEn ? 'Delivered' : 'Livrée';
       case 'shipped':
-        return isEn ? 'On the way (< 24h)' : 'En livraison (< 24h)';
+        return isEn ? 'Out for delivery' : 'En cours de livraison';
       default:
-        return isEn ? 'Delivery in < 24h' : 'Livraison en moins de 24h';
+        return isEn ? 'Delivery < 24h' : 'Livraison < 24h';
     }
   })();
 
   return (
     <div className="flex flex-col items-center w-full select-none">
-      {/* Écrin de présentation de la carte installée */}
-      <div className="relative w-full max-w-[440px] flex flex-col items-center">
-        {/* Halo ambiant discret sous la carte */}
+      {/* Scène ouverte façon application bancaire — aucune boîte autour de la carte */}
+      <div className="relative w-full max-w-[400px] sm:max-w-[430px] flex flex-col items-center">
+        {/* Éclairage ambiant très discret */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -inset-x-6 top-6 bottom-12 rounded-full bg-gradient-to-b from-[#d4af37]/15 via-white/[0.04] to-transparent blur-3xl"
+          className="pointer-events-none absolute -inset-x-4 top-4 bottom-20 rounded-full bg-gradient-to-b from-[#d4af37]/14 via-white/[0.03] to-transparent blur-3xl"
         />
 
-        {/* Carte officielle CR-80 (ratio exact 85.6 / 53.98) */}
+        {/* Carte officielle CR-80 (ratio bancaire exact 85.6 / 53.98) */}
         <motion.div
-          animate={
-            prefersReducedMotion
-              ? undefined
-              : {
-                  y: [0, -5, 0],
-                }
-          }
-          transition={
-            prefersReducedMotion
-              ? undefined
-              : {
-                  duration: 5.5,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }
-          }
           onClick={() => setIsFlipped((prev) => !prev)}
-          className="relative z-10 w-full cursor-pointer perspective-[1400px] active:scale-[0.985] transition-transform"
+          whileTap={prefersReducedMotion ? undefined : { scale: 0.985 }}
+          className="relative z-10 w-full cursor-pointer perspective-[1400px]"
           style={{ aspectRatio: '85.6 / 53.98' }}
           role="button"
           tabIndex={0}
@@ -94,13 +91,13 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
         >
           <motion.div
             animate={{ rotateY: isFlipped ? 180 : 0 }}
-            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="w-full h-full relative"
             style={{ transformStyle: 'preserve-3d' }}
           >
             {/* RECTO OFFICIEL */}
             <div
-              className="absolute inset-0 rounded-[18px] sm:rounded-[20px] bg-black border border-white/20 shadow-[0_28px_70px_rgba(0,0,0,0.92),0_0_32px_rgba(212,175,55,0.10)] overflow-hidden"
+              className="absolute inset-0 rounded-[18px] sm:rounded-[20px] bg-black border border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.92),0_0_24px_rgba(212,175,55,0.08)] overflow-hidden"
               style={{
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
@@ -112,19 +109,11 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
                 referrerPolicy="no-referrer"
                 className="w-full h-full object-cover"
               />
-              {!prefersReducedMotion && (
-                <motion.div
-                  aria-hidden="true"
-                  animate={{ x: ['-130%', '220%'] }}
-                  transition={{ duration: 4.5, repeat: Infinity, repeatDelay: 3, ease: 'easeInOut' }}
-                  className="pointer-events-none absolute inset-y-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-white/12 to-transparent"
-                />
-              )}
             </div>
 
             {/* VERSO OFFICIEL */}
             <div
-              className="absolute inset-0 rounded-[18px] sm:rounded-[20px] bg-black border border-white/20 shadow-[0_28px_70px_rgba(0,0,0,0.92)] overflow-hidden"
+              className="absolute inset-0 rounded-[18px] sm:rounded-[20px] bg-black border border-white/15 shadow-[0_24px_60px_rgba(0,0,0,0.92)] overflow-hidden"
               style={{
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
@@ -141,67 +130,118 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
           </motion.div>
         </motion.div>
 
-        {/* Bouton discret recto/verso */}
-        <button
-          type="button"
-          onClick={() => setIsFlipped((prev) => !prev)}
-          className="relative z-10 mt-3 min-h-[40px] inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs text-neutral-300 hover:text-[#d4af37] transition-colors cursor-pointer"
-        >
-          <RotateCw className="w-3.5 h-3.5 text-[#d4af37]" />
-          <span>
-            {isFlipped
-              ? isEn
-                ? 'See front'
-                : 'Voir devant'
-              : isEn
-              ? 'See back'
-              : 'Voir derrière'}
-          </span>
-        </button>
-
-        {/* Bandeau d'informations de la carte installée (sous la carte, jamais par-dessus) */}
-        <div className="relative z-10 mt-3 w-full rounded-2xl bg-[#0d0d0d] border border-white/10 divide-y divide-white/10 text-left overflow-hidden">
-          <div className="px-4 py-3.5 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-[10px] font-mono uppercase tracking-[0.18em] text-neutral-400">
-                {isEn ? 'Cardholder' : 'Titulaire'}
-              </div>
-              <div className="text-sm sm:text-base font-agrandir-extrabold text-white uppercase truncate mt-0.5">
-                {cleanMemberName}
-              </div>
-            </div>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/12 border border-emerald-500/35 text-emerald-300 text-[11px] font-agrandir-bold shrink-0">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>{isEn ? 'Active' : 'Active'}</span>
-            </span>
+        {/* Ligne d'identité sobre sous la carte (sans boîte, façon carte bancaire) */}
+        <div className="relative z-10 mt-5 text-center space-y-1 max-w-full px-2">
+          <div className="text-base sm:text-lg font-agrandir-extrabold text-white tracking-tight uppercase truncate">
+            {cleanMemberName}
           </div>
-
-          <div className="grid grid-cols-2 divide-x divide-white/10">
-            <div className="px-4 py-3 flex items-center gap-2.5">
-              <Calendar className="w-4 h-4 text-[#d4af37] shrink-0" />
-              <div className="min-w-0">
-                <div className="text-[10px] font-mono uppercase text-neutral-400">
-                  {isEn ? 'Valid until' : 'Valable jusqu’en'}
-                </div>
-                <div className="text-xs font-agrandir-bold text-white truncate">
-                  {expiryFormatted}
-                </div>
-              </div>
-            </div>
-
-            <div className="px-4 py-3 flex items-center gap-2.5">
-              <Truck className="w-4 h-4 text-[#d4af37] shrink-0" />
-              <div className="min-w-0">
-                <div className="text-[10px] font-mono uppercase text-neutral-400">
-                  {isEn ? 'Physical card' : 'Carte physique'}
-                </div>
-                <div className="text-xs font-agrandir-bold text-white truncate">
-                  {deliveryLabel}
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center justify-center flex-wrap gap-x-2 gap-y-0.5 text-xs text-neutral-400">
+            <span className="text-emerald-400 font-agrandir-semibold">
+              {isEn ? 'Active' : 'Active'}
+            </span>
+            <span aria-hidden="true" className="text-white/25">·</span>
+            <span className="font-mono tabular-nums">
+              {isEn ? 'Exp.' : 'Exp.'} {expiryFormatted}
+            </span>
+            <span aria-hidden="true" className="text-white/25">·</span>
+            <span>{deliveryLabel}</span>
           </div>
         </div>
+
+        {/* Boutons d'action circulaires façon application bancaire (Revolut / Apple Wallet) */}
+        <div className="relative z-10 mt-6 flex items-start justify-center gap-8 sm:gap-10">
+          <button
+            type="button"
+            onClick={() => setIsFlipped((prev) => !prev)}
+            className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
+          >
+            <span className="w-12 h-12 rounded-full bg-white/[0.08] group-hover:bg-white/[0.15] active:scale-95 border border-white/10 flex items-center justify-center text-white transition-all">
+              <RotateCw className="w-4 h-4 text-[#d4af37]" />
+            </span>
+            <span className="text-[11px] text-neutral-300 group-hover:text-white transition-colors whitespace-nowrap">
+              {isFlipped
+                ? isEn ? 'Front' : 'Devant'
+                : isEn ? 'Flip' : 'Retourner'}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowDetails((prev) => !prev)}
+            className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
+          >
+            <span
+              className={`w-12 h-12 rounded-full active:scale-95 border flex items-center justify-center transition-all ${
+                showDetails
+                  ? 'bg-white text-black border-white'
+                  : 'bg-white/[0.08] group-hover:bg-white/[0.15] border-white/10 text-white'
+              }`}
+            >
+              {showDetails ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4 text-[#d4af37]" />
+              )}
+            </span>
+            <span className="text-[11px] text-neutral-300 group-hover:text-white transition-colors whitespace-nowrap">
+              {isEn ? 'Card details' : 'Infos carte'}
+            </span>
+          </button>
+
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none disabled:opacity-50"
+            >
+              <span className="w-12 h-12 rounded-full bg-white/[0.08] group-hover:bg-white/[0.15] active:scale-95 border border-white/10 flex items-center justify-center text-white transition-all">
+                <RefreshCw className={`w-4 h-4 text-[#d4af37] ${isRefreshing ? 'animate-spin' : ''}`} />
+              </span>
+              <span className="text-[11px] text-neutral-300 group-hover:text-white transition-colors whitespace-nowrap">
+                {isEn ? 'Refresh' : 'Actualiser'}
+              </span>
+            </button>
+          )}
+        </div>
+
+        {/* Détails bancaires déroulants — lignes fines sans boîte */}
+        <AnimatePresence initial={false}>
+          {showDetails && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="relative z-10 w-full overflow-hidden"
+            >
+              <dl className="mt-6 border-t border-white/10 divide-y divide-white/10 text-xs text-left">
+                <div className="py-3 flex items-center justify-between gap-4">
+                  <dt className="text-neutral-400">{isEn ? 'Cardholder' : 'Titulaire'}</dt>
+                  <dd className="text-white font-agrandir-bold uppercase truncate">{cleanMemberName}</dd>
+                </div>
+                <div className="py-3 flex items-center justify-between gap-4">
+                  <dt className="text-neutral-400">{isEn ? 'Status' : 'Statut'}</dt>
+                  <dd className="text-emerald-400 font-agrandir-semibold">
+                    {isEn ? 'Active' : 'Active'}
+                  </dd>
+                </div>
+                <div className="py-3 flex items-center justify-between gap-4">
+                  <dt className="text-neutral-400">{isEn ? 'Issued' : 'Émise le'}</dt>
+                  <dd className="text-white font-mono tabular-nums">{issuedFormatted}</dd>
+                </div>
+                <div className="py-3 flex items-center justify-between gap-4">
+                  <dt className="text-neutral-400">{isEn ? 'Valid until' : 'Valable jusqu’en'}</dt>
+                  <dd className="text-white font-mono tabular-nums">{expiryFormatted}</dd>
+                </div>
+                <div className="py-3 flex items-center justify-between gap-4">
+                  <dt className="text-neutral-400">{isEn ? 'Physical card' : 'Carte physique'}</dt>
+                  <dd className="text-[#d4af37] font-agrandir-semibold">{deliveryLabel}</dd>
+                </div>
+              </dl>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );
