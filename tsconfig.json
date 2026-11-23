@@ -24,6 +24,9 @@
     "noEmit": true
   },
   "exclude": [
-    "dist"
+    "dist",
+    "src/server/**/*.test.ts",
+    "tests/**/*.test.ts",
+    "tests"
   ]
 }
