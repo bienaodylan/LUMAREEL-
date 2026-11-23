@@ -76,7 +76,7 @@ export const AuthModal: React.FC = () => {
         const { data, error } = await supabase.auth.signUp({
           email: cleanEmail,
           password,
-          options: { data: { name: name.trim().replace(/\\s+/g, ' ') } },
+          options: { data: { name: name.trim().replace(/\s+/g, ' ') } },
         });
         if (error) throw error;
         if (!data.user) throw new Error(language === 'en' ? 'Registration failed.' : 'Inscription impossible.');
