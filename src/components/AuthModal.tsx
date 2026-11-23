@@ -39,7 +39,13 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  const isValidFullName = (value: string) => {\n    const cleaned = value.trim().replace(/\\s+/g, ' ');\n    if (cleaned.length < 3 || cleaned.length > 80 || cleaned.split(' ').length < 2) return false;\n    return cleaned.split(' ').every((part) => /^[\\p{L}][\\p{M}\\p{L}'’-]{1,39}$/u.test(part) && !/(.)\\1{3,}/i.test(part));\n  };\n\n  const handleSubmit = async (e: React.FormEvent) => {
+  const isValidFullName = (value: string) => {
+    const cleaned = value.trim().replace(/\s+/g, ' ');
+    if (cleaned.length < 3 || cleaned.length > 80 || cleaned.split(' ').length < 2) return false;
+    return cleaned.split(' ').every((part) => /^[\p{L}\p{M}][\p{L}\p{M}'’-]{1,39}$/u.test(part) && !/(.)\1{3,}/i.test(part));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
 
