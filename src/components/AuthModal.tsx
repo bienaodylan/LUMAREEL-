@@ -59,8 +59,8 @@ export const AuthModal: React.FC = () => {
       return;
     }
 
-    if (mode === 'register' && !name.trim()) {
-      showToast(t('auth.missingName'), 'error');
+    if (mode === 'register' && !isValidFullName(name)) {
+      showToast(language === 'en' ? 'Enter your first and last name using valid characters.' : 'Veuillez saisir vos prénom et nom complets avec des caractères valides.', 'error');
       return;
     }
 
