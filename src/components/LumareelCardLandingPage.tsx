@@ -345,7 +345,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   onGoToWallet,
   onCardIssued,
 }) => {
-  const { currentUser, setCurrentPage, showToast, language } = useApp();
+  const { currentUser, setCurrentPage, showToast, language, setIsAuthModalOpen } = useApp();
   const c = CARD_COPY[language === 'en' ? 'en' : 'fr'];
   const prefersReducedMotion = useReducedMotion();
 
@@ -551,6 +551,11 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
   const handleCompleteAdmission = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentUser || !currentUser.emailVerified) {
+      setIsAuthModalOpen(true);
+      showToast(language === 'en' ? 'Sign in with a verified email to purchase the card.' : 'Connectez-vous avec un e-mail vérifié pour acheter la carte.', 'error');
+      return;
+    }
     const cleanName = applicantName.trim();
     const cleanEmail = applicantEmail.trim().toLowerCase();
     const cleanPhone = applicantPhone.trim();
