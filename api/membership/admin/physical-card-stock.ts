@@ -15,6 +15,14 @@ const AUDIT_ISSUE_CODES = new Set([
 
 class InputError extends Error {}
 
+function readSingleQuery(value: string | string[] | undefined, label: string): string | undefined {
+  if (Array.isArray(value)) {
+    if (value.length !== 1) throw new InputError(`${label} doit être fourni une seule fois.`);
+    return value[0];
+  }
+  return value;
+}
+
 function readText(value: unknown, max: number, label: string): string {
   if (value == null) return '';
   if (typeof value !== 'string') throw new InputError(`${label} doit être une chaîne de caractères.`);
@@ -42,11 +50,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     if (req.method === 'GET') {
-      const auditMode = Array.isArray(req.query.audit) ? req.query.audit[0] : req.query.audit;
+      const auditMode = readSingleQuery(req.query.audit, 'Paramètre audit');
       if (auditMode === 'consistency') {
-        const rawLimit = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
-        const rawOffset = Array.isArray(req.query.offset) ? req.query.offset[0] : req.query.offset;
-        const rawIssueCode = Array.isArray(req.query.issue_code) ? req.query.issue_code[0] : req.query.issue_code;
+        const rawLimit = readSingleQuery(req.query.limit, 'Paramètre limit');
+        const rawOffset = readSingleQuery(req.query.offset, 'Paramètre offset');
+        const rawIssueCode = readSingleQuery(req.query.issue_code, 'Paramètre issue_code');
         const limit = rawLimit === undefined ? 100 : Number(rawLimit);
         const offset = rawOffset === undefined ? 0 : Number(rawOffset);
         const issueCode = rawIssueCode === undefined || rawIssueCode === '' ? null : rawIssueCode;
