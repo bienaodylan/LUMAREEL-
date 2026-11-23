@@ -1006,13 +1006,20 @@ export const CheckoutModal: React.FC = () => {
                             : 'bg-[#141414] border-white/10 text-neutral-400 hover:text-white hover:border-white/20'
                         }`}
                       >
-                        <div className="h-7 mb-1 flex items-center justify-center gap-1.5">
+                        <div className="h-8 sm:h-9 mb-1 flex items-center justify-center gap-1.5 min-w-0">
                           {op.logo ? (
-                            <img src={op.logo} alt={op.label} className="h-6 max-w-[82px] object-contain" loading="lazy" />
+                            <img
+                              src={op.logo}
+                              alt={op.label}
+                              className="h-6 sm:h-7 w-auto max-w-[90px] object-contain"
+                              loading="eager"
+                              decoding="async"
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
                           ) : (
                             <>
-                              <img src="https://cdn.simpleicons.org/visa/1A1F71" alt="Visa" className="h-5 max-w-[52px] object-contain" loading="lazy" />
-                              <img src="https://cdn.simpleicons.org/mastercard/EB001B" alt="Mastercard" className="h-5 max-w-[38px] object-contain" loading="lazy" />
+                              <img src="https://cdn.simpleicons.org/visa/1A1F71" alt="Visa" className="h-5 sm:h-6 w-auto max-w-[52px] object-contain" loading="eager" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                              <img src="https://cdn.simpleicons.org/mastercard/EB001B" alt="Mastercard" className="h-5 sm:h-6 w-auto max-w-[38px] object-contain" loading="eager" decoding="async" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                             </>
                           )}
                         </div>
