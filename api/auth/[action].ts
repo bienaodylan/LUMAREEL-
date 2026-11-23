@@ -61,10 +61,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const email = String(req.body?.email || '').trim().toLowerCase();
       const name = String(req.body?.name || '').trim();
       const password = String(req.body?.password || '');
-      if (!email || !name || password.length < 6) {
+      const cleanName = name.replace(/\\s+/g, ' ').trim();\n      const validFullName = cleanName.length >= 3 && cleanName.length <= 80 && cleanName.split(' ').length >= 2 && cleanName.split(' ').every((part) => /^[\\p{L}][\\p{L}\\p{M}'’-]{1,39}$/u.test(part) && !/(.)\\1{3,}/i.test(part));\n      const validEmail = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]{2,}$/.test(email);\n      if (!email || !validEmail || !validFullName || password.length < 8) {
         return res.status(400).json({
           success: false,
-          error: 'Nom, e-mail et mot de passe (6 car. min.) requis.',
+          error: 'Nom complet valide, e-mail valide et mot de passe (8 caractères minimum) requis.',
         });
       }
 
@@ -73,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { data, error } = await db.auth.signUp({
           email,
           password,
-          options: { data: { name } },
+          options: { data: { name: cleanName } },
         });
         if (error) return res.status(400).json({ success: false, error: error.message });
         if (!data.user) return res.status(500).json({ success: false, error: 'Inscription impossible.' });
