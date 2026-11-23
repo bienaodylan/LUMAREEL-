@@ -44,6 +44,12 @@ BEGIN
      OR v_filtered_def !~* 'issue_code = p_issue_code' THEN
     RAISE EXCEPTION 'Filtered audit RPC must apply the issue code to both page and total count';
   END IF;
+
+  IF v_filtered_def !~* 'order by a\.issue_code\s*,\s*a\.membership_card_id nulls last\s*,\s*a\.stock_id nulls last\s*,\s*a\.credential_id nulls last'
+     OR v_filtered_def !~* 'jsonb_agg\s*\(\s*to_jsonb\(page_row\)\s+order by page_row\.issue_code' 
+     OR v_filtered_def !~* 'page_row\.credential_id nulls last' THEN
+    RAISE EXCEPTION 'Filtered audit RPC must use deterministic page and JSON aggregation ordering';
+  END IF;
   IF v_filtered_def !~* 'STOCK_WITHOUT_ACTIVE_NFC'
      OR v_filtered_def !~* 'LINKED_STOCK_MISSING_NFC_REFERENCE'
      OR v_filtered_def !~* 'STOCK_NFC_METADATA_MISMATCH'
