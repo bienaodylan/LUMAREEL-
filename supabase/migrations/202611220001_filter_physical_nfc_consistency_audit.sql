@@ -119,11 +119,11 @@ BEGIN
     'offset',v_offset,
     'issue_code',p_issue_code,
     'anomalies',coalesce((
-      SELECT jsonb_agg(to_jsonb(page_row))
+      SELECT jsonb_agg(to_jsonb(page_row) ORDER BY page_row.issue_code,page_row.membership_card_id NULLS LAST,page_row.stock_id NULLS LAST,page_row.credential_id NULLS LAST)
       FROM (
         SELECT a.issue_code,a.membership_card_id,a.stock_id,a.manufacturer_serial,a.credential_id,a.details
         FROM filtered_anomalies a
-        ORDER BY a.issue_code,a.membership_card_id NULLS LAST,a.stock_id NULLS LAST
+        ORDER BY a.issue_code,a.membership_card_id NULLS LAST,a.stock_id NULLS LAST,a.credential_id NULLS LAST
         LIMIT v_limit OFFSET v_offset
       ) page_row
     ),'[]'::jsonb)
