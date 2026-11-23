@@ -6,7 +6,6 @@ import { supabase } from '../lib/supabaseClient';
 import { RefreshCw } from 'lucide-react';
 import { MembershipCard } from '../types';
 import { loadStoredMemberCard, saveStoredMemberCard } from '../utils/memberCardStorage';
-import { PageBackBar } from './PageBackBar';
 
 /**
  * Page officielle "LUMARÉEL Black Card" :
@@ -98,10 +97,6 @@ export const LumareelMemberCardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-[#050505] text-white pb-12">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-8">
-        <PageBackBar className="mb-2" />
-      </div>
-
       {membershipStatus === 'loading' ? (
         <div className="min-h-[55vh] flex flex-col items-center justify-center gap-3">
           <RefreshCw className="w-6 h-6 animate-spin text-[#d4af37]" />

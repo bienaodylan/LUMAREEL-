@@ -15,9 +15,9 @@ import {
   Loader2,
   Sparkles,
   ExternalLink,
+  X,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { PageBackBar } from './PageBackBar';
 
 export const CardVerificationView: React.FC<{ token?: string; onBack?: () => void }> = ({
   token: propToken,
@@ -72,12 +72,22 @@ export const CardVerificationView: React.FC<{ token?: string; onBack?: () => voi
     <div className="min-h-screen bg-black text-[#EFEFEF] font-agrandir-regular pb-32 pt-8 sm:pt-14 px-4 sm:px-8">
       <div className="max-w-2xl mx-auto space-y-8">
         
-        {/* Barre uniforme Retour à la page précédente + Croix */}
-        <PageBackBar onBack={onBack || goBack} onClose={onBack || goBack} />
+        {/* En-tête avec bouton croix discret */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
+            <Lock className="w-3.5 h-3.5" />
+            <span>{t('verify.officialRegistry')}</span>
+          </div>
 
-        <div className="flex items-center justify-center gap-2 text-xs font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
-          <Lock className="w-3.5 h-3.5" />
-          <span>{t('verify.officialRegistry')}</span>
+          <button
+            type="button"
+            onClick={() => (onBack ? onBack() : goBack())}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-neutral-300 hover:text-white hover:border-white transition-all cursor-pointer active:scale-95 shadow-md group"
+            aria-label={t('nav.close')}
+            title={t('nav.close')}
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform duration-200" />
+          </button>
         </div>
 
         {/* Header */}

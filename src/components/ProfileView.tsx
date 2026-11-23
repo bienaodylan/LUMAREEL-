@@ -14,7 +14,6 @@ import {
   Crown,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { PageBackBar } from './PageBackBar';
 
 /**
  * ProfileView.tsx — Espace Compte & Préférences de l'application LUMARÉEL.
@@ -76,10 +75,6 @@ export const ProfileView: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full max-w-2xl mx-auto bg-transparent text-white font-agrandir-regular select-none pb-20 pt-4 sm:pt-10 px-4 sm:px-6 overflow-x-clip">
-      
-      {/* Barre uniforme Retour à la page précédente + Croix */}
-      <PageBackBar className="mb-4" />
-      
       {/* INFORMATIONS COMPTE ACTIF */}
       <div className="px-2 sm:px-4 py-5 border-b border-white/10 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0 flex-1">

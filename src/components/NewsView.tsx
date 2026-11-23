@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Calendar, User, Clock, ArrowRight, X } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
-import { PageBackBar } from './PageBackBar';
 
 export const NewsView: React.FC = () => {
   const { news, language, t } = useApp();
@@ -10,8 +9,6 @@ export const NewsView: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-10 pb-6 sm:pb-8">
-      <PageBackBar />
-
       {/* Header */}
       <div className="mb-10 pb-6 border-b border-[#1c1c1c]">
         <h1 className="font-agrandir-extrabold text-2xl sm:text-4xl md:text-5xl text-white tracking-tight uppercase">

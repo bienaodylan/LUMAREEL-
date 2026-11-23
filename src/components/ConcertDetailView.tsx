@@ -3,7 +3,6 @@ import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
 import { ArrowLeft, ChevronLeft, Calendar, MapPin, ShieldCheck, Ticket, Check, X } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
-import { PageBackBar } from './PageBackBar';
 
 export const ConcertDetailView: React.FC = () => {
   const { events, selectedEventSlug, goBack, setCheckoutEvent, currentUser, setIsAuthModalOpen, language, t } = useApp();
@@ -46,8 +45,18 @@ export const ConcertDetailView: React.FC = () => {
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-6 sm:pt-10 pb-20 select-none font-agrandir-regular">
       
-      {/* Barre uniforme Retour à la page précédente + Croix */}
-      <PageBackBar className="mb-6 sm:mb-8" />
+      {/* Bouton croix discret pour fermer la fiche détail */}
+      <div className="flex items-center justify-end mb-5">
+        <button
+          type="button"
+          onClick={goBack}
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-neutral-300 hover:text-white hover:border-white transition-all cursor-pointer active:scale-95 shadow-md group"
+          aria-label={t('nav.close')}
+          title={t('nav.close')}
+        >
+          <X className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform duration-200" />
+        </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14">
         

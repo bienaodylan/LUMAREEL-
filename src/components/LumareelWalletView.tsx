@@ -10,7 +10,6 @@ import {
 } from '../types';
 import { DigitalMembershipCard } from './DigitalMembershipCard';
 import { loadStoredMemberCard, saveStoredMemberCard } from '../utils/memberCardStorage';
-import { PageBackBar } from './PageBackBar';
 import {
   Ticket as TicketIcon,
   Mail,
@@ -264,8 +263,20 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
 
   return (
     <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-6 pb-12 select-none font-agrandir-regular text-white">
-      {/* Barre uniforme Retour à la page précédente + Croix (hors page membre) */}
-      {!embedded && <PageBackBar />}
+      {/* Croix discrète uniquement si ouvert hors page membre */}
+      {!embedded && (
+        <div className="flex items-center justify-end mb-4">
+          <button
+            type="button"
+            onClick={goBack}
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-neutral-300 hover:text-white hover:border-white transition-all cursor-pointer active:scale-95 shadow-md group"
+            aria-label={t('nav.close')}
+            title={t('nav.close')}
+          >
+            <X className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform duration-200" />
+          </button>
+        </div>
+      )}
 
       {/* ===================================================================== */}
       {/* CARTE NOIRE INSTALLÉE — PRÉSENTATION BANCAIRE OUVERTE (ZÉRO BLOCS)    */}

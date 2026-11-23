@@ -6,7 +6,6 @@ import {
   Maximize2, Film, ArrowLeft
 } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
-import { PageBackBar } from './PageBackBar';
 
 export const ArchiveView: React.FC = () => {
   const { archives, goBack, language, t } = useApp();
@@ -57,9 +56,6 @@ export const ArchiveView: React.FC = () => {
       {/* Main content container avec espacement ajusté */}
       <div className="relative z-10 max-w-7xl mx-auto w-full px-4 sm:px-8 lg:px-12 pt-4 sm:pt-10 pb-6 sm:pb-8 flex-1">
         
-        {/* Barre uniforme Retour à la page précédente + Croix */}
-        <PageBackBar />
-
         <div className="text-[10px] sm:text-[11px] font-agrandir-regular tracking-[0.2em] text-[#d4af37] uppercase mb-3">
           {t('archive.kicker')}
         </div>

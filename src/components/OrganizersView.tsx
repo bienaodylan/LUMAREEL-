@@ -17,7 +17,6 @@ import {
   Clock,
   Sparkles,
 } from 'lucide-react';
-import { PageBackBar } from './PageBackBar';
 
 export const OrganizersView: React.FC = () => {
   const { events, refreshEvents, showToast, setCurrentPage, setSelectedEventSlug, language, t } = useApp();
@@ -168,8 +167,6 @@ export const OrganizersView: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-10 pb-20">
-      <PageBackBar />
-
       {/* Top Section */}
       <div className="mb-10 pb-6 border-b border-[#1c1c1c] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>

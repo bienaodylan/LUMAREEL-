@@ -30,7 +30,6 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { formatDateLong } from '../utils/dateUtils';
-import { PageBackBar } from './PageBackBar';
 
 type ScrollableTab = 'tickets' | 'transfer' | 'past';
 
@@ -180,10 +179,6 @@ export const CustomerSpace: React.FC = () => {
 
   return (
     <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-10 pb-20 select-none font-agrandir-regular overflow-x-clip">
-      
-      {/* Barre uniforme Retour à la page précédente + Croix */}
-      <PageBackBar />
-
       {/* 1. Page Header — "MES COMMANDES" */}
       <div className="mb-6 border-b border-white/10 pb-6">
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
