@@ -5,6 +5,30 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/payments/paymetrust/initiate",
+      "destination": "/api/payments?route=initiate"
+    },
+    {
+      "source": "/api/payments/paymetrust/confirm-preview",
+      "destination": "/api/payments?route=confirm-preview"
+    },
+    {
+      "source": "/api/payments/paymetrust/config",
+      "destination": "/api/payments?route=config"
+    },
+    {
+      "source": "/api/membership/editions",
+      "destination": "/api/payments?route=editions"
+    },
+    {
+      "source": "/api/membership/my-card",
+      "destination": "/api/payments?route=my-card"
+    },
+    {
+      "source": "/api/membership/order",
+      "destination": "/api/payments?route=order"
+    },
+    {
       "source": "/((?!api/|assets/|uploads/).*)",
       "destination": "/index.html"
     }
