@@ -10,7 +10,7 @@ import { generatePersonalizedTicketEmail } from '../utils/emailTemplate';
 import { formatDateLong } from '../utils/dateUtils';
 
 type CheckoutStep = 1 | 2 | 3 | 4;
-type PaymentOption = 'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'djamo' | 'card';
+type PaymentOption = 'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'card';
 type CountryOption = 'CI' | 'SN' | 'ML' | 'BF' | 'INT';
 
 export interface CountryOptionItem {
@@ -983,12 +983,11 @@ export const CheckoutModal: React.FC = () => {
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: 'wave', label: 'Wave', icon: '🌊' },
-                    { id: 'orange_money', label: 'Orange Money', icon: '🟠' },
-                    { id: 'mtn_momo', label: 'MTN MoMo', icon: '🟡' },
-                    { id: 'djamo', label: 'Djamo', icon: '🟣' },
-                    { id: 'moov_money', label: 'Moov', icon: '🔵' },
-                    { id: 'card', label: language === 'en' ? 'Card' : 'Carte', icon: '💳' },
+                    { id: 'wave', label: 'Wave', logo: 'https://cdn.simpleicons.org/wave/1A73E8', fallback: 'WAVE' },
+                    { id: 'orange_money', label: 'Orange Money', logo: 'https://cdn.simpleicons.org/orange/FF7900', fallback: 'ORANGE' },
+                    { id: 'mtn_momo', label: 'MTN MoMo', logo: 'https://cdn.simpleicons.org/mtn/FFCC00', fallback: 'MTN' },
+                    { id: 'moov_money', label: 'Moov Money', logo: 'https://cdn.simpleicons.org/moov/0065B3', fallback: 'MOOV' },
+                    { id: 'card', label: language === 'en' ? 'Card' : 'Carte', logo: null, fallback: 'CARD' },
                   ].map((op) => {
                     const isSelected = paymentMethod === op.id;
                     return (
@@ -1002,7 +1001,16 @@ export const CheckoutModal: React.FC = () => {
                             : 'bg-[#141414] border-white/10 text-neutral-400 hover:text-white hover:border-white/20'
                         }`}
                       >
-                        <div className="text-base mb-0.5">{op.icon}</div>
+                        <div className="h-7 mb-1 flex items-center justify-center gap-1.5">
+                          {op.logo ? (
+                            <img src={op.logo} alt={op.label} className="h-6 max-w-[82px] object-contain" loading="lazy" />
+                          ) : (
+                            <>
+                              <img src="https://cdn.simpleicons.org/visa/1A1F71" alt="Visa" className="h-5 max-w-[52px] object-contain" loading="lazy" />
+                              <img src="https://cdn.simpleicons.org/mastercard/EB001B" alt="Mastercard" className="h-5 max-w-[38px] object-contain" loading="lazy" />
+                            </>
+                          )}
+                        </div>
                         <div className="text-[11px] truncate uppercase">{op.label}</div>
                       </button>
                     );
@@ -1014,7 +1022,7 @@ export const CheckoutModal: React.FC = () => {
               {paymentMethod !== 'card' ? (
                 <div className="space-y-1.5">
                   <label className="block text-xs font-agrandir-bold text-neutral-300">
-                    {t('checkout.phone')} ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : 'Mobile Money'}) <span className="text-[#d4af37]">*</span>
+                    {t('checkout.phone')} ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : 'Mobile Money'}) <span className="text-[#d4af37]">*</span>
                   </label>
                   <div className="flex gap-2">
                     <button
@@ -1081,7 +1089,7 @@ export const CheckoutModal: React.FC = () => {
                   </>
                 ) : (
                   <span>
-                    {t('checkout.payBtn')} {paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'djamo' ? 'Djamo' : paymentMethod === 'moov_money' ? 'Moov' : (language === 'en' ? 'Card' : 'Carte')}
+                    {t('checkout.payBtn')} {paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : paymentMethod === 'moov_money' ? 'Moov' : (language === 'en' ? 'Card' : 'Carte')}
                   </span>
                 )}
               </button>
@@ -1100,7 +1108,7 @@ export const CheckoutModal: React.FC = () => {
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#d4af37] via-white/80 to-[#d4af37]" />
 
                     <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center mx-auto mb-4 text-2xl">
-                      {paymentMethod === 'wave' ? '🌊' : paymentMethod === 'orange_money' ? '🟠' : paymentMethod === 'mtn_momo' ? '🟡' : paymentMethod === 'djamo' ? '🟣' : paymentMethod === 'moov_money' ? '🔵' : '💳'}
+                      {paymentMethod === 'wave' ? '🌊' : paymentMethod === 'orange_money' ? '🟠' : paymentMethod === 'mtn_momo' ? '🟡' : paymentMethod === 'moov_money' ? '🔵' : '💳'}
                     </div>
 
                     <div className="text-[10px] uppercase tracking-[0.22em] text-[#d4af37] font-mono font-bold mb-1">
