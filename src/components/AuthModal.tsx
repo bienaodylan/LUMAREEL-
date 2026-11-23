@@ -39,7 +39,7 @@ export const AuthModal: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const isValidFullName = (value: string) => {\n    const cleaned = value.trim().replace(/\\s+/g, ' ');\n    if (cleaned.length < 3 || cleaned.length > 80 || cleaned.split(' ').length < 2) return false;\n    return cleaned.split(' ').every((part) => /^[\\p{L}][\\p{L}\\p{M}'’-]{1,39}$/u.test(part) && !/(.)\\1{3,}/i.test(part));\n  };\n\n  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
 
@@ -61,101 +61,56 @@ export const AuthModal: React.FC = () => {
     setIsLoading(true);
 
     try {
+      if (!isSupabaseConfigured) {
+        throw new Error(language === 'en' ? 'Authentication is temporarily unavailable.' : 'L’authentification est temporairement indisponible.');
+      }
+
       let authenticatedUser: any = null;
-
-      // 1. TENTATIVE AUTH SUPABASE DIRECTE (Si configuré et accessible)
-      if (isSupabaseConfigured) {
-        try {
-          if (mode === 'register') {
-            const { data, error } = await supabase.auth.signUp({
-              email: cleanEmail,
-              password,
-              options: { data: { name: name.trim() } },
-            });
-            if (error) {
-              if (/already registered/i.test(error.message)) {
-                throw new Error(
-                  language === 'en'
-                    ? 'An account already exists with this email. Please sign in.'
-                    : 'Un compte existe déjà avec cette adresse e-mail. Veuillez vous connecter.'
-                );
-              }
-              throw error;
-            }
-            if (data?.user) {
-              authenticatedUser = {
-                id: data.user.id,
-                email: data.user.email || cleanEmail,
-                name: name.trim() || cleanEmail.split('@')[0],
-                role: cleanEmail === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer',
-                emailVerified: Boolean(data.user.email_confirmed_at),
-                createdAt: data.user.created_at,
-              };
-            }
-          } else {
-            const { data, error } = await supabase.auth.signInWithPassword({
-              email: cleanEmail,
-              password,
-            });
-            if (error) {
-              if (/invalid login credentials/i.test(error.message)) {
-                // Mauvais identifiants sur Supabase : tester également le serveur local en cas de compte d'administration
-                console.warn('[Supabase Auth] Identifiants Supabase non reconnus, vérification serveur local...');
-              } else if (/email not confirmed/i.test(error.message)) {
-                throw new Error(
-                  language === 'en'
-                    ? 'Please confirm your email address before signing in.'
-                    : 'Veuillez confirmer votre adresse e-mail avant de vous connecter.'
-                );
-              } else {
-                throw error;
-              }
-            } else if (data?.user) {
-              authenticatedUser = {
-                id: data.user.id,
-                email: data.user.email || cleanEmail,
-                name: String(data.user.user_metadata?.name || cleanEmail.split('@')[0]),
-                role: cleanEmail === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer',
-                emailVerified: Boolean(data.user.email_confirmed_at),
-                createdAt: data.user.created_at,
-              };
-            }
-          }
-        } catch (sbErr: any) {
-          console.warn('[Supabase Auth warning]', sbErr?.message || sbErr);
-          // Si l'erreur est un blocage explicite de confirmation d'e-mail ou utilisateur déjà existant
-          if (sbErr?.message && /confirm.*email|already registered/i.test(sbErr.message)) {
-            throw sbErr;
-          }
-        }
-      }
-
-      // 2. REPLI TRANSPARENT SUR LE SERVEUR D'AUTHENTIFICATION LOCAL LUMARÉEL
-      if (!authenticatedUser) {
-        const endpoint = mode === 'register' ? '/api/auth/register' : '/api/auth/login';
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: cleanEmail,
-            password,
-            name: name.trim(),
-          }),
+      if (mode === 'register') {
+        const { data, error } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+          options: { data: { name: name.trim().replace(/\\s+/g, ' ') } },
         });
-
-        const data = await res.json();
-        if (!res.ok || !data.success || !data.user) {
-          throw new Error(data.error || t('auth.loginFailed'));
+        if (error) throw error;
+        if (!data.user) throw new Error(language === 'en' ? 'Registration failed.' : 'Inscription impossible.');
+        if (!data.user.email_confirmed_at || !data.session) {
+          showToast(language === 'en'
+            ? 'Check your inbox and confirm your email before signing in.'
+            : 'Vérifiez votre boîte mail et confirmez votre adresse avant de vous connecter.', 'success');
+          setMode('login');
+          return;
         }
-        authenticatedUser = data.user;
+        authenticatedUser = {
+          id: data.user.id,
+          email: data.user.email || cleanEmail,
+          name: String(data.user.user_metadata?.name || name.trim()),
+          role: 'customer',
+          emailVerified: true,
+          createdAt: data.user.created_at,
+        };
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+        if (error) throw error;
+        if (!data.user || !data.session) throw new Error(language === 'en' ? 'Authentication failed.' : 'Connexion impossible.');
+        if (!data.user.email_confirmed_at) {
+          await supabase.auth.signOut();
+          throw new Error(language === 'en' ? 'Confirm your email before signing in.' : 'Veuillez confirmer votre adresse e-mail avant de vous connecter.');
+        }
+        const { data: profile } = await supabase.from('users').select('name, role').eq('id', data.user.id).maybeSingle();
+        authenticatedUser = {
+          id: data.user.id,
+          email: data.user.email || cleanEmail,
+          name: String(profile?.name || data.user.user_metadata?.name || cleanEmail.split('@')[0]),
+          role: profile?.role || 'customer',
+          emailVerified: true,
+          createdAt: data.user.created_at,
+        };
       }
 
-      // 3. ENREGISTREMENT ET ACTIVATION DE LA SESSION
       setCurrentUser(authenticatedUser);
       setIsAuthModalOpen(false);
-
       showToast(t('auth.welcome').replace('{name}', authenticatedUser.name), 'success');
-
       if (checkoutEvent) setCheckoutEvent(checkoutEvent);
     } catch (err: any) {
       showToast(err.message || t('auth.loginFailed'), 'error');
