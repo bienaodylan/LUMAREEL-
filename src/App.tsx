@@ -17,6 +17,11 @@ import { CheckoutModal } from './components/CheckoutModal';
 import { AuthModal } from './components/AuthModal';
 import { LumareelMemberCardPage } from './components/LumareelMemberCardPage';
 import { CardVerificationView } from './components/CardVerificationView';
+import { RewardsHubView } from './components/RewardsHubView';
+import { BackstageView } from './components/BackstageView';
+import { FlashDropsView } from './components/FlashDropsView';
+import { ConcertMemoriesView } from './components/ConcertMemoriesView';
+import { SuggestionsView } from './components/SuggestionsView';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { saveStoredMemberCard } from './utils/memberCardStorage';
@@ -101,7 +106,14 @@ const MainApp: React.FC = () => {
   }, [currentPage]);
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
-  const hasMobileTopHeader = currentPage === 'home' || currentPage === 'discover';
+  const isHomePage = currentPage === 'home' || currentPage === 'discover';
+  const isStandaloneRootTab =
+    isHomePage ||
+    currentPage === 'client_space' ||
+    currentPage === 'member_card' ||
+    currentPage === 'card' ||
+    currentPage === 'profile';
+  const hasVisibleMobileHeader = !isAdminOrScanner && (!isStandalone || isHomePage || !isStandaloneRootTab);
 
   return (
     <div className="min-h-screen w-full max-w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative">
@@ -116,15 +128,23 @@ const MainApp: React.FC = () => {
         </>
       )}
 
-      {/* Dynamic View Router avec transition de page fluide et espacement adapté au mobile installé */}
+      {/* Dynamic View Router avec transition de page fluide et espacement adapté au mobile web & app */}
       <main
         className={`flex-1 w-full max-w-full min-w-0 relative z-10 ${
           !isAdminOrScanner
-            ? `${isStandalone ? 'pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))]' : 'pb-10'} md:pb-12 md:pl-[244px]`
+            ? `${
+                isStandalone
+                  ? 'pb-[calc(6.25rem+env(safe-area-inset-bottom,0px))]'
+                  : 'pb-10'
+              } ${
+                hasVisibleMobileHeader && !isHomePage
+                  ? 'pt-[calc(4.1rem+env(safe-area-inset-top,0px))] md:pt-0'
+                  : ''
+              } md:pb-12 md:pl-[244px]`
             : ''
         }`}
         style={
-          !isAdminOrScanner && !hasMobileTopHeader
+          !isAdminOrScanner && !hasVisibleMobileHeader
             ? { paddingTop: 'env(safe-area-inset-top, 0px)' }
             : undefined
         }
@@ -150,13 +170,18 @@ const MainApp: React.FC = () => {
             {currentPage === 'card' && <LumareelMemberCardPage />}
             {currentPage === 'member_card' && <LumareelMemberCardPage />}
             {currentPage === 'card_verify' && <CardVerificationView />}
+            {currentPage === 'rewards' && <RewardsHubView />}
+            {currentPage === 'backstage' && <BackstageView />}
+            {currentPage === 'flash_drops' && <FlashDropsView />}
+            {currentPage === 'memories' && <ConcertMemoriesView />}
+            {currentPage === 'suggestions' && <SuggestionsView />}
             {currentPage === 'gate_scanner' && <ScannerView />}
             {currentPage === 'admin' && <AdminDashboard />}
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* Barre de Navigation Native Mobile (uniquement en mode application installée / standalone) */}
+      {/* Barre de Navigation Flottante Mobile (uniquement en mode application installée / standalone) */}
       {!isAdminOrScanner && <FloatingAppNavbar />}
 
       {/* Active Modals */}

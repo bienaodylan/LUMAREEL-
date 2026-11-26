@@ -7,23 +7,24 @@ import {
   Globe,
   LogOut,
   Shield,
-  ArrowLeft,
-  X,
   Trash2,
   AlertTriangle,
   Crown,
+  Award,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { computeUserPointsSummary, loadUserPointsState } from '../utils/communityStorage';
 
 /**
  * ProfileView.tsx — Espace Compte & Préférences de l'application LUMARÉEL.
  * Permet de basculer la langue directement (Français / Anglais), de gérer le compte et l'accès Super Admin.
  */
 export const ProfileView: React.FC = () => {
-  const { currentUser, setCurrentUser, setCurrentPage, goBack, setIsAuthModalOpen, showToast, language, setLanguage, t } = useApp();
+  const { currentUser, customerOrders, setCurrentUser, setCurrentPage, setIsAuthModalOpen, showToast, language, setLanguage, t } = useApp();
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const pointsSummary = computeUserPointsSummary(currentUser, customerOrders, loadUserPointsState(currentUser));
 
   const isSuperAdmin =
     currentUser?.email?.toLowerCase() === 'bienaodylan428@gmail.com' ||
@@ -142,6 +143,26 @@ export const ProfileView: React.FC = () => {
             </div>
           </div>
           <ChevronRight className="w-4 h-4 text-[#d4af37] group-hover:translate-x-0.5 transition-transform" />
+        </button>
+
+        {/* Mes points, récompenses & parrainage */}
+        <button
+          type="button"
+          onClick={() => setCurrentPage('rewards')}
+          className="flex justify-between items-center w-full py-4 px-6 hover:bg-white/5 active:bg-white/10 cursor-pointer transition-colors text-left border-t border-white/5 group"
+        >
+          <div className="flex items-center gap-3.5">
+            <Award className="w-5 h-5 text-[#d4af37] stroke-[1.8]" />
+            <div>
+              <span className="text-sm font-agrandir-bold text-white group-hover:text-[#d4af37] transition-colors block">
+                {language === 'en' ? 'Points, Rewards & Referrals' : 'Points, Récompenses & Parrainage'}
+              </span>
+              <span className="text-xs text-neutral-400 tabular-nums">
+                {pointsSummary.availablePoints} pts · {pointsSummary.ticketingCreditFcfa} F CFA
+              </span>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-neutral-500 group-hover:text-white transition-colors" />
         </button>
 
         {isSuperAdmin && (

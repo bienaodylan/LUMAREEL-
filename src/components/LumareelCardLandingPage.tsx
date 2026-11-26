@@ -36,10 +36,10 @@ const CARD_COPY = {
     heroTitle1: 'VOS CONCERTS',
     heroTitle2: 'ENTRE VOS MAINS.',
     heroSub:
-      'Coupe-file, parking réservé, premiers rangs VIP, boisson offerte, préventes, Meet & Greet et réductions partenaires — tout dans une seule carte.',
+      'Coupe-file, parking réservé, premiers rangs VIP, boisson offerte, préventes, Meet & Greet, réserve garantie même en sold out et réductions partenaires — tout dans une seule carte.',
     ctaPrimary: 'Prendre ma LUMARÉEL Black Card',
-    ctaSecondary: 'Voir les 8 avantages',
-    syncProof: (q: number) => `${q} cartes dispo · 8 avantages inclus`,
+    ctaSecondary: 'Voir les 9 avantages',
+    syncProof: (q: number) => `${q} cartes dispo · 9 avantages inclus`,
     flipHint: 'Touchez la carte pour la retourner',
     verified: 'CARTE OFFICIELLE',
     // Section 2: Pure editorial photo story (no heavy boxes)
@@ -49,10 +49,10 @@ const CARD_COPY = {
     img2Kicker: 'DEVANT LA SCÈNE',
     img2Title: 'Premiers rangs, boisson & Meet & Greet',
     img2Desc: 'Les meilleures places VIP, un rafraîchissement offert et les rencontres avec les artistes.',
-    // Section 3: Clean open editorial list of all 8 perks
-    benefitsKicker: 'VOS 8 AVANTAGES',
+    // Section 3: Clean open editorial list of all 9 perks
+    benefitsKicker: 'VOS 9 AVANTAGES',
     benefitsTitle: 'Tout ce qui est inclus avec la carte.',
-    benefitsSub: 'Huit vrais avantages, utilisables dès que votre carte est active.',
+    benefitsSub: 'Neuf vrais avantages, utilisables dès que votre carte est active.',
     perksList: [
       {
         num: '01',
@@ -94,11 +94,16 @@ const CARD_COPY = {
         title: 'Réduction chez nos partenaires',
         desc: 'Des remises toute l’année chez nos marques, restos et lieux partenaires.',
       },
+      {
+        num: '09',
+        title: 'Accès privilégié même en cas de sold out',
+        desc: 'Les membres Black Card bénéficient d’un accès exclusif à une réserve de billets qui leur est spécialement réservée pour chaque événement.',
+      },
     ],
     // Section 4: Order
     ownKicker: 'SÉRIE LIMITÉE',
     ownTitle: 'Prenez la vôtre.',
-    ownDesc: 'Votre LUMARÉEL Black Card avec vos 8 avantages actifs tout de suite, valable 3 ans.',
+    ownDesc: 'Votre LUMARÉEL Black Card avec vos 9 avantages actifs tout de suite, valable 3 ans.',
     seeFront: 'Voir devant',
     seeBack: 'Voir derrière',
     flipAria: 'Retourner la carte',
@@ -112,7 +117,7 @@ const CARD_COPY = {
     freeShip: 'Livraison gratuite',
     boxMeta: (rem: number, q: number) => `Encore ${rem} dispo sur ${q} · Pass téléphone immédiat`,
     getCardUpper: 'Commander ma LUMARÉEL Black Card',
-    shipNote: 'Livrée en moins de 24h · Vos 8 avantages fonctionnent déjà sur téléphone.',
+    shipNote: 'Livrée en moins de 24h · Vos 9 avantages fonctionnent déjà sur téléphone.',
     // Footer
     footTag: 'La carte noire pour vivre tous vos concerts LUMARÉEL en VIP.',
     footProd: 'La Carte',
@@ -137,7 +142,7 @@ const CARD_COPY = {
     wiz1Label: 'Nom complet *',
     wiz1Plan: 'Formule choisie',
     wiz1PlanFallback: 'LUMARÉEL Black Card 3 Ans',
-    wiz1PlanDesc: 'Carte physique + Pass téléphone + Les 8 avantages inclus',
+    wiz1PlanDesc: 'Carte physique + Pass téléphone + Les 9 avantages inclus',
     wiz1Valid: '3 ans',
     wiz1Next: 'Continuer',
     wiz2Title: '2. Où vous livrer ?',
@@ -149,7 +154,7 @@ const CARD_COPY = {
     wiz2Back: 'Retour',
     wiz2Next: 'Continuer',
     wiz3Title: '3. Paiement rapide',
-    wiz3Sub: 'Votre LUMARÉEL Black Card et vos 8 avantages sont prêts dès validation.',
+    wiz3Sub: 'Votre LUMARÉEL Black Card et vos 9 avantages sont prêts dès validation.',
     wiz3Methods: [
       { id: 'wave', label: 'Wave', desc: '0% frais' },
       { id: 'orange_money', label: 'Orange Money', desc: 'Mobile' },
@@ -157,7 +162,7 @@ const CARD_COPY = {
       { id: 'moov_money', label: 'Moov Money', desc: 'Flooz' },
       { id: 'card', label: 'Carte Bancaire', desc: 'Visa / MC' },
     ],
-    wiz3Membership: 'LUMARÉEL Black Card 3 Ans (8 avantages)',
+    wiz3Membership: 'LUMARÉEL Black Card 3 Ans (9 avantages)',
     wiz3CardDelivery: 'Livraison (< 24h)',
     wiz3Included: 'Gratuite',
     wiz3Bonus: 'Rafraîchissement & avantages',
@@ -190,10 +195,10 @@ const CARD_COPY = {
     heroTitle1: 'YOUR CONCERTS',
     heroTitle2: 'IN YOUR HANDS.',
     heroSub:
-      'Skip the line, reserved parking, front-row VIP seats, free drink, presales, Meet & Greet, and partner discounts — all in one LUMARÉEL Black Card.',
+      'Skip the line, reserved parking, front-row VIP seats, free drink, presales, Meet & Greet, exclusive sold-out ticket reserve, and partner discounts — all in one LUMARÉEL Black Card.',
     ctaPrimary: 'Get My LUMARÉEL Black Card',
-    ctaSecondary: 'See all 8 perks',
-    syncProof: (q: number) => `${q} cards available · 8 perks included`,
+    ctaSecondary: 'See all 9 perks',
+    syncProof: (q: number) => `${q} cards available · 9 perks included`,
     flipHint: 'Tap card to flip',
     verified: 'OFFICIAL PASS',
     // Section 2
@@ -204,9 +209,9 @@ const CARD_COPY = {
     img2Title: 'Front row, free drink & Meet & Greet',
     img2Desc: 'Front-row VIP seats, a complimentary refreshment, and private artist Meet & Greets.',
     // Section 3
-    benefitsKicker: 'YOUR 8 PERKS',
+    benefitsKicker: 'YOUR 9 PERKS',
     benefitsTitle: 'Everything included with the card.',
-    benefitsSub: 'Eight real perks ready the moment your card is active.',
+    benefitsSub: 'Nine real perks ready the moment your card is active.',
     perksList: [
       {
         num: '01',
@@ -248,11 +253,16 @@ const CARD_COPY = {
         title: 'Discounts at partner venues',
         desc: 'Year-round savings across our partner brands, spots, and venues.',
       },
+      {
+        num: '09',
+        title: 'Priority access even when sold out',
+        desc: 'Black Card members benefit from exclusive access to a dedicated ticket reserve held specifically for them at every event.',
+      },
     ],
     // Section 4
     ownKicker: 'LIMITED EDITION',
     ownTitle: 'Make it yours.',
-    ownDesc: 'Your LUMARÉEL Black Card with all 8 perks active immediately, valid for 3 years.',
+    ownDesc: 'Your LUMARÉEL Black Card with all 9 perks active immediately, valid for 3 years.',
     seeFront: 'Show front',
     seeBack: 'Show back',
     flipAria: 'Flip card',
@@ -266,7 +276,7 @@ const CARD_COPY = {
     freeShip: 'Free delivery',
     boxMeta: (rem: number, q: number) => `${rem} / ${q} remaining · Instant digital pass`,
     getCardUpper: 'Order My LUMARÉEL Black Card',
-    shipNote: 'Delivered in under 24h · All 8 perks work right away on your phone.',
+    shipNote: 'Delivered in under 24h · All 9 perks work right away on your phone.',
     // Footer
     footTag: 'The LUMARÉEL Black Card to experience every concert in VIP.',
     footProd: 'The Card',
@@ -291,7 +301,7 @@ const CARD_COPY = {
     wiz1Label: 'Full name *',
     wiz1Plan: 'Selected Plan',
     wiz1PlanFallback: 'LUMARÉEL Black Card 3 Years',
-    wiz1PlanDesc: 'Physical card + Digital pass + All 8 perks included',
+    wiz1PlanDesc: 'Physical card + Digital pass + All 9 perks included',
     wiz1Valid: '3 years',
     wiz1Next: 'Continue',
     wiz2Title: '2. Contact & Delivery',
@@ -311,7 +321,7 @@ const CARD_COPY = {
       { id: 'moov_money', label: 'Moov Money', desc: 'Flooz' },
       { id: 'card', label: 'Bank Card', desc: 'Visa / MC' },
     ],
-    wiz3Membership: 'LUMARÉEL Black Card 3 Years (8 perks)',
+    wiz3Membership: 'LUMARÉEL Black Card 3 Years (9 perks)',
     wiz3CardDelivery: 'Delivery (< 24h)',
     wiz3Included: 'Free',
     wiz3Bonus: 'Drink & VIP perks',

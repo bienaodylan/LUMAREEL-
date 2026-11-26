@@ -20,6 +20,11 @@ export type PageView =
   | 'card'
   | 'member_card'
   | 'card_verify'
+  | 'rewards'
+  | 'backstage'
+  | 'flash_drops'
+  | 'memories'
+  | 'suggestions'
   | 'contact'
   | 'about'
   | 'partners';
@@ -27,6 +32,7 @@ export type PageView =
 interface AppContextType {
   currentPage: PageView;
   previousPage: PageView;
+  canGoBack: boolean;
   setCurrentPage: (page: PageView) => void;
   goBack: () => void;
   hasEnteredPlatform: boolean;
@@ -219,13 +225,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [previousPage, setPreviousPage] = useState<PageView>('home');
   const pageHistoryRef = useRef<PageView[]>([]);
+  const isPoppingHistoryRef = useRef(false);
 
   const setCurrentPage = useCallback((nextPage: PageView) => {
     setCurrentPageState((prev) => {
       if (prev === nextPage) return prev;
       if (prev !== 'splash') {
-        pageHistoryRef.current = [...pageHistoryRef.current.slice(-19), prev];
+        pageHistoryRef.current = [...pageHistoryRef.current.slice(-24), prev];
         setPreviousPage(prev);
+      }
+      if (typeof window !== 'undefined' && !isPoppingHistoryRef.current) {
+        try {
+          window.history.pushState({ lumareelPage: nextPage }, '', window.location.pathname + window.location.search);
+        } catch {
+          // ignore sandbox history errors
+        }
       }
       return nextPage;
     });
@@ -242,6 +256,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     setCurrentPageState('home');
   }, []);
+
+  // Synchronise le bouton Retour navigateur / geste retour mobile avec l'historique applicatif
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (!window.history.state?.lumareelPage) {
+        window.history.replaceState({ lumareelPage: currentPage }, '', window.location.pathname + window.location.search);
+      }
+    } catch {
+      // ignore
+    }
+
+    const handlePopState = (event: PopStateEvent) => {
+      const statePage = event.state?.lumareelPage as PageView | undefined;
+      isPoppingHistoryRef.current = true;
+      if (statePage) {
+        const hist = pageHistoryRef.current;
+        if (hist.length > 0 && hist[hist.length - 1] === statePage) {
+          pageHistoryRef.current = hist.slice(0, -1);
+        }
+        setPreviousPage(pageHistoryRef.current[pageHistoryRef.current.length - 1] || 'home');
+        setCurrentPageState(statePage);
+      } else {
+        goBack();
+      }
+      setTimeout(() => {
+        isPoppingHistoryRef.current = false;
+      }, 0);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [goBack]);
+
+  const canGoBack = currentPage !== 'home' && currentPage !== 'discover' && currentPage !== 'splash';
 
   const [selectedEventSlug, setSelectedEventSlug] = useState<string | null>(null);
 
@@ -1200,6 +1249,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       value={{
         currentPage,
         previousPage,
+        canGoBack,
         setCurrentPage,
         goBack,
         hasEnteredPlatform,

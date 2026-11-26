@@ -2,14 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
 import {
+  Award,
+  Camera,
   ChevronLeft,
   ChevronRight,
-  Ticket,
-  Play,
+  Clapperboard,
+  Crown,
   Image as ImageIcon,
+  Lightbulb,
   Newspaper,
+  Play,
+  Ticket,
   User,
-  Crown
+  Zap,
 } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
 
@@ -338,8 +343,9 @@ const EventCardCountdown: React.FC<{
         <div className="rounded-[24px] bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/10 p-2 shadow-2xl">
           <div className="flex flex-col">
 
-            {/* Menu 0 : LUMARÉEL CARD (Founders Edition) */}
+            {/* Menu 0 : LUMARÉEL Black Card */}
             <button 
+              type="button"
               onClick={() => setCurrentPage('member_card')} 
               className="flex items-center justify-between w-full p-3 hover:bg-[#d4af37]/10 rounded-[16px] transition-colors cursor-pointer group"
             >
@@ -358,8 +364,120 @@ const EventCardCountdown: React.FC<{
 
             <div className="h-px bg-white/5 mx-4 my-1" />
 
-            {/* Menu 1 : Réservation / Commandes */}
+            {/* Menu 1 : Points, Récompenses & Parrainage */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage('rewards')}
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-[#d4af37]/20 group-hover:border-[#d4af37]/30 transition-all shadow-inner">
+                  <Award className="w-4 h-4 text-[#d4af37]" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase block">
+                    {language === 'en' ? 'Points, Rewards & Referrals' : 'Points, Récompenses & Parrainage'}
+                  </span>
+                  <span className="text-[11px] text-neutral-400">
+                    {language === 'en' ? '500 FCFA per friend · Redeem tickets & backstage' : '500 F CFA par ami · Échangez vos points'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 2 : BACKSTAGE */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage('backstage')}
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all shadow-inner">
+                  <Clapperboard className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase block">
+                    BACKSTAGE
+                  </span>
+                  <span className="text-[11px] text-neutral-400">
+                    {language === 'en' ? 'Exclusive soundchecks, studio sessions & artist diaries' : 'Balances, sessions studio & contenus exclusifs'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 3 : Ventes Flash & Surprises */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage('flash_drops')}
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-[#d4af37]/20 transition-all shadow-inner">
+                  <Zap className="w-4 h-4 text-[#aaa] group-hover:text-[#d4af37] transition-colors" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase block">
+                    {language === 'en' ? 'Surprise Rewards & Flash Sales' : 'Récompenses Surprises & Ventes Flash'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 4 : Souvenirs de concerts */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage('memories')}
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all shadow-inner">
+                  <Camera className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase block">
+                    {language === 'en' ? 'Concert Memories' : 'Souvenirs de concerts'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 5 : Boîte à suggestions */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage('suggestions')}
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all shadow-inner">
+                  <Lightbulb className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase block">
+                    {language === 'en' ? 'Suggestion Box' : 'Boîte à suggestions'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 6 : Réservation / Commandes */}
             <button 
+              type="button"
               onClick={() => setCurrentPage('client_space')} 
               className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
             >
@@ -376,8 +494,9 @@ const EventCardCountdown: React.FC<{
 
             <div className="h-px bg-white/5 mx-4 my-1" />
 
-            {/* Menu 2 : Archives */}
+            {/* Menu 7 : Archives */}
             <button 
+              type="button"
               onClick={() => setCurrentPage('archive')} 
               className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
             >
@@ -394,8 +513,9 @@ const EventCardCountdown: React.FC<{
 
             <div className="h-px bg-white/5 mx-4 my-1" />
 
-            {/* Menu 3 : Actualités */}
+            {/* Menu 8 : Actualités */}
             <button 
+              type="button"
               onClick={() => setCurrentPage('news')} 
               className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
             >
@@ -412,8 +532,9 @@ const EventCardCountdown: React.FC<{
 
             <div className="h-px bg-white/5 mx-4 my-1" />
 
-            {/* Menu 4 : Mon Profil & Paramètres */}
+            {/* Menu 9 : Mon Profil & Paramètres */}
             <button 
+              type="button"
               onClick={() => setCurrentPage('profile')} 
               className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
             >

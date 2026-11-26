@@ -9,7 +9,10 @@ function detectStandalone(): boolean {
   if (typeof window === 'undefined') return false;
   const nav = window.navigator as Navigator & { standalone?: boolean };
   const isCapacitorNative = Boolean((window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
+  const params = new URLSearchParams(window.location.search);
+  const forcedAppMode = params.get('app_mode') === '1';
   return (
+    forcedAppMode ||
     isCapacitorNative ||
     nav.standalone === true ||
     window.matchMedia('(display-mode: standalone)').matches ||

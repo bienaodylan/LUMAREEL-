@@ -4,27 +4,37 @@ import { usePWAInstall } from '../hooks/usePWAInstall';
 import { PWAInstallButton } from './PWAInstallButton';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Menu,
-  X,
-  Home,
-  Ticket,
-  Film,
-  CreditCard,
-  User,
-  Shield,
+  ArrowLeft,
+  Award,
+  Camera,
   ChevronRight,
+  Clapperboard,
+  CreditCard,
+  Film,
+  Home,
+  Lightbulb,
+  Menu,
+  Newspaper,
+  Shield,
+  Ticket,
+  User,
+  X,
+  Zap,
 } from 'lucide-react';
 
 /**
  * Navbar.tsx — En-tête mobile LUMARÉEL CO.
- * - Affiché sur la page d'accueil ('home' / 'discover') pour ne jamais masquer les boutons Retour des autres pages.
- * - Sur navigateur mobile (Safari / Chrome), propose un tiroir menu complet + bouton d'installation sur l'écran d'accueil.
- * - En mode application installée (standalone), la barre de navigation native en bas prend le relais et le bouton tiroir est masqué.
+ * - Sur navigateur web mobile (!isStandalone) : affiché sur toutes les pages avec
+ *   le tiroir menu en haut à gauche + un bouton Retour effectif dès qu'on quitte l'accueil.
+ * - En mode application mobile installée (isStandalone) : en-tête épuré sur l'accueil
+ *   et bouton Retour effectif en haut à gauche sur les pages secondaires.
  */
 export const Navbar: React.FC = () => {
   const {
     currentPage,
+    canGoBack,
     setCurrentPage,
+    goBack,
     currentUser,
     platformSettings,
     language,
@@ -38,24 +48,59 @@ export const Navbar: React.FC = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 40);
+      setScrolled(window.scrollY > 24);
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Fermer le tiroir au changement de page
+  // Fermer le tiroir automatiquement à chaque navigation
   useEffect(() => {
     setDrawerOpen(false);
   }, [currentPage]);
 
-  // Affiché uniquement sur la page d'accueil
-  if (currentPage !== 'home' && currentPage !== 'discover') {
+  // Verrouiller le scroll arrière-plan quand le tiroir est ouvert
+  useEffect(() => {
+    if (!drawerOpen || typeof document === 'undefined') return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [drawerOpen]);
+
+  const isEn = language === 'en';
+  const isHome = currentPage === 'home' || currentPage === 'discover';
+  const isRootAppTab =
+    isHome ||
+    currentPage === 'client_space' ||
+    currentPage === 'member_card' ||
+    currentPage === 'card' ||
+    currentPage === 'profile';
+
+  // En mode app installée, on ne garde l'en-tête que sur l'accueil ou les sous-pages avec retour
+  if (isStandalone && !isHome && isRootAppTab) {
     return null;
   }
 
-  const isEn = language === 'en';
-  const navItems: Array<{
+  const pageTitleMap: Partial<Record<PageView, string>> = {
+    client_space: t('nav.orders'),
+    archive: t('nav.archives'),
+    member_card: 'LUMARÉEL Black Card',
+    card: 'LUMARÉEL Black Card',
+    profile: t('nav.account'),
+    news: t('nav.news'),
+    concert_detail: isEn ? 'Concert' : 'Concert',
+    rewards: isEn ? 'Points & Referrals' : 'Points & Parrainage',
+    backstage: 'BACKSTAGE',
+    flash_drops: isEn ? 'Flash & Surprises' : 'Ventes Flash',
+    memories: isEn ? 'Concert Memories' : 'Souvenirs',
+    suggestions: isEn ? 'Suggestion Box' : 'Suggestions',
+    organizers: isEn ? 'Organizers' : 'Organisateurs',
+    card_verify: isEn ? 'Card Verification' : 'Vérification Carte',
+  };
+
+  const primaryNavItems: Array<{
     label: string;
     page: PageView;
     icon: React.ComponentType<{ className?: string }>;
@@ -63,9 +108,22 @@ export const Navbar: React.FC = () => {
   }> = [
     { label: t('nav.home'), page: 'home', icon: Home },
     { label: t('nav.orders'), page: 'client_space', icon: Ticket },
-    { label: t('nav.archives'), page: 'archive', icon: Film },
-    { label: t('nav.blackCard'), page: 'member_card', icon: CreditCard, isGold: true },
+    { label: 'LUMARÉEL Black Card', page: 'member_card', icon: CreditCard, isGold: true },
+    { label: isEn ? 'Points & Referrals' : 'Points & Parrainage', page: 'rewards', icon: Award },
     { label: t('nav.account'), page: 'profile', icon: User },
+  ];
+
+  const clubNavItems: Array<{
+    label: string;
+    page: PageView;
+    icon: React.ComponentType<{ className?: string }>;
+  }> = [
+    { label: 'BACKSTAGE', page: 'backstage', icon: Clapperboard },
+    { label: isEn ? 'Flash Sales & Surprises' : 'Ventes Flash & Surprises', page: 'flash_drops', icon: Zap },
+    { label: isEn ? 'Concert Memories' : 'Souvenirs de concerts', page: 'memories', icon: Camera },
+    { label: isEn ? 'Suggestion Box' : 'Boîte à suggestions', page: 'suggestions', icon: Lightbulb },
+    { label: t('nav.archives'), page: 'archive', icon: Film },
+    { label: t('nav.news'), page: 'news', icon: Newspaper },
   ];
 
   const isSuperAdmin =
@@ -77,43 +135,92 @@ export const Navbar: React.FC = () => {
     setCurrentPage(page);
   };
 
+  const currentTitle = pageTitleMap[currentPage];
+
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-40 md:hidden transition-all duration-300 px-4 sm:px-8 py-3 sm:py-4 ${
-          scrolled
-            ? 'bg-black/88 backdrop-blur-xl border-b border-white/10 shadow-lg'
+        className={`fixed top-0 left-0 right-0 z-40 md:hidden transition-all duration-300 px-3.5 sm:px-6 py-2.5 ${
+          scrolled || !isHome
+            ? 'bg-[#080808]/92 backdrop-blur-xl border-b border-white/10 shadow-lg'
             : 'bg-gradient-to-b from-black/85 via-black/45 to-transparent'
         }`}
-        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))' }}
+        style={{ paddingTop: 'max(0.65rem, env(safe-area-inset-top, 0px))' }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-          {/* Logo Officiel LUMARÉEL CO. */}
-          <div className="flex items-center gap-3 shrink-0">
-            <button
-              type="button"
-              onClick={() => setCurrentPage('home')}
-              className="flex items-center group cursor-pointer focus:outline-none"
-              aria-label={`${platformSettings.platformName || 'LUMARÉEL'} ${t('nav.home')}`}
-            >
-              <img
-                src="/assets/logo-lumareel.png"
-                alt={platformSettings.platformName || 'LUMARÉEL CO.'}
-                className="h-8 sm:h-9 w-auto object-contain group-hover:scale-105 transition-all duration-300 drop-shadow-[0_2px_10px_rgba(255,255,255,0.15)]"
-              />
-            </button>
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 min-h-[44px]">
+          {/* ZONE GAUCHE : Tiroir menu en haut à gauche (web mobile) + Retour effectif */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {!isStandalone && (
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                aria-label={isEn ? 'Open navigation drawer' : 'Ouvrir le menu'}
+                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition-colors cursor-pointer active:scale-95"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            )}
+
+            {canGoBack && (
+              <button
+                type="button"
+                onClick={goBack}
+                aria-label={isEn ? 'Go back' : 'Retour'}
+                className="min-w-[40px] h-10 px-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center gap-1 text-white text-xs font-agrandir-bold transition-colors cursor-pointer active:scale-95"
+              >
+                <ArrowLeft className="w-4 h-4 shrink-0" />
+                {isStandalone && <span>{isEn ? 'Back' : 'Retour'}</span>}
+              </button>
+            )}
+
+            {/* Logo à gauche uniquement en mode app sur l'accueil */}
+            {isStandalone && isHome && (
+              <button
+                type="button"
+                onClick={() => setCurrentPage('home')}
+                className="flex items-center cursor-pointer focus:outline-none"
+                aria-label={`${platformSettings.platformName || 'LUMARÉEL'} ${t('nav.home')}`}
+              >
+                <img
+                  src="/assets/logo-lumareel.png"
+                  alt={platformSettings.platformName || 'LUMARÉEL CO.'}
+                  className="h-7 w-auto object-contain"
+                />
+              </button>
+            )}
           </div>
 
-          {/* Actions droite : Sélecteur FR/EN + Bouton Tiroir Menu (uniquement sur navigateur) */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Sélecteur de langue (Français / Anglais) */}
-            <div className="flex items-center p-1 rounded-full bg-black/65 border border-white/15 backdrop-blur-md shadow-inner text-[11px] font-agrandir-bold tracking-wider">
+          {/* ZONE CENTRALE : Logo sur l'accueil web mobile OU Titre de section sur les pages internes */}
+          <div className="min-w-0 flex-1 flex justify-center px-1">
+            {!isStandalone && isHome ? (
+              <button
+                type="button"
+                onClick={() => setCurrentPage('home')}
+                className="flex items-center cursor-pointer focus:outline-none"
+                aria-label={`${platformSettings.platformName || 'LUMARÉEL'} ${t('nav.home')}`}
+              >
+                <img
+                  src="/assets/logo-lumareel.png"
+                  alt={platformSettings.platformName || 'LUMARÉEL CO.'}
+                  className="h-7 w-auto object-contain"
+                />
+              </button>
+            ) : currentTitle ? (
+              <span className="text-xs sm:text-sm font-agrandir-extrabold text-white tracking-tight truncate">
+                {currentTitle}
+              </span>
+            ) : null}
+          </div>
+
+          {/* ZONE DROITE : Sélecteur FR / EN compact */}
+          <div className="flex items-center shrink-0">
+            <div className="flex items-center p-0.5 rounded-full bg-black/70 border border-white/15 backdrop-blur-md text-[11px] font-agrandir-bold tracking-wider">
               <button
                 type="button"
                 onClick={() => setLanguage('fr')}
-                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+                className={`min-h-[32px] px-2.5 rounded-full transition-colors cursor-pointer ${
                   language === 'fr'
-                    ? 'bg-white text-black font-agrandir-extrabold shadow-sm'
+                    ? 'bg-white text-black font-agrandir-extrabold'
                     : 'text-[#888] hover:text-white'
                 }`}
                 title="Passer en Français"
@@ -123,9 +230,9 @@ export const Navbar: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setLanguage('en')}
-                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+                className={`min-h-[32px] px-2.5 rounded-full transition-colors cursor-pointer ${
                   language === 'en'
-                    ? 'bg-white text-black font-agrandir-extrabold shadow-sm'
+                    ? 'bg-white text-black font-agrandir-extrabold'
                     : 'text-[#888] hover:text-white'
                 }`}
                 title="Switch to English"
@@ -133,26 +240,14 @@ export const Navbar: React.FC = () => {
                 EN
               </button>
             </div>
-
-            {/* Tiroir menu navigateur (Safari / Chrome) — remplacé par la barre du bas une fois installé */}
-            {!isStandalone && (
-              <button
-                type="button"
-                onClick={() => setDrawerOpen(true)}
-                aria-label={isEn ? 'Open navigation menu' : 'Ouvrir le menu'}
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition-colors cursor-pointer active:scale-95"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-            )}
           </div>
         </div>
       </header>
 
-      {/* Tiroir de navigation latéral pour Safari / Chrome mobile */}
+      {/* Tiroir de navigation latéral GAUCHE pour navigateur web mobile (Safari / Chrome) */}
       <AnimatePresence>
         {drawerOpen && !isStandalone && (
-          <div className="fixed inset-0 z-[60] md:hidden flex justify-end">
+          <div className="fixed inset-0 z-[70] md:hidden flex justify-start">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -163,12 +258,12 @@ export const Navbar: React.FC = () => {
             />
 
             <motion.aside
-              initial={{ x: '100%' }}
+              initial={{ x: '-100%' }}
               animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'spring', stiffness: 360, damping: 34 }}
               aria-label={isEn ? 'Navigation drawer' : 'Menu de navigation'}
-              className="relative z-10 w-[84%] max-w-[320px] h-full bg-[#090909] border-l border-white/12 flex flex-col justify-between p-5 shadow-2xl overflow-y-auto"
+              className="relative z-10 w-[84%] max-w-[320px] h-full bg-[#090909] border-r border-white/12 flex flex-col justify-between p-5 shadow-2xl overflow-y-auto"
               style={{
                 paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))',
                 paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))',
@@ -192,31 +287,64 @@ export const Navbar: React.FC = () => {
                   </button>
                 </div>
 
-                {/* Destinations principales */}
-                <nav className="space-y-1.5">
-                  {navItems.map((item) => {
+                {/* Principal */}
+                <nav className="space-y-1">
+                  <div className="px-3 pb-1 text-[10px] font-agrandir-bold tracking-[0.18em] text-neutral-500 uppercase">
+                    {isEn ? 'Main' : 'Principal'}
+                  </div>
+                  {primaryNavItems.map((item) => {
                     const Icon = item.icon;
                     const isActive =
                       currentPage === item.page ||
-                      (item.page === 'home' && currentPage === 'discover');
+                      (item.page === 'home' && currentPage === 'discover') ||
+                      (item.page === 'member_card' && currentPage === 'card');
                     return (
                       <button
                         key={item.page}
                         type="button"
                         onClick={() => navigateFromDrawer(item.page)}
-                        className={`w-full min-h-[48px] px-4 py-3 rounded-2xl flex items-center justify-between gap-3 text-left transition-colors cursor-pointer ${
+                        className={`w-full min-h-[46px] px-3.5 py-2.5 rounded-2xl flex items-center justify-between gap-3 text-left transition-colors cursor-pointer ${
                           isActive
                             ? 'bg-white text-black font-agrandir-extrabold'
                             : item.isGold
-                            ? 'bg-[#d4af37]/10 text-[#d4af37] hover:bg-[#d4af37]/18 font-agrandir-bold'
+                            ? 'bg-[#D4AF37]/10 text-[#D4AF37] hover:bg-[#D4AF37]/18 font-agrandir-bold'
                             : 'text-neutral-200 hover:bg-white/8 font-agrandir-semibold'
                         }`}
                       >
-                        <span className="flex items-center gap-3 text-sm">
+                        <span className="flex items-center gap-3 text-sm min-w-0">
                           <Icon className="w-4 h-4 shrink-0" />
-                          <span>{item.label}</span>
+                          <span className="truncate">{item.label}</span>
                         </span>
                         <ChevronRight className="w-4 h-4 opacity-50 shrink-0" />
+                      </button>
+                    );
+                  })}
+                </nav>
+
+                {/* Club & Expériences */}
+                <nav className="space-y-1 pt-2 border-t border-white/10">
+                  <div className="px-3 pb-1 text-[10px] font-agrandir-bold tracking-[0.18em] text-neutral-500 uppercase">
+                    {isEn ? 'Club & Experiences' : 'Club & Expériences'}
+                  </div>
+                  {clubNavItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = currentPage === item.page;
+                    return (
+                      <button
+                        key={item.page}
+                        type="button"
+                        onClick={() => navigateFromDrawer(item.page)}
+                        className={`w-full min-h-[44px] px-3.5 py-2 rounded-2xl flex items-center justify-between gap-3 text-left transition-colors cursor-pointer ${
+                          isActive
+                            ? 'bg-white text-black font-agrandir-extrabold'
+                            : 'text-neutral-300 hover:bg-white/8 font-agrandir-semibold'
+                        }`}
+                      >
+                        <span className="flex items-center gap-3 text-sm min-w-0">
+                          <Icon className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{item.label}</span>
+                        </span>
+                        <ChevronRight className="w-4 h-4 opacity-40 shrink-0" />
                       </button>
                     );
                   })}
@@ -225,20 +353,20 @@ export const Navbar: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => navigateFromDrawer('admin')}
-                      className="w-full min-h-[48px] px-4 py-3 rounded-2xl flex items-center justify-between gap-3 text-left text-neutral-300 hover:bg-white/8 font-agrandir-semibold transition-colors cursor-pointer"
+                      className="w-full min-h-[44px] px-3.5 py-2 rounded-2xl flex items-center justify-between gap-3 text-left text-neutral-300 hover:bg-white/8 font-agrandir-semibold transition-colors cursor-pointer"
                     >
                       <span className="flex items-center gap-3 text-sm">
-                        <Shield className="w-4 h-4 text-[#d4af37] shrink-0" />
+                        <Shield className="w-4 h-4 text-[#D4AF37] shrink-0" />
                         <span>{t('nav.admin')}</span>
                       </span>
-                      <ChevronRight className="w-4 h-4 opacity-50 shrink-0" />
+                      <ChevronRight className="w-4 h-4 opacity-40 shrink-0" />
                     </button>
                   )}
                 </nav>
               </div>
 
-              {/* Pied du tiroir : Installer l'app (PWA) */}
-              <div className="pt-5 border-t border-white/10 space-y-3">
+              {/* Pied du tiroir : Installer l'app */}
+              <div className="pt-5 mt-5 border-t border-white/10">
                 <PWAInstallButton
                   variant="drawer"
                   onAfterAction={() => setDrawerOpen(false)}
