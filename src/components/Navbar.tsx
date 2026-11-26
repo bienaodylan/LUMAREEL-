@@ -109,7 +109,6 @@ export const Navbar: React.FC = () => {
     { label: t('nav.home'), page: 'home', icon: Home },
     { label: t('nav.orders'), page: 'client_space', icon: Ticket },
     { label: 'LUMARÉEL Black Card', page: 'member_card', icon: CreditCard, isGold: true },
-    { label: isEn ? 'Points & Referrals' : 'Points & Parrainage', page: 'rewards', icon: Award },
     { label: t('nav.account'), page: 'profile', icon: User },
   ];
 
@@ -118,6 +117,7 @@ export const Navbar: React.FC = () => {
     page: PageView;
     icon: React.ComponentType<{ className?: string }>;
   }> = [
+    { label: isEn ? 'Points & Referrals' : 'Points & Parrainage', page: 'rewards', icon: Award },
     { label: 'BACKSTAGE', page: 'backstage', icon: Clapperboard },
     { label: isEn ? 'Flash Sales & Surprises' : 'Ventes Flash & Surprises', page: 'flash_drops', icon: Zap },
     { label: isEn ? 'Concert Memories' : 'Souvenirs de concerts', page: 'memories', icon: Camera },
@@ -324,7 +324,7 @@ export const Navbar: React.FC = () => {
                 {/* Club & Expériences */}
                 <nav className="space-y-1 pt-2 border-t border-white/10">
                   <div className="px-3 pb-1 text-[10px] font-agrandir-bold tracking-[0.18em] text-neutral-500 uppercase">
-                    {isEn ? 'Club & Experiences' : 'Club & Expériences'}
+                    {isEn ? 'Explore' : 'Explorer'}
                   </div>
                   {clubNavItems.map((item) => {
                     const Icon = item.icon;

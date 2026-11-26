@@ -30,7 +30,6 @@ export const DesktopSidebar: React.FC = () => {
     { label: t('nav.home'), page: 'home', icon: Home },
     { label: t('nav.orders'), page: 'client_space', icon: Ticket },
     { label: 'LUMARÉEL Black Card', page: 'member_card', icon: CreditCard },
-    { label: isEn ? 'Points & Referrals' : 'Points & Parrainage', page: 'rewards', icon: Award },
     { label: t('nav.account'), page: 'profile', icon: UserRound },
   ];
 
@@ -39,6 +38,7 @@ export const DesktopSidebar: React.FC = () => {
     page: PageView;
     icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   }> = [
+    { label: isEn ? 'Points & Referrals' : 'Points & Parrainage', page: 'rewards', icon: Award },
     { label: 'BACKSTAGE', page: 'backstage', icon: Clapperboard },
     { label: isEn ? 'Flash & Surprises' : 'Ventes Flash', page: 'flash_drops', icon: Zap },
     { label: isEn ? 'Memories' : 'Souvenirs', page: 'memories', icon: Camera },
@@ -94,7 +94,7 @@ export const DesktopSidebar: React.FC = () => {
 
       <div className="mt-5 pt-4 border-t border-white/10">
         <div className="px-3 pb-2 text-[10px] font-agrandir-bold uppercase tracking-[0.18em] text-neutral-500">
-          {isEn ? 'Club & Experiences' : 'Club & Expériences'}
+          {isEn ? 'Explore' : 'Explorer'}
         </div>
         <nav className="flex flex-col gap-0.5">
           {clubItems.map(({ label, page, icon: Icon }) => {
