@@ -145,41 +145,13 @@ export const HomeFeed: React.FC = () => {
 
   const quickNavItems = [
     {
-      id: 'rewards',
+      id: 'club',
       page: 'rewards' as const,
-      title: isEn ? 'Gifts, Points & Referrals' : 'Gifts, Points & Parrainage',
+      title: 'LUMARÉEL CLUB',
       subtitle: isEn
-        ? 'Surprises, flash sales, points & 500 FCFA per friend'
-        : 'Surprises, ventes flash, points & 500 F CFA par ami',
-      icon: Gift,
-      isGold: true,
-    },
-    {
-      id: 'backstage',
-      page: 'backstage' as const,
-      title: 'Backstage',
-      subtitle: isEn
-        ? 'Soundchecks, studio sessions & exclusive drops'
-        : 'Balances, sessions studio & contenus exclusifs',
+        ? 'Backstage, My Moments, Your Voice, Gifts & member rewards'
+        : 'Backstage, Mes Moments, Ta Voix, Gifts et avantages membres',
       icon: Clapperboard,
-    },
-    {
-      id: 'memories',
-      page: 'memories' as const,
-      title: isEn ? 'My Moments' : 'Mes Moments',
-      subtitle: isEn
-        ? 'Official photos, recaps & shared concert memories'
-        : 'Photos officielles, récaps & souvenirs partagés',
-      icon: Camera,
-    },
-    {
-      id: 'suggestions',
-      page: 'suggestions' as const,
-      title: isEn ? 'Your Voice' : 'Ta Voix',
-      subtitle: isEn
-        ? 'Suggest artists, venues & vote on upcoming ideas'
-        : 'Proposez vos artistes, lieux & idées d’événements',
-      icon: Mic2,
     },
   ];
 
@@ -326,7 +298,7 @@ export const HomeFeed: React.FC = () => {
           2. SECTION : NAVIGATION RAPIDE (CLUB LUMARÉEL)
          ========================================================================= */}
       <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-5 sm:pt-8 relative z-20">
-        <div className="rounded-[24px] bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/10 p-2 shadow-2xl">
+        <div className="border-y border-white/15 bg-[#080808] py-1">
           <div className="flex flex-col">
             {quickNavItems.map((item, idx) => {
               const Icon = item.icon;
@@ -336,16 +308,16 @@ export const HomeFeed: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setCurrentPage(item.page)}
-                    className={`flex items-center justify-between w-full min-h-[58px] p-3 rounded-[16px] transition-colors cursor-pointer group ${
+                    className={`flex items-center justify-between w-full min-h-[58px] p-3 rounded-none transition-colors cursor-pointer group ${
                       item.isGold ? 'hover:bg-[#d4af37]/10' : 'hover:bg-white/5'
                     }`}
                   >
                     <div className="flex items-center gap-3.5 min-w-0 pr-3">
                       <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all shadow-inner ${
+                        className={`w-10 h-10 rounded-none flex items-center justify-center shrink-0 transition-all ${
                           item.isGold
                             ? 'bg-[#d4af37]/15 border border-[#d4af37]/35 group-hover:bg-[#d4af37]/25'
-                            : 'bg-[#181818] border border-white/5 group-hover:bg-white/10'
+                            : 'bg-transparent border-r border-white/15 group-hover:bg-white/5'
                         }`}
                       >
                         <Icon
@@ -355,7 +327,7 @@ export const HomeFeed: React.FC = () => {
                         />
                       </div>
                       <div className="text-left min-w-0">
-                        <span className="text-xs font-agrandir-bold tracking-wider text-white uppercase block truncate">
+                        <span className="text-sm font-agrandir-extrabold tracking-[0.12em] text-white uppercase block truncate">
                           {item.title}
                         </span>
                         <span className="text-[11px] text-neutral-400 block truncate mt-0.5">
