@@ -1,0 +1,1 @@
+create index if not exists tv_subscriptions_plan_id_idx on public.tv_subscriptions (plan_id);
