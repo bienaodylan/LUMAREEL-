@@ -2,349 +2,172 @@ import React, { useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   CommunitySuggestion,
-  getUserStorageKey,
   loadSuggestions,
-  markChallengeCompleted,
   saveSuggestions,
 } from '../utils/communityStorage';
-import { ArrowUp, Lightbulb, MapPin, Mic2, Send } from 'lucide-react';
-
-type SuggestionFilter = 'all' | 'artist_venue' | 'general_event';
-type SortMode = 'popular' | 'recent';
+import { Mic2, Send, MapPin } from 'lucide-react';
 
 export const SuggestionsView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { currentUser, showToast, language } = useApp();
   const isEn = language === 'en';
-
-  const [suggestions, setSuggestions] = useState<CommunitySuggestion[]>(() => loadSuggestions());
-  const [formType, setFormType] = useState<'artist_venue' | 'general_event'>('artist_venue');
+  const memberName = currentUser?.name || (isEn ? 'Member' : 'Membre LUMARÉEL');
+  const [suggestions, setSuggestions] = useState<CommunitySuggestion[]>(() =>
+    loadSuggestions().filter((item) => item.type === 'artist_venue')
+  );
   const [artistName, setArtistName] = useState('');
-  const [title, setTitle] = useState('');
   const [cityOrVenue, setCityOrVenue] = useState('');
   const [description, setDescription] = useState('');
 
-  const [filter, setFilter] = useState<SuggestionFilter>('all');
-  const [sortMode, setSortMode] = useState<SortMode>('popular');
-
-  const voterKey = getUserStorageKey(currentUser);
-
-  const visibleSuggestions = useMemo(() => {
-    const filtered =
-      filter === 'all' ? suggestions : suggestions.filter((s) => s.type === filter);
-    return [...filtered].sort((a, b) => {
-      if (sortMode === 'popular') return b.votes - a.votes;
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  }, [suggestions, filter, sortMode]);
+  const memberSuggestions = useMemo(
+    () => suggestions.filter((item) => item.authorName === memberName),
+    [suggestions, memberName]
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanCity = cityOrVenue.trim();
-    const cleanDesc = description.trim();
+    const artist = artistName.trim();
+    const location = cityOrVenue.trim();
+    const note = description.trim();
 
-    if (formType === 'artist_venue') {
-      if (!artistName.trim() || !cleanCity) {
-        showToast(
-          isEn
-            ? 'Please enter both the artist name and the city or venue.'
-            : 'Indiquez le nom de l’artiste ainsi que la ville ou la salle souhaitée.',
-          'error'
-        );
-        return;
-      }
-    } else {
-      if (!title.trim() || !cleanDesc) {
-        showToast(
-          isEn
-            ? 'Please enter an event idea title and a short description.'
-            : 'Indiquez un titre et une courte description pour votre idée d’événement.',
-          'error'
-        );
-        return;
-      }
+    if (!artist) {
+      showToast(isEn ? 'Enter an artist name.' : 'Indiquez le nom de l’artiste.', 'error');
+      return;
     }
 
-    const newItem: CommunitySuggestion = {
-      id: `sug_${Date.now()}`,
-      type: formType,
-      artistName: formType === 'artist_venue' ? artistName.trim() : undefined,
-      title:
-        formType === 'artist_venue'
-          ? `${artistName.trim()} — ${cleanCity}`
-          : title.trim(),
-      cityOrVenue: cleanCity || (isEn ? 'Open location' : 'Lieu libre'),
-      description:
-        cleanDesc ||
-        (isEn
-          ? `Community request to bring ${artistName.trim()} live to ${cleanCity}.`
-          : `Demande de la communauté pour accueillir ${artistName.trim()} en concert à ${cleanCity}.`),
-      authorName: currentUser?.name || (isEn ? 'Community Member' : 'Membre LUMARÉEL'),
-      votes: 1,
-      votedByKeys: [voterKey],
+    const duplicate = suggestions.some(
+      (item) =>
+        (item.artistName || item.title.split(' — ')[0]).trim().toLowerCase() === artist.toLowerCase() &&
+        (item.cityOrVenue || '').trim().toLowerCase() === (location || (isEn ? 'Not specified' : 'Non précisé')).toLowerCase()
+    );
+    if (duplicate) {
+      showToast(isEn ? 'This artist suggestion already exists.' : 'Cette proposition existe déjà.', 'info');
+      return;
+    }
+
+    const nextItem: CommunitySuggestion = {
+      id: `artist_${Date.now()}`,
+      type: 'artist_venue',
+      artistName: artist,
+      title: artist,
+      cityOrVenue: location || (isEn ? 'Not specified' : 'Non précisé'),
+      description: note,
+      authorName: memberName,
+      votes: 0,
+      votedByKeys: [],
       createdAt: new Date().toISOString(),
     };
 
-    const next = [newItem, ...suggestions];
+    const next = [nextItem, ...suggestions];
     setSuggestions(next);
     saveSuggestions(next);
-
     setArtistName('');
-    setTitle('');
     setCityOrVenue('');
     setDescription('');
-
-    const unlocked = markChallengeCompleted(currentUser, 'challenge_suggestion');
     showToast(
-      unlocked
-        ? (isEn ? 'Suggestion published! +75 challenge points earned.' : 'Suggestion publiée ! +75 points défi ajoutés.')
-        : (isEn ? 'Your suggestion has been added to the community board.' : 'Votre suggestion a bien été ajoutée à la boîte à idées.'),
+      isEn
+        ? 'Your artist suggestion has been saved.'
+        : 'Votre proposition d’artiste a bien été enregistrée.',
       'success'
     );
   };
 
-  const handleToggleVote = (id: string) => {
-    const next = suggestions.map((item) => {
-      if (item.id !== id) return item;
-      const alreadyVoted = item.votedByKeys.includes(voterKey);
-      return {
-        ...item,
-        votes: alreadyVoted ? Math.max(0, item.votes - 1) : item.votes + 1,
-        votedByKeys: alreadyVoted
-          ? item.votedByKeys.filter((k) => k !== voterKey)
-          : [...item.votedByKeys, voterKey],
-      };
-    });
-    setSuggestions(next);
-    saveSuggestions(next);
-  };
-
   return (
-    <div className={`w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 ${embedded ? "pt-0 pb-8" : "min-h-screen pt-4 sm:pt-10 pb-20"} text-white font-agrandir-regular`}>
+    <div className={`w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 ${embedded ? 'pt-0 pb-8' : 'min-h-screen pt-4 sm:pt-10 pb-20'} text-white font-agrandir-regular`}>
       {!embedded && (
-      <header className="mb-8 pb-6 border-b border-white/10">
-        <p className="text-xs tracking-[0.2em] text-[#FFFFFF] uppercase mb-2">
-          {isEn ? 'LUMARÉEL Club · Lineup & Ideas' : 'Club LUMARÉEL · Programmation & Idées'}
-        </p>
-        <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-tight text-white leading-[1.02] text-balance">
-          {isEn ? 'Your Voice' : 'Ta Voix'}
-        </h1>
-        <p className="text-sm sm:text-base text-neutral-400 mt-3 max-w-2xl leading-relaxed">
-          {isEn
-            ? 'Shape the next LUMARÉEL shows: request the artists and venues you want to see live, pitch event concepts, and vote on community favorites.'
-            : 'Façonnez les prochains spectacles LUMARÉEL : proposez les artistes et salles que vous rêvez de voir sur scène, soumettez vos idées d’événements et votez pour vos envies.'}
-        </p>
-      </header>
+        <header className="mb-8 border-b border-white/15 pb-6">
+          <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">LUMARÉEL CLUB</p>
+          <h1 className="mt-2 text-3xl font-agrandir-extrabold tracking-tight sm:text-5xl">TA VOIX</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-400">
+            {isEn
+              ? 'Tell us which artists you would like to see perform at LUMARÉEL.'
+              : 'Dites-nous quels artistes vous aimeriez voir se produire chez LUMARÉEL.'}
+          </p>
+        </header>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Colonne gauche : Formulaire de proposition */}
-        <section className="lg:col-span-5 rounded-3xl bg-[#0e0e0e] border border-white/10 p-6 space-y-5">
-          <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-black border border-white/10">
-            <button
-              type="button"
-              onClick={() => setFormType('artist_venue')}
-              className={`min-h-[42px] px-3 rounded-lg text-xs font-agrandir-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
-                formType === 'artist_venue' ? 'bg-white text-black' : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Mic2 className="w-3.5 h-3.5" />
-              <span>{isEn ? 'Artist & Venue' : 'Artiste & Lieu'}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setFormType('general_event')}
-              className={`min-h-[42px] px-3 rounded-lg text-xs font-agrandir-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
-                formType === 'general_event' ? 'bg-white text-black' : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              <Lightbulb className="w-3.5 h-3.5" />
-              <span>{isEn ? 'Event Idea' : 'Événement'}</span>
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {formType === 'artist_venue' ? (
-              <>
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1.5">
-                    {isEn ? 'Which artist do you want to see?' : 'Quel artiste avez-vous envie de voir ?'} *
-                  </label>
-                  <input
-                    type="text"
-                    value={artistName}
-                    onChange={(e) => setArtistName(e.target.value)}
-                    placeholder={isEn ? 'e.g. Burna Boy, Didi B, Himra...' : 'Ex : Burna Boy, Didi B, Himra...'}
-                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1.5">
-                    {isEn ? 'Where would you like to see them?' : 'Où aimeriez-vous le voir (ville / salle) ?'} *
-                  </label>
-                  <input
-                    type="text"
-                    value={cityOrVenue}
-                    onChange={(e) => setCityOrVenue(e.target.value)}
-                    placeholder={isEn ? 'e.g. Abidjan · Palais de la Culture' : 'Ex : Abidjan · Palais de la Culture'}
-                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1.5">
-                    {isEn ? 'Event concept title' : 'Titre de votre idée d’événement'} *
-                  </label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder={isEn ? 'e.g. Rooftop Sunset Acoustic Session' : 'Ex : Soirée Acoustique Coucher de Soleil'}
-                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-neutral-400 mb-1.5">
-                    {isEn ? 'Suggested city or venue' : 'Ville ou lieu suggéré'}
-                  </label>
-                  <input
-                    type="text"
-                    value={cityOrVenue}
-                    onChange={(e) => setCityOrVenue(e.target.value)}
-                    placeholder={isEn ? 'e.g. Abidjan, Assinie, Dakar...' : 'Ex : Abidjan, Assinie, Dakar...'}
-                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
-                  />
-                </div>
-              </>
-            )}
-
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+        <section className="border border-white/12 bg-[#0b0b0b] p-5 sm:p-7 lg:col-span-5">
+          <div className="mb-6 flex items-center gap-3">
+            <Mic2 className="h-5 w-5 text-white" />
             <div>
-              <label className="block text-xs text-neutral-400 mb-1.5">
-                {isEn ? 'Details, vibe or special wish' : 'Précisions, ambiance ou format souhaité'}
-              </label>
+              <h3 className="text-base font-agrandir-extrabold">{isEn ? 'Suggest an artist' : 'Proposer un artiste'}</h3>
+              <p className="mt-1 text-xs text-neutral-500">{isEn ? 'A direct request to our programming team.' : 'Une proposition directement destinée à notre équipe de programmation.'}</p>
+            </div>
+          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <label className="block">
+              <span className="mb-1.5 block text-xs text-neutral-400">{isEn ? 'Artist name' : 'Nom de l’artiste'} *</span>
+              <input
+                type="text"
+                required
+                maxLength={100}
+                value={artistName}
+                onChange={(e) => setArtistName(e.target.value)}
+                placeholder={isEn ? 'e.g. Burna Boy, Didi B, Himra' : 'Ex. : Burna Boy, Didi B, Himra'}
+                className="min-h-12 w-full border border-white/15 bg-black px-4 text-sm text-white outline-none transition-colors focus:border-white"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs text-neutral-400">{isEn ? 'Preferred city or venue (optional)' : 'Ville ou salle souhaitée (facultatif)'}</span>
+              <input
+                type="text"
+                maxLength={120}
+                value={cityOrVenue}
+                onChange={(e) => setCityOrVenue(e.target.value)}
+                placeholder={isEn ? 'e.g. Abidjan · Palais de la Culture' : 'Ex. : Abidjan · Palais de la Culture'}
+                className="min-h-12 w-full border border-white/15 bg-black px-4 text-sm text-white outline-none transition-colors focus:border-white"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1.5 block text-xs text-neutral-400">{isEn ? 'Additional note (optional)' : 'Précision (facultatif)'}</span>
               <textarea
                 rows={3}
+                maxLength={500}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder={
-                  isEn
-                    ? 'Tell us what would make this night unforgettable...'
-                    : 'Décrivez ce qui rendrait cet événement mémorable...'
-                }
-                className="w-full p-3.5 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none resize-none"
+                placeholder={isEn ? 'Why would you like to see this artist?' : 'Pourquoi aimeriez-vous voir cet artiste ?'}
+                className="w-full resize-none border border-white/15 bg-black p-3.5 text-sm text-white outline-none transition-colors focus:border-white"
               />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full min-h-[48px] rounded-xl bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Send className="w-4 h-4" />
-              <span>{isEn ? 'Submit suggestion' : 'Envoyer ma suggestion'}</span>
+            </label>
+            <button type="submit" className="flex min-h-12 w-full items-center justify-center gap-2 bg-white px-4 text-xs font-agrandir-extrabold uppercase tracking-wider text-black transition-colors hover:bg-neutral-200">
+              <Send className="h-4 w-4" />
+              {isEn ? 'Send my suggestion' : 'Envoyer ma proposition'}
             </button>
           </form>
         </section>
 
-        {/* Colonne droite : Mur des suggestions & votes */}
-        <section className="lg:col-span-7 space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 overflow-x-auto">
-              {[
-                { id: 'all' as const, fr: 'Toutes', en: 'All' },
-                { id: 'artist_venue' as const, fr: 'Artistes & Lieux', en: 'Artists & Venues' },
-                { id: 'general_event' as const, fr: 'Événements', en: 'General Events' },
-              ].map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  onClick={() => setFilter(f.id)}
-                  className={`min-h-[40px] px-3.5 rounded-xl text-xs font-agrandir-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                    filter === f.id
-                      ? 'bg-white text-black'
-                      : 'bg-[#111111] border border-white/10 text-neutral-400 hover:text-white'
-                  }`}
-                >
-                  {isEn ? f.en : f.fr}
-                </button>
+        <section className="lg:col-span-7">
+          <div className="mb-5 flex items-end justify-between gap-4 border-b border-white/15 pb-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">{isEn ? 'Your activity' : 'Votre activité'}</p>
+              <h3 className="mt-1 text-xl font-agrandir-extrabold">{isEn ? 'Your artist suggestions' : 'Vos propositions d’artistes'}</h3>
+            </div>
+            <span className="font-mono text-xs text-neutral-400">{memberSuggestions.length}</span>
+          </div>
+
+          {memberSuggestions.length ? (
+            <div className="divide-y divide-white/10">
+              {memberSuggestions.map((item) => (
+                <article key={item.id} className="py-5">
+                  <h4 className="text-base font-agrandir-semibold">{item.artistName || item.title}</h4>
+                  {item.cityOrVenue && item.cityOrVenue !== 'Non précisé' && item.cityOrVenue !== 'Not specified' && (
+                    <p className="mt-2 flex items-center gap-2 text-xs text-neutral-400"><MapPin className="h-3.5 w-3.5" />{item.cityOrVenue}</p>
+                  )}
+                  {item.description && <p className="mt-2 text-sm leading-6 text-neutral-400">{item.description}</p>}
+                  <p className="mt-2 text-[10px] uppercase tracking-wider text-neutral-600">{new Date(item.createdAt).toLocaleDateString(isEn ? 'en-GB' : 'fr-FR')}</p>
+                </article>
               ))}
             </div>
-
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setSortMode('popular')}
-                className={`min-h-[38px] px-3 rounded-lg text-xs cursor-pointer ${
-                  sortMode === 'popular' ? 'text-[#FFFFFF] font-agrandir-bold' : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                {isEn ? 'Top voted' : 'Plus votés'}
-              </button>
-              <span className="text-neutral-600">·</span>
-              <button
-                type="button"
-                onClick={() => setSortMode('recent')}
-                className={`min-h-[38px] px-3 rounded-lg text-xs cursor-pointer ${
-                  sortMode === 'recent' ? 'text-[#FFFFFF] font-agrandir-bold' : 'text-neutral-400 hover:text-white'
-                }`}
-              >
-                {isEn ? 'Newest' : 'Récents'}
-              </button>
+          ) : (
+            <div className="border border-dashed border-white/15 px-5 py-12 text-center">
+              <Mic2 className="mx-auto h-6 w-6 text-neutral-500" />
+              <p className="mt-4 text-sm font-agrandir-semibold">{isEn ? 'No suggestions yet' : 'Aucune proposition pour le moment'}</p>
+              <p className="mt-2 text-xs text-neutral-500">{isEn ? 'Your requests will appear here after submission.' : 'Vos propositions apparaîtront ici après leur envoi.'}</p>
             </div>
-          </div>
-
-          <div className="space-y-4">
-            {visibleSuggestions.map((item) => {
-              const hasVoted = item.votedByKeys.includes(voterKey);
-              return (
-                <article
-                  key={item.id}
-                  className="rounded-3xl bg-[#0e0e0e] border border-white/10 p-5 sm:p-6 flex items-start justify-between gap-4"
-                >
-                  <div className="space-y-2 min-w-0 flex-1">
-                    <div className="text-xs text-neutral-400 flex flex-wrap items-center gap-2">
-                      <span className="text-[#FFFFFF] font-agrandir-bold">
-                        {item.type === 'artist_venue'
-                          ? (isEn ? 'Artist & Venue' : 'Artiste & Lieu')
-                          : (isEn ? 'Event Concept' : 'Idée d’événement')}
-                      </span>
-                      <span aria-hidden="true">·</span>
-                      <span className="inline-flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-neutral-500" />
-                        {item.cityOrVenue}
-                      </span>
-                    </div>
-
-                    <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white leading-snug">
-                      {item.title}
-                    </h3>
-
-                    <p className="text-xs sm:text-sm text-neutral-400 leading-relaxed">
-                      {item.description}
-                    </p>
-
-                    <div className="text-[11px] text-neutral-500 pt-1">
-                      {isEn ? 'Proposed by' : 'Proposé par'} {item.authorName}
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleToggleVote(item.id)}
-                    aria-pressed={hasVoted}
-                    className={`min-w-[60px] min-h-[60px] px-3 rounded-2xl border flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer shrink-0 ${
-                      hasVoted
-                        ? 'bg-[#FFFFFF]/15 border-[#FFFFFF] text-[#FFFFFF]'
-                        : 'bg-black border-white/15 text-neutral-300 hover:border-white/35 hover:text-white'
-                    }`}
-                  >
-                    <ArrowUp className="w-4 h-4" />
-                    <span className="font-mono text-sm font-bold tabular-nums">{item.votes}</span>
-                  </button>
-                </article>
-              );
-            })}
-          </div>
+          )}
+          <p className="mt-5 text-[10px] leading-5 text-neutral-600">
+            {isEn ? 'Suggestions are currently saved on this device.' : 'Les propositions sont actuellement enregistrées sur cet appareil.'}
+          </p>
         </section>
       </div>
     </div>
