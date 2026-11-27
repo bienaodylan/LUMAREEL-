@@ -6,7 +6,7 @@ import { Crown, Lock, Play, X } from 'lucide-react';
 
 interface BackstageDrop {
   id: string;
-  category: Exclude<BackstageFilter, 'all'>;
+  category: 'soundcheck' | 'studio' | 'scenography' | 'black_card';
   categoryLabelFr: string;
   categoryLabelEn: string;
   titleFr: string;
