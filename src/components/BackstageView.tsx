@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { ConcertEvent } from '../types';
 import {
   buildConcertMemoryAlbums,
   markChallengeCompleted,
@@ -24,6 +25,7 @@ type BackstageSection = 'coulisses' | 'memories' | 'archives';
 export const BackstageView: React.FC = () => {
   const {
     currentUser,
+    events,
     archives,
     setCurrentPage,
     setSelectedMediaId,
@@ -48,6 +50,11 @@ export const BackstageView: React.FC = () => {
   const backstageItems = useMemo(
     () => publishedMedia.filter((item) => item.placement === 'backstage'),
     [publishedMedia]
+  );
+
+  const publishedEvents = useMemo(
+    () => (events || []).filter((e) => e.status !== 'draft'),
+    [events]
   );
 
   const memoryAlbums = useMemo(() => buildConcertMemoryAlbums(archives), [archives]);
