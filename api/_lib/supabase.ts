@@ -46,9 +46,14 @@ export function serviceDb(): SupabaseClient | null {
   const url = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '');
   const serviceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
   if (!url || !serviceKey) return null;
-  return createClient(url, serviceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  try {
+    return createClient(url, serviceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  } catch (error) {
+    console.error('[supabase] Service client configuration is invalid:', error instanceof Error ? error.message : error);
+    return null;
+  }
 }
 
 function requestDb(req: VercelRequest): { db: SupabaseClient; jwt: string } {
