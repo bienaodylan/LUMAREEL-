@@ -101,11 +101,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const planId = String(body.planId || 'tv_pass_monthly');
       const { data: plan } = await db.from('tv_pass_plans').select('*').eq('id', planId).eq('status', 'active').maybeSingle();
       if (!plan) return res.status(400).json({ success: false, error: 'Formule mensuelle introuvable ou inactive.' });
-      const { data: profile } = await db.from('users').select('id').ilike('email', email).maybeSingle();
       const now = new Date();
       const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
       const { error } = await db.from('tv_subscriptions').insert({
-        user_id: profile?.id || null, user_email: email,
+        user_id: null, user_email: email,
         user_name: String(body.userName || email.split('@')[0]).trim(),
         plan_id: plan.id, plan_name: plan.name, status: 'active', source: 'admin_grant',
         amount_paid: 0, currency: plan.currency || 'FCFA', auto_renew: false,
