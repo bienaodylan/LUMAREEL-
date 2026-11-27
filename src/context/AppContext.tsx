@@ -12,7 +12,6 @@ export type PageView =
   | 'explore'
   | 'concert_detail'
   | 'archive'
-  | 'news'
   | 'client_space'
   | 'profile'
   | 'organizers'
