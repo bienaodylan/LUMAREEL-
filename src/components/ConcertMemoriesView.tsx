@@ -497,7 +497,7 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = ({ embedded
   // VUE INDEX : LISTE DES CONCERTS PASSÉS (PAGES SOUVENIRS)
   // =========================================================================
   return (
-    <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
+    <div className={`w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 ${embedded ? "pt-0 pb-8" : "min-h-screen pt-4 sm:pt-10 pb-20"} text-white font-agrandir-regular`}>
       {!embedded && (
       <header className="mb-8 pb-6 border-b border-white/10">
         <p className="text-xs tracking-[0.2em] text-[#FFFFFF] uppercase mb-2">
