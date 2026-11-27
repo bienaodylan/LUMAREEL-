@@ -157,7 +157,7 @@ const MainApp: React.FC = () => {
                 hasVisibleMobileHeader && !isHomePage
                   ? 'pt-[calc(4.1rem+env(safe-area-inset-top,0px))] md:pt-0'
                   : ''
-              } md:pb-12 md:pl-[244px]`
+              } ${isLandingPage ? '' : 'md:pb-12'} md:pl-[244px]`
             : ''
         }`}
         style={
