@@ -1,164 +1,135 @@
 import React from 'react';
 import { useApp, PageView } from '../context/AppContext';
-import { Home, Ticket, Compass, CreditCard, User } from 'lucide-react';
-import { motion } from 'framer-motion';
+import {
+  Archive,
+  Award,
+  Camera,
+  Clapperboard,
+  CreditCard,
+  Home,
+  Lightbulb,
+  Newspaper,
+  Settings,
+  Ticket,
+  UserRound,
+  Zap,
+} from 'lucide-react';
 
-/**
- * Barre latérale desktop alignée sur les 5 accès principaux des maquettes :
- * 1. Accueil  2. Billets  3. Explorer  4. Black Card  5. Compte
- */
+/** Navigation desktop LUMARÉEL: sidebar fixe organisée en Principal + Club & Expériences. */
 export const DesktopSidebar: React.FC = () => {
-  const { currentPage, setCurrentPage, language, setLanguage, currentUser } = useApp();
-
-  if (['splash', 'gate_scanner', 'admin'].includes(currentPage)) {
-    return null;
-  }
+  const { currentPage, setCurrentPage, platformSettings, language, setLanguage, t } = useApp();
+  if (['splash', 'gate_scanner', 'admin'].includes(currentPage)) return null;
 
   const isEn = language === 'en';
 
-  const items: Array<{
-    id: string;
+  const mainItems: Array<{
+    label: string;
+    page: PageView;
+    icon: React.ComponentType<{ size?: number; strokeWidth?: number; fill?: string; className?: string }>;
+  }> = [
+    { label: t('nav.home'), page: 'home', icon: Home },
+    { label: t('nav.orders'), page: 'client_space', icon: Ticket },
+    { label: 'LUMARÉEL Black Card', page: 'member_card', icon: CreditCard },
+    { label: isEn ? 'Points & Referrals' : 'Points & Parrainage', page: 'rewards', icon: Award },
+    { label: t('nav.account'), page: 'profile', icon: UserRound },
+  ];
+
+  const clubItems: Array<{
     label: string;
     page: PageView;
     icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
-    active: boolean;
   }> = [
-    {
-      id: 'home',
-      label: isEn ? 'Home' : 'Accueil',
-      page: 'home',
-      icon: Home,
-      active: currentPage === 'home' || currentPage === 'discover',
-    },
-    {
-      id: 'tickets',
-      label: isEn ? 'Tickets' : 'Billets',
-      page: 'client_space',
-      icon: Ticket,
-      active: currentPage === 'client_space',
-    },
-    {
-      id: 'explore',
-      label: isEn ? 'Explore' : 'Explorer',
-      page: 'explore',
-      icon: Compass,
-      active: [
-        'explore',
-        'discover_detail',
-        'backstage',
-        'media_detail',
-        'memories',
-        'archive',
-        'rewards',
-        'flash_drops',
-        'suggestions',
-        'organizers',
-      ].includes(currentPage),
-    },
-    {
-      id: 'black_card',
-      label: 'Black Card',
-      page: 'member_card',
-      icon: CreditCard,
-      active: ['member_card', 'card', 'card_verify'].includes(currentPage),
-    },
-    {
-      id: 'account',
-      label: isEn ? 'Account' : 'Compte',
-      page: 'profile',
-      icon: User,
-      active: [
-        'profile',
-        'contact',
-        'contributor_studio',
-        'about',
-        'partners',
-      ].includes(currentPage),
-    },
+    { label: 'BACKSTAGE', page: 'backstage', icon: Clapperboard },
+    { label: isEn ? 'Flash & Surprises' : 'Ventes Flash', page: 'flash_drops', icon: Zap },
+    { label: isEn ? 'Memories' : 'Souvenirs', page: 'memories', icon: Camera },
+    { label: isEn ? 'Suggestions' : 'Boîte à idées', page: 'suggestions', icon: Lightbulb },
+    { label: t('nav.archives'), page: 'archive', icon: Archive },
+    { label: t('nav.news'), page: 'news', icon: Newspaper },
   ];
 
-  const userInitial =
-    currentUser?.name?.trim()?.[0]?.toUpperCase() || currentUser?.email?.[0]?.toUpperCase();
+  const go = (page: PageView) => setCurrentPage(page);
 
   return (
-    <aside
-      aria-label={isEn ? 'Desktop navigation' : 'Navigation principale'}
-      className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-white/[0.08] bg-[#050505] px-4 pb-6 pt-7 text-white md:flex"
-    >
+    <aside className="hidden md:flex fixed inset-y-0 left-0 z-40 w-[244px] flex-col overflow-y-auto border-r border-[#dbdbdb] bg-white px-3 pb-5 pt-6 text-[#262626] dark:border-[#262626] dark:bg-black dark:text-white">
       <button
         type="button"
-        onClick={() => setCurrentPage('home')}
-        aria-label={`LUMARÉEL — ${isEn ? 'Home' : 'Accueil'}`}
-        className="mb-10 flex h-10 shrink-0 items-center px-2.5 cursor-pointer focus:outline-none text-left"
+        onClick={() => go('home')}
+        aria-label={`LUMARÉEL ${t('nav.home')}`}
+        className="mb-6 flex h-12 shrink-0 items-center px-3 cursor-pointer"
       >
-        <span className="font-agrandir-extrabold text-sm tracking-[0.34em] text-white whitespace-nowrap">
-          LUMARÉEL
-        </span>
+        <img
+          src="/assets/logo-lumareel.png"
+          alt={platformSettings.platformName || 'LUMARÉEL'}
+          className="h-8 w-auto object-contain"
+        />
       </button>
 
-      <nav className="space-y-1.5">
-        {items.map(({ id, label, page, icon: Icon, active }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setCurrentPage(page)}
-            aria-current={active ? 'page' : undefined}
-            className={`relative group flex min-h-[44px] w-full items-center gap-3 rounded-full px-4 text-left text-[13px] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D9B36C]/50 ${
-              active
-                ? 'font-agrandir-extrabold text-black'
-                : 'text-neutral-400 hover:bg-white/[0.04] hover:text-white font-agrandir-regular'
-            }`}
-          >
-            {active && (
-              <motion.span
-                layoutId="lumareel-desktop-nav-pill"
-                transition={{ type: 'spring', stiffness: 460, damping: 36, mass: 0.78 }}
-                className="absolute inset-0 rounded-full bg-[#D9B36C]"
-              />
-            )}
-            <Icon
-              size={18}
-              strokeWidth={active ? 2.1 : 1.75}
-              className={`relative z-10 transition-colors ${
-                active ? 'text-black' : 'text-neutral-400 group-hover:text-white'
+      <nav className="flex flex-col gap-0.5">
+        {mainItems.map(({ label, page, icon: Icon }) => {
+          const active =
+            currentPage === page ||
+            (page === 'home' && currentPage === 'discover') ||
+            (page === 'member_card' && currentPage === 'card');
+          return (
+            <button
+              key={page}
+              type="button"
+              onClick={() => go(page)}
+              aria-current={active ? 'page' : undefined}
+              className={`group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-left text-[14px] leading-snug transition-colors hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] cursor-pointer ${
+                active ? 'font-bold text-[#D4AF37]' : ''
               }`}
-            />
-            <span className="relative z-10 min-w-0 flex-1 truncate whitespace-nowrap">{label}</span>
-          </button>
-        ))}
+            >
+              <Icon
+                size={20}
+                strokeWidth={active ? 2.4 : 1.85}
+                fill={active && page === 'home' ? 'currentColor' : 'none'}
+                className="shrink-0 transition-transform group-hover:scale-105"
+              />
+              <span className="min-w-0 truncate">{label}</span>
+            </button>
+          );
+        })}
       </nav>
 
-      <div className="mt-auto space-y-4 border-t border-white/[0.08] pt-5">
-        {currentUser && (
-          <button
-            type="button"
-            onClick={() => setCurrentPage('profile')}
-            className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-white/[0.04] transition-colors cursor-pointer"
-          >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#D9B36C]/15 border border-[#D9B36C]/40 text-xs font-agrandir-extrabold text-[#D9B36C]">
-              {userInitial}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-xs font-agrandir-semibold text-white">
-                {currentUser.name || currentUser.email.split('@')[0]}
-              </span>
-              <span className="block truncate text-[10px] text-neutral-500">
-                {currentUser.email}
-              </span>
-            </span>
-          </button>
-        )}
+      <div className="mt-5 pt-4 border-t border-white/10">
+        <div className="px-3 pb-2 text-[10px] font-agrandir-bold uppercase tracking-[0.18em] text-neutral-500">
+          {isEn ? 'Club & Experiences' : 'Club & Expériences'}
+        </div>
+        <nav className="flex flex-col gap-0.5">
+          {clubItems.map(({ label, page, icon: Icon }) => {
+            const active = currentPage === page;
+            return (
+              <button
+                key={page}
+                type="button"
+                onClick={() => go(page)}
+                aria-current={active ? 'page' : undefined}
+                className={`group flex min-h-10 items-center gap-3 rounded-lg px-3 py-1.5 text-left text-[13.5px] leading-snug transition-colors hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] cursor-pointer ${
+                  active ? 'font-bold text-[#D4AF37]' : 'text-neutral-300'
+                }`}
+              >
+                <Icon
+                  size={18}
+                  strokeWidth={active ? 2.3 : 1.8}
+                  className="shrink-0 transition-transform group-hover:scale-105"
+                />
+                <span className="min-w-0 truncate">{label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
-        <div className="flex items-center justify-between px-2">
-          <span className="text-[11px] text-neutral-500">{isEn ? 'Language' : 'Langue'}</span>
-          <div className="flex items-center rounded-lg bg-[#101010] border border-white/[0.08] p-0.5 text-[11px]">
+      <div className="mt-auto flex flex-col gap-2 pt-4 border-t border-white/10">
+        <div className="flex items-center justify-between px-3 py-1">
+          <span className="text-xs text-neutral-500">{isEn ? 'Language' : 'Langue'}</span>
+          <div className="flex items-center p-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-agrandir-bold">
             <button
               type="button"
               onClick={() => setLanguage('fr')}
-              className={`px-2 py-1 rounded-md transition-colors cursor-pointer ${
-                language === 'fr'
-                  ? 'bg-[#D9B36C] text-black font-agrandir-extrabold'
-                  : 'text-neutral-400 hover:text-white'
+              className={`px-2.5 py-0.5 rounded-full cursor-pointer transition-colors ${
+                language === 'fr' ? 'bg-white text-black' : 'text-neutral-400 hover:text-white'
               }`}
             >
               FR
@@ -166,16 +137,22 @@ export const DesktopSidebar: React.FC = () => {
             <button
               type="button"
               onClick={() => setLanguage('en')}
-              className={`px-2 py-1 rounded-md transition-colors cursor-pointer ${
-                language === 'en'
-                  ? 'bg-[#D9B36C] text-black font-agrandir-extrabold'
-                  : 'text-neutral-400 hover:text-white'
+              className={`px-2.5 py-0.5 rounded-full cursor-pointer transition-colors ${
+                language === 'en' ? 'bg-white text-black' : 'text-neutral-400 hover:text-white'
               }`}
             >
               EN
             </button>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => go('profile')}
+          className="flex h-10 items-center gap-3 rounded-lg px-3 text-sm text-neutral-500 hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] cursor-pointer"
+        >
+          <Settings size={18} />
+          <span className="truncate">{t('nav.accountSettings')}</span>
+        </button>
       </div>
     </aside>
   );

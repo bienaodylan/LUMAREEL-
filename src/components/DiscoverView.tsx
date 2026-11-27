@@ -17,7 +17,7 @@ interface MonthGroup {
 }
 
 export const DiscoverView: React.FC = () => {
-  const { events, setCheckoutEvent } = useApp();
+  const { events, setSelectedEventSlug, setCurrentPage, setCheckoutEvent } = useApp();
 
   const [search, setSearch] = useState('');
   const [selectedCity, setSelectedCity] = useState('all');
@@ -61,7 +61,8 @@ export const DiscoverView: React.FC = () => {
   }, []);
 
   const handleSelectEvent = (event: ConcertEvent) => {
-    setCheckoutEvent(event);
+    setSelectedEventSlug(event.slug);
+    setCurrentPage('concert_detail');
   };
 
   const handleBookNow = (event: ConcertEvent, e: React.MouseEvent) => {
@@ -88,7 +89,7 @@ export const DiscoverView: React.FC = () => {
       return 'from-indigo-950/45 via-[#0e091b]/85 to-[#0b0b0b] border-indigo-900/30 hover:border-indigo-500/50';
     }
     if (name.includes('LION')) {
-      return 'from-amber-950/35 via-[#140e06]/85 to-[#0b0b0b] border-white/30 hover:border-white/60';
+      return 'from-amber-950/35 via-[#140e06]/85 to-[#0b0b0b] border-[#d4af37]/30 hover:border-[#d4af37]/60';
     }
     if (name.includes('JAMSCO')) {
       return 'from-rose-950/40 via-[#18090f]/85 to-[#0b0b0b] border-rose-900/30 hover:border-rose-500/50';
@@ -256,14 +257,14 @@ export const DiscoverView: React.FC = () => {
 
                           {/* Venue Location with MapPin */}
                           <div className="flex items-center gap-1.5 text-xs text-[#ccc] font-agrandir-regular mt-2 truncate">
-                            <MapPin className="w-3.5 h-3.5 text-white shrink-0" />
+                            <MapPin className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
                             <span className="truncate"><strong className="font-agrandir-extrabold text-white">{event.venue}</strong> ({event.city})</span>
                           </div>
 
                           {/* Ticket Price Badge Pill (Matching "TICKETS FROM RM 298") */}
                           <div className="mt-2.5">
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[11px] font-agrandir-semibold text-white backdrop-blur-sm shadow-sm">
-                              <Ticket className="w-3.5 h-3.5 text-white" />
+                              <Ticket className="w-3.5 h-3.5 text-[#d4af37]" />
                               <span>BILLETS DÈS {minPrice.toLocaleString()} FCFA</span>
                             </span>
                           </div>
@@ -272,13 +273,13 @@ export const DiscoverView: React.FC = () => {
 
                       </div>
 
-                      {/* Right Action Button : Réserver */}
+                      {/* Right Action Button : Pill VIEW MORE matching screenshot */}
                       <div className="relative z-10 flex items-center justify-end sm:justify-center gap-3 shrink-0 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0">
                         <button
-                          onClick={(e) => handleBookNow(event, e)}
+                          onClick={() => handleSelectEvent(event)}
                           className="px-6 py-3 rounded-full bg-white/10 hover:bg-white text-white hover:text-black border border-white/20 font-agrandir-semibold text-xs tracking-widest uppercase flex items-center gap-2 backdrop-blur-md transition-all shadow-lg cursor-pointer"
                         >
-                          <span>RÉSERVER</span>
+                          <span>VIEW MORE</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                       </div>

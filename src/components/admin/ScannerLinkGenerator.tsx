@@ -144,8 +144,8 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-5">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-white/15 border border-white/30 text-[10px] font-agrandir-bold tracking-widest text-white uppercase flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3 text-white" />
+            <span className="px-2.5 py-0.5 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/30 text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3 text-[#d4af37]" />
               <span>LIEN MAGIQUE VIGILE</span>
             </span>
             <span className="text-xs text-[#888]">·</span>
@@ -163,7 +163,7 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
           type="button"
           onClick={handleGenerateToken}
           disabled={isGenerating}
-          className="self-start sm:self-auto px-5 py-3 rounded-2xl bg-white hover:bg-[#b89528] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] disabled:opacity-50 cursor-pointer shrink-0"
+          className="self-start sm:self-auto px-5 py-3 rounded-2xl bg-[#d4af37] hover:bg-[#b89528] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center gap-2 shadow-[0_0_20px_rgba(212,175,55,0.3)] disabled:opacity-50 cursor-pointer shrink-0"
         >
           {isGenerating ? (
             <>
@@ -202,7 +202,7 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
                   readOnly
                   value={generatedUrl}
                   onClick={(e) => (e.target as HTMLInputElement).select()}
-                  className="w-full bg-[#141414] border border-white/15 focus:border-white rounded-2xl px-4 py-3 text-xs font-mono text-neutral-200 select-all outline-none transition-colors"
+                  className="w-full bg-[#141414] border border-white/15 focus:border-[#d4af37] rounded-2xl px-4 py-3 text-xs font-mono text-neutral-200 select-all outline-none transition-colors"
                 />
               </div>
 
@@ -246,7 +246,7 @@ export const ScannerLinkGenerator: React.FC<ScannerLinkGeneratorProps> = ({
           {activeToken && (
             <div className="p-4 rounded-2xl bg-[#141414] border border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white">
+                <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-[#d4af37]">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>

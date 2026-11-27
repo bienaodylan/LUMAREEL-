@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { FloatingAppNavbar } from './components/FloatingAppNavbar';
-import { DesktopTopNav } from './components/DesktopTopNav';
+import { DesktopSidebar } from './components/DesktopSidebar';
 import { HomeFeed } from './components/HomeFeed';
-import { ExplorerView } from './components/ExplorerView';
-import { MediaDetailView } from './components/MediaDetailView';
-import { ContributorPortalView } from './components/ContributorPortalView';
+import { ConcertDetailView } from './components/ConcertDetailView';
 import { ArchiveView } from './components/ArchiveView';
+import { NewsView } from './components/NewsView';
 import { OrganizersView } from './components/OrganizersView';
 import { CustomerSpace } from './components/CustomerSpace';
 import { ProfileView } from './components/ProfileView';
@@ -19,34 +18,18 @@ import { AuthModal } from './components/AuthModal';
 import { LumareelMemberCardPage } from './components/LumareelMemberCardPage';
 import { CardVerificationView } from './components/CardVerificationView';
 import { RewardsHubView } from './components/RewardsHubView';
-import { PrivilegedAccessView } from './components/PrivilegedAccessView';
+import { BackstageView } from './components/BackstageView';
 import { FlashDropsView } from './components/FlashDropsView';
-import { LumareelTvView } from './components/LumareelTvView';
+import { ConcertMemoriesView } from './components/ConcertMemoriesView';
 import { SuggestionsView } from './components/SuggestionsView';
-import { DiscoverDetailView } from './components/DiscoverDetailView';
-import { ContactView } from './components/ContactView';
 import { OfflineIndicator } from './components/OfflineIndicator';
-import { AppSplashScreen } from './components/AppSplashScreen';
+import { usePWAInstall } from './hooks/usePWAInstall';
 import { saveStoredMemberCard } from './utils/memberCardStorage';
-import { initAutoMobileFullscreen } from './utils/mobileFullscreen';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const MainApp: React.FC = () => {
-  const { currentPage, setCurrentPage, toast, showToast, refreshCustomerOrders, refreshEvents, language, hideBottomNav, platformSettings } = useApp();
-  const [showSplash, setShowSplash] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    const search = window.location.search || '';
-    const pathname = window.location.pathname || '';
-    if (search.includes('payment_status=') || pathname.includes('/auth/callback')) {
-      return false;
-    }
-    return true;
-  });
-
-  // Plein écran automatique sur appareils mobiles au lancement (avec Screen Orientation API)
-  useEffect(() => {
-    return initAutoMobileFullscreen();
-  }, []);
+  const { currentPage, setCurrentPage, toast, showToast, refreshCustomerOrders, refreshEvents, language } = useApp();
+  const { isStandalone } = usePWAInstall();
 
   // Vérification automatique au retour de la page de paiement PayMeTrust (?payment_status=...&ref=PMT-...)
   useEffect(() => {
@@ -85,19 +68,16 @@ const MainApp: React.FC = () => {
         if (res.ok && data?.success && data?.transaction?.status === 'SUCCESS') {
           await Promise.all([refreshCustomerOrders(), refreshEvents()]);
           const isCard = ref.startsWith('PMT-CARD-');
-          const isTvPass = ref.startsWith('PMT-TV-');
           if (isCard && data?.fulfillment?.card) {
             saveStoredMemberCard(data.fulfillment.card);
           }
           showToast(
-            isTvPass
-              ? (language === 'en' ? 'LUMARÉEL TV Pass confirmed! Welcome to LUMARÉEL TV.' : 'Paiement LUMARÉEL TV Pass confirmé ! Bienvenue sur LUMARÉEL TV.')
-              : isCard
+            isCard
               ? (language === 'en' ? 'LUMARÉEL Black Card payment confirmed! Your card is ready.' : 'Paiement LUMARÉEL Black Card confirmé ! Votre carte est prête.')
               : (language === 'en' ? 'Payment confirmed! Your tickets are available.' : 'Paiement confirmé ! Vos billets sont disponibles.'),
             'success'
           );
-          setCurrentPage(isTvPass ? 'lumareel_tv' : isCard ? 'member_card' : 'client_space');
+          setCurrentPage(isCard ? 'member_card' : 'client_space');
         } else {
           showToast(
             language === 'en'
@@ -126,88 +106,64 @@ const MainApp: React.FC = () => {
   }, [currentPage]);
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
-  const isFullScreenPage = isAdminOrScanner || currentPage === 'booking';
-  const hasMobileTopBar =
-    !isFullScreenPage &&
-    ![
-      'splash',
-      'home',
-      'discover',
-      'explore',
-      'client_space',
-      'member_card',
-      'card',
-      'memories',
-      'lumareel_tv',
-      'backstage',
-      'archive',
-      'rewards',
-      'privileged_access',
-      'flash_drops',
-      'suggestions',
-      'discover_detail',
-      'profile',
-    ].includes(currentPage);
-  const hasBottomNav =
-    !isFullScreenPage &&
-    !hideBottomNav;
+  const isHomePage = currentPage === 'home' || currentPage === 'discover';
+  const isStandaloneRootTab =
+    isHomePage ||
+    currentPage === 'client_space' ||
+    currentPage === 'member_card' ||
+    currentPage === 'card' ||
+    currentPage === 'profile';
+  const hasVisibleMobileHeader = !isAdminOrScanner && (!isStandalone || isHomePage || !isStandaloneRootTab);
 
   return (
-    <div className="min-h-screen w-full max-w-full bg-black text-white flex flex-col justify-between selection:bg-[#D4AF6A] selection:text-black font-agrandir-regular relative">
-      {/* Splash page d'ouverture avec barre d'évolution et logo actuel en bas */}
-      <AnimatePresence>
-        {showSplash && (
-          <AppSplashScreen
-            logoUrl={platformSettings?.logoUrl || '/assets/logo-lumareel.png'}
-            onFinish={() => setShowSplash(false)}
-          />
-        )}
-      </AnimatePresence>
-
+    <div className="min-h-screen w-full max-w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative">
       {/* Indicateur hors-ligne discret pour la PWA */}
       <OfflineIndicator />
 
-      {/* En-tête mobile contextuel + barre horizontale desktop (masqués sur scanner/admin/réservation) */}
-      {!isFullScreenPage && (
+      {/* Top Navbar (Masquée sur le scanner et la console admin) */}
+      {!isAdminOrScanner && (
         <>
           <Navbar />
-          <DesktopTopNav />
+          <DesktopSidebar />
         </>
       )}
 
-      {/* Dynamic View Router */}
+      {/* Dynamic View Router avec transition de page fluide et espacement adapté au mobile web & app */}
       <main
         className={`flex-1 w-full max-w-full min-w-0 relative z-10 ${
-          !isFullScreenPage
+          !isAdminOrScanner
             ? `${
-                hasBottomNav
-                  ? 'pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))]'
-                  : 'pb-12'
+                isStandalone
+                  ? 'pb-[calc(6.25rem+env(safe-area-inset-bottom,0px))]'
+                  : 'pb-10'
               } ${
-                hasMobileTopBar
-                  ? 'pt-[calc(3.6rem+env(safe-area-inset-top,0px))] md:pt-[72px]'
-                  : 'md:pt-[72px]'
-              } md:pb-16`
+                hasVisibleMobileHeader && !isHomePage
+                  ? 'pt-[calc(4.1rem+env(safe-area-inset-top,0px))] md:pt-0'
+                  : ''
+              } md:pb-12 md:pl-[244px]`
             : ''
         }`}
+        style={
+          !isAdminOrScanner && !hasVisibleMobileHeader
+            ? { paddingTop: 'env(safe-area-inset-top, 0px)' }
+            : undefined
+        }
       >
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPage}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             className="w-full max-w-full min-w-0"
           >
             {currentPage === 'splash' && <HomeFeed />}
             {currentPage === 'home' && <HomeFeed />}
             {currentPage === 'discover' && <HomeFeed />}
-            {currentPage === 'explore' && <ExplorerView />}
-            {currentPage === 'booking' && <CheckoutModal />}
-            {currentPage === 'media_detail' && <MediaDetailView />}
-            {currentPage === 'contributor_studio' && <ContributorPortalView />}
+            {currentPage === 'concert_detail' && <ConcertDetailView />}
             {currentPage === 'archive' && <ArchiveView />}
+            {currentPage === 'news' && <NewsView />}
             {currentPage === 'organizers' && <OrganizersView />}
             {currentPage === 'client_space' && <CustomerSpace />}
             {currentPage === 'profile' && <ProfileView />}
@@ -215,47 +171,43 @@ const MainApp: React.FC = () => {
             {currentPage === 'member_card' && <LumareelMemberCardPage />}
             {currentPage === 'card_verify' && <CardVerificationView />}
             {currentPage === 'rewards' && <RewardsHubView />}
-            {currentPage === 'privileged_access' && <PrivilegedAccessView />}
-            {currentPage === 'backstage' && <LumareelTvView />}
+            {currentPage === 'backstage' && <BackstageView />}
             {currentPage === 'flash_drops' && <FlashDropsView />}
-            {currentPage === 'memories' && <LumareelTvView />}
-            {currentPage === 'lumareel_tv' && <LumareelTvView />}
+            {currentPage === 'memories' && <ConcertMemoriesView />}
             {currentPage === 'suggestions' && <SuggestionsView />}
-            {currentPage === 'discover_detail' && <DiscoverDetailView />}
-            {currentPage === 'contact' && <ContactView />}
             {currentPage === 'gate_scanner' && <ScannerView />}
             {currentPage === 'admin' && <AdminDashboard />}
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* Barre de Navigation Mobile Flottante (5 destinations majeures) */}
-      {!isFullScreenPage && <FloatingAppNavbar />}
+      {/* Barre de Navigation Flottante Mobile (uniquement en mode application installée / standalone) */}
+      {!isAdminOrScanner && <FloatingAppNavbar />}
 
       {/* Active Modals */}
+      <CheckoutModal />
       <AuthModal />
 
       {/* Minimal Toast Notification */}
       {toast && (
         <div
-          className={`fixed left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-[95] bg-[#141414]/96 backdrop-blur-md border border-white/[0.16] px-4 py-3 shadow-2xl font-agrandir-regular text-xs flex items-center gap-3 text-white rounded-2xl ${
-            hasBottomNav
-              ? 'bottom-[calc(6.2rem+env(safe-area-inset-bottom,0px))] md:bottom-8'
-              : 'bottom-6 sm:bottom-8'
+          className={`fixed left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-[95] bg-[#141414]/95 backdrop-blur-md border border-white/20 px-4 py-3 shadow-2xl font-agrandir-regular text-xs flex items-center gap-3 text-white animate-slideUp rounded-2xl ${
+            isStandalone ? 'bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:bottom-8' : 'bottom-6 sm:bottom-8'
           }`}
         >
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${
               toast.type === 'success'
-                ? 'bg-[#7FE0A6]'
+                ? 'bg-emerald-400'
                 : toast.type === 'error'
-                ? 'bg-[#B3122B]'
-                : 'bg-[#D4AF6A]'
+                ? 'bg-rose-500'
+                : 'bg-white'
             }`}
           />
           <span className="min-w-0 break-words">{toast.message}</span>
         </div>
       )}
+
     </div>
   );
 };
@@ -270,8 +222,8 @@ const AdminEmergencyAccess: React.FC<{ error: Error }> = ({ error }) => {
 
   return (
     <div className="min-h-screen bg-black text-white p-5 sm:p-10 font-agrandir-regular">
-      <div className="max-w-3xl mx-auto mt-8 rounded-3xl border border-white/20 bg-[#101010] p-6 sm:p-8">
-        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-neutral-400">LUMARÉEL · Accès de secours</p>
+      <div className="max-w-3xl mx-auto mt-8 rounded-3xl border border-[#d4af37]/30 bg-[#101010] p-6 sm:p-8">
+        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#d4af37]">LUMARÉEL · Accès de secours</p>
         <h1 className="mb-3 text-2xl font-bold">Console d’administration</h1>
         <p className="mb-5 text-sm text-neutral-300">
           Une erreur empêche le tableau de bord complet de s’afficher. Tu peux néanmoins accéder directement à l’impression des billets.
@@ -281,7 +233,7 @@ const AdminEmergencyAccess: React.FC<{ error: Error }> = ({ error }) => {
           {error.stack && <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap text-neutral-500">{error.stack}</pre>}
         </div>
         <div className="flex flex-wrap gap-3">
-          <button type="button" onClick={() => setPrintOpen(true)} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black hover:bg-neutral-200 transition-colors cursor-pointer">
+          <button type="button" onClick={() => setPrintOpen(true)} className="rounded-xl bg-[#d4af37] px-5 py-3 text-sm font-bold text-black">
             Ouvrir l’impression des billets
           </button>
           <button type="button" onClick={() => window.location.reload()} className="rounded-xl border border-white/20 px-5 py-3 text-sm">

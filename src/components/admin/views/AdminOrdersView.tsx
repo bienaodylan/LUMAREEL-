@@ -35,7 +35,7 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({ orders }) => {
       {/* 1. Header & Quick Stat */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="text-[10px] font-agrandir-semibold tracking-[0.25em] text-white uppercase mb-1">
+          <div className="text-[10px] font-agrandir-semibold tracking-[0.25em] text-[#d4af37] uppercase mb-1">
             REGISTRE DES TRANSACTIONS
           </div>
           <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight uppercase">
@@ -46,7 +46,7 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({ orders }) => {
         <div className="bg-[#0c0c0c] border border-white/10 rounded-2xl px-5 py-3 text-right">
           <div className="text-[10px] text-[#888] uppercase font-agrandir-semibold">Volume Total Encaissé</div>
           <div className="font-agrandir-extrabold text-xl text-white">
-            {totalVolume.toLocaleString()} <span className="text-xs text-white">FCFA</span>
+            {totalVolume.toLocaleString()} <span className="text-xs text-[#d4af37]">FCFA</span>
           </div>
         </div>
       </div>
@@ -137,7 +137,7 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({ orders }) => {
 
                     <td className="py-4 px-4">
                       <div className="text-white font-agrandir-bold truncate max-w-xs">{ord.eventTitle}</div>
-                      <div className="text-[11px] text-white">{ord.categoryName}</div>
+                      <div className="text-[11px] text-[#d4af37]">{ord.categoryName}</div>
                     </td>
 
                     <td className="py-4 px-4 font-mono text-white font-bold">
@@ -145,7 +145,7 @@ export const AdminOrdersView: React.FC<AdminOrdersViewProps> = ({ orders }) => {
                     </td>
 
                     <td className="py-4 px-4 text-right font-agrandir-extrabold text-white text-sm">
-                      {ord.totalAmount.toLocaleString()} <span className="text-[10px] text-white">FCFA</span>
+                      {ord.totalAmount.toLocaleString()} <span className="text-[10px] text-[#d4af37]">FCFA</span>
                     </td>
 
                     <td className="py-4 px-4">

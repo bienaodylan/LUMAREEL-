@@ -502,8 +502,8 @@ export const AdminWorkshopView: React.FC = () => {
       {/* Header : Club Privé LUMARÉEL Card System */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl bg-[#0c0c0c] border border-white/10 shadow-2xl">
         <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 border border-white/30 text-[10px] font-agrandir-bold tracking-widest text-white uppercase">
-            <Radio className="w-3.5 h-3.5 text-white" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/30 text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
+            <Radio className="w-3.5 h-3.5 text-[#d4af37]" />
             <span>CLUB PRIVÉ · ARCHITECTURE NXP MIFARE DESFIRE EV3</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-agrandir-extrabold uppercase text-white tracking-wide">
@@ -521,7 +521,7 @@ export const AdminWorkshopView: React.FC = () => {
             disabled={refreshing}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-xs text-neutral-300 hover:text-white transition-all cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-white' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-[#d4af37]' : ''}`} />
             <span>Actualiser</span>
           </button>
         </div>
@@ -537,12 +537,12 @@ export const AdminWorkshopView: React.FC = () => {
           <CreditCard className="w-6 h-6 text-neutral-400" />
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0e0e0e] border border-white/20 flex items-center justify-between">
+        <div className="p-4 rounded-2xl bg-[#0e0e0e] border border-[#d4af37]/20 flex items-center justify-between">
           <div>
-            <div className="text-[10px] font-mono uppercase text-white">Puces Vierges en Stock</div>
-            <div className="text-2xl font-mono font-bold text-white mt-0.5">{availableStockChips.length}</div>
+            <div className="text-[10px] font-mono uppercase text-[#d4af37]">Puces Vierges en Stock</div>
+            <div className="text-2xl font-mono font-bold text-[#d4af37] mt-0.5">{availableStockChips.length}</div>
           </div>
-          <Box className="w-6 h-6 text-white" />
+          <Box className="w-6 h-6 text-[#d4af37]" />
         </div>
 
         <div className="p-4 rounded-2xl bg-[#0e0e0e] border border-emerald-500/20 flex items-center justify-between">
@@ -569,11 +569,11 @@ export const AdminWorkshopView: React.FC = () => {
           onClick={() => setActiveTab('encoder')}
           className={`px-5 py-3 text-xs font-agrandir-bold uppercase tracking-wider transition-colors border-b-2 cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'encoder'
-              ? 'border-white text-white bg-white/[0.02]'
+              ? 'border-[#d4af37] text-white bg-white/[0.02]'
               : 'border-transparent text-neutral-400 hover:text-white'
           }`}
         >
-          <Cpu className="w-4 h-4 text-white" />
+          <Cpu className="w-4 h-4 text-[#d4af37]" />
           <span>Poste d'Encodage &amp; Association</span>
         </button>
 
@@ -582,7 +582,7 @@ export const AdminWorkshopView: React.FC = () => {
           onClick={() => setActiveTab('pos')}
           className={`px-5 py-3 text-xs font-agrandir-bold uppercase tracking-wider transition-colors border-b-2 cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'pos'
-              ? 'border-white text-white bg-white/[0.02]'
+              ? 'border-[#d4af37] text-white bg-white/[0.02]'
               : 'border-transparent text-neutral-400 hover:text-white'
           }`}
         >
@@ -595,7 +595,7 @@ export const AdminWorkshopView: React.FC = () => {
           onClick={() => setActiveTab('inventory')}
           className={`px-5 py-3 text-xs font-agrandir-bold uppercase tracking-wider transition-colors border-b-2 cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'inventory'
-              ? 'border-white text-white bg-white/[0.02]'
+              ? 'border-[#d4af37] text-white bg-white/[0.02]'
               : 'border-transparent text-neutral-400 hover:text-white'
           }`}
         >
@@ -608,7 +608,7 @@ export const AdminWorkshopView: React.FC = () => {
           onClick={() => setActiveTab('lifecycle')}
           className={`px-5 py-3 text-xs font-agrandir-bold uppercase tracking-wider transition-colors border-b-2 cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'lifecycle'
-              ? 'border-white text-white bg-white/[0.02]'
+              ? 'border-[#d4af37] text-white bg-white/[0.02]'
               : 'border-transparent text-neutral-400 hover:text-white'
           }`}
         >
@@ -621,7 +621,7 @@ export const AdminWorkshopView: React.FC = () => {
           onClick={() => setActiveTab('logs')}
           className={`px-5 py-3 text-xs font-agrandir-bold uppercase tracking-wider transition-colors border-b-2 cursor-pointer flex items-center gap-2 shrink-0 ${
             activeTab === 'logs'
-              ? 'border-white text-white bg-white/[0.02]'
+              ? 'border-[#d4af37] text-white bg-white/[0.02]'
               : 'border-transparent text-neutral-400 hover:text-white'
           }`}
         >
@@ -641,7 +641,7 @@ export const AdminWorkshopView: React.FC = () => {
             <div className="p-6 rounded-3xl bg-[#0e0e0e] border border-white/10 space-y-4 shadow-xl">
               <div className="flex items-center justify-between">
                 <h3 className="font-agrandir-bold text-sm text-white uppercase flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-white" />
+                  <UserCheck className="w-4 h-4 text-[#d4af37]" />
                   <span>1. Sélectionner le compte membre</span>
                 </h3>
                 <span className="text-[10px] font-mono text-neutral-400">
@@ -665,14 +665,14 @@ export const AdminWorkshopView: React.FC = () => {
                       }}
                       className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
                         isSelected
-                          ? 'bg-[#181818] border-white shadow-lg shadow-[#FFFFFF]/10'
+                          ? 'bg-[#181818] border-[#d4af37] shadow-lg shadow-[#d4af37]/10'
                           : 'bg-[#111] border-white/5 hover:border-white/20'
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-white">{c.cardNumber}</span>
+                            <span className="font-mono text-xs font-bold text-[#d4af37]">{c.cardNumber}</span>
                             {isPending ? (
                               <span className="px-2 py-0.5 rounded-full text-[9px] font-agrandir-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 uppercase">
                                 En attente de puce
@@ -703,7 +703,7 @@ export const AdminWorkshopView: React.FC = () => {
             {/* Aide technique sur le lecteur physique */}
             <div className="p-5 rounded-3xl bg-[#0a0a0a] border border-white/10 text-xs text-neutral-400 space-y-2">
               <div className="flex items-center gap-2 text-white font-agrandir-bold uppercase text-[11px]">
-                <Radio className="w-4 h-4 text-white" />
+                <Radio className="w-4 h-4 text-[#d4af37]" />
                 <span>Lecteur de Bureau Recommandé</span>
               </div>
               <p className="text-[11px] leading-relaxed">
@@ -735,7 +735,7 @@ export const AdminWorkshopView: React.FC = () => {
                 <div className="p-4 rounded-2xl bg-[#141414] border border-white/10 space-y-2">
                   <div className="text-xs font-agrandir-bold text-neutral-300 flex items-center justify-between">
                     <span>Puces vierges prêtes en réserve ({availableStockChips.length}) :</span>
-                    <span className="text-[10px] font-mono text-white">Cliquer pour charger</span>
+                    <span className="text-[10px] font-mono text-[#d4af37]">Cliquer pour charger</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {availableStockChips.slice(0, 4).map((chip) => (
@@ -747,7 +747,7 @@ export const AdminWorkshopView: React.FC = () => {
                           setEncodeSuccessMessage(null);
                           setEncodeErrorMessage(null);
                         }}
-                        className="px-2.5 py-1 rounded-lg bg-black/60 hover:bg-white/20 border border-white/10 hover:border-white/40 text-xs font-mono text-white transition-all cursor-pointer"
+                        className="px-2.5 py-1 rounded-lg bg-black/60 hover:bg-[#d4af37]/20 border border-white/10 hover:border-[#d4af37]/40 text-xs font-mono text-white transition-all cursor-pointer"
                       >
                         {chip.chipUid}
                       </button>
@@ -764,7 +764,7 @@ export const AdminWorkshopView: React.FC = () => {
                       ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 shadow-lg shadow-emerald-500/20'
                       : 'bg-white/5 border-white/10 text-neutral-400'
                   }`}>
-                    {detectedChipUid ? <CheckCircle2 className="w-8 h-8" /> : <Radio className="w-8 h-8 animate-pulse text-white" />}
+                    {detectedChipUid ? <CheckCircle2 className="w-8 h-8" /> : <Radio className="w-8 h-8 animate-pulse text-[#d4af37]" />}
                   </div>
                   <div className="text-xs uppercase font-agrandir-bold text-white tracking-widest mt-2">
                     {detectedChipUid ? 'Puce Physique Détectée' : 'En attente de passage sur le lecteur'}
@@ -781,7 +781,7 @@ export const AdminWorkshopView: React.FC = () => {
                     disabled={isReadingHardware}
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 text-white font-agrandir-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md"
                   >
-                    <Radio className={`w-4 h-4 ${isReadingHardware ? 'animate-spin text-white' : 'text-white'}`} />
+                    <Radio className={`w-4 h-4 ${isReadingHardware ? 'animate-spin text-[#d4af37]' : 'text-[#d4af37]'}`} />
                     <span>{isReadingHardware ? 'Détection en cours...' : 'Détecter Puce sur Lecteur'}</span>
                   </button>
                 </div>
@@ -796,7 +796,7 @@ export const AdminWorkshopView: React.FC = () => {
                     value={detectedChipUid}
                     onChange={(e) => setDetectedChipUid(e.target.value.toUpperCase())}
                     placeholder="Ex: 04:A2:8F:12:9C:5E:80"
-                    className="w-full bg-[#111] border border-white/15 focus:border-white rounded-xl px-4 py-3 font-mono text-base font-bold text-white tracking-widest focus:outline-none transition-colors"
+                    className="w-full bg-[#111] border border-white/15 focus:border-[#d4af37] rounded-xl px-4 py-3 font-mono text-base font-bold text-white tracking-widest focus:outline-none transition-colors"
                   />
                 </div>
               </div>
@@ -821,7 +821,7 @@ export const AdminWorkshopView: React.FC = () => {
                 type="button"
                 onClick={handleAssociateChip}
                 disabled={isEncoding || !selectedCardId || !detectedChipUid}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-white to-[#b38f2a] hover:from-[#e5c04b] hover:to-[#c49f38] text-black font-agrandir-extrabold text-sm uppercase tracking-widest transition-all cursor-pointer disabled:opacity-40 shadow-xl flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#d4af37] to-[#b38f2a] hover:from-[#e5c04b] hover:to-[#c49f38] text-black font-agrandir-extrabold text-sm uppercase tracking-widest transition-all cursor-pointer disabled:opacity-40 shadow-xl flex items-center justify-center gap-2"
               >
                 <Lock className="w-4 h-4 text-black" />
                 <span>{isEncoding ? 'Scellement Cryptographique en cours...' : 'Associer & Sceller la Puce au Compte'}</span>
@@ -871,7 +871,7 @@ export const AdminWorkshopView: React.FC = () => {
                     setPosSuccessReceipt(null);
                     setPosError(null);
                   }}
-                  className="w-full bg-[#161616] border border-white/15 focus:border-white rounded-xl px-4 py-3 text-sm font-agrandir-bold text-white focus:outline-none cursor-pointer"
+                  className="w-full bg-[#161616] border border-white/15 focus:border-[#d4af37] rounded-xl px-4 py-3 text-sm font-agrandir-bold text-white focus:outline-none cursor-pointer"
                 >
                   {cards.map(c => (
                     <option key={c.id} value={c.id}>
@@ -891,7 +891,7 @@ export const AdminWorkshopView: React.FC = () => {
                   </div>
                   <div>
                     <span className="text-[9px] font-mono text-neutral-400 uppercase block">Puce Scellée</span>
-                    <strong className="text-xs text-white font-mono block mt-0.5">{posActiveCard.chipUid || 'Aucune puce'}</strong>
+                    <strong className="text-xs text-[#d4af37] font-mono block mt-0.5">{posActiveCard.chipUid || 'Aucune puce'}</strong>
                     <span className="text-[10px] text-emerald-400 font-bold uppercase">{posActiveCard.clubVipLevel || 'FOUNDERS'}</span>
                   </div>
                   <div>
@@ -922,7 +922,7 @@ export const AdminWorkshopView: React.FC = () => {
                       onClick={() => setPosAmount(preset.amount)}
                       className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
                         posAmount === preset.amount
-                          ? 'bg-white/20 border-white text-white shadow-md'
+                          ? 'bg-[#d4af37]/20 border-[#d4af37] text-white shadow-md'
                           : 'bg-[#141414] border-white/5 text-neutral-300 hover:border-white/20'
                       }`}
                     >
@@ -1016,7 +1016,7 @@ export const AdminWorkshopView: React.FC = () => {
             
             {/* Boîte Recharge Express */}
             <div className="p-6 rounded-3xl bg-[#0e0e0e] border border-white/10 space-y-4 shadow-xl">
-              <div className="flex items-center gap-2 text-white font-agrandir-bold text-sm uppercase">
+              <div className="flex items-center gap-2 text-[#d4af37] font-agrandir-bold text-sm uppercase">
                 <PlusCircle className="w-4 h-4" />
                 <span>Recharger un Portefeuille</span>
               </div>
@@ -1042,7 +1042,7 @@ export const AdminWorkshopView: React.FC = () => {
                       onClick={() => setRechargeAmount(amt)}
                       className={`p-2 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
                         rechargeAmount === amt
-                          ? 'bg-white text-black'
+                          ? 'bg-[#d4af37] text-black'
                           : 'bg-[#181818] text-white hover:bg-white/10'
                       }`}
                     >
@@ -1116,7 +1116,7 @@ export const AdminWorkshopView: React.FC = () => {
                 value={inventorySearch}
                 onChange={(e) => setInventorySearch(e.target.value)}
                 placeholder="Rechercher par UID, Lot, Titulaire..."
-                className="w-full bg-[#171717] border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white font-agrandir-regular"
+                className="w-full bg-[#171717] border border-white/10 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#d4af37] font-agrandir-regular"
               />
             </div>
 
@@ -1135,7 +1135,7 @@ export const AdminWorkshopView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setBatchImportOpen(true)}
-                className="px-4 py-2 rounded-xl bg-white hover:bg-[#e5c04b] text-black font-agrandir-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md flex items-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-[#d4af37] hover:bg-[#e5c04b] text-black font-agrandir-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md flex items-center gap-1.5"
               >
                 <PlusCircle className="w-3.5 h-3.5" />
                 <span>Réceptionner Lot</span>
@@ -1154,7 +1154,7 @@ export const AdminWorkshopView: React.FC = () => {
                 value={newChipUidInput}
                 onChange={(e) => setNewChipUidInput(e.target.value.toUpperCase())}
                 placeholder="Ex: 04:C5:99:1A:2B:3C:80"
-                className="w-full bg-[#161616] border border-white/15 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-white"
+                className="w-full bg-[#161616] border border-white/15 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-[#d4af37]"
               />
             </div>
 
@@ -1167,7 +1167,7 @@ export const AdminWorkshopView: React.FC = () => {
                 value={newChipBatchInput}
                 onChange={(e) => setNewChipBatchInput(e.target.value.toUpperCase())}
                 placeholder="Ex: LOT-NXP-2026-B1"
-                className="w-full bg-[#161616] border border-white/15 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-white"
+                className="w-full bg-[#161616] border border-white/15 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-[#d4af37]"
               />
             </div>
 
@@ -1231,7 +1231,7 @@ export const AdminWorkshopView: React.FC = () => {
                       {item.assignedMemberName ? (
                         <div>
                           <div className="font-agrandir-bold text-white">{item.assignedMemberName}</div>
-                          <div className="font-mono text-[10px] text-white">{item.assignedCardNumber}</div>
+                          <div className="font-mono text-[10px] text-[#d4af37]">{item.assignedCardNumber}</div>
                         </div>
                       ) : (
                         <span className="text-neutral-500 italic text-[11px]">Non assignée (disponible)</span>
@@ -1248,7 +1248,7 @@ export const AdminWorkshopView: React.FC = () => {
                             setDetectedChipUid(item.chipUid);
                             setActiveTab('encoder');
                           }}
-                          className="px-3 py-1 rounded-full bg-white/20 hover:bg-white/30 text-white text-[10px] font-agrandir-bold uppercase transition-colors cursor-pointer"
+                          className="px-3 py-1 rounded-full bg-[#d4af37]/20 hover:bg-[#d4af37]/30 text-[#d4af37] text-[10px] font-agrandir-bold uppercase transition-colors cursor-pointer"
                         >
                           Associer cette puce
                         </button>
@@ -1296,7 +1296,7 @@ export const AdminWorkshopView: React.FC = () => {
                   return (
                     <tr key={c.id} className="hover:bg-white/[0.02] transition-colors">
                       <td className="p-3.5">
-                        <div className="font-mono font-bold text-white text-xs">{c.cardNumber}</div>
+                        <div className="font-mono font-bold text-[#d4af37] text-xs">{c.cardNumber}</div>
                         <div className="font-agrandir-bold text-white text-sm">{c.cardholderName}</div>
                         <div className="font-mono text-[10px] text-neutral-500">{c.cardholderEmail}</div>
                       </td>
@@ -1396,7 +1396,7 @@ export const AdminWorkshopView: React.FC = () => {
                 type="button"
                 onClick={handleExportAuditCsv}
                 disabled={filteredLogs.length === 0}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-[#e5c04b] text-black font-agrandir-bold text-xs uppercase tracking-wider transition-all cursor-pointer disabled:opacity-40 shadow-md"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#d4af37] hover:bg-[#e5c04b] text-black font-agrandir-bold text-xs uppercase tracking-wider transition-all cursor-pointer disabled:opacity-40 shadow-md"
               >
                 <Download className="w-3.5 h-3.5 text-black" />
                 <span>Exporter CSV</span>
@@ -1430,7 +1430,7 @@ export const AdminWorkshopView: React.FC = () => {
                       </td>
 
                       <td className="p-3.5">
-                        <div className="font-mono font-bold text-white text-xs">{d.cardNumber}</div>
+                        <div className="font-mono font-bold text-[#d4af37] text-xs">{d.cardNumber}</div>
                         <div className="text-white font-agrandir-bold">{d.cardholderName}</div>
                       </td>
 
@@ -1504,7 +1504,7 @@ export const AdminWorkshopView: React.FC = () => {
               value={batchImportUids}
               onChange={(e) => setBatchImportUids(e.target.value)}
               placeholder="04:A1:22:33:44:55:80&#10;04:B2:33:44:55:66:81&#10;04:C3:44:55:66:77:82"
-              className="w-full bg-[#181818] border border-white/15 rounded-xl p-3 text-xs font-mono text-white focus:outline-none focus:border-white"
+              className="w-full bg-[#181818] border border-white/15 rounded-xl p-3 text-xs font-mono text-white focus:outline-none focus:border-[#d4af37]"
             />
 
             <div className="flex justify-end gap-3 pt-2">
@@ -1519,7 +1519,7 @@ export const AdminWorkshopView: React.FC = () => {
                 type="button"
                 onClick={handleBatchImportChips}
                 disabled={!batchImportUids.trim()}
-                className="px-5 py-2 rounded-xl bg-white hover:bg-[#e5c04b] text-black font-agrandir-bold text-xs uppercase"
+                className="px-5 py-2 rounded-xl bg-[#d4af37] hover:bg-[#e5c04b] text-black font-agrandir-bold text-xs uppercase"
               >
                 Intégrer au Stock
               </button>
@@ -1641,7 +1641,7 @@ export const AdminWorkshopView: React.FC = () => {
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-[#121212] border border-white/15 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <div className="flex items-center gap-2 text-white font-agrandir-bold text-sm uppercase">
+              <div className="flex items-center gap-2 text-[#d4af37] font-agrandir-bold text-sm uppercase">
                 <FileCheck className="w-5 h-5" />
                 <span>Rapport d'Audit Cryptographique</span>
               </div>
@@ -1661,7 +1661,7 @@ export const AdminWorkshopView: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500">Action :</span>
-                <span className="text-white font-bold">{selectedLogForModal.details?.action || selectedLogForModal.actionType}</span>
+                <span className="text-[#d4af37] font-bold">{selectedLogForModal.details?.action || selectedLogForModal.actionType}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500">UID Puce :</span>

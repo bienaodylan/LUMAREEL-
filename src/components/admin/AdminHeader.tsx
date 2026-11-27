@@ -33,8 +33,6 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
         return 'Concerts & Événements';
       case 'orders':
         return 'Commandes & Ventes';
-      case 'media':
-        return 'LUMARÉEL TV & Studio Médias';
       case 'archives':
         return 'Archives & CMS Vidéo';
       case 'emails':
@@ -85,7 +83,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
               {eventSubTab && (
                 <>
                   <ChevronRight className="w-3 h-3 text-[#444]" />
-                  <span className="text-neutral-300 font-agrandir-semibold">
+                  <span className="text-[#d4af37] font-agrandir-semibold">
                     {getSubTabLabel()}
                   </span>
                 </>
@@ -104,10 +102,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
         {onOpenBatchPrint && (
           <button
             onClick={onOpenBatchPrint}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/20 text-xs font-agrandir-semibold text-white transition-colors cursor-pointer"
+            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/30 text-xs font-agrandir-semibold text-[#d4af37] transition-colors cursor-pointer"
             title="Demande d'impression de billets physiques sécurisés"
           >
-            <Printer className="w-3.5 h-3.5 text-white" />
+            <Printer className="w-3.5 h-3.5 text-[#d4af37]" />
             <span>Impression Billets</span>
           </button>
         )}

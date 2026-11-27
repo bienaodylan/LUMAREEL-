@@ -1001,43 +1001,8 @@ class LumareelDatabase {
     quantity: number;
     paymentProvider?: string;
     items?: Array<{ categoryId: string; quantity: number }>;
-    eventSnapshot?: Partial<ConcertEvent>;
   }): { success: boolean; order?: Order; error?: string } {
-    let event = this.getEvent(params.eventId);
-    if (!event && params.eventSnapshot && Array.isArray(params.eventSnapshot.categories) && params.eventSnapshot.categories.length > 0) {
-      const snap = params.eventSnapshot;
-      const snapCategories: TicketCategory[] = Array.isArray(snap.categories) ? snap.categories : [];
-      const hydrated: ConcertEvent = {
-        id: params.eventId,
-        slug: snap.slug || params.eventId,
-        title: snap.title || 'Événement LUMARÉEL',
-        subtitle: snap.subtitle || '',
-        artist: snap.artist || snap.title || 'LUMARÉEL',
-        date: snap.date || new Date().toISOString().slice(0, 10),
-        time: snap.time || '20:00',
-        doorsOpen: snap.doorsOpen || '19:00',
-        venue: snap.venue || 'Abidjan',
-        city: snap.city || 'Abidjan',
-        country: snap.country || 'Côte d’Ivoire',
-        address: snap.address || snap.venue || 'Abidjan',
-        description: snap.description || '',
-        artistPortrait: snap.artistPortrait || snap.officialPoster || '',
-        officialPoster: snap.officialPoster || '',
-        bannerImage: snap.bannerImage || snap.officialPoster || '',
-        coverImage: snap.coverImage || snap.officialPoster || '',
-        status: 'published',
-        isFeatured: Boolean(snap.isFeatured),
-        organizerType: snap.organizerType || 'lumareel',
-        organizerName: snap.organizerName || 'LUMARÉEL CO.',
-        organizerId: snap.organizerId,
-        genre: snap.genre || 'Live',
-        platformFeePercent: snap.platformFeePercent,
-        infoline: snap.infoline,
-        categories: snapCategories,
-      };
-      this.events.set(hydrated.id, hydrated);
-      event = hydrated;
-    }
+    const event = this.getEvent(params.eventId);
     if (!event) return { success: false, error: 'Concert introuvable.' };
     if (event.status !== 'published') return { success: false, error: 'Cet événement n’est pas disponible à la vente.' };
 

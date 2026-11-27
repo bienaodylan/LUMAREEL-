@@ -2,18 +2,16 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { User, ConcertEvent, Order, Ticket, ArchiveProduction, PlatformSettings } from '../types';
 import { INITIAL_EVENTS, INITIAL_NEWS, INITIAL_ORDERS, INITIAL_ARCHIVES } from '../data/initialData';
 import { convertToYouTubeEmbed } from '../utils/mediaUtils';
-import { isDirectVideoUrl } from '../utils/mediaHubStorage';
 import { supabase, isSupabaseConfigured, configureSupabase, testSupabaseConnection } from '../lib/supabaseClient';
 import { SupportedLanguage, getTranslation } from '../i18n/translations';
-import { DiscoverDetailPayload } from '../utils/discoverCatalog';
 
 export type PageView =
   | 'splash'
   | 'home'
   | 'discover'
-  | 'explore'
-  | 'booking'
+  | 'concert_detail'
   | 'archive'
+  | 'news'
   | 'client_space'
   | 'profile'
   | 'organizers'
@@ -23,16 +21,11 @@ export type PageView =
   | 'member_card'
   | 'card_verify'
   | 'rewards'
-  | 'privileged_access'
   | 'backstage'
-  | 'media_detail'
   | 'flash_drops'
   | 'memories'
-  | 'lumareel_tv'
   | 'suggestions'
   | 'contact'
-  | 'contributor_studio'
-  | 'discover_detail'
   | 'about'
   | 'partners';
 
@@ -42,24 +35,12 @@ interface AppContextType {
   canGoBack: boolean;
   setCurrentPage: (page: PageView) => void;
   goBack: () => void;
-  hideBottomNav: boolean;
-  setHideBottomNav: (hide: boolean) => void;
   hasEnteredPlatform: boolean;
   enterPlatform: () => void;
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
   selectedEventSlug: string | null;
   setSelectedEventSlug: (slug: string | null) => void;
-  selectedMediaId: string | null;
-  setSelectedMediaId: (id: string | null) => void;
-  selectedMemoryAlbumId: string | null;
-  setSelectedMemoryAlbumId: (id: string | null) => void;
-  selectedArchiveId: string | null;
-  setSelectedArchiveId: (id: string | null) => void;
-  selectedDiscoverItem: DiscoverDetailPayload | null;
-  setSelectedDiscoverItem: (item: DiscoverDetailPayload | null) => void;
-  rewardsInitialMode: 'points' | 'store' | 'referral';
-  setRewardsInitialMode: (mode: 'points' | 'store' | 'referral') => void;
   events: ConcertEvent[];
   featuredEvent: ConcertEvent | null;
   saveEvent: (event: ConcertEvent) => Promise<void>;
@@ -243,12 +224,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return 'home';
   });
   const [previousPage, setPreviousPage] = useState<PageView>('home');
-  const [hideBottomNav, setHideBottomNav] = useState<boolean>(false);
   const pageHistoryRef = useRef<PageView[]>([]);
   const isPoppingHistoryRef = useRef(false);
 
   const setCurrentPage = useCallback((nextPage: PageView) => {
-    setHideBottomNav(false);
     setCurrentPageState((prev) => {
       if (prev === nextPage) return prev;
       if (prev !== 'splash') {
@@ -314,11 +293,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const canGoBack = currentPage !== 'home' && currentPage !== 'discover' && currentPage !== 'splash';
 
   const [selectedEventSlug, setSelectedEventSlug] = useState<string | null>(null);
-  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
-  const [selectedMemoryAlbumId, setSelectedMemoryAlbumId] = useState<string | null>(null);
-  const [selectedArchiveId, setSelectedArchiveId] = useState<string | null>(null);
-  const [selectedDiscoverItem, setSelectedDiscoverItem] = useState<DiscoverDetailPayload | null>(null);
-  const [rewardsInitialMode, setRewardsInitialMode] = useState<'points' | 'store' | 'referral'>('points');
 
   // Storage keys pour persistance indestructible (résout le problème d'images qui quittent)
   const STORAGE_KEYS = {
@@ -371,19 +345,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Modals & Navigation
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [checkoutEvent, setCheckoutEventState] = useState<ConcertEvent | null>(null);
-  const setCheckoutEvent = useCallback(
-    (event: ConcertEvent | null) => {
-      setCheckoutEventState(event);
-      if (event) {
-        setCurrentPage('booking');
-      }
-    },
-    [setCurrentPage]
-  );
+  const [checkoutEvent, setCheckoutEvent] = useState<ConcertEvent | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' | 'error' } | null>(null);
-  const lastWelcomeNotifiedRef = useRef<{ userId: string; ts: number } | null>(null);
 
   // Internationalisation (Français / Anglais)
   const [language, setLanguageState] = useState<SupportedLanguage>(() => {
@@ -453,240 +417,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     let active = true;
-
-    const extractDisplayName = (authUser: any, profileName?: string, isSuperAdmin?: boolean, email?: string) => {
-      const meta = authUser?.user_metadata || {};
-      const combined = [meta.given_name, meta.family_name].filter(Boolean).join(' ').trim();
-      return (
-        profileName ||
-        meta.full_name ||
-        meta.name ||
-        combined ||
-        (isSuperAdmin ? 'Dylan B.' : (email || '').split('@')[0] || 'Membre LUMARÉEL')
-      );
-    };
-
-    const syncUser = async (userId?: string, notifyWelcome = false) => {
+    const syncUser = async (userId?: string) => {
       if (!userId) return; // Ne pas effacer la session locale si Supabase est inactif
       try {
         const { data: authData } = await supabase.auth.getUser();
         const authUser = authData.user;
         if (!authUser || authUser.id !== userId) return;
-        const email = (authUser.email || '').trim().toLowerCase();
+        const email = (authUser.email || '').toLowerCase();
         const isSuperAdmin = email === 'bienaodylan428@gmail.com';
-        const provider = String(authUser.app_metadata?.provider || '');
-        const providersList = Array.isArray(authUser.app_metadata?.providers)
-          ? (authUser.app_metadata.providers as string[])
-          : [];
-        const isOAuthProvider =
-          provider === 'google' ||
-          provider === 'apple' ||
-          providersList.includes('google') ||
-          providersList.includes('apple');
-
-        // Recherche d'abord par e-mail (insensible à la casse) pour éviter tout compte en doublon
-        let profile: any = null;
-        if (email) {
-          const { data: byEmail } = await supabase
-            .from('users')
-            .select('id,email,name,role,email_verified')
-            .ilike('email', email)
-            .maybeSingle();
-          profile = byEmail;
-        }
-        if (!profile) {
-          const { data: byId } = await supabase
-            .from('users')
-            .select('id,email,name,role,email_verified')
-            .eq('id', authUser.id)
-            .maybeSingle();
-          profile = byId;
-        }
+        const { data: profile } = await supabase.from('users').select('id,email,name,role,email_verified').eq('email', email).maybeSingle();
         if (!active) return;
-
         const role = isSuperAdmin ? 'super_admin' : (profile?.role || 'customer');
-        const resolvedName = extractDisplayName(authUser, profile?.name, isSuperAdmin, email);
-        const isEmailVerified =
-          Boolean(authUser.email_confirmed_at) ||
-          Boolean(profile?.email_verified) ||
-          isOAuthProvider ||
-          isSuperAdmin;
-
-        // Synchronise sans jamais créer de doublon dans la table users
-        try {
-          if (profile) {
-            if (!profile.email_verified && isEmailVerified) {
-              await supabase
-                .from('users')
-                .update({ email_verified: true })
-                .eq('id', profile.id);
-            }
-          } else if (email) {
-            await supabase
-              .from('users')
-              .upsert(
-                {
-                  id: authUser.id,
-                  email,
-                  name: resolvedName,
-                  role,
-                  email_verified: isEmailVerified,
-                },
-                { onConflict: 'id' }
-              );
-          }
-        } catch {
-          // Ignore si la table users est gérée uniquement côté trigger/RLS
-        }
-
         const user = {
-          id: profile?.id || authUser.id,
+          id: authUser.id,
           email,
-          name: resolvedName,
+          name: profile?.name || authUser.user_metadata?.name || (isSuperAdmin ? 'Dylan B.' : email.split('@')[0]),
           role,
-          emailVerified: isEmailVerified,
+          emailVerified: Boolean(authUser.email_confirmed_at) || isSuperAdmin,
           createdAt: authUser.created_at,
         } as User;
-
         setCurrentUserState(user);
         writeLocal(STORAGE_KEYS.CURRENT_USER, user);
-
-        if (notifyWelcome) {
-          const now = Date.now();
-          const prevNotice = lastWelcomeNotifiedRef.current;
-          const isDuplicateNotice =
-            prevNotice && prevNotice.userId === user.id && now - prevNotice.ts < 3500;
-          setIsAuthModalOpen(false);
-          if (!isDuplicateNotice) {
-            lastWelcomeNotifiedRef.current = { userId: user.id, ts: now };
-            setToast({
-              message: getTranslation(language, 'auth.welcome').replace('{name}', resolvedName),
-              type: 'success',
-            });
-            setTimeout(() => setToast(null), 4500);
-          }
-        }
       } catch (err) {
         console.warn('[Auth Sync]', err);
       }
     };
-
-    const completeOAuthPayload = async (payload: {
-      code?: string;
-      accessToken?: string;
-      refreshToken?: string;
-      error?: string;
-      errorDescription?: string;
-    }) => {
-      if (payload.error) {
-        const isCancelled =
-          payload.error === 'access_denied' ||
-          /cancel|denied/i.test(payload.errorDescription || '');
-        setToast({
-          message: isCancelled
-            ? language === 'en'
-              ? 'Sign-in was cancelled.'
-              : 'La connexion a été annulée.'
-            : payload.errorDescription ||
-              (language === 'en'
-                ? 'Social sign-in failed. Please try again.'
-                : 'La connexion externe a échoué. Veuillez réessayer.'),
-          type: isCancelled ? 'info' : 'error',
-        });
-        setTimeout(() => setToast(null), 4500);
-        return;
-      }
-
-      try {
-        if (payload.code) {
-          const { data, error } = await supabase.auth.exchangeCodeForSession(payload.code);
-          if (error) throw error;
-          if (data.session?.user?.id) {
-            await syncUser(data.session.user.id, true);
-          }
-        } else if (payload.accessToken && payload.refreshToken) {
-          const { data, error } = await supabase.auth.setSession({
-            access_token: payload.accessToken,
-            refresh_token: payload.refreshToken,
-          });
-          if (error) throw error;
-          if (data.session?.user?.id) {
-            await syncUser(data.session.user.id, true);
-          }
-        }
-      } catch (err: any) {
-        setToast({
-          message:
-            err?.message ||
-            (language === 'en'
-              ? 'Could not complete social authentication.'
-              : 'Impossible de finaliser la connexion.'),
-          type: 'error',
-        });
-        setTimeout(() => setToast(null), 4500);
-      }
-    };
-
-    // 1. Gère le retour OAuth en redirection complète (?code=..., #access_token=... ou ?error=...)
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
-      const code = params.get('code');
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      const oauthError = params.get('error') || hashParams.get('error');
-      const oauthErrorDesc = params.get('error_description') || hashParams.get('error_description');
-      if (code || (accessToken && refreshToken) || oauthError) {
-        void completeOAuthPayload({
-          code: code || undefined,
-          accessToken: accessToken || undefined,
-          refreshToken: refreshToken || undefined,
-          error: oauthError || undefined,
-          errorDescription: oauthErrorDesc || undefined,
-        }).finally(() => {
-          try {
-            window.history.replaceState({}, '', window.location.pathname);
-          } catch {}
-        });
-      }
-    }
-
-    // 2. Gère le retour OAuth en popup (iframe AI Studio & mobile)
-    const handleOAuthMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type !== 'LUMAREEL_SUPABASE_OAUTH_CALLBACK') return;
-      void completeOAuthPayload({
-        code: typeof event.data.code === 'string' ? event.data.code : undefined,
-        accessToken: typeof event.data.accessToken === 'string' ? event.data.accessToken : undefined,
-        refreshToken: typeof event.data.refreshToken === 'string' ? event.data.refreshToken : undefined,
-        error: typeof event.data.error === 'string' ? event.data.error : undefined,
-        errorDescription:
-          typeof event.data.errorDescription === 'string' ? event.data.errorDescription : undefined,
-      });
-    };
-
-    window.addEventListener('message', handleOAuthMessage);
-
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user?.id) void syncUser(data.session.user.id);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        setCurrentUserState(null);
-        try {
-          localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-        } catch {}
-        return;
-      }
-      if (session?.user?.id) {
-        void syncUser(session.user.id, event === 'SIGNED_IN');
-      }
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user?.id) void syncUser(session.user.id);
     });
-    return () => {
-      active = false;
-      window.removeEventListener('message', handleOAuthMessage);
-      listener.subscription.unsubscribe();
-    };
+    return () => { active = false; listener.subscription.unsubscribe(); };
   }, []);
 
   const setCurrentUser = (user: User | null) => {
@@ -835,34 +597,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         writeLocal(STORAGE_KEYS.EVENTS, next);
         setFeaturedEvent(confirmedEvent.isFeatured ? confirmedEvent : (previousFeatured?.id === confirmedEvent.id ? next.find((event) => event.isFeatured) || null : previousFeatured));
       } else {
-        let confirmedEvent = updatedEvent;
-        try {
-          const response = await fetch(`/api/events/${updatedEvent.id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updatedEvent),
-          });
-          if (response.ok) {
-            const payload = await response.json();
-            if (payload?.event) {
-              confirmedEvent = payload.event;
-            }
-          }
-        } catch {
-          // Graceful fallback when running in static preview without Express backend
-        }
-        const next = previousEvents.some((event) => event.id === confirmedEvent.id)
-          ? previousEvents.map((event) => event.id === confirmedEvent.id ? confirmedEvent : event)
-          : [confirmedEvent, ...previousEvents];
+        const response = await fetch(`/api/events/${updatedEvent.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedEvent),
+        });
+        if (!response.ok) throw new Error(`API événements : HTTP ${response.status}`);
+        const next = previousEvents.some((event) => event.id === updatedEvent.id)
+          ? previousEvents.map((event) => event.id === updatedEvent.id ? updatedEvent : event)
+          : [updatedEvent, ...previousEvents];
         setEvents(next);
         writeLocal(STORAGE_KEYS.EVENTS, next);
-        setFeaturedEvent(
-          confirmedEvent.isFeatured
-            ? confirmedEvent
-            : previousFeatured?.id === confirmedEvent.id
-            ? next.find((event) => event.isFeatured) || null
-            : previousFeatured
-        );
+        setFeaturedEvent(updatedEvent.isFeatured ? updatedEvent : previousFeatured);
       }
       setCloudSyncError(null);
       setIsCloudDbActive(isSupabaseConfigured);
@@ -956,12 +702,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const saveArchive = async (archiveData: Partial<ArchiveProduction> & { title: string; coverImage: string }) => {
     const id = archiveData.id || `arch_${Date.now()}`;
-    const rawVideo = (archiveData.youtubeUrl || archiveData.youtubeEmbedUrl || '').trim();
-    const embedUrl = rawVideo
-      ? isDirectVideoUrl(rawVideo)
-        ? rawVideo
-        : convertToYouTubeEmbed(rawVideo)
-      : archiveData.youtubeEmbedUrl;
+    const embedUrl = archiveData.youtubeUrl ? convertToYouTubeEmbed(archiveData.youtubeUrl) : archiveData.youtubeEmbedUrl;
 
     const newArchive: ArchiveProduction = {
       id,
@@ -1511,24 +1252,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         canGoBack,
         setCurrentPage,
         goBack,
-        hideBottomNav,
-        setHideBottomNav,
         hasEnteredPlatform,
         enterPlatform,
         currentUser,
         setCurrentUser,
         selectedEventSlug,
         setSelectedEventSlug,
-        selectedMediaId,
-        setSelectedMediaId,
-        selectedMemoryAlbumId,
-        setSelectedMemoryAlbumId,
-        selectedArchiveId,
-        setSelectedArchiveId,
-        selectedDiscoverItem,
-        setSelectedDiscoverItem,
-        rewardsInitialMode,
-        setRewardsInitialMode,
         events,
         featuredEvent,
         saveEvent,
@@ -1566,8 +1295,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     </AppContext.Provider>
   );
 };
-
-export const AuthProvider = AppProvider;
 
 export const useApp = () => {
   const context = useContext(AppContext);

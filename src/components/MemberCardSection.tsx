@@ -154,7 +154,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
   if (loading) {
     return (
       <div className="py-16 text-center text-neutral-400 space-y-3">
-        <RefreshCw className="w-8 h-8 animate-spin mx-auto text-white" />
+        <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[#d4af37]" />
         <p className="text-xs">
           {isEn ? 'Loading your LUMARÉEL CARD identity...' : 'Chargement de votre identité LUMARÉEL CARD...'}
         </p>
@@ -165,13 +165,13 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
   // Si l'utilisateur n'a pas encore de carte
   if (!card) {
     return (
-      <div className="rounded-3xl bg-gradient-to-br from-[#121212] via-[#090909] to-[#040404] border border-white/30 p-8 sm:p-12 text-center space-y-6 shadow-2xl">
-        <div className="w-16 h-16 rounded-full bg-white/15 border border-white/30 text-white flex items-center justify-center mx-auto shadow-xl">
-          <Crown className="w-8 h-8 text-white" />
+      <div className="rounded-3xl bg-gradient-to-br from-[#121212] via-[#090909] to-[#040404] border border-[#d4af37]/30 p-8 sm:p-12 text-center space-y-6 shadow-2xl">
+        <div className="w-16 h-16 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#d4af37] flex items-center justify-center mx-auto shadow-xl">
+          <Crown className="w-8 h-8 text-[#d4af37]" />
         </div>
 
         <div className="max-w-md mx-auto space-y-2">
-          <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-white uppercase">
+          <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-[#d4af37] uppercase">
             {isEn ? 'PRIVILEGED MEMBERSHIP' : 'MEMBERSHIP PRIVILÉGIÉ'}
           </span>
           <h2 className="text-2xl sm:text-3xl font-agrandir-extrabold uppercase text-white">
@@ -197,7 +197,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
               if (onOpenSubscribe) onOpenSubscribe();
               else setCurrentPage('card' as any);
             }}
-            className="px-8 py-3.5 rounded-full bg-white hover:bg-[#e5c04b] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all cursor-pointer shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:scale-105"
+            className="px-8 py-3.5 rounded-full bg-[#d4af37] hover:bg-[#e5c04b] text-black font-agrandir-extrabold text-xs tracking-wider uppercase transition-all cursor-pointer shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:scale-105"
           >
             {isEn ? 'Discover & Apply (100 seats max)' : 'Découvrir & Souscrire (100 places max)'}
           </button>
@@ -225,7 +225,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
         {/* Détails du Membership & Actions Sécurité */}
         <div className="lg:col-span-6 space-y-5">
           <div>
-            <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-white uppercase">
+            <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-[#d4af37] uppercase">
               {isEn ? 'MEMBERSHIP DOSSIER' : "DOSSIER D'ADHÉSION"}
             </span>
             <h2 className="text-2xl sm:text-3xl font-agrandir-extrabold uppercase text-white mt-1">
@@ -256,7 +256,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
               <span className="text-[10px] text-neutral-400 uppercase font-mono block">
                 {isEn ? 'Expiry date' : "Date d'expiration"}
               </span>
-              <strong className="text-white font-mono">{new Date(card.expiresAt).toLocaleDateString(locale)}</strong>
+              <strong className="text-[#d4af37] font-mono">{new Date(card.expiresAt).toLocaleDateString(locale)}</strong>
             </div>
           </div>
 
@@ -268,7 +268,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
             </div>
 
             <div className="px-4 py-2.5 rounded-full bg-white/5 border border-white/10 text-neutral-300 text-xs font-mono flex items-center gap-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-white" />
+              <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
               <span>{isEn ? 'Hardware Security Sealed' : 'Sécurité Matérielle Scellée'}</span>
             </div>
           </div>
@@ -280,8 +280,8 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
       <div className="p-6 sm:p-8 rounded-3xl bg-[#0e0e0e] border border-white/10 space-y-6">
         <div className="flex items-center justify-between border-b border-white/10 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/15 border border-white/30 flex items-center justify-center text-white">
-              <Box className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37]">
+              <Box className="w-5 h-5 text-[#d4af37]" />
             </div>
             <div>
               <h3 className="font-agrandir-extrabold text-base text-white uppercase">
@@ -335,12 +335,12 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
               key={idx}
               className={`p-4 rounded-2xl border transition-all ${
                 item.done
-                  ? 'bg-white/5 border-white/30 text-white'
+                  ? 'bg-[#d4af37]/5 border-[#d4af37]/30 text-white'
                   : 'bg-white/5 border-white/5 text-neutral-500'
               }`}
             >
               <div className="flex items-center gap-2 mb-2">
-                <CheckCircle2 className={`w-4 h-4 ${item.done ? 'text-white' : 'text-neutral-600'}`} />
+                <CheckCircle2 className={`w-4 h-4 ${item.done ? 'text-[#d4af37]' : 'text-neutral-600'}`} />
                 <span className="font-agrandir-bold text-xs uppercase">{item.step}</span>
               </div>
               <p className="text-[11px] font-light leading-relaxed">{item.desc}</p>
@@ -353,7 +353,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-white uppercase">
+            <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-[#d4af37] uppercase">
               {isEn ? 'OFFICIAL CATALOG' : 'CATALOGUE OFFICIEL'}
             </span>
             <h3 className="text-xl sm:text-2xl font-agrandir-extrabold uppercase text-white mt-0.5">
@@ -381,7 +381,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
               >
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-agrandir-bold uppercase tracking-widest text-white px-2 py-0.5 rounded-full bg-white/10 border border-white/20">
+                    <span className="text-[9px] font-agrandir-bold uppercase tracking-widest text-[#d4af37] px-2 py-0.5 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20">
                       {benefit.benefitType.replace('_', ' ').toUpperCase()}
                     </span>
                     <span className="text-[11px] font-mono text-neutral-400">
@@ -408,7 +408,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
                     type="button"
                     disabled={!isAvailable || isRedeeming === benefit.id}
                     onClick={() => handleRedeemBenefit(benefit.id)}
-                    className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-neutral-200 text-white hover:text-black font-agrandir-bold text-xs uppercase tracking-wider transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
+                    className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-[#d4af37] text-white hover:text-black font-agrandir-bold text-xs uppercase tracking-wider transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                   >
                     {isRedeeming === benefit.id
                       ? isEn ? 'Validating...' : 'Validation...'
@@ -425,7 +425,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-white uppercase">
+            <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-[#d4af37] uppercase">
               {isEn ? 'SYNCED TICKETING' : 'BILLETTERIE SYNCHRONISÉE'}
             </span>
             <h3 className="text-xl sm:text-2xl font-agrandir-extrabold uppercase text-white mt-0.5">
@@ -460,7 +460,7 @@ export const MemberCardSection: React.FC<MemberCardSectionProps> = ({ onOpenSubs
             {connectedTickets.map((tkt) => (
               <div key={tkt.id} className="p-4 rounded-2xl bg-[#0c0c0c] border border-white/10 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] text-white font-mono tracking-wider uppercase">
+                  <span className="text-[10px] text-[#d4af37] font-mono tracking-wider uppercase">
                     {tkt.categoryName}
                   </span>
                   <div className="font-agrandir-bold text-sm text-white uppercase">{tkt.eventTitle}</div>

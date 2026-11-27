@@ -77,7 +77,7 @@ export const AdminEventsListView: React.FC<AdminEventsListViewProps> = ({
       {/* 1. Header Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="text-[10px] font-agrandir-semibold tracking-[0.25em] text-white uppercase mb-1">
+          <div className="text-[10px] font-agrandir-semibold tracking-[0.25em] text-[#d4af37] uppercase mb-1">
             CATALOGUE DE GESTION DES PRODUITS
           </div>
           <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight uppercase">
@@ -195,12 +195,12 @@ export const AdminEventsListView: React.FC<AdminEventsListViewProps> = ({
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3.5">
                           <img
-                            src={evt.artistPortrait || evt.officialPoster}
+                            src={evt.officialPoster || evt.artistPortrait}
                             alt={evt.artist}
-                            className="w-12 h-12 rounded-xl object-cover object-top border border-white/10 shrink-0 group-hover:border-white/30 transition-colors"
+                            className="w-12 h-12 rounded-xl object-cover border border-white/10 shrink-0 group-hover:border-white/30 transition-colors"
                           />
                           <div className="truncate max-w-xs">
-                            <div className="font-agrandir-extrabold text-sm text-white uppercase group-hover:text-white transition-colors truncate">
+                            <div className="font-agrandir-extrabold text-sm text-white uppercase group-hover:text-[#d4af37] transition-colors truncate">
                               {evt.artist}
                             </div>
                             <div className="text-xs text-[#888] truncate">
@@ -213,7 +213,7 @@ export const AdminEventsListView: React.FC<AdminEventsListViewProps> = ({
                       {/* Colonne 2 : Date & Salle */}
                       <td className="py-4 px-4">
                         <div className="text-white font-mono">{evt.date}</div>
-                        <div className="text-white text-[11px] font-mono">{evt.time || 'Heure à confirmer'}</div>
+                        <div className="text-[#d4af37] text-[11px] font-mono">{evt.time || 'Heure à confirmer'}</div>
                         <div className="text-[#888] text-[11px] truncate">{evt.venue}</div>
                         <div className="text-[#666] text-[10px]">{evt.city}</div>
                       </td>
@@ -231,7 +231,7 @@ export const AdminEventsListView: React.FC<AdminEventsListViewProps> = ({
                         </div>
                         <div className="w-full bg-black/60 h-1.5 rounded-full overflow-hidden border border-white/5">
                           <div
-                            className="bg-gradient-to-r from-white to-white h-full rounded-full"
+                            className="bg-gradient-to-r from-[#d4af37] to-white h-full rounded-full"
                             style={{ width: `${Math.min(100, fillRate)}%` }}
                           />
                         </div>
@@ -242,7 +242,7 @@ export const AdminEventsListView: React.FC<AdminEventsListViewProps> = ({
                         <div className="font-agrandir-extrabold text-white text-sm">
                           {revenue.toLocaleString()}
                         </div>
-                        <div className="text-[10px] text-white">FCFA</div>
+                        <div className="text-[10px] text-[#d4af37]">FCFA</div>
                       </td>
 
                       {/* Colonne 6 : Actions */}
@@ -264,7 +264,7 @@ export const AdminEventsListView: React.FC<AdminEventsListViewProps> = ({
                             className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 text-white font-agrandir-semibold text-xs border border-white/10 flex items-center gap-1.5 transition-colors"
                           >
                             <span>Gérer</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-white" />
+                            <ChevronRight className="w-3.5 h-3.5 text-[#d4af37]" />
                           </button>
                         </div>
                       </td>

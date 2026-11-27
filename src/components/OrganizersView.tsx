@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 export const OrganizersView: React.FC = () => {
-  const { events, refreshEvents, showToast, setCurrentPage, setCheckoutEvent, language, t } = useApp();
+  const { events, refreshEvents, showToast, setCurrentPage, setSelectedEventSlug, language, t } = useApp();
   const isEn = language === 'en';
   const locale = isEn ? 'en-US' : 'fr-FR';
 
@@ -170,7 +170,7 @@ export const OrganizersView: React.FC = () => {
       {/* Top Section */}
       <div className="mb-10 pb-6 border-b border-[#1c1c1c] flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
-          <div className="text-xs font-agrandir-regular tracking-[0.25em] text-white uppercase mb-2">
+          <div className="text-xs font-agrandir-regular tracking-[0.25em] text-[#d4af37] uppercase mb-2">
             {t('org.kicker')}
           </div>
           <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl text-white tracking-tight uppercase">
@@ -219,7 +219,7 @@ export const OrganizersView: React.FC = () => {
           {/* Key Advantages Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="p-8 bg-[#0c0c0c] border border-[#1f1f1f] space-y-4">
-              <ShieldCheck className="w-8 h-8 text-white" />
+              <ShieldCheck className="w-8 h-8 text-[#d4af37]" />
               <h3 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight">
                 {isEn ? 'STRICT ANTI-DUPLICATE CHECK' : 'CONTRÔLE STRICT ANTI-DOUBLON'}
               </h3>
@@ -243,7 +243,7 @@ export const OrganizersView: React.FC = () => {
             </div>
 
             <div className="p-8 bg-[#0c0c0c] border border-[#1f1f1f] space-y-4">
-              <Percent className="w-8 h-8 text-white" />
+              <Percent className="w-8 h-8 text-[#d4af37]" />
               <h3 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight">
                 {isEn ? 'TRANSPARENT COMMISSION' : 'COMMISSION TRANSPARENTE'}
               </h3>
@@ -266,7 +266,7 @@ export const OrganizersView: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="border-t border-[#333] pt-4">
-                <span className="font-agrandir-extrabold text-2xl text-white">01</span>
+                <span className="font-agrandir-extrabold text-2xl text-[#d4af37]">01</span>
                 <h4 className="font-agrandir-semibold text-sm text-white uppercase mt-2 mb-1">
                   {isEn ? 'Application' : 'Candidature'}
                 </h4>
@@ -290,7 +290,7 @@ export const OrganizersView: React.FC = () => {
               </div>
 
               <div className="border-t border-[#333] pt-4">
-                <span className="font-agrandir-extrabold text-2xl text-white">03</span>
+                <span className="font-agrandir-extrabold text-2xl text-[#d4af37]">03</span>
                 <h4 className="font-agrandir-semibold text-sm text-white uppercase mt-2 mb-1">
                   {isEn ? 'Go Live' : 'Mise en vente'}
                 </h4>
@@ -354,7 +354,7 @@ export const OrganizersView: React.FC = () => {
               <div className="text-[10px] font-agrandir-regular text-[#777] uppercase tracking-wider mb-1">
                 {isEn ? 'PARTNER TICKETS SOLD' : 'BILLETS PARTENAIRES VENDUS'}
               </div>
-              <div className="text-3xl font-agrandir-extrabold text-white">
+              <div className="text-3xl font-agrandir-extrabold text-[#d4af37]">
                 {totalPartnerSold.toLocaleString(locale)}
               </div>
               <div className="text-[11px] text-[#555] font-agrandir-regular mt-1">
@@ -519,7 +519,7 @@ export const OrganizersView: React.FC = () => {
 
                 {/* Ticket category configuration */}
                 <div className="p-4 bg-[#141414] border border-[#2a2a2a] space-y-3">
-                  <div className="text-[10px] text-white uppercase font-agrandir-semibold tracking-wider">
+                  <div className="text-[10px] text-[#d4af37] uppercase font-agrandir-semibold tracking-wider">
                     {isEn ? 'TICKETING & COMMISSION SETUP' : 'PARAMÉTRAGE DE LA BILLETTERIE & COMMISSION'}
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -591,7 +591,7 @@ export const OrganizersView: React.FC = () => {
                   className="py-5 grid grid-cols-1 md:grid-cols-12 gap-4 items-center hover:bg-white/[0.01] px-2"
                 >
                   <div className="md:col-span-5">
-                    <div className="text-[10px] font-agrandir-regular text-white uppercase tracking-wider">
+                    <div className="text-[10px] font-agrandir-regular text-[#d4af37] uppercase tracking-wider">
                       {evt.organizerName}
                     </div>
                     <div className="font-agrandir-extrabold text-lg text-white uppercase">
@@ -618,10 +618,13 @@ export const OrganizersView: React.FC = () => {
 
                   <div className="md:col-span-2 flex items-center justify-end gap-2">
                     <button
-                      onClick={() => setCheckoutEvent(evt)}
+                      onClick={() => {
+                        setSelectedEventSlug(evt.slug);
+                        setCurrentPage('concert_detail');
+                      }}
                       className="px-3 py-1.5 border border-[#333] hover:border-white text-[10px] font-agrandir-semibold uppercase tracking-wider text-white transition-colors"
                     >
-                      {isEn ? 'Book' : 'Réserver'}
+                      {isEn ? 'Preview' : 'Aperçu Fiche'}
                     </button>
                   </div>
                 </div>

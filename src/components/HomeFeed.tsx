@@ -1,600 +1,646 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
+import {
+  Award,
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  Clapperboard,
+  Crown,
+  Image as ImageIcon,
+  Lightbulb,
+  Newspaper,
+  Play,
+  Ticket,
+  User,
+  Zap,
+} from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
-import { buildConcertMemoryAlbums } from '../utils/communityStorage';
-import {
-  articleToDiscoverDetail,
-  buildLumareelExperiences,
-  experienceToDiscoverDetail,
-} from '../utils/discoverCatalog';
-import {
-  HeroMedia,
-  PosterCard,
-  ScrollReveal,
-  SkeletonBlock,
-} from './ui/LumareelKit';
-import { Bell, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
-function getMinPrice(ev: ConcertEvent): number | null {
-  const prices = (ev.categories || [])
-    .map((c) => Number(c.price))
-    .filter((p) => Number.isFinite(p) && p > 0);
-  return prices.length > 0 ? Math.min(...prices) : null;
-}
-
-function getTicketingStatus(ev: ConcertEvent, isEn: boolean): {
-  label: string;
-  soldOut: boolean;
-  limited: boolean;
-} {
-  const categories = ev.categories || [];
-  if (categories.length === 0) {
-    return {
-      label: isEn ? 'Ticketing open' : 'Billetterie ouverte',
-      soldOut: false,
-      limited: false,
-    };
-  }
-  const totalQuota = categories.reduce((sum, c) => sum + Number(c.quota || 0), 0);
-  const totalSold = categories.reduce((sum, c) => sum + Number(c.sold || 0), 0);
-  const remaining = Math.max(0, totalQuota - totalSold);
-
-  if (totalQuota > 0 && remaining === 0) {
-    return {
-      label: isEn ? 'Sold out' : 'Complet',
-      soldOut: true,
-      limited: false,
-    };
-  }
-  if (totalQuota > 0 && remaining / totalQuota <= 0.15) {
-    return {
-      label: isEn ? 'Limited seats' : 'Dernières places',
-      soldOut: false,
-      limited: true,
-    };
-  }
-  return {
-    label: isEn ? 'Ticketing open' : 'Billetterie ouverte',
-    soldOut: false,
-    limited: false,
-  };
-}
-
-/**
- * 01 — Accueil LUMARÉEL
- * Page strictement événementielle et billetterie :
- * - En-tête logo dédiée (masquée au scroll bas, réapparaît au scroll haut)
- * - A. Événement principal (bannière plein cadre, infos clés, statut billetterie, réservation)
- * - B. Programmation (carrousel horizontal de tous les concerts à venir)
- * Aucun bloc autonome Communauté, Avantages, Memories, Backstage ou Black Card.
- */
 export const HomeFeed: React.FC = () => {
   const {
     events,
-    news,
-    archives,
-    isLoadingEvents,
-    setSelectedArchiveId,
-    setSelectedDiscoverItem,
+    setSelectedEventSlug,
     setCurrentPage,
     setCheckoutEvent,
+    news,
+    archives,
+    currentUser,
+    setIsAuthModalOpen,
+    showToast,
     language,
+    setLanguage,
+    t,
   } = useApp();
 
-  const isEn = language === 'en';
-  const [showAlerts, setShowAlerts] = useState(false);
+  // Carousel state
+  const featuredSlides = events.filter((e) => e.isFeatured && e.status !== 'draft');
+  const activeSlides = featuredSlides.length > 0 ? featuredSlides : events.slice(0, 3);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const activeSlide = activeSlides[currentSlideIndex] || activeSlides[0];
 
-  const [headerVisible, setHeaderVisible] = useState(true);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const lastScrollYRef = useRef(0);
-  const concertsCarouselRef = useRef<HTMLDivElement | null>(null);
+const calculateEventCountdown = (dateStr?: string, timeStr?: string) => {
+  if (!dateStr) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  const safeTime = timeStr ? (timeStr.includes(':') ? timeStr : `${timeStr}:00`) : '18:00';
+  let targetDate = 0;
+  if (dateStr.includes('-')) {
+    const parts = dateStr.split('T')[0].split('-').map(Number);
+    const [h, min] = safeTime.split(':').map(Number);
+    targetDate = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1, h || 0, min || 0, 0).getTime();
+  } else {
+    targetDate = new Date(`${dateStr} ${safeTime}`).getTime();
+  }
+  const now = Date.now();
+  const diff = Math.max(0, targetDate - now);
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / 1000 / 60) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+  };
+};
+
+const EventCardCountdown: React.FC<{
+  dateStr?: string;
+  timeStr?: string;
+  isActive: boolean;
+  t: (key: string) => string;
+}> = ({ dateStr, timeStr, isActive, t }) => {
+  const [cd, setCd] = useState(() => calculateEventCountdown(dateStr, timeStr));
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    lastScrollYRef.current = window.scrollY;
+    setCd(calculateEventCountdown(dateStr, timeStr));
+    const interval = setInterval(() => {
+      setCd(calculateEventCountdown(dateStr, timeStr));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [dateStr, timeStr]);
 
-    const handleScroll = () => {
-      const currentY = Math.max(0, window.scrollY);
-      const delta = currentY - lastScrollYRef.current;
-
-      setIsScrolled(currentY > 24);
-
-      if (currentY <= 24) {
-        setHeaderVisible(true);
-      } else if (delta > 6 && currentY > 56) {
-        setHeaderVisible(false);
-        setShowAlerts(false);
-      } else if (delta < -6) {
-        setHeaderVisible(true);
-      }
-
-      lastScrollYRef.current = currentY;
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const publishedEvents = useMemo(
-    () => (events || []).filter((e) => e.status !== 'draft'),
-    [events]
-  );
-
-  const heroSlides = useMemo(() => {
-    const featured = publishedEvents.filter((e) => e.isFeatured);
-    return (featured.length > 0 ? featured : publishedEvents).slice(0, 3);
-  }, [publishedEvents]);
-
-  const [slideIdx, setSlideIdx] = useState(0);
-  const activeHero = heroSlides[slideIdx] || publishedEvents[0] || null;
-  const heroStatus = useMemo(
-    () => (activeHero ? getTicketingStatus(activeHero, isEn) : null),
-    [activeHero, isEn]
-  );
-
-  useEffect(() => {
-    if (heroSlides.length <= 1) return;
-    const id = window.setInterval(() => {
-      setSlideIdx((prev) => (prev + 1) % heroSlides.length);
-    }, 7000);
-    return () => window.clearInterval(id);
-  }, [heroSlides.length]);
-
-  const bookConcert = (ev: ConcertEvent) => {
-    setCheckoutEvent(ev);
-  };
-
-  // Petite sélection réelle (2 à 3 éléments max) pour la section discrète « À découvrir »
-  const homeDiscoverItems = useMemo(() => {
-    const items: Array<{
-      id: string;
-      tag: string;
-      title: string;
-      subtitle: string;
-      image: string;
-      onOpen: () => void;
-    }> = [];
-
-    const publishedArchives = (archives || []).filter((a) => a.isPublished !== false);
-    const albums = buildConcertMemoryAlbums(publishedArchives);
-    const latestAlbum = albums[0];
-    if (latestAlbum) {
-      items.push({
-        id: `hd_arc_${latestAlbum.id}`,
-        tag: 'Archives',
-        title: latestAlbum.artist || latestAlbum.title,
-        subtitle: latestAlbum.date || (isEn ? 'Photos & recap' : 'Photos & récapitulatif'),
-        image: latestAlbum.coverImage,
-        onOpen: () => {
-          setSelectedArchiveId(latestAlbum.id);
-          setCurrentPage('archive');
-        },
-      });
-    }
-
-    const availableExp = buildLumareelExperiences(publishedEvents, language).find(
-      (e) => e.status === 'available' || e.status === 'members_only'
-    );
-    if (availableExp) {
-      items.push({
-        id: `hd_exp_${availableExp.id}`,
-        tag: isEn ? 'Experience' : 'Expérience',
-        title: isEn ? availableExp.titleEn : availableExp.titleFr,
-        subtitle: availableExp.dateLabel || (isEn ? 'Limited access' : 'Accès limité'),
-        image: availableExp.image,
-        onOpen: () => {
-          setSelectedDiscoverItem(experienceToDiscoverDetail(availableExp, isEn));
-          setCurrentPage('discover_detail');
-        },
-      });
-    }
-
-    const latestArticle = (news || [])[0];
-    if (latestArticle) {
-      items.push({
-        id: `hd_news_${latestArticle.id}`,
-        tag: latestArticle.category || (isEn ? 'Editorial' : 'Actualité'),
-        title: latestArticle.title,
-        subtitle: latestArticle.summary,
-        image: latestArticle.imageUrl,
-        onOpen: () => {
-          setSelectedDiscoverItem(articleToDiscoverDetail(latestArticle, publishedEvents, isEn));
-          setCurrentPage('discover_detail');
-        },
-      });
-    }
-
-    return items.slice(0, 3);
-  }, [
-    archives,
-    publishedEvents,
-    news,
-    language,
-    isEn,
-    setSelectedArchiveId,
-    setSelectedDiscoverItem,
-    setCurrentPage,
-  ]);
-
-  const scrollConcertsCarousel = (direction: 'left' | 'right') => {
-    const el = concertsCarouselRef.current;
-    if (!el) return;
-    const step = Math.max(260, Math.round(el.clientWidth * 0.72));
-    el.scrollBy({
-      left: direction === 'right' ? step : -step,
-      behavior: 'smooth',
-    });
-  };
-
-  const renderAlertsPanel = () => (
-    <div className="ml-auto max-w-sm rounded-[20px] bg-[#0E0E0E]/96 backdrop-blur-xl border border-white/[0.12] p-4 shadow-2xl space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-          {isEn ? 'Event updates' : 'Actualité concerts'}
-        </span>
-        <button
-          type="button"
-          onClick={() => setShowAlerts(false)}
-          aria-label={isEn ? 'Close' : 'Fermer'}
-          className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-[#9A9A9A] hover:text-white cursor-pointer"
-        >
-          <X className="w-4 h-4" strokeWidth={1.6} />
-        </button>
-      </div>
-      <div className="divide-y divide-white/[0.12] text-xs">
-        {activeHero && (
-          <button
-            type="button"
-            onClick={() => {
-              setShowAlerts(false);
-              bookConcert(activeHero);
-            }}
-            className="w-full py-2.5 text-left hover:text-[#D4AF6A] transition-colors cursor-pointer"
-          >
-            <p className="font-agrandir-extrabold text-white">
-              {activeHero.artist || activeHero.title}
-            </p>
-            <p className="text-[#9A9A9A] mt-0.5">
-              {formatDateLong(activeHero.date, language)}
-              {activeHero.venue ? ` · ${activeHero.venue}` : ''}
-            </p>
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => {
-            setShowAlerts(false);
-            setCurrentPage('client_space');
-          }}
-          className="w-full py-2.5 text-left hover:text-[#D4AF6A] transition-colors cursor-pointer"
-        >
-          <p className="font-agrandir-extrabold text-white">
-            {isEn ? 'My tickets' : 'Mes billets'}
-          </p>
-          <p className="text-[#9A9A9A] mt-0.5">
-            {isEn ? 'Access your QR passes and bookings.' : 'Accédez à vos QR codes et réservations.'}
-          </p>
-        </button>
+  return (
+    <div className={`transition-all duration-300 ${isActive ? 'opacity-100 scale-[1.005]' : 'opacity-80'}`}>
+      <p className={`text-[9px] font-agrandir-semibold tracking-widest mb-2 uppercase transition-colors ${isActive ? 'text-[#d4af37]' : 'text-neutral-400'}`}>
+        {t('home.startsIn')}
+      </p>
+      <div className="flex gap-2 sm:gap-3">
+        {[
+          { value: cd.days, label: t('home.days') },
+          { value: cd.hours, label: t('home.hours') },
+          { value: cd.minutes, label: t('home.minutes') },
+          { value: cd.seconds, label: t('home.seconds'), isYellow: true },
+        ].map((time, i) => (
+          <div key={i} className="flex flex-col items-center flex-1">
+            <div className={`w-full aspect-[4/3] rounded-xl bg-[#0a0a0a] border transition-all duration-300 flex items-center justify-center shadow-inner mb-1.5 ${
+              isActive 
+                ? 'border-[#d4af37]/50 shadow-[0_0_15px_rgba(212,175,55,0.25)]' 
+                : 'border-white/10'
+            }`}>
+              <span className={`text-xl sm:text-2xl font-agrandir-extrabold transition-colors ${time.isYellow || isActive ? 'text-[#d4af37]' : 'text-white'}`}>
+                {String(time.value).padStart(2, '0')}
+              </span>
+            </div>
+            <span className={`text-[8px] font-agrandir-semibold tracking-widest uppercase transition-colors ${isActive ? 'text-[#ddd]' : 'text-[#777]'}`}>
+              {time.label}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
+};
+
+  const featuredRowRef = useRef<HTMLDivElement>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const isProgrammaticScroll = useRef(false);
+  const scrollRafRef = useRef<number | null>(null);
+
+  // Défilement automatique fluide vers un concert précis
+  const scrollToSlide = (index: number) => {
+    const container = featuredRowRef.current;
+    const card = cardRefs.current[index];
+    if (!container || !card) return;
+
+    isProgrammaticScroll.current = true;
+    setCurrentSlideIndex(index);
+
+    const containerRect = container.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    const scrollOffset = cardRect.left - containerRect.left - (containerRect.width - cardRect.width) / 2;
+
+    container.scrollBy({ left: scrollOffset, behavior: 'smooth' });
+
+    setTimeout(() => {
+      isProgrammaticScroll.current = false;
+    }, 500);
+  };
+
+  // Détection en temps réel lors du scroll tactile ou souris sur téléphone/desktop
+  const handleContainerScroll = () => {
+    if (isProgrammaticScroll.current) return;
+    if (scrollRafRef.current) {
+      cancelAnimationFrame(scrollRafRef.current);
+    }
+
+    scrollRafRef.current = requestAnimationFrame(() => {
+      const container = featuredRowRef.current;
+      if (!container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const containerCenter = containerRect.left + containerRect.width / 2;
+
+      let closestIndex = 0;
+      let minDistance = Infinity;
+
+      cardRefs.current.forEach((card, idx) => {
+        if (!card) return;
+        const cardRect = card.getBoundingClientRect();
+        const cardCenter = cardRect.left + cardRect.width / 2;
+        const distance = Math.abs(containerCenter - cardCenter);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestIndex = idx;
+        }
+      });
+
+      if (closestIndex !== currentSlideIndex && closestIndex >= 0 && closestIndex < activeSlides.length) {
+        setCurrentSlideIndex(closestIndex);
+      }
+    });
+  };
+
+  // Auto-play du carrousel avec défilement visible automatique
+  useEffect(() => {
+    if (activeSlides.length <= 1) return;
+    const interval = setInterval(() => {
+      if (!isProgrammaticScroll.current) {
+        setCurrentSlideIndex((prev) => {
+          const next = (prev + 1) % activeSlides.length;
+          scrollToSlide(next);
+          return next;
+        });
+      }
+    }, 7000);
+    return () => clearInterval(interval);
+  }, [activeSlides.length]);
+
+  const scrollFeaturedRow = (direction: 'left' | 'right') => {
+    const newIndex = direction === 'left' 
+      ? (currentSlideIndex === 0 ? activeSlides.length - 1 : currentSlideIndex - 1)
+      : (currentSlideIndex + 1) % activeSlides.length;
+    scrollToSlide(newIndex);
+  };
+
+  const handleSelectEvent = (event: ConcertEvent) => {
+    setSelectedEventSlug(event.slug);
+    setCurrentPage('concert_detail');
+  };
+
+  const handleBookNow = (event: ConcertEvent, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentUser) {
+      showToast(language === 'en' ? 'Account required to book tickets.' : 'Création de compte obligatoire pour réserver vos billets.', 'info');
+      setCheckoutEvent(event);
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setCheckoutEvent(event);
+  };
+
+  const handleSelectArtistSlide = (index: number) => {
+    scrollToSlide(index);
+  };
 
   return (
-    <div className="min-h-screen w-full bg-black text-white font-agrandir-regular">
-      {/* =====================================================================
-          EN-TÊTE MOBILE DÉDIÉE AVEC LOGO LUMARÉEL
-          (Masquée au scroll vers le bas · réapparaît dès qu'on remonte)
-         ===================================================================== */}
-      <header
-        className={`fixed top-0 inset-x-0 z-40 md:hidden transition-all duration-300 ease-out will-change-transform ${
-          headerVisible
-            ? 'translate-y-0 opacity-100'
-            : '-translate-y-full opacity-0 pointer-events-none'
-        } ${
-          isScrolled
-            ? 'bg-black/92 backdrop-blur-xl border-b border-white/[0.10]'
-            : 'bg-gradient-to-b from-black/85 via-black/45 to-transparent'
-        }`}
-        style={{ paddingTop: 'max(0.65rem, env(safe-area-inset-top, 0px))' }}
-      >
-        <div className="w-full px-5 pb-3 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setCurrentPage('home');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            aria-label="LUMARÉEL — Accueil"
-            className="flex items-center cursor-pointer active:opacity-80 transition-opacity"
-          >
-            <img
-              src="/assets/logo-lumareel.png"
-              alt="LUMARÉEL"
-              className="h-6 w-auto object-contain"
-            />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowAlerts((v) => !v)}
-            aria-label={isEn ? 'Notifications' : 'Notifications'}
-            className="w-10 h-10 rounded-full bg-black/55 hover:bg-white/15 backdrop-blur-md border border-white/[0.14] flex items-center justify-center text-white transition-colors cursor-pointer lum-press"
-          >
-            <Bell className="w-[18px] h-[18px]" strokeWidth={1.6} />
-          </button>
-        </div>
-
-        {showAlerts && <div className="w-full px-5 pb-3">{renderAlertsPanel()}</div>}
-      </header>
-
-      {/* =====================================================================
-          A. ÉVÉNEMENT PRINCIPAL — BANNIÈRE PLEIN CADRE SANS MARGE NI ARRONDIS
-         ===================================================================== */}
-      <HeroMedia
-        imageUrl={activeHero?.artistPortrait || activeHero?.bannerImage || activeHero?.officialPoster}
-        alt={activeHero?.artist || activeHero?.title || 'LUMARÉEL'}
-        heightClass="min-h-[520px] sm:min-h-[560px] lg:min-h-[600px]"
-        className="w-full rounded-none"
-      >
-        {/* Cloche desktop */}
-        <div className="relative z-20 w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pt-20 md:pt-6 flex items-center justify-end">
-          <button
-            type="button"
-            onClick={() => setShowAlerts((v) => !v)}
-            aria-label={isEn ? 'Notifications' : 'Notifications'}
-            className="hidden md:flex w-10 h-10 rounded-full bg-black/55 hover:bg-white/15 backdrop-blur-md border border-white/[0.14] items-center justify-center text-white transition-colors cursor-pointer lum-press"
-          >
-            <Bell className="w-[18px] h-[18px]" strokeWidth={1.6} />
-          </button>
-        </div>
-
-        {showAlerts && (
-          <div className="hidden md:block relative z-30 w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 mt-2">
-            {renderAlertsPanel()}
+    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-transparent text-[#FFFFFF] pb-16 select-none">
+      
+      {/* =========================================================================
+          1. SECTION PRINCIPALE : PROGRAMMATION OFFICIELLE
+         ========================================================================= */}
+      <section className="relative z-30 w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] md:pt-12">
+        <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
+          <div className="min-w-0 pr-4">
+            <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white tracking-tight uppercase whitespace-nowrap overflow-hidden text-ellipsis">
+              {t('home.upcomingTitle')}
+            </h2>
           </div>
-        )}
-
-        {/* Hiérarchie textuelle principale — Bas gauche */}
-        <div className="relative z-10 w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pt-16 pb-8 sm:pb-11">
-          {isLoadingEvents && !activeHero ? (
-            <div className="max-w-xl space-y-3">
-              <SkeletonBlock className="h-4 w-28" />
-              <SkeletonBlock className="h-14 w-80" />
-              <SkeletonBlock className="h-5 w-64" />
+          <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center p-1 rounded-full bg-black/60 border border-white/15 text-[11px] font-agrandir-bold tracking-wider mr-1">
+              <button
+                type="button"
+                onClick={() => setLanguage('fr')}
+                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+                  language === 'fr' ? 'bg-white text-black font-agrandir-extrabold' : 'text-[#888] hover:text-white'
+                }`}
+              >
+                FR
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
+                  language === 'en' ? 'bg-white text-black font-agrandir-extrabold' : 'text-[#888] hover:text-white'
+                }`}
+              >
+                EN
+              </button>
             </div>
-          ) : activeHero ? (
-            <div className="max-w-2xl space-y-3">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="text-[11px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#D4AF6A]">
-                  {isEn ? 'NEXT EVENT' : 'PROCHAIN ÉVÉNEMENT'}
-                </span>
-                {heroStatus && (
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em] ${
-                      heroStatus.soldOut
-                        ? 'bg-white/15 text-[#C8C8C8]'
-                        : heroStatus.limited
-                        ? 'bg-[#D4AF6A]/20 text-[#D4AF6A] border border-[#D4AF6A]/40'
-                        : 'bg-[#0F2A1A]/90 text-[#7FE0A6]'
-                    }`}
-                  >
-                    {heroStatus.label}
-                  </span>
-                )}
-              </div>
-
-              <h1 className="font-agrandir-extrabold text-[2.4rem] sm:text-6xl lg:text-7xl uppercase tracking-tight text-white leading-[0.96]">
-                {activeHero.artist || activeHero.title}
-              </h1>
-
-              {activeHero.title &&
-                activeHero.artist &&
-                activeHero.title.toLowerCase() !== activeHero.artist.toLowerCase() && (
-                  <p className="text-sm sm:text-base font-agrandir-semibold text-white/90">
-                    {activeHero.title}
-                  </p>
-                )}
-
-              <p className="text-xs sm:text-sm text-[#C8C8C8]">
-                {formatDateLong(activeHero.date, language)}
-                {activeHero.venue
-                  ? ` · ${activeHero.venue}${activeHero.city ? `, ${activeHero.city}` : ''}`
-                  : ''}
-              </p>
-
-              <div className="pt-2 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  disabled={Boolean(heroStatus?.soldOut)}
-                  onClick={() => bookConcert(activeHero)}
-                  className="min-h-[46px] px-7 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] disabled:bg-white/15 disabled:text-[#9A9A9A] text-black font-agrandir-extrabold text-xs sm:text-sm transition-colors cursor-pointer disabled:cursor-not-allowed lum-press"
-                >
-                  {heroStatus?.soldOut
-                    ? isEn
-                      ? 'Sold out'
-                      : 'Complet'
-                    : isEn
-                    ? 'Book tickets'
-                    : 'Réserver'}
-                </button>
-              </div>
-
-              {/* Indicateurs de slides */}
-              {heroSlides.length > 1 && (
-                <div className="pt-3 flex items-center gap-2">
-                  {heroSlides.map((slide, idx) => (
-                    <button
-                      key={slide.id}
-                      type="button"
-                      onClick={() => setSlideIdx(idx)}
-                      aria-label={slide.artist || slide.title}
-                      className={`h-1 rounded-full transition-all cursor-pointer ${
-                        idx === slideIdx
-                          ? 'w-7 bg-white'
-                          : 'w-4 bg-white/25 hover:bg-white/55'
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="max-w-lg space-y-2">
-              <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#D4AF6A]">
-                LUMARÉEL
-              </p>
-              <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl text-white leading-tight">
-                {isEn ? 'Next lineup coming soon.' : 'La prochaine programmation arrive bientôt.'}
-              </h1>
-            </div>
-          )}
+            <button 
+              onClick={() => scrollFeaturedRow('left')} 
+              className="p-2.5 rounded-full border border-white/20 hover:border-white text-neutral-300 hover:text-white transition-colors cursor-pointer bg-white/5 active:scale-95"
+              aria-label={t('home.prevConcert')}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button 
+              onClick={() => scrollFeaturedRow('right')} 
+              className="p-2.5 rounded-full border border-white/20 hover:border-white text-neutral-300 hover:text-white transition-colors cursor-pointer bg-white/5 active:scale-95"
+              aria-label={t('home.nextConcert')}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-      </HeroMedia>
 
-      {/* =====================================================================
-          B. PROGRAMMATION — CARROUSEL HORIZONTAL DES CONCERTS À VENIR
-         ===================================================================== */}
-      <div className="w-full max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-10 pt-9 pb-14">
-        {publishedEvents.length > 0 ? (
-          <ScrollReveal>
-            <section className="space-y-4">
-              <div className="flex items-end justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#9A9A9A]">
-                    {isEn ? 'LINEUP' : 'PROGRAMMATION'}
-                  </p>
-                  <h2 className="mt-1 font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight">
-                    {isEn ? 'Upcoming concerts' : 'Concerts à venir'}
-                  </h2>
+        <div 
+          ref={featuredRowRef} 
+          onScroll={handleContainerScroll}
+          className="flex items-start gap-4 sm:gap-6 overflow-x-auto pb-6 scrollbar-none snap-x snap-mandatory pt-2 scroll-smooth" 
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {activeSlides.map((event, idx) => {
+            const isActive = idx === currentSlideIndex;
+            return (
+              <div 
+                key={event.id} 
+                ref={(el) => { cardRefs.current[idx] = el; }}
+                onClick={() => handleSelectArtistSlide(idx)} 
+                className="w-[82vw] max-w-[340px] sm:w-[380px] sm:max-w-none md:w-[420px] shrink-0 cursor-pointer group snap-start transition-all duration-300 select-none"
+              >
+                
+                {/* Image 16:9 avec bordure jaune / or automatique dès que le concert est sélectionné ou au scroll */}
+                <div className={`aspect-[16/9] w-full rounded-2xl sm:rounded-3xl overflow-hidden relative transition-all duration-300 bg-[#111111] ${
+                  isActive 
+                    ? 'ring-2 sm:ring-[2.5px] ring-[#d4af37] ring-offset-2 ring-offset-black shadow-[0_10px_35px_rgba(0,0,0,0.9),0_0_25px_rgba(212,175,55,0.45)] scale-[1.01]' 
+                    : 'border border-white/10 hover:border-white/30 opacity-90 hover:opacity-100 hover:scale-[1.01]'
+                }`}>
+                  <img 
+                    src={event.officialPoster || event.bannerImage} 
+                    alt={event.title} 
+                    referrerPolicy="no-referrer" 
+                    className="w-full h-full object-cover filter brightness-[0.95] group-hover:brightness-105 group-hover:scale-105 transition-all duration-500 ease-out" 
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
                 </div>
 
-                {publishedEvents.length > 1 && (
-                  <div className="hidden sm:flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => scrollConcertsCarousel('left')}
-                      aria-label={isEn ? 'Scroll left' : 'Défiler vers la gauche'}
-                      className="w-9 h-9 rounded-full bg-[#0E0E0E] hover:bg-white/10 border border-white/[0.14] flex items-center justify-center text-white transition-colors cursor-pointer lum-press"
+                {/* Les informations : Artiste EN CONCERT + Lieu et Date en gras */}
+                <div className="pt-4 px-1 flex flex-col gap-4">
+                  <div>
+                    <h3 className={`font-agrandir-extrabold text-base sm:text-lg tracking-tight uppercase truncate transition-colors ${
+                      isActive ? 'text-white' : 'text-neutral-300 group-hover:text-white'
+                    }`}>
+                      {event.artist} {t('home.inConcert')}
+                    </h3>
+                    <p className="text-xs font-agrandir-regular text-neutral-300 truncate mt-1">
+                      <strong className={`font-agrandir-extrabold transition-colors ${isActive ? 'text-white' : 'text-neutral-200'}`}>
+                        {event.venue}
+                      </strong> · <strong className={`font-agrandir-extrabold transition-colors ${isActive ? 'text-white' : 'text-neutral-200'}`}>
+                        {formatDateLong(event.date, language)}
+                      </strong>
+                    </p>
+                  </div>
+
+                  {/* Boutons d'action */}
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={(e) => handleBookNow(event, e)} 
+                      className="flex-1 bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-[10px] sm:text-xs py-3 px-2 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg uppercase tracking-wider cursor-pointer"
                     >
-                      <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
+                      <Ticket className="w-4 h-4" />
+                      {t('home.buyTickets')}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => scrollConcertsCarousel('right')}
-                      aria-label={isEn ? 'Scroll right' : 'Défiler vers la droite'}
-                      className="w-9 h-9 rounded-full bg-[#0E0E0E] hover:bg-white/10 border border-white/[0.14] flex items-center justify-center text-white transition-colors cursor-pointer lum-press"
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); handleSelectEvent(event); }} 
+                      className="flex-1 bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 text-white font-agrandir-semibold text-[10px] sm:text-xs py-3 px-2 rounded-xl active:scale-95 transition-all uppercase tracking-wider cursor-pointer"
                     >
-                      <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
+                      {t('home.concertDetails')}
                     </button>
                   </div>
-                )}
-              </div>
 
-              <div
-                ref={concertsCarouselRef}
-                className="flex flex-nowrap overflow-x-auto snap-x snap-mandatory gap-4 pb-2 scrollbar-hide -mx-4 px-4 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0"
-              >
-                {publishedEvents.map((ev) => {
-                  const minPrice = getMinPrice(ev);
-                  const status = getTicketingStatus(ev, isEn);
-                  return (
-                    <PosterCard
-                      key={ev.id}
-                      imageUrl={ev.artistPortrait || ev.officialPoster || ev.bannerImage}
-                      title={ev.artist || ev.title}
-                      subtitle={`${formatDateLong(ev.date, language)}${ev.venue ? ` · ${ev.venue}` : ''}`}
-                      badgeText={status.soldOut || status.limited ? status.label : undefined}
-                      priceText={
-                        status.soldOut
-                          ? isEn
-                            ? 'Sold out'
-                            : 'Complet'
-                          : minPrice
-                          ? `${isEn ? 'from' : 'dès'} ${minPrice.toLocaleString('fr-FR')} FCFA`
-                          : undefined
-                      }
-                      onClick={() => bookConcert(ev)}
-                      className="w-[62vw] sm:w-[238px] md:w-[254px] lg:w-[268px] shrink-0 snap-start"
-                    />
-                  );
-                })}
-              </div>
-            </section>
-          </ScrollReveal>
-        ) : (
-          !isLoadingEvents && (
-            <section className="py-10 border-t border-white/[0.12] text-center space-y-2">
-              <p className="font-agrandir-extrabold text-base text-white">
-                {isEn ? 'No upcoming concerts scheduled yet' : 'Aucun concert programmé pour le moment'}
-              </p>
-              <p className="text-xs text-[#9A9A9A]">
-                {isEn
-                  ? 'New dates will be announced right here as soon as ticketing opens.'
-                  : 'Les prochaines dates apparaîtront ici dès l’ouverture de la billetterie.'}
-              </p>
-            </section>
-          )
-        )}
+                  {/* Compte à rebours dynamique éclairci automatiquement */}
+                  <EventCardCountdown dateStr={event.date} timeStr={event.time} isActive={isActive} t={t} />
+                </div>
 
-        {/* =====================================================================
-            C. À DÉCOUVRIR — PETITE SECTION HORIZONTALE SECONDAIRE (2-3 CONTENUS RÉELS)
-           ===================================================================== */}
-        {homeDiscoverItems.length > 0 && (
-          <ScrollReveal>
-            <section className="mt-10 pt-7 border-t border-white/[0.10] space-y-3">
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white tracking-tight">
-                  {isEn ? 'To discover' : 'À découvrir'}
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage('explore')}
-                  className="text-xs text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
-                >
-                  Discover
-                </button>
               </div>
+            );
+          })}
+        </div>
+      </section>
 
-              <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-1 -mx-4 px-4 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0">
-                {homeDiscoverItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={item.onOpen}
-                    className="group shrink-0 snap-start w-[252px] sm:w-[280px] rounded-[15px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.10] hover:border-white/25 p-2.5 text-left flex items-center gap-3 transition-colors cursor-pointer lum-press"
-                  >
-                    <div className="w-14 h-14 rounded-[11px] overflow-hidden bg-[#141414] border border-white/[0.08] shrink-0">
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        referrerPolicy="no-referrer"
-                        loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                      />
+      {/* =========================================================================
+          2. SECTION : BLOC DE NAVIGATION RAPIDE
+         ========================================================================= */}
+      <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-6 sm:pt-10 relative z-20">
+        <div className="rounded-[24px] bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/10 p-2 shadow-2xl">
+          <div className="flex flex-col">
+
+            {/* Menu 0 : LUMARÉEL Black Card */}
+            <button 
+              type="button"
+              onClick={() => setCurrentPage('member_card')} 
+              className="flex items-center justify-between w-full p-3 hover:bg-[#d4af37]/10 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/40 flex items-center justify-center group-hover:bg-[#d4af37]/25 group-hover:scale-105 transition-all shadow-inner">
+                  <Crown className="w-4 h-4 text-[#d4af37]" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[11px] sm:text-xs font-agrandir-bold tracking-wider text-white uppercase block">
+                    {t('home.cardTitle')}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#d4af37] group-hover:translate-x-0.5 transition-transform" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 1 : Points, Récompenses & Parrainage */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage('rewards')}
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-[#d4af37]/20 group-hover:border-[#d4af37]/30 transition-all shadow-inner">
+                  <Award className="w-4 h-4 text-[#d4af37]" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase block">
+                    {language === 'en' ? 'Points, Rewards & Referrals' : 'Points, Récompenses & Parrainage'}
+                  </span>
+                  <span className="text-[11px] text-neutral-400">
+                    {language === 'en' ? '500 FCFA per friend · Redeem tickets & backstage' : '500 F CFA par ami · Échangez vos points'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 2 : BACKSTAGE */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage('backstage')}
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all shadow-inner">
+                  <Clapperboard className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase block">
+                    BACKSTAGE
+                  </span>
+                  <span className="text-[11px] text-neutral-400">
+                    {language === 'en' ? 'Exclusive soundchecks, studio sessions & artist diaries' : 'Balances, sessions studio & contenus exclusifs'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 3 : Ventes Flash & Surprises */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage('flash_drops')}
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-[#d4af37]/20 transition-all shadow-inner">
+                  <Zap className="w-4 h-4 text-[#aaa] group-hover:text-[#d4af37] transition-colors" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase block">
+                    {language === 'en' ? 'Surprise Rewards & Flash Sales' : 'Récompenses Surprises & Ventes Flash'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 4 : Souvenirs de concerts */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage('memories')}
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all shadow-inner">
+                  <Camera className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase block">
+                    {language === 'en' ? 'Concert Memories' : 'Souvenirs de concerts'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 5 : Boîte à suggestions */}
+            <button
+              type="button"
+              onClick={() => setCurrentPage('suggestions')}
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all shadow-inner">
+                  <Lightbulb className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
+                </div>
+                <div className="text-left">
+                  <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase block">
+                    {language === 'en' ? 'Suggestion Box' : 'Boîte à suggestions'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 6 : Réservation / Commandes */}
+            <button 
+              type="button"
+              onClick={() => setCurrentPage('client_space')} 
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-[#d4af37]/20 group-hover:border-[#d4af37]/30 transition-all shadow-inner">
+                  <Ticket className="w-4 h-4 text-[#aaa] group-hover:text-[#d4af37] transition-colors" />
+                </div>
+                <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase">
+                  {t('home.bookingsCatalog')}
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 7 : Archives */}
+            <button 
+              type="button"
+              onClick={() => setCurrentPage('archive')} 
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all shadow-inner">
+                  <Play className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
+                </div>
+                <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase">
+                  {t('home.archives')}
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 8 : Actualités */}
+            <button 
+              type="button"
+              onClick={() => setCurrentPage('news')} 
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all shadow-inner">
+                  <Newspaper className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
+                </div>
+                <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase">
+                  {t('home.newsEditions')}
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+            <div className="h-px bg-white/5 mx-4 my-1" />
+
+            {/* Menu 9 : Mon Profil & Paramètres */}
+            <button 
+              type="button"
+              onClick={() => setCurrentPage('profile')} 
+              className="flex items-center justify-between w-full p-3 hover:bg-white/5 rounded-[16px] transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-[#181818] border border-white/5 flex items-center justify-center group-hover:bg-white/10 transition-all shadow-inner">
+                  <User className="w-4 h-4 text-[#aaa] group-hover:text-white transition-colors" />
+                </div>
+                <span className="text-[11px] sm:text-xs font-agrandir-semibold tracking-wider text-white uppercase">
+                  {t('home.profileSettings')}
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-[#555] group-hover:text-white transition-colors" />
+            </button>
+
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          3. SECTION : ARCHIVES
+         ========================================================================= */}
+      <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-14 sm:pt-20">
+        <div className="mb-6 pb-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight uppercase">
+              {t('home.archives')}
+            </h2>
+          </div>
+          <button onClick={() => setCurrentPage('archive')} className="w-9 h-9 rounded-full border border-white/15 hover:border-white text-neutral-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer bg-white/5 shadow-sm">
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 sm:gap-5 pb-5 scrollbar-none md:grid md:grid-cols-3 md:gap-6">
+          {(archives || []).slice(0, 3).map((item) => {
+            const safeCover = item.coverImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg';
+            return (
+              <div key={item.id} onClick={() => setCurrentPage('archive')} className="w-[76vw] sm:w-[320px] md:w-auto shrink-0 snap-start group cursor-pointer flex flex-col justify-between">
+                <div className="aspect-[16/9] w-full rounded-2xl sm:rounded-3xl overflow-hidden relative bg-[#111111] border border-white/15 group-hover:border-white/40 transition-all duration-300 shadow-xl group-hover:scale-[1.02]">
+                  <img src={safeCover} alt={item.title} referrerPolicy="no-referrer" className="w-full h-full object-cover object-center filter brightness-[0.88] group-hover:brightness-100 group-hover:scale-105 transition-all duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-white/20 hover:bg-white text-white hover:text-black backdrop-blur-md border border-white/30 flex items-center justify-center transition-all duration-300 shadow-2xl group-hover:scale-110">
+                      <Play className="w-5 h-5 ml-0.5 fill-current" />
                     </div>
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                      <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.16em] text-[#D4AF6A] truncate">
-                        {item.tag}
-                      </p>
-                      <p className="font-agrandir-extrabold text-xs sm:text-sm text-white truncate group-hover:text-[#D4AF6A] transition-colors">
-                        {item.title}
-                      </p>
-                      <p className="text-[11px] text-[#9A9A9A] truncate">
-                        {item.subtitle}
-                      </p>
-                    </div>
-                    <ChevronRight
-                      className="w-4 h-4 text-[#666] group-hover:text-white shrink-0"
-                      strokeWidth={1.6}
-                    />
-                  </button>
-                ))}
+                  </div>
+                  <div className="absolute bottom-3 right-3">
+                    <span className="px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md text-[10px] font-mono text-white border border-white/20 uppercase font-semibold">{item.duration || t('home.liveHd')}</span>
+                  </div>
+                  <div className="absolute top-3 left-3">
+                    <span className="px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[9px] font-agrandir-semibold text-[#d4af37] border border-white/15 uppercase tracking-wider">{t('home.videoRecap')}</span>
+                  </div>
+                </div>
+                <div className="pt-3 px-1">
+                  <div className="text-[10px] font-agrandir-regular text-[#888] uppercase tracking-wider flex items-center gap-2 mb-1">
+                    <strong className="font-agrandir-extrabold text-white">{item.date ? formatDateLong(item.date, language) : item.year}</strong><span>·</span><strong className="font-agrandir-extrabold text-white truncate">{item.venue}</strong>
+                  </div>
+                  <h3 className="font-agrandir-extrabold text-base text-white uppercase tracking-tight group-hover:text-white transition-colors truncate">{item.title}</h3>
+                  <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
+                    <button onClick={(e) => { e.stopPropagation(); setCurrentPage('archive'); }} className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-[#d4af37] text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center gap-1.5 border border-[#d4af37]/30 transition-colors">
+                      <ImageIcon className="w-3.5 h-3.5 text-[#d4af37]" /><span>{t('home.viewImages')}</span>
+                    </button>
+                    <span className="text-[10px] text-[#777] font-agrandir-regular">{item.duration || t('home.liveHd')}</span>
+                  </div>
+                </div>
               </div>
-            </section>
-          </ScrollReveal>
-        )}
-      </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* =========================================================================
+          4. SECTION : ACTUALITÉS
+         ========================================================================= */}
+      {news && news.length > 0 && (
+        <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-14 sm:pt-20">
+          <div className="mb-6 pb-4 border-b border-white/10 flex items-center justify-between">
+            <div>
+              <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight uppercase">
+                {t('nav.news')}
+              </h2>
+            </div>
+            <button onClick={() => setCurrentPage('news')} className="w-9 h-9 rounded-full border border-white/15 hover:border-white text-neutral-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer bg-white/5 shadow-sm">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 sm:gap-5 pb-5 scrollbar-none md:grid md:grid-cols-3 md:gap-6">
+            {news.slice(0, 3).map((article: any) => (
+              <article key={article.id} onClick={() => setCurrentPage('news')} className="w-[76vw] sm:w-[320px] md:w-auto shrink-0 snap-start bg-[#0b0b0b] border border-white/10 rounded-3xl p-6 hover:border-white/30 transition-all cursor-pointer flex flex-col justify-between shadow-xl">
+                <div>
+                  <div className="flex items-center justify-between text-[10px] font-agrandir-regular tracking-wider uppercase text-[#777] mb-3">
+                    <span className="text-[#d4af37] font-agrandir-semibold">{article.category}</span>
+                    <strong className="font-agrandir-bold text-white">{formatDateLong(article.date, language)}</strong>
+                  </div>
+                  <h3 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight mb-3 leading-snug">{article.title}</h3>
+                  <p className="font-agrandir-regular text-xs text-[#888] leading-relaxed line-clamp-3 mb-6">{article.summary}</p>
+                </div>
+                <div className="pt-3 border-t border-white/10 text-[11px] font-agrandir-semibold text-white uppercase tracking-wider flex items-center justify-between">
+                  <span>{t('home.readRelease')}</span>
+                  <span className="text-[#666] font-agrandir-regular">{article.readTime}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
     </div>
   );
 };

@@ -11,9 +11,7 @@ import { AdminArchivesView } from './admin/views/AdminArchivesView';
 import { AdminEmailsView } from './admin/views/AdminEmailsView';
 import { AdminMembershipView } from './admin/views/AdminMembershipView';
 import { AdminWorkshopView } from './admin/views/AdminWorkshopView';
-import { AdminMediaHubView } from './admin/views/AdminMediaHubView';
 import { TicketBatchPrintModal } from './TicketBatchPrintModal';
-import { loadMediaHubItems, subscribeMediaHub } from '../utils/mediaHubStorage';
 import { Plus, X } from 'lucide-react';
 
 const AdminDashboardContent: React.FC = () => {
@@ -27,7 +25,7 @@ const AdminDashboardContent: React.FC = () => {
     deleteArchive, 
     showToast, 
     setCurrentPage, 
-    setCheckoutEvent 
+    setSelectedEventSlug 
   } = useApp();
 
   // Navigation State (Shopify 3-Level Architecture)
@@ -43,16 +41,6 @@ const AdminDashboardContent: React.FC = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [emails, setEmails] = useState<TransactionalEmail[]>([]);
-  const [pendingMediaCount, setPendingMediaCount] = useState<number>(
-    () => loadMediaHubItems().filter((m) => m.status === 'draft').length
-  );
-
-  useEffect(() => {
-    const syncDrafts = () =>
-      setPendingMediaCount(loadMediaHubItems().filter((m) => m.status === 'draft').length);
-    syncDrafts();
-    return subscribeMediaHub(syncDrafts);
-  }, []);
 
   // New Event Modal
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -186,12 +174,8 @@ const AdminDashboardContent: React.FC = () => {
   };
 
   const handlePreviewPublic = (slug: string) => {
-    const target = events.find((e) => e.slug === slug);
-    if (target) {
-      setCheckoutEvent(target);
-    } else {
-      setCurrentPage('home');
-    }
+    setSelectedEventSlug(slug);
+    setCurrentPage('concert_detail');
   };
 
   return (
@@ -210,7 +194,6 @@ const AdminDashboardContent: React.FC = () => {
         eventsCount={events.length}
         ordersCount={orders.length}
         archivesCount={archives.length}
-        pendingMediaCount={pendingMediaCount}
         onExitAdmin={() => setCurrentPage('home')}
         isMobileOpen={mobileSidebarOpen}
         onCloseMobile={() => setMobileSidebarOpen(false)}
@@ -295,10 +278,6 @@ const AdminDashboardContent: React.FC = () => {
                 <AdminOrdersView orders={orders} />
               )}
 
-              {currentSection === 'media' && (
-                <AdminMediaHubView events={events} showToast={showToast} />
-              )}
-
               {currentSection === 'archives' && (
                 <AdminArchivesView
                   archives={archives}
@@ -324,7 +303,7 @@ const AdminDashboardContent: React.FC = () => {
           <div className="bg-[#0e0e0e] border border-white/20 rounded-3xl max-w-xl w-full p-6 sm:p-8 space-y-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
-                <div className="text-[10px] font-agrandir-semibold text-neutral-400 uppercase">
+                <div className="text-[10px] font-agrandir-semibold text-[#d4af37] uppercase">
                   NOUVEAU PRODUIT / ÉVÉNEMENT
                 </div>
                 <h2 className="font-agrandir-extrabold text-xl text-white uppercase">
@@ -463,8 +442,8 @@ const AdminDashboardRecovery: React.FC<{ error: Error }> = ({ error }) => {
 
   return (
     <div className="min-h-screen bg-black text-white p-6 sm:p-10 font-agrandir-regular">
-      <div className="max-w-3xl mx-auto border border-white/20 bg-[#101010] rounded-3xl p-6 sm:p-8">
-        <div className="text-neutral-400 text-xs font-bold uppercase tracking-widest mb-3">
+      <div className="max-w-3xl mx-auto border border-amber-500/30 bg-[#101010] rounded-3xl p-6 sm:p-8">
+        <div className="text-[#d4af37] text-xs font-bold uppercase tracking-widest mb-3">
           Console LUMARÉEL — mode de récupération
         </div>
         <h1 className="text-2xl font-bold mb-3">Accès impression disponible</h1>
@@ -478,7 +457,7 @@ const AdminDashboardRecovery: React.FC<{ error: Error }> = ({ error }) => {
           <button
             type="button"
             onClick={() => setPrintOpen(true)}
-            className="px-5 py-3 rounded-xl bg-white hover:bg-neutral-200 text-black font-bold text-sm cursor-pointer"
+            className="px-5 py-3 rounded-xl bg-[#d4af37] text-black font-bold text-sm"
           >
             Ouvrir l'impression des billets
           </button>

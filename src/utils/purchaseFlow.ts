@@ -120,7 +120,7 @@ export const PAYMENT_METHODS: Record<string, PaymentMethod> = {
   free_money: { id: 'free_money', name: 'Free Money', kind: 'mobile', hint: 'Mobile Money Free', accent: '#CD1409' },
   tmoney: { id: 'tmoney', name: 'T-Money', kind: 'mobile', hint: 'Mobile Money Togocom', accent: '#E30613' },
   djamo: { id: 'djamo', name: 'Djamo', kind: 'mobile', hint: 'Payez avec votre compte Djamo', accent: '#7C5CFF' },
-  card: { id: 'card', name: 'Carte bancaire', kind: 'card', hint: 'Visa ou Mastercard', accent: '#FFFFFF' },
+  card: { id: 'card', name: 'Carte bancaire', kind: 'card', hint: 'Visa ou Mastercard', accent: '#D4AF37' },
 };
 
 export interface PaymentCountry {

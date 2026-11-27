@@ -52,6 +52,17 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
       })
     : '—';
 
+  const deliveryLabel = (() => {
+    switch (card.physicalCardStatus) {
+      case 'delivered':
+        return isEn ? 'Delivered' : 'Livrée';
+      case 'shipped':
+        return isEn ? 'Out for delivery' : 'En cours de livraison';
+      default:
+        return isEn ? 'Delivery < 24h' : 'Livraison < 24h';
+    }
+  })();
+
   return (
     <div className="flex flex-col items-center w-full select-none">
       {/* Scène ouverte façon application bancaire — aucune boîte autour de la carte */}
@@ -59,7 +70,7 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
         {/* Éclairage ambiant très discret */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -inset-x-4 top-4 bottom-20 rounded-full bg-gradient-to-b from-white/14 via-white/[0.03] to-transparent blur-3xl"
+          className="pointer-events-none absolute -inset-x-4 top-4 bottom-20 rounded-full bg-gradient-to-b from-[#d4af37]/14 via-white/[0.03] to-transparent blur-3xl"
         />
 
         {/* Carte officielle CR-80 (ratio bancaire exact 85.6 / 53.98) */}
@@ -132,6 +143,8 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
             <span className="font-mono tabular-nums">
               {isEn ? 'Exp.' : 'Exp.'} {expiryFormatted}
             </span>
+            <span aria-hidden="true" className="text-white/25">·</span>
+            <span>{deliveryLabel}</span>
           </div>
         </div>
 
@@ -143,7 +156,7 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
             className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
           >
             <span className="w-12 h-12 rounded-full bg-white/[0.08] group-hover:bg-white/[0.15] active:scale-95 border border-white/10 flex items-center justify-center text-white transition-all">
-              <RotateCw className="w-4 h-4 text-white" />
+              <RotateCw className="w-4 h-4 text-[#d4af37]" />
             </span>
             <span className="text-[11px] text-neutral-300 group-hover:text-white transition-colors whitespace-nowrap">
               {isFlipped
@@ -167,7 +180,7 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
               {showDetails ? (
                 <EyeOff className="w-4 h-4" />
               ) : (
-                <Eye className="w-4 h-4 text-white" />
+                <Eye className="w-4 h-4 text-[#d4af37]" />
               )}
             </span>
             <span className="text-[11px] text-neutral-300 group-hover:text-white transition-colors whitespace-nowrap">
@@ -183,7 +196,7 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
               className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none disabled:opacity-50"
             >
               <span className="w-12 h-12 rounded-full bg-white/[0.08] group-hover:bg-white/[0.15] active:scale-95 border border-white/10 flex items-center justify-center text-white transition-all">
-                <RefreshCw className={`w-4 h-4 text-white ${isRefreshing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 text-[#d4af37] ${isRefreshing ? 'animate-spin' : ''}`} />
               </span>
               <span className="text-[11px] text-neutral-300 group-hover:text-white transition-colors whitespace-nowrap">
                 {isEn ? 'Refresh' : 'Actualiser'}
@@ -220,6 +233,10 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
                 <div className="py-3 flex items-center justify-between gap-4">
                   <dt className="text-neutral-400">{isEn ? 'Valid until' : 'Valable jusqu’en'}</dt>
                   <dd className="text-white font-mono tabular-nums">{expiryFormatted}</dd>
+                </div>
+                <div className="py-3 flex items-center justify-between gap-4">
+                  <dt className="text-neutral-400">{isEn ? 'Physical card' : 'Carte physique'}</dt>
+                  <dd className="text-[#d4af37] font-agrandir-semibold">{deliveryLabel}</dd>
                 </div>
               </dl>
             </motion.div>
