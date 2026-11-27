@@ -10,7 +10,6 @@ export type PageView =
   | 'home'
   | 'discover'
   | 'event_detail'
-  | 'archive'
   | 'client_space'
   | 'profile'
   | 'organizers'
