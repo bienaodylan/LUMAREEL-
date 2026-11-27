@@ -12,11 +12,10 @@ import {
 } from '../utils/mediaHubStorage';
 import { loadStoredMemberCard } from '../utils/memberCardStorage';
 import { ConcertMemoriesView } from './ConcertMemoriesView';
-import { ArchiveView } from './ArchiveView';
 import { PageHeader, SegmentedControl } from './ui/EditorialPrimitives';
 import { ArrowUpRight, Lock, Play } from 'lucide-react';
 
-type BackstageSection = 'coulisses' | 'memories' | 'archives';
+type BackstageSection = 'coulisses' | 'memories';
 
 /**
  * BACKSTAGE — Destination média monochrome unifiée regroupant Coulisses & Memories.
@@ -126,7 +125,6 @@ export const BackstageView: React.FC = () => {
             options={[
               { id: 'coulisses', label: isEn ? 'Behind the Scenes' : 'Coulisses' },
               { id: 'memories', label: 'Memories' },
-              { id: 'archives', label: 'Archives' },
             ]}
           />
         }
@@ -421,8 +419,6 @@ export const BackstageView: React.FC = () => {
       {section === 'memories' && (
         <ConcertMemoriesView embedded onJumpToBackstage={() => setSection('coulisses')} />
       )}
-
-      {section === 'archives' && <ArchiveView embedded />}
     </div>
   );
 };
