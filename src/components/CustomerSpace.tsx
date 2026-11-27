@@ -295,114 +295,35 @@ export const CustomerSpace: React.FC = () => {
         />
       ) : (
         <>
-          {/* ONGLET 1 : À VENIR — QR CODE IMMÉDIATEMENT VISIBLE */}
+          {/* ONGLET 1 : À VENIR — liste compacte, détail au toucher */}
           {activeTab === 'upcoming' && (
             <div>
               {activeTickets.length === 0 ? (
-                <EmptyState
-                  icon={<TicketIcon className="w-5 h-5" strokeWidth={1.6} />}
-                  title={t('orders.noTickets')}
-                  description={t('orders.noTicketsDesc')}
-                  actionLabel={t('orders.discoverConcerts')}
-                  onAction={() => setCurrentPage('home')}
-                />
+                <EmptyState icon={<TicketIcon className="w-5 h-5" strokeWidth={1.6} />} title={t('orders.noTickets')} description={t('orders.noTicketsDesc')} actionLabel={t('orders.discoverConcerts')} onAction={() => setCurrentPage('home')} />
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
-                  {/* Carte billet principale (0px) */}
-                  <div className="lg:col-span-6 xl:col-span-5">
-                    {featuredTicket && (
-                      <QRTicket
-                        eventTitle={featuredTicket.eventTitle}
-                        dateTimeLine={`${formatShortDate(featuredTicket.eventDate)} · ${featuredTicket.eventTime || '20:00'}`}
-                        status={featuredTicket.status}
-                        qrDataUrl={qrCodeDataUrls[featuredTicket.id]}
-                        serialNumber={featuredTicket.serialNumber}
-                        categoryName={featuredTicket.categoryName}
-                        holderName={featuredTicket.holderName}
-                        venue={featuredTicket.eventVenue || 'Abidjan'}
-                        doorsLine={`${featuredTicket.eventTime || '19:00'} · ${isEn ? 'Gate A' : 'Entrée A'}`}
-                        directionsUrl={buildDirectionsUrl(featuredTicket.eventVenue)}
-                        isEn={isEn}
-                        onOpenQrFullscreen={() => setSelectedTicketForQr(featuredTicket)}
-                        onTransfer={() => openTransferModal(featuredTicket)}
-                      />
-                    )}
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between gap-3 pb-2">
+                    <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A]">{isEn ? 'Your upcoming passes' : 'Vos prochains billets'}</p>
+                    <span className="text-[11px] text-[#D4AF6A] font-agrandir-semibold tabular-nums">{activeTickets.length} {isEn ? 'TICKET(S)' : 'BILLET(S)'}</span>
                   </div>
-
-                  {/* Autres billets actifs (liste compacte cliquable 0px) */}
-                  <div className="lg:col-span-6 xl:col-span-7 space-y-5">
-                    {groupedOtherTickets.length > 0 && (
-                      <section>
-                        <p className="hidden lg:block text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#9A9A9A] mb-3">
-                          {isEn ? 'Other upcoming passes' : 'Autres billets à venir'}
-                        </p>
-                        <div className="divide-y divide-white/[0.12] border-b border-white/[0.12]">
-                          {groupedOtherTickets.map(({ key, primaryTicket, count }) => (
-                            <button
-                              key={key}
-                              type="button"
-                              onClick={() => {
-                                setSelectedActiveTicketId(primaryTicket.id);
-                                if (typeof window !== 'undefined') {
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }
-                              }}
-                              className="w-full py-4 flex items-center justify-between gap-3.5 text-left hover:bg-white/[0.02] transition-colors cursor-pointer group"
-                            >
-                              <div className="flex items-center gap-3.5 min-w-0">
-                                <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] shrink-0">
-                                  <img
-                                    src={resolvePoster(primaryTicket)}
-                                    alt={primaryTicket.eventTitle}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                                <div className="min-w-0">
-                                  <h3 className="font-agrandir-extrabold text-base text-white uppercase tracking-tight truncate group-hover:text-[#D4AF6A] transition-colors">
-                                    {primaryTicket.eventTitle}
-                                  </h3>
-                                  <p className="mt-0.5 text-xs text-[#9A9A9A] truncate">
-                                    {formatDateLong(primaryTicket.eventDate, language)} ·{' '}
-                                    {primaryTicket.categoryName} · ×{count}
-                                  </p>
-                                </div>
-                              </div>
-                              <ChevronRight
-                                className="w-4 h-4 text-[#9A9A9A] group-hover:text-white shrink-0 transition-colors"
-                                strokeWidth={1.6}
-                              />
-                            </button>
-                          ))}
+                  <div className="space-y-2.5">
+                    {activeTickets.map((ticket) => (
+                      <button key={ticket.id} type="button" onClick={() => setSelectedTicketForQr(ticket)} className="w-full text-left flex items-center gap-3.5 p-3 sm:p-4 rounded-[18px] border border-white/[0.11] bg-[#101010] hover:bg-[#171510] hover:border-[#D4AF6A]/40 transition-all group">
+                        <div className="w-[76px] h-[88px] sm:w-[88px] sm:h-[96px] rounded-[12px] overflow-hidden bg-[#1A1A1A] shrink-0 border border-white/[0.08]">
+                          <img src={resolvePoster(ticket)} alt={ticket.eventTitle} className="w-full h-full object-cover" />
                         </div>
-                      </section>
-                    )}
-
-                    {/* Accès rapide impression / sauvegarde */}
-                    {featuredTicket && (
-                      <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                        {qrCodeDataUrls[featuredTicket.id] && (
-                          <a
-                            href={qrCodeDataUrls[featuredTicket.id]}
-                            download={`QR_${featuredTicket.serialNumber}.png`}
-                            className="min-h-[42px] px-4 rounded-full border border-white/[0.16] hover:border-white/40 bg-[#0E0E0E] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white inline-flex items-center gap-2 transition-colors lum-press"
-                          >
-                            <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
-                            <span>{t('orders.saveQr')}</span>
-                          </a>
-                        )}
-                        <a
-                          href={`/api/customer/tickets/${featuredTicket.token}/print`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="min-h-[42px] px-4 rounded-full border border-white/[0.16] hover:border-white/40 bg-[#0E0E0E] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white inline-flex items-center gap-2 transition-colors lum-press"
-                        >
-                          <Printer className="w-3.5 h-3.5" strokeWidth={1.6} />
-                          <span>{t('orders.print')}</span>
-                        </a>
-                      </div>
-                    )}
+                        <div className="min-w-0 flex-1 py-0.5">
+                          <div className="flex items-center gap-2 mb-2"><span className="w-1.5 h-1.5 rounded-full bg-[#7FE0A6] shrink-0" /><span className="text-[9px] font-agrandir-extrabold tracking-[0.16em] text-[#7FE0A6] uppercase">{isEn ? 'Valid' : 'Valide'}</span></div>
+                          <h3 className="font-agrandir-extrabold text-[14px] sm:text-base leading-tight text-white uppercase tracking-tight line-clamp-2 group-hover:text-[#E5C78D] transition-colors">{ticket.eventTitle}</h3>
+                          <p className="mt-1.5 text-[11px] sm:text-xs text-[#B5B5B5] truncate">{formatDateLong(ticket.eventDate, language)} · {ticket.eventTime || '20:00'}</p>
+                          <p className="mt-1 text-[10px] sm:text-[11px] text-[#777] truncate">{ticket.categoryName} · N° {ticket.serialNumber}</p>
+                        </div>
+                        <div className="shrink-0 flex flex-col items-center gap-1 text-[#8A8A8A] group-hover:text-[#D4AF6A] transition-colors"><TicketIcon className="w-5 h-5" strokeWidth={1.6} /><ChevronRight className="w-4 h-4" strokeWidth={1.6} /></div>
+                      </button>
+                    ))}
                   </div>
-                </div>
+                  <p className="pt-2 text-[10px] leading-relaxed text-[#777] text-center">{isEn ? 'Tap a ticket to display its secure entry QR code and full details.' : 'Touchez un billet pour afficher son QR code sécurisé et toutes ses informations.'}</p>
+                </section>
               )}
             </div>
           )}
@@ -706,74 +627,33 @@ export const CustomerSpace: React.FC = () => {
         )}
       </BottomSheet>
 
-      {/* MODALE QR PLEIN ÉCRAN — ARRONDI 24PX HAUT CONTRASTE FOND BLANC PUR */}
+      {/* VUE DÉTAILLÉE DU BILLET — page immersive, QR et informations complètes */}
       {selectedTicketForQr && (
-        <div
-          className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/94 backdrop-blur-md"
-          onClick={() => setSelectedTicketForQr(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-sm rounded-[24px] bg-white text-black p-6 sm:p-7 text-center shadow-2xl"
-          >
-            <button
-              type="button"
-              onClick={() => setSelectedTicketForQr(null)}
-              className="absolute top-3.5 right-3.5 w-9 h-9 rounded-full text-neutral-600 hover:text-black hover:bg-black/5 flex items-center justify-center transition-colors cursor-pointer"
-              aria-label={t('nav.close')}
-            >
-              <X className="w-4 h-4" strokeWidth={1.6} />
-            </button>
-
-            <p className="text-[10px] font-agrandir-semibold tracking-[0.2em] text-neutral-500 uppercase mb-1">
-              {t('orders.qrScanTitle')}
-            </p>
-            <h3 className="font-agrandir-extrabold text-lg text-black leading-snug pr-6 pl-6">
-              {selectedTicketForQr.eventTitle}
-            </h3>
-            <p className="mt-1 text-xs font-agrandir-semibold text-neutral-600 mb-5">
-              {selectedTicketForQr.categoryName} · {selectedTicketForQr.holderName}
-            </p>
-
-            {modalQrCodeUrl ? (
-              <div className="p-3 rounded-[16px] border border-neutral-200 bg-white mb-4">
-                <img
-                  src={modalQrCodeUrl}
-                  alt={`QR ${selectedTicketForQr.serialNumber}`}
-                  className="w-60 h-60 mx-auto object-contain"
-                />
-              </div>
-            ) : (
-              <div className="w-60 h-60 mx-auto rounded-[16px] bg-neutral-100 flex items-center justify-center text-xs text-neutral-500 mb-4">
-                {t('orders.loading')}
-              </div>
-            )}
-
-            <p className="text-xs font-mono font-bold text-black tracking-wider mb-1">
-              N° {selectedTicketForQr.serialNumber}
-            </p>
-            <p className="text-[11px] text-neutral-500 leading-snug mb-5">
-              {t('orders.accessNotice')}
-            </p>
-
-            <div className="grid grid-cols-2 gap-2.5 mb-3">
-              <a
-                href={modalQrCodeUrl}
-                download={`QR_${selectedTicketForQr.serialNumber}.png`}
-                className="min-h-[42px] px-3 rounded-full border border-neutral-300 text-xs font-agrandir-extrabold text-black hover:bg-neutral-100 inline-flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
-                <span>{t('orders.saveQr')}</span>
-              </a>
-              <a
-                href={`/api/customer/tickets/${selectedTicketForQr.token}/print`}
-                target="_blank"
-                rel="noreferrer"
-                className="min-h-[42px] px-3 rounded-full bg-black text-white text-xs font-agrandir-extrabold hover:bg-neutral-800 inline-flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <Printer className="w-3.5 h-3.5" strokeWidth={1.6} />
-                <span>{t('orders.print')}</span>
-              </a>
+        <div className="fixed inset-0 z-[95] bg-black overflow-y-auto overscroll-contain">
+          <div className="sticky top-0 z-20 bg-black/90 backdrop-blur-xl border-b border-white/[0.08] px-4 sm:px-6 py-3 flex items-center justify-between">
+            <button type="button" onClick={() => setSelectedTicketForQr(null)} className="min-h-[42px] inline-flex items-center gap-2 text-white hover:text-[#D4AF6A] transition-colors"><ChevronRight className="w-5 h-5 rotate-180" strokeWidth={1.7} /><span className="text-xs font-agrandir-semibold">{isEn ? 'Back to tickets' : 'Retour aux billets'}</span></button>
+            <span className="text-[9px] uppercase tracking-[0.2em] text-[#D4AF6A] font-agrandir-extrabold">LUMARÉEL · {isEn ? 'YOUR PASS' : 'VOTRE BILLET'}</span>
+            <button type="button" onClick={() => setSelectedTicketForQr(null)} aria-label={t('nav.close')} className="w-9 h-9 rounded-full border border-white/[0.12] flex items-center justify-center text-[#BDBDBD] hover:text-white"><X className="w-4 h-4" strokeWidth={1.6} /></button>
+          </div>
+          <div className="w-full max-w-[520px] mx-auto px-4 pt-5 pb-12">
+            <QRTicket
+              eventTitle={selectedTicketForQr.eventTitle}
+              dateTimeLine={`${formatShortDate(selectedTicketForQr.eventDate)} · ${selectedTicketForQr.eventTime || '20:00'}`}
+              status={selectedTicketForQr.status}
+              qrDataUrl={qrCodeDataUrls[selectedTicketForQr.id]}
+              serialNumber={selectedTicketForQr.serialNumber}
+              categoryName={selectedTicketForQr.categoryName}
+              holderName={selectedTicketForQr.holderName}
+              venue={selectedTicketForQr.eventVenue || 'Abidjan'}
+              doorsLine={`${selectedTicketForQr.eventTime || '19:00'} · ${isEn ? 'Gate A' : 'Entrée A'}`}
+              directionsUrl={buildDirectionsUrl(selectedTicketForQr.eventVenue)}
+              isEn={isEn}
+              onOpenQrFullscreen={() => setModalQrCodeUrl(qrCodeDataUrls[selectedTicketForQr.id] || '')}
+              onTransfer={() => openTransferModal(selectedTicketForQr)}
+            />
+            <div className="mt-3 grid grid-cols-2 gap-2.5">
+              {qrCodeDataUrls[selectedTicketForQr.id] && <a href={qrCodeDataUrls[selectedTicketForQr.id]} download={`QR_${selectedTicketForQr.serialNumber}.png`} className="min-h-[46px] rounded-full border border-white/[0.16] bg-[#101010] text-white text-[11px] font-agrandir-extrabold inline-flex items-center justify-center gap-2"><Download className="w-4 h-4" strokeWidth={1.6} /><span>{t('orders.saveQr')}</span></a>}
+              <a href={`/api/customer/tickets/${selectedTicketForQr.token}/print`} target="_blank" rel="noreferrer" className="min-h-[46px] rounded-full bg-[#D4AF6A] text-black text-[11px] font-agrandir-extrabold inline-flex items-center justify-center gap-2"><Printer className="w-4 h-4" strokeWidth={1.6} /><span>{t('orders.print')}</span></a>
             </div>
           </div>
         </div>
