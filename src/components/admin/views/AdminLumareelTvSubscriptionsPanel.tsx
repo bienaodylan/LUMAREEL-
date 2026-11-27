@@ -76,12 +76,9 @@ export const AdminLumareelTvSubscriptionsPanel: React.FC<
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
   const [planName, setPlanName] = useState('');
   const [planPrice, setPlanPrice] = useState('3500');
-  const [planDays, setPlanDays] = useState('30');
-  const [planBillingLabel, setPlanBillingLabel] = useState('Par mois');
   const [planDescription, setPlanDescription] = useState('');
   const [planRenewalPolicy, setPlanRenewalPolicy] = useState('');
   const [planConditions, setPlanConditions] = useState('');
-  const [planAutoRenew, setPlanAutoRenew] = useState(false);
   const [planStatus, setPlanStatus] = useState<'active' | 'inactive' | 'archived'>('active');
   const [showPlanForm, setShowPlanForm] = useState(false);
 
@@ -124,23 +121,17 @@ export const AdminLumareelTvSubscriptionsPanel: React.FC<
       setEditingPlanId(plan.id);
       setPlanName(plan.name);
       setPlanPrice(String(plan.price));
-      setPlanDays(String(plan.durationDays));
-      setPlanBillingLabel(plan.billingCycleLabel);
       setPlanDescription(plan.description);
       setPlanRenewalPolicy(plan.renewalPolicy);
       setPlanConditions(plan.conditions);
-      setPlanAutoRenew(plan.autoRenew);
       setPlanStatus(plan.status);
     } else {
       setEditingPlanId(null);
       setPlanName('');
       setPlanPrice('3500');
-      setPlanDays('30');
-      setPlanBillingLabel('Par mois');
       setPlanDescription('');
       setPlanRenewalPolicy('Renouvellement manuel à chaque échéance. Aucun prélèvement automatique.');
       setPlanConditions('Accès personnel LUMARÉEL TV sans carte physique.');
-      setPlanAutoRenew(false);
       setPlanStatus('active');
     }
     setShowPlanForm(true);
@@ -158,8 +149,8 @@ export const AdminLumareelTvSubscriptionsPanel: React.FC<
           name: planName,
           price: Number(planPrice) || 0,
           currency: 'FCFA',
-          durationDays: Number(planDays) || 30,
-          billingCycleLabel: planBillingLabel,
+          durationDays: 30,
+          billingCycleLabel: 'Par mois',
           description: planDescription,
           renewalPolicy: planRenewalPolicy,
           conditions: planConditions,
