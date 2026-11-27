@@ -119,7 +119,7 @@ const MainApp: React.FC = () => {
       <OfflineIndicator />
 
       {/* Top Navbar (Masquée sur le scanner et la console admin) */}
-      {!isAdminOrScanner && currentPage !== 'backstage' && (
+      {!isAdminOrScanner && (
         <>
           <Navbar />
           <DesktopSidebar />
