@@ -93,7 +93,7 @@ export const HomeFeed: React.FC = () => {
 
   return (
     <div className="home-editorial w-full min-h-screen max-w-full overflow-x-clip bg-[#050505] pb-0 text-white">
-      <section id="home-upcoming-events" className="home-events w-full pt-5 sm:pt-7">
+      <section id="home-upcoming-events" className="home-events w-full pt-[calc(4.1rem+env(safe-area-inset-top,0px))] sm:pt-7">
         <div className="mb-3 flex items-center justify-between border-b border-white/15 px-4 pb-2.5 sm:px-7 lg:px-10">
           <h2 className="text-lg font-agrandir-extrabold uppercase tracking-[-0.025em] sm:text-2xl">ÉVÉNEMENTS</h2>
           <button type="button" onClick={handleViewAll} className="inline-flex min-h-9 items-center gap-2 text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em] text-white transition-opacity hover:opacity-65">
