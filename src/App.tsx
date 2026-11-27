@@ -17,6 +17,7 @@ import { LumareelMemberCardPage } from './components/LumareelMemberCardPage';
 import { CardVerificationView } from './components/CardVerificationView';
 import { RewardsHubView } from './components/RewardsHubView';
 import { BackstageView } from './components/BackstageView';
+import { MediaDetailView } from './components/MediaDetailView';
 import { ConcertMemoriesView } from './components/ConcertMemoriesView';
 import { SuggestionsView } from './components/SuggestionsView';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -118,7 +119,7 @@ const MainApp: React.FC = () => {
       <OfflineIndicator />
 
       {/* Top Navbar (Masquée sur le scanner et la console admin) */}
-      {!isAdminOrScanner && (
+      {!isAdminOrScanner && currentPage !== 'backstage' && (
         <>
           <Navbar />
           <DesktopSidebar />
@@ -167,6 +168,7 @@ const MainApp: React.FC = () => {
             {currentPage === 'card_verify' && <CardVerificationView />}
             {currentPage === 'rewards' && <RewardsHubView />}
             {currentPage === 'backstage' && <BackstageView />}
+            {currentPage === 'media_detail' && <MediaDetailView />}
             {currentPage === 'flash_drops' && <RewardsHubView initialTab="gifts" />}
             {currentPage === 'memories' && <ConcertMemoriesView />}
             {currentPage === 'suggestions' && <SuggestionsView />}
