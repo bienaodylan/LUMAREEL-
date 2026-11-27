@@ -150,7 +150,7 @@ export const Navbar: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 min-h-[44px]">
           {/* ZONE GAUCHE : Tiroir menu en haut à gauche (web mobile) + Retour effectif */}
           <div className="flex items-center gap-1.5 shrink-0">
-            {!isStandalone && (
+            {false && !isStandalone && (
               <button
                 type="button"
                 onClick={() => setDrawerOpen(true)}
@@ -246,7 +246,7 @@ export const Navbar: React.FC = () => {
 
       {/* Tiroir de navigation latéral GAUCHE pour navigateur web mobile (Safari / Chrome) */}
       <AnimatePresence>
-        {drawerOpen && !isStandalone && (
+        {false && drawerOpen && !isStandalone && (
           <div className="fixed inset-0 z-[70] md:hidden flex justify-start">
             <motion.div
               initial={{ opacity: 0 }}
