@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
-import { markChallengeCompleted } from '../utils/communityStorage';
 import {
   MediaHubItem,
   getPublishedMediaItems,
@@ -65,15 +64,6 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = ({ embedded = fal
   };
 
   const handleOpenMediaPage = (item: MediaHubItem) => {
-    const unlocked = markChallengeCompleted(currentUser, 'challenge_backstage');
-    if (unlocked) {
-      showToast(
-        isEn
-          ? 'Backstage challenge completed! +50 points earned.'
-          : 'Défi Backstage validé ! +50 points crédités.',
-        'success'
-      );
-    }
     setSelectedMediaId(item.id);
     setCurrentPage('media_detail');
   };
