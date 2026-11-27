@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import crypto from 'crypto';
+import { createHmac, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
   applyCors,
   getAuthenticatedUser,
@@ -71,7 +71,7 @@ function safeEqual(a: string, b: string): boolean {
   const bufA = Buffer.from(a);
   const bufB = Buffer.from(b);
   if (bufA.length !== bufB.length) return false;
-  return crypto.timingSafeEqual(bufA, bufB);
+  return timingSafeEqual(bufA, bufB);
 }
 
 function verifyPayMeTrustSignature(rawBody: string, signatureHeader: string, envName: string): boolean {
@@ -82,7 +82,7 @@ function verifyPayMeTrustSignature(rawBody: string, signatureHeader: string, env
   }
   if (!signatureHeader) return false;
   const cleaned = signatureHeader.replace(/^sha256=/i, '').trim();
-  const expected = crypto.createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+  const expected = createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
   return safeEqual(cleaned, expected);
 }
 
@@ -131,8 +131,8 @@ function buildPreviewCard(payload: any) {
   const cardholderPhone = String(payload?.customerPhone || payload?.phone || '').trim();
 
   return {
-    id: `card_${crypto.randomBytes(6).toString('hex')}`,
-    userId: payload?.userId || `usr_${crypto.randomBytes(6).toString('hex')}`,
+    id: `card_${randomBytes(6).toString('hex')}`,
+    userId: payload?.userId || `usr_${randomBytes(6).toString('hex')}`,
     editionId: 'ed_founders_2026',
     planId: payload?.planId || 'plan_founders_annual',
     cardNumber,
@@ -173,7 +173,7 @@ async function ensureSupabaseUserId(
     typeof providedUserId === 'string' &&
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(providedUserId);
 
-  const newId = isUuid ? providedUserId : crypto.randomUUID();
+  const newId = isUuid ? providedUserId : randomUUID();
   const { data: inserted } = await db
     .from('users')
     .upsert(
@@ -1035,10 +1035,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const reference =
         kind === 'membership_card'
-          ? `PMT-CARD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`
+          ? `PMT-CARD-${randomBytes(4).toString('hex').toUpperCase()}`
           : kind === 'tv_pass'
-          ? `PMT-TV-${crypto.randomBytes(4).toString('hex').toUpperCase()}`
-          : `PMT-${String(orderId || crypto.randomBytes(4).toString('hex')).toUpperCase()}`;
+          ? `PMT-TV-${randomBytes(4).toString('hex').toUpperCase()}`
+          : `PMT-${String(orderId || randomBytes(4).toString('hex')).toUpperCase()}`;
 
       if (kind === 'tv_pass' && db && authenticatedUser) {
         pendingTvReference = reference;
@@ -1155,7 +1155,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({
           success: true,
           transaction: {
-            id: `pmt_${crypto.randomBytes(6).toString('hex')}`,
+            id: `pmt_${randomBytes(6).toString('hex')}`,
             reference,
             status: 'PENDING',
             amount,
@@ -1171,7 +1171,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({
         success: true,
         transaction: {
-          id: `pmt_${crypto.randomBytes(6).toString('hex')}`,
+          id: `pmt_${randomBytes(6).toString('hex')}`,
           reference,
           status: 'INITIATED',
           amount,
@@ -1522,7 +1522,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       const { parsed: body } = parseJsonBody(req);
       const payload = route === 'confirm-preview' ? body.previewPayload || body : body;
-      const reference = String(body.reference || `PMT-CARD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`);
+      const reference = String(body.reference || `PMT-CARD-${randomBytes(4).toString('hex').toUpperCase()}`);
 
       const cleanEmail = String(payload?.customerEmail || payload?.email || '').trim().toLowerCase();
       const cleanName = String(payload?.customerName || payload?.fullName || 'MEMBRE LUMARÉEL').trim();
@@ -1811,9 +1811,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const cleanRecipientEmail = String(recipientEmail).trim().toLowerCase();
       const cleanRecipientName = String(recipientName).trim();
-      const newTicketId = `tkt_${crypto.randomBytes(6).toString('hex')}`;
-      const newToken = `LMR-TKT-${crypto.randomBytes(12).toString('hex').toUpperCase()}`;
-      const newSerial = `${ticket.serial_number}-TRF-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
+      const newTicketId = `tkt_${randomBytes(6).toString('hex')}`;
+      const newToken = `LMR-TKT-${randomBytes(12).toString('hex').toUpperCase()}`;
+      const newSerial = `${ticket.serial_number}-TRF-${randomBytes(2).toString('hex').toUpperCase()}`;
 
       // Révoquer l'ancien billet
       const { error: revokeErr } = await db
