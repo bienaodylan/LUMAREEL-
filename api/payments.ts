@@ -374,6 +374,53 @@ async function isAdminAuthorized(req: VercelRequest): Promise<boolean> {
   return roleCheck.ok;
 }
 
+async function activateTvPassSubscription(
+  db: SupabaseClient,
+  reference: string,
+  providerTransactionId: string
+) {
+  const { data: pending, error } = await db
+    .from('tv_subscriptions')
+    .select('*')
+    .eq('payment_reference', reference)
+    .maybeSingle();
+  if (error) throw error;
+  if (!pending) return null;
+  if (pending.status === 'active' && pending.expires_at) return pending;
+
+  const now = new Date();
+  let startAt = now;
+  if (pending.user_id) {
+    const { data: current } = await db
+      .from('tv_subscriptions')
+      .select('expires_at')
+      .eq('user_id', pending.user_id)
+      .eq('status', 'active')
+      .gt('expires_at', now.toISOString())
+      .neq('payment_reference', reference)
+      .order('expires_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (current?.expires_at) startAt = new Date(Math.max(now.getTime(), Date.parse(current.expires_at)));
+  }
+  const expiresAt = new Date(startAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const { data: activated, error: updateError } = await db
+    .from('tv_subscriptions')
+    .update({
+      status: 'active',
+      provider_transaction_id: providerTransactionId || reference,
+      auto_renew: false,
+      starts_at: startAt.toISOString(),
+      expires_at: expiresAt.toISOString(),
+      updated_at: now.toISOString(),
+    })
+    .eq('payment_reference', reference)
+    .select('*')
+    .single();
+  if (updateError) throw updateError;
+  return activated;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   applyCors(req, res, 'GET, POST, OPTIONS');
 
@@ -711,14 +758,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         userId,
       } = body;
 
-      if (kind === 'membership_card') {
+      let authenticatedUser: any = null;
+      if (kind === 'membership_card' || kind === 'tv_pass') {
         const auth = await getAuthenticatedUser(req);
         if (!auth?.user?.email || !auth.user.email_confirmed_at) {
-          return res.status(401).json({ success: false, error: 'Compte authentifié avec e-mail vérifié requis pour commander une carte.' });
+          return res.status(401).json({ success: false, error: 'Compte authentifié avec e-mail vérifié requis pour cet achat.' });
         }
         if (userId && userId !== auth.user.id) {
           return res.status(403).json({ success: false, error: 'Le compte de commande ne correspond pas à la session authentifiée.' });
         }
+        authenticatedUser = auth.user;
       }
 
       const cleanName = String(customerName || '').trim();
@@ -729,8 +778,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (kind === 'membership_card' && (!cleanName || !EMAIL_REGEX.test(cleanEmail))) {
         return res.status(400).json({ success: false, error: 'Nom complet et e-mail valide requis.' });
       }
+      if (kind === 'tv_pass' && (!authenticatedUser || cleanEmail !== String(authenticatedUser.email).toLowerCase())) {
+        return res.status(403).json({ success: false, error: 'Le pass TV doit être associé au compte connecté.' });
+      }
 
-      const amount = kind === 'membership_card' ? 50000 : Number(body.amount || 0);
+      let tvPlan: any = null;
+      if (kind === 'tv_pass') {
+        if (!db) return res.status(503).json({ success: false, error: 'Base de données TV indisponible.' });
+        const { data, error } = await db.from('tv_pass_plans').select('*').eq('id', String(planId)).eq('status', 'active').maybeSingle();
+        if (error) throw error;
+        if (!data) return res.status(400).json({ success: false, error: 'Cette formule mensuelle LUMARÉEL TV est indisponible.' });
+        tvPlan = data;
+      }
+
+      const amount = kind === 'membership_card' ? 50000 : kind === 'tv_pass' ? Number(tvPlan.price) : Number(body.amount || 0);
       if (amount <= 0) {
         return res.status(400).json({ success: false, error: 'Montant de paiement invalide.' });
       }
@@ -738,7 +799,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const reference =
         kind === 'membership_card'
           ? `PMT-CARD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`
+          : kind === 'tv_pass'
+          ? `PMT-TV-${crypto.randomBytes(4).toString('hex').toUpperCase()}`
           : `PMT-${String(orderId || crypto.randomBytes(4).toString('hex')).toUpperCase()}`;
+
+      if (kind === 'tv_pass' && db && authenticatedUser) {
+        const { error } = await db.from('tv_subscriptions').insert({
+          user_id: authenticatedUser.id,
+          user_email: cleanEmail,
+          user_name: cleanName || cleanEmail.split('@')[0],
+          plan_id: tvPlan.id,
+          plan_name: tvPlan.name,
+          status: 'pending_payment',
+          source: 'paymetrust',
+          payment_reference: reference,
+          amount_paid: Math.round(amount),
+          currency: tvPlan.currency || 'FCFA',
+          auto_renew: false,
+        });
+        if (error) throw error;
+      }
 
       // Persister la commande en attente dans Supabase avant redirection PayMeTrust
       if (db && kind === 'membership_card') {
@@ -810,6 +890,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             description:
               kind === 'membership_card'
                 ? 'LUMARÉEL Black Card — 3 Ans'
+                : kind === 'tv_pass'
+                ? 'LUMARÉEL TV Pass — 30 jours'
                 : String(body.description || 'Commande billets LUMARÉEL CO.'),
             channel: PAYMETRUST_CHANNEL_MAP[safeChannel] || 'WAVE_CI',
             customer: { name: cleanName || 'Client LUMARÉEL', email: cleanEmail, phone: cleanPhone },
@@ -907,7 +989,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-      // A. Webhook pour LUMARÉEL Black Card
+      // A. Webhook pour LUMARÉEL TV Pass (renouvellement manuel, 30 jours).
+      if (reference.toUpperCase().startsWith('PMT-TV-')) {
+        if (status === 'SUCCESS') {
+          const subscription = await activateTvPassSubscription(db, reference, providerTxId);
+          if (!subscription) return res.status(404).json({ success: false, error: 'Abonnement TV associé à ce paiement introuvable.' });
+        } else if (status === 'FAILED' || status === 'CANCELLED') {
+          await db.from('tv_subscriptions')
+            .update({ status: 'cancelled', auto_renew: false, updated_at: new Date().toISOString() })
+            .eq('payment_reference', reference)
+            .eq('status', 'pending_payment');
+        }
+        return res.status(200).json({ success: true, reference, status });
+      }
+
+      // B. Webhook pour LUMARÉEL Black Card
       if (reference.toUpperCase().startsWith('PMT-CARD-')) {
         const { data: orderRow } = await db
           .from('membership_orders')
@@ -1018,9 +1114,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const isCard = refParam.toUpperCase().startsWith('PMT-CARD-');
+    const isTvPass = refParam.toUpperCase().startsWith('PMT-TV-');
 
     if (db) {
-      if (isCard) {
+      if (isTvPass) {
+        const { data: subscription } = await db
+          .from('tv_subscriptions')
+          .select('*')
+          .eq('payment_reference', refParam)
+          .maybeSingle();
+        if (subscription?.status === 'active' && subscription.expires_at && Date.parse(subscription.expires_at) > Date.now()) {
+          return res.status(200).json({
+            success: true,
+            transaction: { reference: refParam, status: 'SUCCESS', paidAt: subscription.updated_at },
+            fulfillment: { kind: 'tv_pass', subscription: { id: subscription.id, expiresAt: subscription.expires_at } },
+          });
+        }
+      } else if (isCard) {
         const { data: orderRow } = await db
           .from('membership_orders')
           .select('*')
@@ -1046,7 +1156,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               : null,
           });
         }
-      } else {
+      } else if (!isTvPass) {
         const { data: orderRow } = await db
           .from('orders')
           .select('*')
@@ -1092,6 +1202,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           });
           const statusData = await statusRes.json().catch(() => ({}));
           const normalized = normalizePayMeTrustStatus(statusData?.status ?? statusData?.data?.status);
+
+          if (normalized === 'SUCCESS' && db && isTvPass) {
+            const subscription = await activateTvPassSubscription(db, refParam, statusData?.transaction_id || refParam);
+            return res.status(200).json({
+              success: true,
+              transaction: { reference: refParam, status: 'SUCCESS', paidAt: new Date().toISOString() },
+              fulfillment: subscription ? { kind: 'tv_pass', subscription: { id: subscription.id, expiresAt: subscription.expires_at } } : null,
+            });
+          }
+
+          if ((normalized === 'FAILED' || normalized === 'CANCELLED') && db && isTvPass) {
+            await db.from('tv_subscriptions')
+              .update({ status: 'cancelled', auto_renew: false, updated_at: new Date().toISOString() })
+              .eq('payment_reference', refParam)
+              .eq('status', 'pending_payment');
+          }
 
           if (normalized === 'SUCCESS' && db && isCard) {
             const { data: orderRow } = await db
