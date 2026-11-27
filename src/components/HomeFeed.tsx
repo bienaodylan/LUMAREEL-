@@ -228,7 +228,7 @@ export const HomeFeed: React.FC = () => {
                 <div
                   className={`aspect-[16/9] w-full rounded-2xl sm:rounded-3xl overflow-hidden relative transition-all duration-300 bg-[#111111] ${
                     isActive
-                      ? 'ring-2 sm:ring-[2.5px] ring-[#d4af37] ring-offset-2 ring-offset-black shadow-[0_10px_35px_rgba(0,0,0,0.9),0_0_25px_rgba(212,175,55,0.45)] scale-[1.01]'
+                      ? 'ring-2 sm:ring-[2.5px] ring-[#FFFFFF] ring-offset-2 ring-offset-black shadow-[0_10px_35px_rgba(0,0,0,0.9),0_0_25px_rgba(255, 255, 255, 0.45)] scale-[1.01]'
                       : 'border border-white/10 hover:border-white/30 opacity-90 hover:opacity-100 hover:scale-[1.01]'
                   }`}
                 >
@@ -309,20 +309,20 @@ export const HomeFeed: React.FC = () => {
                     type="button"
                     onClick={() => setCurrentPage(item.page)}
                     className={`flex items-center justify-between w-full min-h-[58px] p-3 rounded-none transition-colors cursor-pointer group ${
-                      item.isGold ? 'hover:bg-[#d4af37]/10' : 'hover:bg-white/5'
+                      item.isGold ? 'hover:bg-[#FFFFFF]/10' : 'hover:bg-white/5'
                     }`}
                   >
                     <div className="flex items-center gap-3.5 min-w-0 pr-3">
                       <div
                         className={`w-10 h-10 rounded-none flex items-center justify-center shrink-0 transition-all ${
                           item.isGold
-                            ? 'bg-[#d4af37]/15 border border-[#d4af37]/35 group-hover:bg-[#d4af37]/25'
+                            ? 'bg-[#FFFFFF]/15 border border-[#FFFFFF]/35 group-hover:bg-[#FFFFFF]/25'
                             : 'bg-transparent border-r border-white/15 group-hover:bg-white/5'
                         }`}
                       >
                         <Icon
                           className={`w-4 h-4 transition-colors ${
-                            item.isGold ? 'text-[#d4af37]' : 'text-[#aaa] group-hover:text-white'
+                            item.isGold ? 'text-[#FFFFFF]' : 'text-[#aaa] group-hover:text-white'
                           }`}
                         />
                       </div>
@@ -337,7 +337,7 @@ export const HomeFeed: React.FC = () => {
                     </div>
                     <ChevronRight
                       className={`w-4 h-4 shrink-0 transition-transform group-hover:translate-x-0.5 ${
-                        item.isGold ? 'text-[#d4af37]' : 'text-[#555] group-hover:text-white'
+                        item.isGold ? 'text-[#FFFFFF]' : 'text-[#555] group-hover:text-white'
                       }`}
                     />
                   </button>
