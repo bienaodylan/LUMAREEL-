@@ -626,6 +626,39 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
         </header>
       )}
 
+
+
+      {unified && (
+        <div className="mt-16 space-y-16 sm:mt-20 sm:space-y-20">
+          <section id="club-section-backstage" className="scroll-mt-8 border-t border-white/15 pt-8">
+            <div className="mb-6">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">UNIVERS 01</p>
+              <h2 className="mt-2 text-2xl font-agrandir-extrabold sm:text-3xl">BACKSTAGE</h2>
+              <p className="mt-2 max-w-2xl text-sm text-neutral-400">{isEn ? 'Exclusive content, preparations and moments from behind the scenes.' : 'Contenus exclusifs, préparatifs et instants dans les coulisses.'}</p>
+            </div>
+            <BackstageView embedded />
+          </section>
+
+          <section id="club-section-memories" className="scroll-mt-8 border-t border-white/15 pt-8">
+            <div className="mb-6">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">UNIVERS 02</p>
+              <h2 className="mt-2 text-2xl font-agrandir-extrabold sm:text-3xl">{isEn ? 'MY MOMENTS' : 'MES MOMENTS'}</h2>
+              <p className="mt-2 max-w-2xl text-sm text-neutral-400">{isEn ? 'Your personal collection of concert memories and experiences.' : 'Votre collection personnelle de souvenirs et d’expériences vécues.'}</p>
+            </div>
+            <ConcertMemoriesView embedded />
+          </section>
+
+          <section id="club-section-voice" className="scroll-mt-8 border-t border-white/15 pt-8">
+            <div className="mb-6">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">UNIVERS 03</p>
+              <h2 className="mt-2 text-2xl font-agrandir-extrabold sm:text-3xl">TA VOIX</h2>
+              <p className="mt-2 max-w-2xl text-sm text-neutral-400">{isEn ? 'Suggest the artists you would like to see on the LUMARÉEL stage.' : 'Proposez les artistes que vous aimeriez voir sur la scène LUMARÉEL.'}</p>
+            </div>
+            <SuggestionsView embedded />
+          </section>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
       <motion.div
         id="club-content"
@@ -1349,37 +1382,6 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
       )}
       </motion.div>
       </AnimatePresence>
-
-      {unified && (
-        <div className="mt-16 space-y-16 sm:mt-20 sm:space-y-20">
-          <section id="club-section-backstage" className="scroll-mt-8 border-t border-white/15 pt-8">
-            <div className="mb-6">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">UNIVERS 01</p>
-              <h2 className="mt-2 text-2xl font-agrandir-extrabold sm:text-3xl">BACKSTAGE</h2>
-              <p className="mt-2 max-w-2xl text-sm text-neutral-400">{isEn ? 'Exclusive content, preparations and moments from behind the scenes.' : 'Contenus exclusifs, préparatifs et instants dans les coulisses.'}</p>
-            </div>
-            <BackstageView embedded />
-          </section>
-
-          <section id="club-section-memories" className="scroll-mt-8 border-t border-white/15 pt-8">
-            <div className="mb-6">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">UNIVERS 02</p>
-              <h2 className="mt-2 text-2xl font-agrandir-extrabold sm:text-3xl">{isEn ? 'MY MOMENTS' : 'MES MOMENTS'}</h2>
-              <p className="mt-2 max-w-2xl text-sm text-neutral-400">{isEn ? 'Your personal collection of concert memories and experiences.' : 'Votre collection personnelle de souvenirs et d’expériences vécues.'}</p>
-            </div>
-            <ConcertMemoriesView embedded />
-          </section>
-
-          <section id="club-section-voice" className="scroll-mt-8 border-t border-white/15 pt-8">
-            <div className="mb-6">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">UNIVERS 03</p>
-              <h2 className="mt-2 text-2xl font-agrandir-extrabold sm:text-3xl">TA VOIX</h2>
-              <p className="mt-2 max-w-2xl text-sm text-neutral-400">{isEn ? 'Suggest the artists you would like to see on the LUMARÉEL stage.' : 'Proposez les artistes que vous aimeriez voir sur la scène LUMARÉEL.'}</p>
-            </div>
-            <SuggestionsView embedded />
-          </section>
-        </div>
-      )}
     </div>
   );
 };
