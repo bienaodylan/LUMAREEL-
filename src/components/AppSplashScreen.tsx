@@ -64,44 +64,27 @@ export const AppSplashScreen: React.FC<AppSplashScreenProps> = ({
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(212,175,106,0.13),transparent_58%)]"
       />
 
-      {/* Zone supérieure équilibrée */}
-      <div
-        className="relative z-10 w-full flex justify-center px-6"
-        style={{ paddingTop: 'max(2rem, env(safe-area-inset-top, 0px))' }}
-      >
-        <motion.span
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 0.7, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-[10px] font-agrandir-semibold uppercase tracking-[0.34em] text-[#9A9A9A]"
-        >
-          ABIDJAN · PARIS
-        </motion.span>
-      </div>
-
-      {/* Centre cinématique */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center">
+      {/* Centre : uniquement le logo officiel LUMARÉEL, bien centré */}
+      <div className="relative z-10 flex-1 flex items-center justify-center px-6">
         <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
+          initial={{ opacity: 0, scale: 0.94 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col items-center gap-4"
+          className="flex items-center justify-center"
         >
-          <span className="text-[10px] sm:text-[11px] font-agrandir-extrabold uppercase tracking-[0.36em] text-[#D4AF6A]">
-            LA LUMIÈRE AVANT LE SPECTACLE
-          </span>
-          <h1 className="font-agrandir-extrabold text-4xl sm:text-6xl tracking-[-0.03em] uppercase text-white leading-none">
-            LUMARÉEL
-          </h1>
+          <img
+            src="/assets/logo-lumareel.png"
+            alt="LUMARÉEL"
+            className="h-12 sm:h-16 w-auto max-w-[240px] sm:max-w-[300px] object-contain"
+          />
         </motion.div>
       </div>
 
-      {/* Bas de page : barre d'évolution + logo actuel LUMARÉEL */}
+      {/* Bas de page : barre d'évolution uniquement */}
       <div
-        className="relative z-10 w-full max-w-[300px] mx-auto px-6 flex flex-col items-center gap-5"
-        style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom, 0px))' }}
+        className="relative z-10 w-full max-w-[280px] mx-auto px-6 flex flex-col items-center"
+        style={{ paddingBottom: 'max(2.75rem, env(safe-area-inset-bottom, 0px))' }}
       >
-        {/* Barre d'évolution */}
         <div className="w-full space-y-2">
           <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-[0.18em] text-[#9A9A9A]">
             <span>Chargement</span>
@@ -114,20 +97,6 @@ export const AppSplashScreen: React.FC<AppSplashScreenProps> = ({
             />
           </div>
         </div>
-
-        {/* Logo actuel en bas */}
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-          className="flex flex-col items-center gap-2 pt-1"
-        >
-          <img
-            src={logoUrl || '/assets/logo-lumareel.png'}
-            alt="LUMARÉEL"
-            className="h-7 sm:h-8 w-auto object-contain"
-          />
-        </motion.div>
       </div>
     </motion.div>
   );
