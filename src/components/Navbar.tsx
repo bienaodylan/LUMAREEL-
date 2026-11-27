@@ -66,7 +66,7 @@ export const Navbar: React.FC = () => {
 
   const isEn = language === 'en';
   const isHome = currentPage === 'home' || currentPage === 'discover';
-  if (currentPage === 'backstage') return null;
+  if (currentPage === 'backstage' || currentPage === 'event_detail') return null;
   const isRootAppTab =
     isHome ||
     currentPage === 'client_space' ||
