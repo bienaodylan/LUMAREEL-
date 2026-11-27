@@ -1,7 +1,7 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
-import { ChevronLeft, ChevronRight, ArrowUpRight, CreditCard, Gift, Clapperboard, Camera, Mic2, Instagram, Facebook, Youtube } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowUpRight, CreditCard, Gift, Clapperboard, Camera, Mic2, Instagram, Facebook } from 'lucide-react';
 
 type QuickAccessItem = {
   id: string;
@@ -196,9 +196,9 @@ export const HomeFeed: React.FC = () => {
       <footer className="mx-auto mt-8 flex w-full max-w-6xl flex-col items-center gap-4 border-t border-white/10 px-5 py-7 text-center sm:flex-row sm:justify-between sm:px-10">
         <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">© {new Date().getFullYear()} LUMARÉEL</p>
         <div className="flex items-center gap-5 text-neutral-400">
-          <a href="https://www.instagram.com/lumareel/" target="_blank" rel="noreferrer" aria-label="Instagram LUMARÉEL" className="transition-colors hover:text-white"><Instagram className="h-5 w-5" /></a>
-          <a href="https://www.facebook.com/" target="_blank" rel="noreferrer" aria-label="Facebook" className="transition-colors hover:text-white"><Facebook className="h-5 w-5" /></a>
-          <a href="https://www.youtube.com/" target="_blank" rel="noreferrer" aria-label="YouTube" className="transition-colors hover:text-white"><Youtube className="h-5 w-5" /></a>
+          <a href="https://www.instagram.com/lumareelco/" target="_blank" rel="noreferrer" aria-label="Instagram LUMARÉEL" className="transition-colors hover:text-white"><Instagram className="h-5 w-5" /></a>
+          <a href="https://www.facebook.com/share/19oZK7vQvR/?mibextid=wwXIfr" target="_blank" rel="noreferrer" aria-label="Facebook LUMARÉEL" className="transition-colors hover:text-white"><Facebook className="h-5 w-5" /></a>
+          <a href="https://www.tiktok.com/@lumareelco" target="_blank" rel="noreferrer" aria-label="TikTok LUMARÉEL" className="text-[11px] font-agrandir-extrabold uppercase tracking-wider transition-colors hover:text-white">TikTok</a><a href="https://www.snapchat.com/add/lumareelco" target="_blank" rel="noreferrer" aria-label="Snapchat LUMARÉEL" className="text-[11px] font-agrandir-extrabold uppercase tracking-wider transition-colors hover:text-white">Snapchat</a>
         </div>
       </footer>
     </div>
