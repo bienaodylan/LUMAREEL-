@@ -174,38 +174,16 @@ class LumareelTvService {
         id: 'tv_pass_monthly',
         name: 'LUMARÉEL TV Pass · Mensuel',
         nameEn: 'LUMARÉEL TV Pass · Monthly',
-        description:
-          'Accès illimité aux LUMARÉEL Originals, concerts filmés, backstage, interviews et rétrospectives.',
-        descriptionEn:
-          'Unlimited access to LUMARÉEL Originals, filmed concerts, backstage, interviews, and retrospectives.',
+        description: 'Accès aux concerts filmés, LUMARÉEL Originals, coulisses, interviews et rétrospectives pendant 30 jours.',
+        descriptionEn: 'Access to filmed concerts, LUMARÉEL Originals, backstage, interviews and retrospectives for 30 days.',
         price: 3500,
         currency: 'FCFA',
         durationDays: 30,
         billingCycleLabel: 'Par mois',
         billingCycleLabelEn: 'Per month',
-        autoRenew: true,
-        renewalPolicy: 'Renouvellement mensuel résiliable à tout moment avant l’échéance.',
-        conditions: 'Accès personnel sur tous vos écrans · Sans carte physique requise.',
-        status: 'active',
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: 'tv_pass_annual',
-        name: 'LUMARÉEL TV Pass · Annuel',
-        nameEn: 'LUMARÉEL TV Pass · Annual',
-        description:
-          'Une année complète de streaming exclusif LUMARÉEL TV avec tarif préférentiel.',
-        descriptionEn:
-          'A full year of exclusive LUMARÉEL TV streaming at a preferential annual rate.',
-        price: 35000,
-        currency: 'FCFA',
-        durationDays: 365,
-        billingCycleLabel: 'Par an',
-        billingCycleLabelEn: 'Per year',
-        autoRenew: true,
-        renewalPolicy: 'Renouvellement annuel sur confirmation · Rappel envoyé avant échéance.',
-        conditions: '2 mois offerts par rapport au pass mensuel · Sans engagement après période.',
+        autoRenew: false,
+        renewalPolicy: 'Renouvellement manuel à chaque échéance. Aucun prélèvement automatique.',
+        conditions: 'Accès personnel pendant 30 jours après confirmation du paiement.',
         status: 'active',
         createdAt: now,
         updatedAt: now,
@@ -237,7 +215,7 @@ class LumareelTvService {
     const now = new Date().toISOString();
     const existing = input.id ? this.plans.get(input.id) : undefined;
     const safePrice = Math.max(0, Math.round(Number(input.price) || 0));
-    const safeDuration = Math.max(1, Math.round(Number(input.durationDays) || 30));
+    const safeDuration = 30;
 
     const plan: TvPassPlan = {
       id: existing?.id || input.id || `tv_pass_${crypto.randomBytes(4).toString('hex')}`,
@@ -253,17 +231,17 @@ class LumareelTvService {
       billingCycleLabel: String(
         input.billingCycleLabel ||
           existing?.billingCycleLabel ||
-          (safeDuration >= 360 ? 'Par an' : safeDuration >= 85 ? 'Par trimestre' : 'Par mois')
+          'Par mois'
       ).trim(),
       billingCycleLabelEn:
         input.billingCycleLabelEn ||
         existing?.billingCycleLabelEn ||
-        (safeDuration >= 360 ? 'Per year' : safeDuration >= 85 ? 'Per quarter' : 'Per month'),
-      autoRenew: Boolean(input.autoRenew ?? existing?.autoRenew ?? true),
+        'Per month',
+      autoRenew: false,
       renewalPolicy: String(
         input.renewalPolicy ??
           existing?.renewalPolicy ??
-          'Renouvelable à l’échéance selon les conditions en vigueur.'
+          'Renouvellement manuel à chaque échéance. Aucun prélèvement automatique.'
       ).trim(),
       conditions: String(
         input.conditions ??
