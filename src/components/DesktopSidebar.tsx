@@ -1,19 +1,21 @@
 import React from 'react';
 import { useApp, PageView } from '../context/AppContext';
-import { CreditCard, Home, Compass, Ticket, UserRound } from 'lucide-react';
+import { Home, Ticket, Clapperboard, UserRound } from 'lucide-react';
 
-/** Navigation desktop courte ; Explorer ouvre une destination dédiée. */
+/** Navigation desktop courte : quatre espaces principaux, sans perdre les fonctions secondaires. */
 export const DesktopSidebar: React.FC = () => {
   const { currentPage, setCurrentPage, platformSettings, language, setLanguage, t } = useApp();
   if (['splash', 'gate_scanner', 'admin'].includes(currentPage)) return null;
+  const backstagePages: PageView[] = ['backstage', 'memories'];
+  const accountPages: PageView[] = ['profile', 'member_card', 'card', 'rewards', 'suggestions', 'flash_drops'];
+  const explorePages: PageView[] = ['explore', 'archive', 'news', 'organizers'];
   const items = [
-    { label: t('nav.home'), page: 'home' as PageView, icon: Home },
+    { label: language === 'en' ? 'Discover' : 'Découvrir', page: 'home' as PageView, icon: Home },
     { label: t('nav.orders'), page: 'client_space' as PageView, icon: Ticket },
-    { label: language === 'en' ? 'Explore' : 'Explorer', page: 'explore' as PageView, icon: Compass },
-    { label: 'LUMARÉEL Black Card', page: 'member_card' as PageView, icon: CreditCard },
-    { label: t('nav.account'), page: 'profile' as PageView, icon: UserRound },
+    { label: 'BACKSTAGE', page: 'backstage' as PageView, icon: Clapperboard },
+    { label: language === 'en' ? 'My space' : 'Mon espace', page: 'profile' as PageView, icon: UserRound },
   ];
-  const activeFor = (page: PageView) => currentPage === page || (page === 'home' && currentPage === 'discover') || (page === 'member_card' && currentPage === 'card') || (page === 'explore' && ['rewards','backstage','flash_drops','memories','suggestions','archive','news'].includes(currentPage));
+  const activeFor = (page: PageView) => currentPage === page || (page === 'home' && (currentPage === 'discover' || explorePages.includes(currentPage))) || (page === 'backstage' && backstagePages.includes(currentPage)) || (page === 'profile' && accountPages.includes(currentPage));
   return <aside className="fixed inset-y-0 left-0 z-40 hidden w-[232px] flex-col border-r border-white/[.08] bg-[#080808] px-4 pb-5 pt-7 text-white md:flex">
     <button type="button" onClick={() => setCurrentPage('home')} aria-label={`LUMARÉEL ${t('nav.home')}`} className="mb-10 flex h-10 shrink-0 items-center px-2"><img src="/assets/logo-lumareel.png" alt={platformSettings.platformName || 'LUMARÉEL'} className="h-7 w-auto object-contain"/></button>
     <nav className="space-y-1">{items.map(({label,page,icon:Icon}) => { const active=activeFor(page); return <button key={page} type="button" onClick={() => setCurrentPage(page)} aria-current={active ? 'page' : undefined} className={`group flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[13px] transition-colors ${active ? 'bg-white/[.08] font-semibold text-white' : 'text-neutral-400 hover:bg-white/[.05] hover:text-white'}`}><Icon size={19} strokeWidth={active ? 2.3 : 1.8} className={active ? 'text-[#D4AF37]' : ''}/><span className="min-w-0 flex-1 truncate">{label}</span>{active && <span className="h-1.5 w-1.5 rounded-full bg-[#D4AF37]"/>}</button>; })}</nav>
