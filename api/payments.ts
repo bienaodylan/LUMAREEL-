@@ -781,7 +781,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ==========================================================================
   if (route === 'tv-plans') {
     if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Méthode non autorisée.' });
-    if (!db) return res.status(503).json({ success: false, error: 'Service TV temporairement indisponible.' });
+    if (!db) {
+      return res.status(200).json({
+        success: true,
+        plans: [{
+          id: 'tv_pass_monthly',
+          name: 'LUMARÉEL TV Pass · Mensuel',
+          nameEn: 'LUMARÉEL TV Pass · Monthly',
+          description: 'Accès aux concerts filmés, coulisses, interviews et programmes exclusifs pendant 30 jours.',
+          descriptionEn: 'Access to filmed concerts, backstage, interviews and exclusive programmes for 30 days.',
+          price: 3500,
+          currency: 'FCFA',
+          durationDays: 30,
+          billingCycleLabel: 'Par mois',
+          billingCycleLabelEn: 'Per month',
+          autoRenew: false,
+          renewalPolicy: 'Renouvellement manuel à chaque échéance. Aucun prélèvement automatique.',
+          conditions: 'Accès personnel pendant 30 jours après confirmation du paiement.',
+          status: 'active',
+        }],
+        cardEligibility: { enabledPlanIds: [], blackCardIncludesVipTier: true, cardAccessEnabled: true },
+        paymentReady: false,
+        paymentProvider: 'paymetrust',
+        paymentEnvironment: envName,
+        channels: [
+          { id: 'wave', label: 'Wave', type: 'mobile_money' },
+          { id: 'orange_money', label: 'Orange Money', type: 'mobile_money' },
+          { id: 'mtn_momo', label: 'MTN MoMo', type: 'mobile_money' },
+          { id: 'moov_money', label: 'Moov Money', type: 'mobile_money' },
+          { id: 'card', label: 'Visa / Mastercard', type: 'card' },
+        ],
+      });
+    }
     try {
       const [{ data: plans, error }, { data: eligibility }] = await Promise.all([
         db.from('tv_pass_plans').select('*').eq('status', 'active').order('price', { ascending: true }),
@@ -811,7 +842,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (route === 'tv-entitlement') {
     if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Méthode non autorisée.' });
-    if (!db) return res.status(503).json({ success: false, error: 'Service TV temporairement indisponible.' });
+    if (!db) {
+      return res.status(200).json({
+        success: true,
+        entitlement: {
+          hasAccess: false, source: 'none', maxTier: 'free',
+          cardAccess: { eligible: false, reason: 'Vérification des droits indisponible.' },
+          subscriptionAccess: { active: false, autoRenew: false, reason: 'Connexion à la base TV en attente.' },
+          checkedAt: new Date().toISOString(),
+        },
+        paymentReady: false,
+      });
+    }
     const auth = await getAuthenticatedUser(req);
     if (!auth?.user?.id || !auth.user.email) return res.status(401).json({ success: false, error: 'Connexion requise.' });
     try {
