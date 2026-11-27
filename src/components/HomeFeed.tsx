@@ -1,15 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
 import { ChevronLeft, ChevronRight, ArrowUpRight, CreditCard, Gift, Clapperboard, Camera, Mic2, Instagram, Facebook } from 'lucide-react';
-
-type QuickAccessItem = {
-  id: string;
-  title: string;
-  page: 'member_card' | 'backstage' | 'memories' | 'suggestions' | 'flash_drops';
-  image: string;
-  position?: string;
-};
 
 const getEventTimestamp = (event: ConcertEvent) => {
   const rawDate = String(event.date || '').slice(0, 10);
@@ -17,31 +9,6 @@ const getEventTimestamp = (event: ConcertEvent) => {
   const normalizedTime = /^\d{2}:\d{2}$/.test(rawTime) ? rawTime : rawTime.slice(0, 5);
   const timestamp = new Date(`${rawDate}T${normalizedTime}:00`).getTime();
   return Number.isFinite(timestamp) ? timestamp : new Date(rawDate).getTime();
-};
-
-const EventCountdown: React.FC<{ event: ConcertEvent }> = ({ event }) => {
-  const target = useMemo(() => getEventTimestamp(event), [event.date, event.time]);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  if (!Number.isFinite(target) || target <= now) return null;
-  const remaining = Math.floor((target - now) / 1000);
-  const days = Math.floor(remaining / 86400);
-  const hours = Math.floor((remaining % 86400) / 3600);
-  const minutes = Math.floor((remaining % 3600) / 60);
-  const seconds = remaining % 60;
-  const pad = (value: number) => String(value).padStart(2, '0');
-
-  return (
-    <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 bg-black/45 px-2.5 py-1.5 text-[10px] font-agrandir-semibold tracking-[0.08em] text-white backdrop-blur-sm sm:right-5 sm:top-5 sm:text-xs" aria-label="Compte à rebours avant le concert">
-      {days > 0 && <span>{days}J</span>}
-      <span>{pad(hours)}H</span><span>{pad(minutes)}M</span><span>{pad(seconds)}S</span>
-    </div>
-  );
 };
 
 export const HomeFeed: React.FC = () => {
