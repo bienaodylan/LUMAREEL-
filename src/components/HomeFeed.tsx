@@ -3,18 +3,14 @@ import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
 import {
   Award,
-  Camera,
   ChevronLeft,
   ChevronRight,
-  Clapperboard,
-  Crown,
   Image as ImageIcon,
   Lightbulb,
   Newspaper,
   Play,
   Ticket,
   User,
-  Zap,
 } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
 
