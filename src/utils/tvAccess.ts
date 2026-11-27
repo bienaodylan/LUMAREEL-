@@ -88,12 +88,42 @@ async function getSupabaseAccessToken(): Promise<string | null> {
   }
 }
 
+const FALLBACK_TV_PLANS_RESPONSE: TvPlansResponse = {
+  plans: [{
+    id: 'tv_pass_monthly',
+    name: 'LUMARÉEL TV Pass · Mensuel',
+    nameEn: 'LUMARÉEL TV Pass · Monthly',
+    description: 'Accès aux concerts filmés, coulisses, interviews et programmes exclusifs pendant 30 jours.',
+    descriptionEn: 'Access to filmed concerts, backstage, interviews and exclusive programmes for 30 days.',
+    price: 3500,
+    currency: 'FCFA',
+    durationDays: 30,
+    billingCycleLabel: 'Par mois',
+    billingCycleLabelEn: 'Per month',
+    autoRenew: false,
+    renewalPolicy: 'Renouvellement manuel à chaque échéance. Aucun prélèvement automatique.',
+    conditions: 'Accès personnel pendant 30 jours après confirmation du paiement.',
+    status: 'active',
+  }],
+  cardEligibility: { enabledPlanIds: [], blackCardIncludesVipTier: true, cardAccessEnabled: true },
+  paymentReady: false,
+  paymentProvider: 'paymetrust',
+  paymentEnvironment: 'sandbox',
+  channels: [
+    { id: 'wave', label: 'Wave', type: 'mobile_money' },
+    { id: 'orange_money', label: 'Orange Money', type: 'mobile_money' },
+    { id: 'mtn_momo', label: 'MTN MoMo', type: 'mobile_money' },
+    { id: 'moov_money', label: 'Moov Money', type: 'mobile_money' },
+    { id: 'card', label: 'Visa / Mastercard', type: 'card' },
+  ],
+};
+
 export async function fetchTvPlans(): Promise<TvPlansResponse | null> {
   try {
     const res = await fetch('/api/tv/plans');
-    if (!res.ok) return null;
+    if (!res.ok) return FALLBACK_TV_PLANS_RESPONSE;
     const data = await res.json();
-    if (!data?.success) return null;
+    if (!data?.success || !Array.isArray(data.plans) || data.plans.length === 0) return FALLBACK_TV_PLANS_RESPONSE;
     return {
       plans: Array.isArray(data.plans) ? data.plans : [],
       cardEligibility: data.cardEligibility || {
@@ -107,7 +137,7 @@ export async function fetchTvPlans(): Promise<TvPlansResponse | null> {
       channels: Array.isArray(data.channels) ? data.channels : [],
     };
   } catch {
-    return null;
+    return FALLBACK_TV_PLANS_RESPONSE;
   }
 }
 
