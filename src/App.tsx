@@ -59,6 +59,8 @@ const MainApp: React.FC = () => {
     };
 
     if (paymentStatus === 'cancelled') {
+      // Ask the server to reconcile the provider's final state; never activate from the return URL alone.
+      fetch(`/api/payments/paymetrust/verify/${encodeURIComponent(ref)}`).catch(() => undefined);
       showToast(
         language === 'en'
           ? 'PayMeTrust payment was cancelled.'
