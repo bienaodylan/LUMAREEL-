@@ -81,7 +81,7 @@ export const AdminLumareelTvSubscriptionsPanel: React.FC<
   const [planDescription, setPlanDescription] = useState('');
   const [planRenewalPolicy, setPlanRenewalPolicy] = useState('');
   const [planConditions, setPlanConditions] = useState('');
-  const [planAutoRenew, setPlanAutoRenew] = useState(true);
+  const [planAutoRenew, setPlanAutoRenew] = useState(false);
   const [planStatus, setPlanStatus] = useState<'active' | 'inactive' | 'archived'>('active');
   const [showPlanForm, setShowPlanForm] = useState(false);
 
@@ -138,9 +138,9 @@ export const AdminLumareelTvSubscriptionsPanel: React.FC<
       setPlanDays('30');
       setPlanBillingLabel('Par mois');
       setPlanDescription('');
-      setPlanRenewalPolicy('Renouvellement mensuel résiliable à tout moment.');
+      setPlanRenewalPolicy('Renouvellement manuel à chaque échéance. Aucun prélèvement automatique.');
       setPlanConditions('Accès personnel LUMARÉEL TV sans carte physique.');
-      setPlanAutoRenew(true);
+      setPlanAutoRenew(false);
       setPlanStatus('active');
     }
     setShowPlanForm(true);
@@ -163,7 +163,7 @@ export const AdminLumareelTvSubscriptionsPanel: React.FC<
           description: planDescription,
           renewalPolicy: planRenewalPolicy,
           conditions: planConditions,
-          autoRenew: planAutoRenew,
+          autoRenew: false,
           status: planStatus,
         }),
       });
@@ -349,26 +349,9 @@ export const AdminLumareelTvSubscriptionsPanel: React.FC<
                   className="w-full min-h-[38px] px-3 rounded-lg bg-[#1A1A1A] border border-white/[0.12] text-xs text-white font-mono"
                 />
               </div>
-              <div>
-                <label className="block text-[11px] text-neutral-400 mb-1">Durée (jours) *</label>
-                <input
-                  type="number"
-                  min={1}
-                  required
-                  value={planDays}
-                  onChange={(e) => setPlanDays(e.target.value)}
-                  className="w-full min-h-[38px] px-3 rounded-lg bg-[#1A1A1A] border border-white/[0.12] text-xs text-white font-mono"
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] text-neutral-400 mb-1">Libellé cycle</label>
-                <input
-                  type="text"
-                  value={planBillingLabel}
-                  onChange={(e) => setPlanBillingLabel(e.target.value)}
-                  placeholder="Par mois / Par an"
-                  className="w-full min-h-[38px] px-3 rounded-lg bg-[#1A1A1A] border border-white/[0.12] text-xs text-white"
-                />
+              <div className="rounded-lg border border-white/[0.10] bg-[#1A1A1A] px-3 py-2.5">
+                <label className="block text-[11px] text-neutral-400 mb-1">Durée fixe</label>
+                <p className="text-xs font-mono text-white">30 jours · Mensuel</p>
               </div>
               <div>
                 <label className="block text-[11px] text-neutral-400 mb-1">Statut</label>
@@ -382,17 +365,7 @@ export const AdminLumareelTvSubscriptionsPanel: React.FC<
                   <option value="archived">Archivée</option>
                 </select>
               </div>
-              <div className="flex items-end pb-2">
-                <label className="inline-flex items-center gap-2 text-xs text-neutral-200 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={planAutoRenew}
-                    onChange={(e) => setPlanAutoRenew(e.target.checked)}
-                    className="accent-[#D4AF6A]"
-                  />
-                  <span>Renouvellement activé</span>
-                </label>
-              </div>
+              <div className="flex items-end pb-2 text-[11px] text-[#D4AF6A]">Renouvellement manuel obligatoire</div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
