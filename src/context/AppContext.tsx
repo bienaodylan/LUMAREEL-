@@ -202,6 +202,7 @@ function mapDbRowToArchive(row: any): ArchiveProduction {
     photos: Array.isArray(row.photos) ? row.photos : [],
     isPublished: Boolean(row.is_published ?? row.isPublished ?? true),
     orderIndex: row.order_index ?? row.orderIndex ?? 1,
+    isDemo: Boolean(row.is_demo ?? row.isDemo ?? false),
   };
 }
 
@@ -223,6 +224,7 @@ function mapArchiveToDbRow(arch: ArchiveProduction): any {
     photos: arch.photos || [],
     is_published: arch.isPublished,
     order_index: arch.orderIndex,
+    is_demo: Boolean(arch.isDemo),
     updated_at: new Date().toISOString(),
   };
 }
