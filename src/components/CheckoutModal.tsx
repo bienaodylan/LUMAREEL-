@@ -139,7 +139,6 @@ export const CheckoutModal: React.FC = () => {
     refreshCustomerOrders,
     refreshEvents,
     setCurrentPage,
-    goBack,
     addLocalOrder,
     setIsAuthModalOpen,
     language,
@@ -250,12 +249,6 @@ export const CheckoutModal: React.FC = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [checkoutEvent, step]);
-
-  useEffect(() => {
-    if (!checkoutEvent) {
-      goBack();
-    }
-  }, [checkoutEvent, goBack]);
 
   if (!checkoutEvent) return null;
 
@@ -552,7 +545,6 @@ export const CheckoutModal: React.FC = () => {
 
   const handleClose = () => {
     resetCheckoutState();
-    goBack();
   };
 
   const handleStepBack = () => {
@@ -583,7 +575,11 @@ export const CheckoutModal: React.FC = () => {
     COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode) || COUNTRIES_CATALOG[0];
 
   return (
-    <div className="min-h-screen w-full bg-black text-white flex flex-col font-agrandir-regular">
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-[90] overflow-y-auto overscroll-contain w-full bg-black text-white flex flex-col font-agrandir-regular"
+    >
       {/* ========================================================================= */}
       {/* EN-TÊTE PLEINE PAGE AVEC BOUTON RETOUR & RAIL D'ÉTAPES                    */}
       {/* ========================================================================= */}

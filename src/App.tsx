@@ -26,7 +26,7 @@ import { saveStoredMemberCard } from './utils/memberCardStorage';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const MainApp: React.FC = () => {
-  const { currentPage, setCurrentPage, toast, showToast, refreshCustomerOrders, refreshEvents, language } = useApp();
+  const { currentPage, setCurrentPage, checkoutEvent, setCheckoutEvent, toast, showToast, refreshCustomerOrders, refreshEvents, language } = useApp();
   const { isStandalone } = usePWAInstall();
 
   // Vérification automatique au retour de la page de paiement PayMeTrust (?payment_status=...&ref=PMT-...)
@@ -102,6 +102,21 @@ const MainApp: React.FC = () => {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     }
   }, [currentPage]);
+
+  // Le tunnel d'achat ne vit que pendant l'action « Acheter un ticket » : on le ferme dès qu'on change de page
+  useEffect(() => {
+    setCheckoutEvent(null);
+  }, [currentPage, setCheckoutEvent]);
+
+  // Bloque le défilement de la page en arrière-plan quand le tunnel d'achat est ouvert
+  useEffect(() => {
+    if (typeof document === 'undefined' || !checkoutEvent) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [checkoutEvent]);
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
   const isHomePage = currentPage === 'home' || currentPage === 'discover';

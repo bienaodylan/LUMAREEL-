@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ClubExplorer } from './ClubExplorer';
 import {
   COMMUNITY_MEDIA,
   ClaimedFlashOffer,
@@ -595,72 +597,25 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
 
   return (
     <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
-      {/* En-tête éditorial */}
-      <header className="mb-8 pb-6 border-b border-white/10">
-        <p className="text-xs tracking-[0.2em] text-[#D4AF37] uppercase mb-2">
-          {isEn ? 'LUMARÉEL Club · Gifts, Loyalty & Referrals' : 'Club LUMARÉEL · Cadeaux, Fidélité & Parrainage'}
-        </p>
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-          <div className="max-w-2xl">
-            <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-tight text-white leading-[1.02] text-balance">
-              {isEn ? 'Gifts, Points & Referrals' : 'Gifts, Points & Parrainage'}
-            </h1>
-            <p className="text-sm sm:text-base text-neutral-400 mt-3 leading-relaxed">
-              {isEn
-                ? 'Unlock daily surprises and flash drops, collect loyalty points on every show, and earn 500 FCFA for each friend you invite.'
-                : 'Débloquez vos surprises du jour et ventes flash, cumulez des points à chaque concert et gagnez 500 F CFA par ami parrainé.'}
-            </p>
-          </div>
+      <ClubExplorer
+        isEn={isEn}
+        points={summary.availablePoints}
+        creditFcfa={summary.ticketingCreditFcfa}
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        onOpenPage={(page) => setCurrentPage(page)}
+      />
 
-          {/* Solde principal chiffré */}
-          <div className="flex flex-wrap items-center gap-6 sm:gap-8 shrink-0">
-            <div>
-              <div className="text-xs text-neutral-400">
-                {isEn ? 'Available balance' : 'Solde disponible'}
-              </div>
-              <div className="text-3xl sm:text-4xl font-agrandir-extrabold text-[#D4AF37] tabular-nums leading-tight mt-0.5">
-                {summary.availablePoints.toLocaleString('fr-FR')}{' '}
-                <span className="text-base text-neutral-300 font-agrandir-semibold">pts</span>
-              </div>
-            </div>
-            <div className="h-10 w-px bg-white/10 hidden sm:block" />
-            <div>
-              <div className="text-xs text-neutral-400">
-                {isEn ? 'Ticketing credit' : 'Crédit billetterie'}
-              </div>
-              <div className="text-2xl sm:text-3xl font-agrandir-extrabold text-white tabular-nums leading-tight mt-0.5">
-                {summary.ticketingCreditFcfa.toLocaleString('fr-FR')}{' '}
-                <span className="text-sm text-neutral-400">F CFA</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Navigation par onglets fonctionnels */}
-      <div className="flex items-center gap-1 p-1 rounded-2xl bg-[#111111] border border-white/10 w-full sm:w-fit mb-8 overflow-x-auto">
-        {[
-          { id: 'gifts' as const, labelFr: 'Gifts & Ventes Flash', labelEn: 'Gifts & Flash Sales' },
-          { id: 'points' as const, labelFr: 'Points & Défis', labelEn: 'Points & Challenges' },
-          { id: 'exchange' as const, labelFr: 'Échanger', labelEn: 'Redeem' },
-          { id: 'referral' as const, labelFr: 'Parrainage · 500 F CFA', labelEn: 'Referrals · 500 FCFA' },
-        ].map((tab) => {
-          const active = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-agrandir-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                active ? 'bg-white text-black' : 'text-neutral-400 hover:text-white'
-              }`}
-            >
-              {isEn ? tab.labelEn : tab.labelFr}
-            </button>
-          );
-        })}
-      </div>
-
+      <AnimatePresence mode="wait">
+      <motion.div
+        id="club-content"
+        key={activeTab}
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -12 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="scroll-mt-24"
+      >
       {/* ===================================================================== */}
       {/* ONGLET 1 : GIFTS SURPRISES & VENTES FLASH                             */}
       {/* ===================================================================== */}
@@ -1372,6 +1327,8 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
           </div>
         </div>
       )}
+      </motion.div>
+      </AnimatePresence>
     </div>
   );
 };
