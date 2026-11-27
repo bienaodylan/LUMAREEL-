@@ -132,7 +132,7 @@ function mergePublicArchives(
 /**
  * ARCHIVES LUMARÉEL — Page souvenirs par concert & index des événements passés.
  */
-export const ArchiveView: React.FC = () => {
+export const ArchiveView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const {
     archives,
     customerOrders,
@@ -1368,18 +1368,18 @@ export const ArchiveView: React.FC = () => {
   // =========================================================================
   return (
     <div
-      className="min-h-screen w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pb-24 bg-black text-white font-agrandir-regular"
+      className={`${embedded ? 'w-full' : 'min-h-screen'} w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pb-24 bg-black text-white font-agrandir-regular`}
       style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
     >
       <div className="mb-7 space-y-4">
-        <button
+        {!embedded && <button
           type="button"
-          onClick={() => setCurrentPage('explore')}
+          onClick={() => setCurrentPage('home')}
           className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
-          <span>Discover</span>
-        </button>
+          <span>Retour</span>
+        </button>}
 
         <header className="space-y-1.5">
           <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#D4AF6A]">
