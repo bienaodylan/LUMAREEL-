@@ -59,138 +59,15 @@ interface FlashOffer {
   codePrefix: string;
 }
 
-const FLASH_OFFERS: FlashOffer[] = [
-  {
-    id: 'flash_duo_vip',
-    titleFr: 'Pack Duo VIP — Vente Flash 24h',
-    titleEn: 'VIP Duo Pack — 24h Flash Sale',
-    descFr: 'Deux accès VIP avec entrée prioritaire et accès lounge pour le prochain concert LUMARÉEL.',
-    descEn: 'Two VIP passes with priority gate access and lounge entry for the next LUMARÉEL show.',
-    discountLabelFr: '-25 % Vente Flash',
-    discountLabelEn: '25% Off Flash Drop',
-    originalPrice: 60000,
-    flashPrice: 45000,
-    remaining: 9,
-    total: 30,
-    endsInSeconds: 5 * 3600 + 42 * 60,
-    image: COMMUNITY_MEDIA.flashVipDropImg,
-    codePrefix: 'FLASHVIP',
-  },
-  {
-    id: 'flash_early_fosse',
-    titleFr: 'Quota Fosse Éclair',
-    titleEn: 'Lightning Floor Quota',
-    descFr: 'Série limitée de billets standard à tarif préférentiel avant la clôture de la fenêtre flash.',
-    descEn: 'Limited drop of standard floor tickets at a reduced rate before the flash window closes.',
-    discountLabelFr: '-30 % Éclair',
-    discountLabelEn: '30% Off Drop',
-    originalPrice: 15000,
-    flashPrice: 10500,
-    remaining: 14,
-    total: 50,
-    endsInSeconds: 2 * 3600 + 18 * 60,
-    image: COMMUNITY_MEDIA.concertMemoriesCrowdImg,
-    codePrefix: 'FLASHSTD',
-  },
-  {
-    id: 'flash_partner_table',
-    titleFr: 'Avantage Partenaire — Lounge & Boisson Offerte',
-    titleEn: 'Partner Perk — Lounge & Complimentary Drink',
-    descFr: 'Bon flash valable chez nos lieux partenaires d’Abidjan avant ou après le concert.',
-    descEn: 'Flash voucher redeemable at our Abidjan partner lounges before or after the concert.',
-    discountLabelFr: 'Offre Partenaire',
-    discountLabelEn: 'Partner Offer',
-    originalPrice: 12000,
-    flashPrice: 6000,
-    remaining: 18,
-    total: 40,
-    endsInSeconds: 9 * 3600 + 10 * 60,
-    image: COMMUNITY_MEDIA.vipMezzanineImg,
-    codePrefix: 'FLASHLOUNGE',
-  },
-];
-
-const SURPRISE_POOL = [
-  {
-    points: 75,
-    titleFr: 'Bonus surprise +75 points fidélité',
-    titleEn: 'Surprise bonus +75 loyalty points',
-    detailFr: 'Crédités directement sur votre solde LUMARÉEL.',
-    detailEn: 'Credited straight to your LUMARÉEL balance.',
-  },
-  {
-    points: 100,
-    titleFr: 'Bonus surprise +100 points + Boisson partenaire',
-    titleEn: 'Surprise +100 points + Partner drink pass',
-    detailFr: 'Code valable au bar partenaire lors de votre prochain concert.',
-    detailEn: 'Code redeemable at the partner bar during your next show.',
-  },
-  {
-    points: 50,
-    titleFr: 'Code surprise -15 % billetterie + 50 points',
-    titleEn: 'Surprise 15% ticket code + 50 points',
-    detailFr: 'Utilisable sur votre prochaine commande standard ou VIP.',
-    detailEn: 'Valid on your next standard or VIP order.',
-  },
-];
-
-const REWARDS_CATALOG: RewardCatalogItem[] = [
-  {
-    id: 'rew_free_ticket',
-    category: 'free_ticket',
-    pointsCost: 600,
-    titleFr: 'Billet de concert gratuit',
-    titleEn: 'Free concert ticket',
-    descFr: 'Valable sur une place Standard pour le prochain concert LUMARÉEL de votre choix.',
-    descEn: 'Redeemable for a Standard seat on your next LUMARÉEL concert.',
-    tagFr: 'Billetterie',
-    tagEn: 'Ticketing',
-  },
-  {
-    id: 'rew_backstage_exp',
-    category: 'backstage_exp',
-    pointsCost: 900,
-    titleFr: 'Expérience en coulisses',
-    titleEn: 'Backstage soundcheck experience',
-    descFr: 'Accès privilégié aux balances avant l’ouverture des portes et visite guidée de la régie.',
-    descEn: 'Private access to pre-show soundcheck and guided stage production tour.',
-    tagFr: 'Coulisses',
-    tagEn: 'Backstage',
-  },
-  {
-    id: 'rew_private_invite',
-    category: 'private_invite',
-    pointsCost: 1200,
-    titleFr: 'Invitation à un événement privé',
-    titleEn: 'Private event invitation',
-    descFr: 'Accès nominatif pour une session acoustique secrète ou un dîner privé LUMARÉEL.',
-    descEn: 'Personal invitation to a secret acoustic session or private LUMARÉEL gathering.',
-    tagFr: 'Événement privé',
-    tagEn: 'Private event',
-  },
-  {
-    id: 'rew_partner_discount',
-    category: 'partner_discount',
-    pointsCost: 350,
-    titleFr: 'Réduction supplémentaire chez nos partenaires',
-    titleEn: 'Extra partner discount',
-    descFr: 'Bon de -20 % cumulable chez nos restaurants, lounges et maisons partenaires à Abidjan.',
-    descEn: 'Stackable 20% voucher across our partner restaurants, lounges, and brands.',
-    tagFr: 'Partenaires',
-    tagEn: 'Partners',
-  },
-  {
-    id: 'rew_credit_2500',
-    category: 'credit',
-    pointsCost: 400,
-    titleFr: 'Crédit billetterie 2 500 FCFA',
-    titleEn: '2,500 FCFA ticketing credit',
-    descFr: 'Déductible directement sur votre prochaine réservation de billets ou d’upgrade.',
-    descEn: 'Applied directly toward your next ticket booking or seat upgrade.',
-    tagFr: 'Crédit',
-    tagEn: 'Credit',
-  },
-];
+const FLASH_OFFERS: FlashOffer[] = [];
+const SURPRISE_POOL: Array<{
+  points: number;
+  titleFr: string;
+  titleEn: string;
+  detailFr: string;
+  detailEn: string;
+}> = [];
+const REWARDS_CATALOG: RewardCatalogItem[] = [];
 
 function formatTimer(totalSec: number): string {
   const safe = Math.max(0, totalSec);
@@ -290,6 +167,10 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
   };
 
   const handleUnlockSurprise = () => {
+    if (SURPRISE_POOL.length === 0) {
+      showToast(isEn ? 'No active surprise is available right now.' : 'Aucune surprise active pour le moment.', 'info');
+      return;
+    }
     if (!currentUser) {
       setIsAuthModalOpen(true);
       showToast(
@@ -703,7 +584,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
               <button
                 type="button"
                 onClick={handleUnlockSurprise}
-                disabled={alreadyClaimedToday}
+                disabled={alreadyClaimedToday || SURPRISE_POOL.length === 0}
                 className={`w-full lg:w-auto min-h-[48px] px-7 rounded-2xl font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 ${
                   alreadyClaimedToday
                     ? 'bg-white/10 text-neutral-400 cursor-not-allowed'
@@ -716,9 +597,9 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
                     ? isEn
                       ? 'Unlocked today'
                       : 'Déjà ouverte aujourd’hui'
-                    : isEn
-                    ? 'Reveal my gift'
-                    : 'Ouvrir ma surprise'}
+                    : SURPRISE_POOL.length === 0
+                    ? isEn ? 'No active gift' : 'Aucun gift actif'
+                    : isEn ? 'Reveal my gift' : 'Ouvrir ma surprise'}
                 </span>
               </button>
             </div>
@@ -736,7 +617,11 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {FLASH_OFFERS.map((offer) => {
+              {FLASH_OFFERS.length === 0 ? (
+                <div className="border border-dashed border-white/15 px-5 py-10 text-center text-sm text-neutral-400">
+                  {isEn ? 'No flash sale is currently published.' : 'Aucune vente flash n’est actuellement publiée.'}
+                </div>
+              ) : FLASH_OFFERS.map((offer) => {
                 const claimed = pointsState.claimedFlashOffers.find((c) => c.offerId === offer.id);
                 const secondsLeft = Math.max(0, offer.endsInSeconds - elapsed);
                 return (
@@ -1080,7 +965,11 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
       {activeTab === 'exchange' && (
         <div className="space-y-10">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {REWARDS_CATALOG.map((item) => {
+            {REWARDS_CATALOG.length === 0 ? (
+              <div className="col-span-full border border-dashed border-white/15 px-5 py-10 text-center text-sm text-neutral-400">
+                {isEn ? 'No reward is available for redemption yet.' : 'Aucune récompense n’est disponible à l’échange pour le moment.'}
+              </div>
+            ) : REWARDS_CATALOG.map((item) => {
               const canAfford = summary.availablePoints >= item.pointsCost;
               return (
                 <article
