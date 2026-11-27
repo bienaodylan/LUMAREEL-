@@ -459,6 +459,7 @@ async function listTvSubscriptions(db: SupabaseClient) {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  try {
   applyCors(req, res, 'GET, POST, PUT, PATCH, OPTIONS');
 
   if (req.method === 'OPTIONS') {
@@ -1928,4 +1929,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   return res.status(404).json({ success: false, error: 'Route de paiement introuvable.' });
+  } catch (error: any) {
+    console.error('[payments] Unhandled API error:', error?.stack || error);
+    return res.status(500).json({ success: false, error: 'Erreur interne du service de paiement.' });
+  }
 }
