@@ -10,7 +10,6 @@ import {
 import { COMMUNITY_MEDIA } from '../utils/communityStorage';
 import {
   CountdownTimer,
-  EditorialRow,
   HeroMedia,
   PosterCard,
   ScrollReveal,
@@ -27,7 +26,7 @@ function getMinPrice(ev: ConcertEvent): number | null {
 
 /**
  * 01 — Accueil LUMARÉEL
- * Fidèle à la maquette 01 : Hero À l'affiche + Événements à découvrir (0px) + À ne pas manquer + Univers LUMARÉEL (01–05).
+ * Accueil : Hero À l'affiche + Événements à découvrir + À ne pas manquer.
  */
 export const HomeFeed: React.FC = () => {
   const {
@@ -91,39 +90,6 @@ export const HomeFeed: React.FC = () => {
     setSelectedEventSlug(ev.slug);
     setCurrentPage('concert_detail');
   };
-
-  const universeItems = [
-    {
-      num: '01',
-      title: isEn ? 'Experiences' : 'Expériences',
-      meta: 'Backstage · Drops',
-      page: 'backstage' as const,
-    },
-    {
-      num: '02',
-      title: 'Black Card',
-      meta: isEn ? 'Members' : 'Membres',
-      page: 'member_card' as const,
-    },
-    {
-      num: '03',
-      title: isEn ? 'Memories' : 'Souvenirs',
-      meta: isEn ? 'Relive' : 'Revivre',
-      page: 'memories' as const,
-    },
-    {
-      num: '04',
-      title: 'Archives',
-      meta: isEn ? 'Editions' : 'Éditions',
-      page: 'archive' as const,
-    },
-    {
-      num: '05',
-      title: isEn ? 'Rewards & Points' : 'Rewards & Points',
-      meta: isEn ? 'Loyalty' : 'Fidélité',
-      page: 'rewards' as const,
-    },
-  ];
 
   return (
     <div className="min-h-screen w-full bg-black text-white font-agrandir-regular">
@@ -443,28 +409,6 @@ export const HomeFeed: React.FC = () => {
           </section>
         </ScrollReveal>
 
-        {/* ===================================================================
-            4. UNIVERS LUMARÉEL — INDEX ÉDITORIAL NUMÉROTÉ 01–05
-           =================================================================== */}
-        <ScrollReveal>
-          <section>
-            <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight mb-4">
-              {isEn ? 'LUMARÉEL Universe' : 'Univers LUMARÉEL'}
-            </h2>
-
-            <div className="border-t border-white/[0.12] divide-y divide-white/[0.12]">
-              {universeItems.map((row) => (
-                <EditorialRow
-                  key={row.num}
-                  index={row.num}
-                  title={row.title}
-                  rightText={row.meta}
-                  onClick={() => setCurrentPage(row.page)}
-                />
-              ))}
-            </div>
-          </section>
-        </ScrollReveal>
       </div>
     </div>
   );
