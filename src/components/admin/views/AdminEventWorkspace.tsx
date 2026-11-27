@@ -194,7 +194,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
             onClick={onBackToEvents}
             className="self-start text-xs font-agrandir-semibold text-[#888] hover:text-white flex items-center gap-2 transition-colors cursor-pointer"
           >
-            <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37]" />
+            <ArrowLeft className="w-3.5 h-3.5 text-white" />
             <span>Retour aux concerts</span>
           </button>
 
@@ -216,7 +216,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
               className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-agrandir-semibold text-white flex items-center gap-1.5 transition-colors cursor-pointer"
               title="Voir sur le site public"
             >
-              <Eye className="w-3.5 h-3.5 text-[#d4af37]" />
+              <Eye className="w-3.5 h-3.5 text-white" />
               <span className="hidden sm:inline">Aperçu direct</span>
             </button>
 
@@ -226,7 +226,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
               disabled={isSaving}
               className={`px-5 py-1.5 rounded-xl text-xs font-agrandir-extrabold uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-lg ${
                 isDirty
-                  ? 'bg-[#d4af37] hover:bg-[#c29d2b] text-black ring-2 ring-[#d4af37]/50 animate-pulse'
+                  ? 'bg-white hover:bg-[#c29d2b] text-black ring-2 ring-white/50 animate-pulse'
                   : 'bg-white hover:bg-neutral-200 text-black'
               }`}
             >
@@ -244,7 +244,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
             className="w-16 h-16 rounded-2xl object-cover border border-white/15 shrink-0"
           />
           <div>
-            <div className="text-[10px] font-agrandir-semibold tracking-[0.2em] text-[#d4af37] uppercase">
+            <div className="text-[10px] font-agrandir-semibold tracking-[0.2em] text-white uppercase">
               FICHE DE PRODUCTION
             </div>
             <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight uppercase">
@@ -285,7 +285,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
             <div className="bg-[#0f0f0f] border border-white/10 rounded-2xl p-5 space-y-1 shadow-lg">
               <div className="text-[10px] font-agrandir-semibold text-[#888] uppercase">RECETTES DU CONCERT</div>
               <div className="font-agrandir-extrabold text-2xl text-white">
-                {totalRevenue.toLocaleString()} <span className="text-xs text-[#d4af37]">FCFA</span>
+                {totalRevenue.toLocaleString()} <span className="text-xs text-white">FCFA</span>
               </div>
               <div className="text-[11px] text-[#666]">Générées par les places vendues</div>
             </div>
@@ -303,7 +303,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
               <div className="font-agrandir-extrabold text-2xl text-white">{fillRate} %</div>
               <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-1">
                 <div
-                  className="bg-gradient-to-r from-[#d4af37] to-white h-full rounded-full"
+                  className="bg-gradient-to-r from-white to-white h-full rounded-full"
                   style={{ width: `${Math.min(100, fillRate)}%` }}
                 />
               </div>
@@ -331,7 +331,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
               </div>
               <button
                 onClick={() => setCurrentTab('media')}
-                className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-agrandir-semibold text-[#d4af37] transition-colors cursor-pointer"
+                className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-agrandir-semibold text-white transition-colors cursor-pointer"
               >
                 Gérer les affiches &amp; photos &rarr;
               </button>
@@ -523,7 +523,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
         <div className="space-y-6">
           <div className="bg-[#0c0c0c] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-4">
             <div className="border-b border-white/10 pb-3">
-              <div className="text-[10px] font-agrandir-semibold tracking-wider text-[#d4af37] uppercase">
+              <div className="text-[10px] font-agrandir-semibold tracking-wider text-white uppercase">
                 RÉGIE VISUELLE ET DIRECTION ARTISTIQUE
               </div>
               <h2 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight">
@@ -543,7 +543,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                     <h3 className="font-agrandir-bold text-sm text-white uppercase">AFFICHE OFFICIELLE</h3>
                     <p className="text-[11px] text-[#888]">Affichée dans le carrousel « Prochains concerts » et sur les billets clients.</p>
                   </div>
-                  <span className="text-[10px] text-[#d4af37] font-mono">16:9 / 4:3</span>
+                  <span className="text-[10px] text-white font-mono">16:9 / 4:3</span>
                 </div>
 
                 <div className="aspect-[16/9] w-full rounded-xl overflow-hidden bg-black border border-white/15 relative group">
@@ -559,7 +559,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                     Importer un nouveau fichier affiche
                   </label>
                   <label className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-agrandir-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors">
-                    <Upload className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <Upload className="w-3.5 h-3.5 text-white" />
                     <span>Choisir une image sur l'ordinateur</span>
                     <input
                       type="file"
@@ -592,7 +592,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                     <h3 className="font-agrandir-bold text-sm text-white uppercase">PORTRAIT DE L'ARTISTE</h3>
                     <p className="text-[11px] text-[#888]">Affiché en plein écran sur la bannière Hero supérieure à l'accueil.</p>
                   </div>
-                  <span className="text-[10px] text-[#d4af37] font-mono">Plein écran</span>
+                  <span className="text-[10px] text-white font-mono">Plein écran</span>
                 </div>
 
                 <div className="aspect-[16/9] w-full rounded-xl overflow-hidden bg-black border border-white/15 relative group">
@@ -608,7 +608,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                     Importer un nouveau portrait d'artiste
                   </label>
                   <label className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-agrandir-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors">
-                    <Upload className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <Upload className="w-3.5 h-3.5 text-white" />
                     <span>Choisir une image sur l'ordinateur</span>
                     <input
                       type="file"
@@ -643,14 +643,14 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
       {currentTab === 'tickets' && (
         <div className="space-y-6">
           {/* CARTE PROFESSIONNELLE LUMARÉEL : IMPRESSION BILLETS PHYSIQUES */}
-          <div className="p-6 rounded-3xl bg-[#0e0e0e] border border-[#d4af37]/30 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#d4af37]/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="p-6 rounded-3xl bg-[#0e0e0e] border border-white/30 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
             <div className="flex items-start gap-4 z-10">
-              <div className="w-12 h-12 rounded-2xl bg-[#d4af37]/15 border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37] shrink-0 shadow-lg">
+              <div className="w-12 h-12 rounded-2xl bg-white/15 border border-white/30 flex items-center justify-center text-white shrink-0 shadow-lg">
                 <Printer className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
+                <div className="text-[10px] font-agrandir-bold tracking-widest text-white uppercase">
                   Service Régie &amp; Guichet Officiel LUMARÉEL
                 </div>
                 <h3 className="font-agrandir-extrabold text-base text-white tracking-wide mt-0.5">
@@ -666,7 +666,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
               <button
                 type="button"
                 onClick={() => onOpenBatchPrint(formData.id)}
-                className="z-10 px-6 py-3 rounded-2xl bg-[#d4af37] hover:bg-[#e6c158] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-xl shrink-0 transition-all hover:scale-102 active:scale-95"
+                className="z-10 px-6 py-3 rounded-2xl bg-white hover:bg-[#e6c158] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-xl shrink-0 transition-all hover:scale-102 active:scale-95"
               >
                 <Printer className="w-4 h-4" />
                 <span>Imprimer les billets</span>
@@ -763,7 +763,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                       <label className="block text-[10px] font-agrandir-semibold uppercase text-[#888] mb-1">
                         Places Restantes
                       </label>
-                      <div className="px-3 py-2 rounded-xl bg-black/40 border border-white/5 text-xs font-mono text-[#d4af37] font-bold">
+                      <div className="px-3 py-2 rounded-xl bg-black/40 border border-white/5 text-xs font-mono text-white font-bold">
                         {remaining.toLocaleString()} places disponibles
                       </div>
                     </div>
@@ -806,7 +806,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                       <label className="block text-[10px] font-agrandir-semibold uppercase text-[#888]">
                         Design du Billet Physique pour l'impression (Recto)
                       </label>
-                      <span className="text-[9px] font-mono font-bold text-[#d4af37] bg-[#d4af37]/10 px-2 py-0.5 rounded border border-[#d4af37]/30">
+                      <span className="text-[9px] font-mono font-bold text-white bg-white/10 px-2 py-0.5 rounded border border-white/30">
                         Format recommandé : 1536 × 548 px
                       </span>
                     </div>
@@ -930,7 +930,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                       </div>
                       <div className="w-full bg-black/60 h-2 rounded-full overflow-hidden border border-white/5">
                         <div
-                          className="bg-[#d4af37] h-full rounded-full"
+                          className="bg-white h-full rounded-full"
                           style={{ width: `${percent}%` }}
                         />
                       </div>

@@ -465,7 +465,7 @@ export const CheckoutModal: React.FC = () => {
               aria-label={t('checkout.back')}
               title={t('checkout.back')}
             >
-              <ArrowLeft className="w-4 h-4 text-[#d4af37] group-hover:-translate-x-0.5 transition-transform" />
+              <ArrowLeft className="w-4 h-4 text-white group-hover:-translate-x-0.5 transition-transform" />
               <span>{t('nav.back')}</span>
             </button>
 
@@ -476,7 +476,7 @@ export const CheckoutModal: React.FC = () => {
                     {t('checkout.orderSummary')}
                   </h2>
                   <div className="text-[11px] font-mono text-neutral-400 flex items-center gap-1.5 mt-0.5">
-                    <span className="text-[#d4af37] animate-pulse">⏱</span>
+                    <span className="text-white animate-pulse">⏱</span>
                     <span className="font-bold text-white/90">{formatCountdown(lockSeconds)}</span>
                   </div>
                 </>
@@ -520,19 +520,19 @@ export const CheckoutModal: React.FC = () => {
                         isActive
                           ? 'bg-white text-black shadow-md shadow-white/20'
                           : isDone
-                          ? 'bg-[#d4af37] text-black'
+                          ? 'bg-white text-black'
                           : 'bg-white/10 text-[#666]'
                       }`}
                     >
                       {isDone ? '✓' : s.num}
                     </span>
-                    <span className={`hidden sm:inline ${isActive ? 'text-white' : isDone ? 'text-[#d4af37]' : 'text-[#666]'}`}>
+                    <span className={`hidden sm:inline ${isActive ? 'text-white' : isDone ? 'text-white' : 'text-[#666]'}`}>
                       {s.label}
                     </span>
                   </div>
                   <div
                     className={`h-1 w-full rounded-full transition-all ${
-                      isActive ? 'bg-white' : isDone ? 'bg-[#d4af37]' : 'bg-white/10'
+                      isActive ? 'bg-white' : isDone ? 'bg-white' : 'bg-white/10'
                     }`}
                   />
                 </div>
@@ -558,7 +558,7 @@ export const CheckoutModal: React.FC = () => {
                   onClick={handleClose}
                   className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-xs font-agrandir-bold tracking-wider text-neutral-200 hover:text-white transition-all uppercase cursor-pointer active:scale-95 group"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37] group-hover:-translate-x-1 transition-transform" />
+                  <ArrowLeft className="w-3.5 h-3.5 text-white group-hover:-translate-x-1 transition-transform" />
                   <span>{t('checkout.returnToConcert')}</span>
                 </button>
                 <span className="text-[11px] font-agrandir-semibold text-[#888] uppercase tracking-wider font-mono">
@@ -574,7 +574,7 @@ export const CheckoutModal: React.FC = () => {
                   className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl shrink-0 border border-white/10"
                 />
                 <div className="min-w-0 flex-1">
-                  <div className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase mb-0.5">
+                  <div className="text-[10px] font-agrandir-bold tracking-widest text-white uppercase mb-0.5">
                     {checkoutEvent.artist}
                   </div>
                   <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white truncate uppercase">
@@ -646,8 +646,8 @@ export const CheckoutModal: React.FC = () => {
                     // Statistique 3 : Jauge exclusive (<= 50 places totales allouées) => Places limitées
                     if (isExclusiveCapacity) {
                       return (
-                        <span className="px-3 py-1 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#d4af37] text-[10px] font-agrandir-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm backdrop-blur-md">
-                          <Sparkles className="w-3 h-3 text-[#d4af37]" />
+                        <span className="px-3 py-1 rounded-full bg-white/15 border border-white/40 text-white text-[10px] font-agrandir-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm backdrop-blur-md">
+                          <Sparkles className="w-3 h-3 text-white" />
                           <span>{t('checkout.limitedSeats')} · {t('checkout.capacity')} {cat.quota}</span>
                         </span>
                       );
@@ -721,7 +721,7 @@ export const CheckoutModal: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => toggleDetails(cat.id)}
-                            className="w-full flex items-center justify-between text-left text-xs font-agrandir-semibold text-[#d4af37] hover:text-white transition-colors cursor-pointer group"
+                            className="w-full flex items-center justify-between text-left text-xs font-agrandir-semibold text-white hover:text-white transition-colors cursor-pointer group"
                           >
                             <span className="flex items-center gap-1.5">
                               <span>{t('checkout.detailsPerks')}</span>
@@ -753,7 +753,7 @@ export const CheckoutModal: React.FC = () => {
                                       key={pIdx}
                                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-[#ddd]"
                                     >
-                                      <Check className="w-3 h-3 text-[#d4af37]" />
+                                      <Check className="w-3 h-3 text-white" />
                                       <span>{perk}</span>
                                     </span>
                                   ))}
@@ -782,7 +782,7 @@ export const CheckoutModal: React.FC = () => {
                   onClick={() => setStep(1)}
                   className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/15 border border-white/15 text-xs font-agrandir-bold tracking-wider text-neutral-200 hover:text-white transition-all uppercase cursor-pointer active:scale-95 group"
                 >
-                  <ArrowLeft className="w-3.5 h-3.5 text-[#d4af37] group-hover:-translate-x-1 transition-transform" />
+                  <ArrowLeft className="w-3.5 h-3.5 text-white group-hover:-translate-x-1 transition-transform" />
                   <span>{t('checkout.returnToTickets')}</span>
                 </button>
                 <span className="text-[11px] font-agrandir-semibold text-[#888] uppercase tracking-wider font-mono">
@@ -791,7 +791,7 @@ export const CheckoutModal: React.FC = () => {
               </div>
 
               {/* Bannière Compte à Rebours de Sécurité (20 min) */}
-              <div className="p-4 rounded-2xl bg-[#d4af37]/10 border border-[#d4af37]/30 flex items-center gap-3 text-xs text-[#d4af37] shadow-lg">
+              <div className="p-4 rounded-2xl bg-white/10 border border-white/30 flex items-center gap-3 text-xs text-white shadow-lg">
                 <Clock className="w-5 h-5 shrink-0 animate-pulse" />
                 <div className="flex-1 min-w-0">
                   <div className="font-agrandir-bold uppercase tracking-wider text-[11px]">
@@ -836,7 +836,7 @@ export const CheckoutModal: React.FC = () => {
 
                   <div className="flex justify-between items-center text-white pt-2 border-t border-white/10 text-sm">
                     <strong className="font-agrandir-extrabold uppercase">{t('checkout.total')}</strong>
-                    <strong className="font-mono text-[#d4af37] text-base">{finalTotalAmount.toLocaleString('fr-FR')} FCFA</strong>
+                    <strong className="font-mono text-white text-base">{finalTotalAmount.toLocaleString('fr-FR')} FCFA</strong>
                   </div>
                 </div>
               </div>
@@ -902,7 +902,7 @@ export const CheckoutModal: React.FC = () => {
                   <span>{t('checkout.back')}</span>
                 </button>
 
-                <div className="font-agrandir-extrabold text-lg sm:text-xl font-mono text-[#d4af37] tracking-tight">
+                <div className="font-agrandir-extrabold text-lg sm:text-xl font-mono text-white tracking-tight">
                   {finalTotalAmount.toLocaleString('fr-FR')} F CFA
                 </div>
               </div>
@@ -910,7 +910,7 @@ export const CheckoutModal: React.FC = () => {
               {/* SÉLECTEUR DE PAYS (Menu déroulant attaché avec recherche) */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-agrandir-bold text-neutral-300">
-                  {t('checkout.country')} <span className="text-[#d4af37]">*</span>
+                  {t('checkout.country')} <span className="text-white">*</span>
                 </label>
 
                 {/* Case de sélection avec drapeau, nom et chevron */}
@@ -972,7 +972,7 @@ export const CheckoutModal: React.FC = () => {
                               <span className="text-lg shrink-0">{c.flag}</span>
                               <span className="text-xs sm:text-sm truncate">{c.name}</span>
                             </div>
-                            {isCurrent && <Check className="w-4 h-4 text-[#d4af37] shrink-0" />}
+                            {isCurrent && <Check className="w-4 h-4 text-white shrink-0" />}
                           </button>
                         );
                       })}
@@ -984,7 +984,7 @@ export const CheckoutModal: React.FC = () => {
               {/* SÉLECTION DU MOYEN DE PAIEMENT */}
               <div className="space-y-1.5 pt-1">
                 <label className="block text-xs font-agrandir-bold text-neutral-300">
-                  {t('checkout.paymentMethod')} <span className="text-[#d4af37]">*</span>
+                  {t('checkout.paymentMethod')} <span className="text-white">*</span>
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
@@ -1034,7 +1034,7 @@ export const CheckoutModal: React.FC = () => {
               {paymentMethod !== 'card' ? (
                 <div className="space-y-1.5">
                   <label className="block text-xs font-agrandir-bold text-neutral-300">
-                    {t('checkout.phone')} ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : 'Mobile Money'}) <span className="text-[#d4af37]">*</span>
+                    {t('checkout.phone')} ({paymentMethod === 'wave' ? 'Wave' : paymentMethod === 'orange_money' ? 'Orange Money' : paymentMethod === 'mtn_momo' ? 'MTN MoMo' : 'Mobile Money'}) <span className="text-white">*</span>
                   </label>
                   <div className="flex gap-2">
                     <button
@@ -1056,7 +1056,7 @@ export const CheckoutModal: React.FC = () => {
                 </div>
               ) : (
                 <div className="p-4 rounded-2xl bg-[#141414] border border-white/15 flex items-start gap-3 text-left">
-                  <Lock className="w-5 h-5 text-[#d4af37] shrink-0 mt-0.5" />
+                  <Lock className="w-5 h-5 text-white shrink-0 mt-0.5" />
                   <div className="space-y-1 text-xs">
                     <div className="font-agrandir-bold text-white">
                       {language === 'en' ? 'Visa / Mastercard via PayMeTrust' : 'Visa / Mastercard sécurisé via PayMeTrust'}
@@ -1079,10 +1079,10 @@ export const CheckoutModal: React.FC = () => {
                 <div className="border-t border-white/10" />
                 <div className="flex justify-between items-center text-sm">
                   <span className="font-agrandir-bold text-white">{t('checkout.total')}</span>
-                  <span className="font-mono font-agrandir-extrabold text-[#d4af37] text-base">{finalTotalAmount.toLocaleString('fr-FR')} F CFA</span>
+                  <span className="font-mono font-agrandir-extrabold text-white text-base">{finalTotalAmount.toLocaleString('fr-FR')} F CFA</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[10px] text-neutral-400 pt-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <ShieldCheck className="w-3.5 h-3.5 text-white" />
                   <span>{language === 'en' ? 'Secured by PayMeTrust' : 'Paiement sécurisé par PayMeTrust'}</span>
                 </div>
               </div>
@@ -1092,7 +1092,7 @@ export const CheckoutModal: React.FC = () => {
                 type="button"
                 onClick={handleTriggerPayment}
                 disabled={isSubmitting}
-                className="w-full py-4 rounded-2xl bg-[#d4af37] hover:bg-[#c49f27] active:scale-[0.99] text-black font-agrandir-extrabold text-base transition-all cursor-pointer shadow-xl shadow-[#d4af37]/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-4 rounded-2xl bg-white hover:bg-[#c49f27] active:scale-[0.99] text-black font-agrandir-extrabold text-base transition-all cursor-pointer shadow-xl shadow-[#FFFFFF]/20 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <>
@@ -1116,14 +1116,14 @@ export const CheckoutModal: React.FC = () => {
               {/* CAS A : PASSERELLE PAYMETRUST ACTIVE */}
               {paymetrustTx && !createdOrder && (
                 <div className="py-4 space-y-6 text-center animate-fadeIn">
-                  <div className="p-6 rounded-3xl bg-[#0e0e0e] border border-[#d4af37]/30 text-white max-w-md mx-auto shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#d4af37] via-white/80 to-[#d4af37]" />
+                  <div className="p-6 rounded-3xl bg-[#0e0e0e] border border-white/30 text-white max-w-md mx-auto shadow-2xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-white via-white/80 to-white" />
 
                     <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center mx-auto mb-4 text-2xl">
                       {paymentMethod === 'wave' ? '🌊' : paymentMethod === 'orange_money' ? '🟠' : paymentMethod === 'mtn_momo' ? '🟡' : paymentMethod === 'moov_money' ? '🔵' : '💳'}
                     </div>
 
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-[#d4af37] font-mono font-bold mb-1">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-white font-mono font-bold mb-1">
                       PAYMETRUST · {paymetrustTx.channel.replace('_', ' ').toUpperCase()}
                     </div>
 
@@ -1140,7 +1140,7 @@ export const CheckoutModal: React.FC = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#888]">{t('checkout.amountToConfirm')}</span>
-                        <strong className="text-[#d4af37] font-mono text-sm">{paymetrustTx.amount.toLocaleString('fr-FR')} FCFA</strong>
+                        <strong className="text-white font-mono text-sm">{paymetrustTx.amount.toLocaleString('fr-FR')} FCFA</strong>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#888]">{t('checkout.orderRef')}</span>
@@ -1179,7 +1179,7 @@ export const CheckoutModal: React.FC = () => {
                           type="button"
                           onClick={handleVerifyPayMeTrustStatus}
                           disabled={gatewayProcessing}
-                          className="w-full py-3 rounded-full border border-[#d4af37]/50 hover:border-[#d4af37] text-[#d4af37] font-agrandir-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                          className="w-full py-3 rounded-full border border-white/50 hover:border-white text-white font-agrandir-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                         >
                           {gatewayProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                           <span>{language === 'en' ? 'I already paid — Check status' : 'J’ai déjà payé — Vérifier'}</span>
@@ -1196,7 +1196,7 @@ export const CheckoutModal: React.FC = () => {
                           type="button"
                           onClick={handleConfirmPayMeTrustPreview}
                           disabled={gatewayProcessing}
-                          className="w-full py-4 rounded-full bg-[#d4af37] hover:bg-[#c49f27] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
+                          className="w-full py-4 rounded-full bg-white hover:bg-[#c49f27] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
                         >
                           {gatewayProcessing ? (
                             <>
@@ -1231,12 +1231,12 @@ export const CheckoutModal: React.FC = () => {
               {/* CAS B : PAIEMENT CONFIRMÉ & BILLETS ÉMIS AVEC QR CODES */}
               {!paymetrustTx && createdOrder && (
                 <div className="text-center py-4 space-y-5 animate-fadeIn">
-                  <div className="w-14 h-14 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/40 flex items-center justify-center mx-auto text-[#d4af37]">
+                  <div className="w-14 h-14 rounded-full bg-white/10 border border-white/40 flex items-center justify-center mx-auto text-white">
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
 
                   <div>
-                    <div className="text-[10px] font-agrandir-bold tracking-[0.25em] text-[#d4af37] uppercase mb-1">
+                    <div className="text-[10px] font-agrandir-bold tracking-[0.25em] text-white uppercase mb-1">
                       {t('checkout.orderSuccess')}
                     </div>
                     <h2 className="font-agrandir-extrabold text-2xl text-white uppercase tracking-tight">
@@ -1252,7 +1252,7 @@ export const CheckoutModal: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowEmailPreview(true)}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#d4af37] text-xs font-agrandir-semibold transition-all cursor-pointer shadow-sm"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/40 text-white text-xs font-agrandir-semibold transition-all cursor-pointer shadow-sm"
                     >
                       <Mail className="w-3.5 h-3.5" />
                       <span>{t('checkout.viewEmail')}</span>
@@ -1268,7 +1268,7 @@ export const CheckoutModal: React.FC = () => {
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 text-white font-agrandir-semibold text-sm">
-                            <TicketIcon className="w-4 h-4 text-[#d4af37]" />
+                            <TicketIcon className="w-4 h-4 text-white" />
                             <span className="font-mono">{tkt.serialNumber}</span>
                             <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase font-bold">
                               {t('checkout.certified')}
@@ -1322,7 +1322,7 @@ export const CheckoutModal: React.FC = () => {
             {/* LIGNE 1 : TOTAL & NOMBRE DE BILLETS SÉLECTIONNÉS */}
             <div className="flex items-center justify-between gap-3 mb-3">
               <div className="flex items-baseline gap-2">
-                <span className="text-xs sm:text-sm font-agrandir-bold tracking-wider uppercase text-[#d4af37]">
+                <span className="text-xs sm:text-sm font-agrandir-bold tracking-wider uppercase text-white">
                   {t('checkout.total')} :
                 </span>
                 <span className="font-agrandir-extrabold text-lg sm:text-2xl text-white font-mono tracking-tight">
@@ -1363,7 +1363,7 @@ export const CheckoutModal: React.FC = () => {
                     className="px-4 sm:px-5 py-3.5 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-bold uppercase tracking-wider text-[#ccc] hover:text-white transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shrink-0"
                     title={t('checkout.back')}
                   >
-                    <ArrowLeft className="w-4 h-4 text-[#d4af37]" />
+                    <ArrowLeft className="w-4 h-4 text-white" />
                     <span className="hidden sm:inline">{t('checkout.back')}</span>
                   </button>
 
@@ -1387,7 +1387,7 @@ export const CheckoutModal: React.FC = () => {
                     className="px-4 sm:px-5 py-3.5 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-bold uppercase tracking-wider text-[#ccc] hover:text-white transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 shrink-0"
                     title="Modifier les billets"
                   >
-                    <ArrowLeft className="w-4 h-4 text-[#d4af37]" />
+                    <ArrowLeft className="w-4 h-4 text-white" />
                     <span className="hidden sm:inline">{t('checkout.back')}</span>
                   </button>
 
@@ -1413,7 +1413,7 @@ export const CheckoutModal: React.FC = () => {
             <div className="bg-[#0f0f0f] border border-white/20 rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl text-left">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#d4af37]" />
+                  <Sparkles className="w-4 h-4 text-white" />
                   <h3 className="font-agrandir-bold text-sm text-white uppercase">
                     {language === 'en' ? 'CONFIRMATION EMAIL SENT TO' : 'E-MAIL DE CONFIRMATION ENVOYÉ À'} {createdOrder.customerEmail}
                   </h3>
@@ -1505,7 +1505,7 @@ export const CheckoutModal: React.FC = () => {
                     value={countrySearchQuery}
                     onChange={(e) => setCountrySearchQuery(e.target.value)}
                     placeholder={t('checkout.searchCountry')}
-                    className="w-full bg-[#161616] border border-white/15 rounded-xl pl-10 pr-9 py-2.5 text-xs text-white placeholder-[#666] focus:outline-none focus:border-[#d4af37] font-agrandir-regular"
+                    className="w-full bg-[#161616] border border-white/15 rounded-xl pl-10 pr-9 py-2.5 text-xs text-white placeholder-[#666] focus:outline-none focus:border-white font-agrandir-regular"
                     autoFocus
                   />
                   {countrySearchQuery && (
@@ -1533,14 +1533,14 @@ export const CheckoutModal: React.FC = () => {
                       onClick={() => handleSelectCountry(c)}
                       className={`w-full p-3.5 rounded-2xl border flex items-center justify-between transition-all cursor-pointer text-left ${
                         isSelected
-                          ? 'bg-[#d4af37]/15 border-[#d4af37] text-white shadow-md'
+                          ? 'bg-white/15 border-white text-white shadow-md'
                           : 'bg-[#141414] border-white/5 hover:border-white/20 hover:bg-[#1a1a1a] text-[#ddd]'
                       }`}
                     >
                       <div className="flex items-center gap-3.5 min-w-0">
                         <span className="text-2xl shrink-0">{c.flag}</span>
                         <div className="min-w-0">
-                          <div className={`font-agrandir-bold text-xs uppercase truncate ${isSelected ? 'text-[#d4af37]' : 'text-white'}`}>
+                          <div className={`font-agrandir-bold text-xs uppercase truncate ${isSelected ? 'text-white' : 'text-white'}`}>
                             {c.name}
                           </div>
                           <div className="text-[10px] text-[#777] font-mono mt-0.5">
@@ -1552,12 +1552,12 @@ export const CheckoutModal: React.FC = () => {
                       <div className="flex items-center gap-2.5 shrink-0 ml-3">
                         <span className={`font-mono text-xs font-bold px-2.5 py-1 rounded-lg border ${
                           isSelected 
-                            ? 'bg-[#d4af37] text-black border-[#d4af37]' 
-                            : 'bg-white/5 text-[#d4af37] border-white/10'
+                            ? 'bg-white text-black border-white' 
+                            : 'bg-white/5 text-white border-white/10'
                         }`}>
                           {c.dialCode}
                         </span>
-                        {isSelected && <Check className="w-4 h-4 text-[#d4af37]" />}
+                        {isSelected && <Check className="w-4 h-4 text-white" />}
                       </div>
                     </button>
                   );
@@ -1575,7 +1575,7 @@ export const CheckoutModal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsCountryDrawerOpen(false)}
-                  className="text-white hover:text-[#d4af37] font-agrandir-semibold uppercase text-[10px] tracking-wider cursor-pointer"
+                  className="text-white hover:text-white font-agrandir-semibold uppercase text-[10px] tracking-wider cursor-pointer"
                 >
                   {t('nav.close')}
                 </button>

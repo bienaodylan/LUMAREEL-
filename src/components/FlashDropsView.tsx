@@ -1,80 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context/AppContext';
+import { ConcertEvent } from '../types';
 import {
   COMMUNITY_MEDIA,
   ClaimedFlashOffer,
+  RedeemedReward,
+  computeUserPointsSummary,
   loadUserPointsState,
   saveUserPointsState,
 } from '../utils/communityStorage';
-import { CheckCircle2, Clock, Copy, Gift, Ticket, Zap } from 'lucide-react';
-
-interface FlashOffer {
-  id: string;
-  titleFr: string;
-  titleEn: string;
-  descFr: string;
-  descEn: string;
-  discountLabelFr: string;
-  discountLabelEn: string;
-  originalPrice: number;
-  flashPrice: number;
-  remaining: number;
-  total: number;
-  endsInSeconds: number;
-  image: string;
-  codePrefix: string;
-}
-
-const FLASH_OFFERS: FlashOffer[] = [
-  {
-    id: 'flash_duo_vip',
-    titleFr: 'Pack Duo VIP — Vente Flash 24h',
-    titleEn: 'VIP Duo Pack — 24h Flash Sale',
-    descFr: 'Deux accès VIP avec entrée prioritaire et accès lounge pour le prochain concert LUMARÉEL.',
-    descEn: 'Two VIP passes with priority gate access and lounge entry for the next LUMARÉEL show.',
-    discountLabelFr: '-25 % Vente Flash',
-    discountLabelEn: '25% Off Flash Drop',
-    originalPrice: 60000,
-    flashPrice: 45000,
-    remaining: 9,
-    total: 30,
-    endsInSeconds: 5 * 3600 + 42 * 60,
-    image: COMMUNITY_MEDIA.flashVipDropImg,
-    codePrefix: 'FLASHVIP',
-  },
-  {
-    id: 'flash_early_fosse',
-    titleFr: 'Quota Fosse Éclair',
-    titleEn: 'Lightning Floor Quota',
-    descFr: 'Série limitée de billets standard à tarif préférentiel avant la clôture de la fenêtre flash.',
-    descEn: 'Limited drop of standard floor tickets at a reduced rate before the flash window closes.',
-    discountLabelFr: '-30 % Éclair',
-    discountLabelEn: '30% Off Drop',
-    originalPrice: 15000,
-    flashPrice: 10500,
-    remaining: 14,
-    total: 50,
-    endsInSeconds: 2 * 3600 + 18 * 60,
-    image: COMMUNITY_MEDIA.concertMemoriesCrowdImg,
-    codePrefix: 'FLASHSTD',
-  },
-  {
-    id: 'flash_partner_table',
-    titleFr: 'Avantage Partenaire — Lounge & Boisson Offerte',
-    titleEn: 'Partner Perk — Lounge & Complimentary Drink',
-    descFr: 'Bon flash valable chez nos lieux partenaires d’Abidjan avant ou après le concert.',
-    descEn: 'Flash voucher redeemable at our Abidjan partner lounges before or after the concert.',
-    discountLabelFr: 'Offre Partenaire',
-    discountLabelEn: 'Partner Offer',
-    originalPrice: 12000,
-    flashPrice: 6000,
-    remaining: 18,
-    total: 40,
-    endsInSeconds: 9 * 3600 + 10 * 60,
-    image: COMMUNITY_MEDIA.vipMezzanineImg,
-    codePrefix: 'FLASHLOUNGE',
-  },
-];
+import { formatDateLong } from '../utils/dateUtils';
+import { CountdownTimer, StatusBadge } from './ui/LumareelKit';
+import { Bell, BellRing, ChevronLeft, Copy, Gift, Ticket } from 'lucide-react';
 
 const SURPRISE_POOL = [
   {
@@ -86,76 +24,128 @@ const SURPRISE_POOL = [
   },
   {
     points: 100,
-    titleFr: 'Bonus surprise +100 points + Boisson partenaire',
-    titleEn: 'Surprise +100 points + Partner drink pass',
-    detailFr: 'Code valable au bar partenaire lors de votre prochain concert.',
-    detailEn: 'Code redeemable at the partner bar during your next show.',
+    titleFr: 'Bonus surprise +100 points fidélité',
+    titleEn: 'Surprise bonus +100 loyalty points',
+    detailFr: 'Utilisables dans votre Rewards Store.',
+    detailEn: 'Redeemable inside your Rewards Store.',
   },
   {
     points: 50,
-    titleFr: 'Code surprise -15 % billetterie + 50 points',
-    titleEn: 'Surprise 15% ticket code + 50 points',
-    detailFr: 'Utilisable sur votre prochaine commande standard ou VIP.',
-    detailEn: 'Valid on your next standard or VIP order.',
+    titleFr: 'Bonus surprise +50 points fidélité',
+    titleEn: 'Surprise bonus +50 loyalty points',
+    detailFr: 'Cumulables avec vos achats de billets.',
+    detailEn: 'Stackable with your ticket bookings.',
   },
 ];
 
-function formatTimer(totalSec: number): string {
-  const safe = Math.max(0, totalSec);
-  const h = Math.floor(safe / 3600);
-  const m = Math.floor((safe % 3600) / 60);
-  const s = safe % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
+/**
+ * Écran 12 — Surprise Drops & Flash Sales (fidèle 1:1 à la maquette 12 — 0px cartes, 4px boutons, #D4AF6A).
+ */
 export const FlashDropsView: React.FC = () => {
-  const { currentUser, events, setCheckoutEvent, setIsAuthModalOpen, showToast, language } = useApp();
+  const {
+    currentUser,
+    customerOrders,
+    events,
+    setCheckoutEvent,
+    setSelectedEventSlug,
+    setCurrentPage,
+    setIsAuthModalOpen,
+    showToast,
+    language,
+  } = useApp();
+
   const isEn = language === 'en';
-
+  const [activeTab, setActiveTab] = useState<'drops' | 'flash'>('drops');
   const [pointsState, setPointsState] = useState(() => loadUserPointsState(currentUser));
-  const [elapsed, setElapsed] = useState(0);
   const [revealedSurprise, setRevealedSurprise] = useState<ClaimedFlashOffer | null>(null);
+  const [alertSubscribedIds, setAlertSubscribedIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    const timer = setInterval(() => setElapsed((prev) => prev + 1), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const summary = useMemo(
+    () => computeUserPointsSummary(currentUser, customerOrders, pointsState),
+    [currentUser, customerOrders, pointsState]
+  );
 
   const todayKey = new Date().toISOString().slice(0, 10);
   const alreadyClaimedToday = pointsState.lastSurpriseClaimDate === todayKey;
 
-  const handleClaimFlash = (offer: FlashOffer) => {
+  const liveEventDrops = useMemo(() => {
+    const published = (events || []).filter((ev) => ev.status !== 'draft');
+    return published
+      .map((ev) => {
+        const categories = ev.categories || [];
+        const totalQuota = categories.reduce((sum, c) => sum + Number(c.quota || 0), 0);
+        const totalSold = categories.reduce((sum, c) => sum + Number(c.sold || 0), 0);
+        const totalRemaining = Math.max(0, totalQuota - totalSold);
+        const lowestPrice = categories.reduce((min, c) => {
+          const price = Number(c.price || 0);
+          if (price <= 0) return min;
+          return min === 0 ? price : Math.min(min, price);
+        }, 0);
+        const currency = categories[0]?.currency || 'FCFA';
+        return {
+          event: ev,
+          totalQuota: totalQuota || 120,
+          totalRemaining: totalQuota > 0 ? totalRemaining : 34,
+          lowestPrice: lowestPrice || 15000,
+          currency,
+        };
+      })
+      .filter((item) => item.totalRemaining > 0);
+  }, [events]);
+
+  const primaryEvent = liveEventDrops[0]?.event;
+  const secondaryEvent = liveEventDrops[1]?.event || primaryEvent;
+
+  const handleBookEvent = (event: ConcertEvent) => {
     if (!currentUser) {
+      setCheckoutEvent(event);
       setIsAuthModalOpen(true);
-      showToast(isEn ? 'Sign in to reserve a flash offer.' : 'Connectez-vous pour réserver une vente flash.', 'info');
-      return;
-    }
-    const existing = pointsState.claimedFlashOffers.find((c) => c.offerId === offer.id);
-    if (existing) {
       showToast(
-        isEn ? `Offer already reserved (${existing.code}).` : `Offre déjà réservée (code : ${existing.code}).`,
+        isEn ? 'Sign in to reserve your tickets.' : 'Connectez-vous pour réserver vos billets.',
         'info'
       );
       return;
     }
-    const code = `${offer.codePrefix}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
-    const claimed: ClaimedFlashOffer = {
-      id: `fl_${Date.now()}`,
-      offerId: offer.id,
-      title: isEn ? offer.titleEn : offer.titleFr,
-      code,
-      claimedAt: new Date().toISOString(),
-      type: 'flash_sale',
-      detail: `${offer.flashPrice.toLocaleString('fr-FR')} F CFA`,
+    setCheckoutEvent(event);
+  };
+
+  const handleRedeemPointsFlash = (title: string, cost: number) => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      showToast(
+        isEn ? 'Sign in to redeem points.' : 'Connectez-vous pour échanger vos points.',
+        'info'
+      );
+      return;
+    }
+    if (summary.availablePoints < cost) {
+      showToast(
+        isEn
+          ? `You need ${cost - summary.availablePoints} more points.`
+          : `Il vous manque ${cost - summary.availablePoints} points.`,
+        'error'
+      );
+      return;
+    }
+    const code = `LMR-FLS-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const newReward: RedeemedReward = {
+      id: `fls_${Date.now()}`,
+      rewardId: `flash_${Date.now()}`,
+      title,
+      category: 'backstage_exp',
+      pointsCost: cost,
+      voucherCode: code,
+      redeemedAt: new Date().toISOString(),
+      status: 'active',
     };
     const next = {
       ...pointsState,
-      claimedFlashOffers: [claimed, ...pointsState.claimedFlashOffers],
+      redeemedRewards: [newReward, ...pointsState.redeemedRewards],
     };
     setPointsState(next);
     saveUserPointsState(currentUser, next);
     showToast(
-      isEn ? `Flash deal reserved! Code: ${code}` : `Vente flash réservée ! Code : ${code}`,
+      isEn ? `Flash offer claimed! Code: ${code}` : `Offre Flash débloquée ! Code : ${code}`,
       'success'
     );
   };
@@ -163,12 +153,19 @@ export const FlashDropsView: React.FC = () => {
   const handleUnlockSurprise = () => {
     if (!currentUser) {
       setIsAuthModalOpen(true);
-      showToast(isEn ? 'Sign in to unlock your surprise reward.' : 'Connectez-vous pour débloquer votre récompense surprise.', 'info');
+      showToast(
+        isEn
+          ? 'Sign in to reveal your member surprise.'
+          : 'Connectez-vous pour révéler votre surprise.',
+        'info'
+      );
       return;
     }
     if (alreadyClaimedToday) {
       showToast(
-        isEn ? 'You already unlocked today’s surprise reward. Come back tomorrow!' : 'Vous avez déjà ouvert votre récompense surprise aujourd’hui. Revenez demain !',
+        isEn
+          ? 'Today’s surprise has already been revealed.'
+          : "Votre surprise du jour a déjà été révélée.",
         'info'
       );
       return;
@@ -199,203 +196,462 @@ export const FlashDropsView: React.FC = () => {
     );
   };
 
-  const nextConcert = events.find((e) => e.status === 'published') || events[0] || null;
+  const toggleAlert = (dropId: string) => {
+    setAlertSubscribedIds((prev) => {
+      const exists = prev.includes(dropId);
+      const next = exists ? prev.filter((id) => id !== dropId) : [...prev, dropId];
+      showToast(
+        exists
+          ? isEn
+            ? 'Drop alert removed.'
+            : 'Alerte retirée.'
+          : isEn
+          ? 'You will be notified as soon as this drop opens.'
+          : "Vous serez prévenu dès l'ouverture de ce drop.",
+        'info'
+      );
+      return next;
+    });
+  };
+
+  const formattedToday = new Date().toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+  });
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+  });
 
   return (
-    <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
-      <header className="mb-8 pb-6 border-b border-white/10">
-        <p className="text-xs tracking-[0.2em] text-[#D4AF37] uppercase mb-2">
-          {isEn ? 'Limited Drops · Surprises' : 'Offres Éphémères · Surprises'}
-        </p>
-        <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-tight text-white leading-[1.02] text-balance">
-          {isEn ? 'Surprise Rewards & Flash Sales' : 'Récompenses Surprises & Ventes Flash'}
+    <div
+      className="min-h-screen w-full max-w-[1280px] mx-auto px-4 sm:px-8 md:px-10 pb-24 bg-black text-white font-agrandir-regular"
+      style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
+    >
+      {/* Lien retour < Mes points */}
+      <button
+        type="button"
+        onClick={() => setCurrentPage('rewards')}
+        className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-[#9A9A9A] hover:text-white transition-colors cursor-pointer mb-4"
+      >
+        <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
+        <span>{isEn ? 'My points' : 'Mes points'}</span>
+      </button>
+
+      {/* Titre massif 2 lignes fidèle à la maquette 12 */}
+      <header className="mb-6">
+        <h1 className="font-agrandir-extrabold text-[2.45rem] sm:text-5xl text-white leading-[0.98] tracking-tight">
+          {isEn ? (
+            <>
+              Time is
+              <br />
+              ticking.
+            </>
+          ) : (
+            <>
+              Le temps
+              <br />
+              est compté.
+            </>
+          )}
         </h1>
-        <p className="text-sm sm:text-base text-neutral-400 mt-3 max-w-2xl leading-relaxed">
-          {isEn
-            ? 'Time-limited ticket quotas, partner flash deals, and daily surprise rewards reserved for active members.'
-            : 'Quotas de billets à durée limitée, ventes flash partenaires et récompenses surprises à débloquer directement depuis votre espace.'}
-        </p>
       </header>
 
-      {/* Bloc Récompense Surprise du jour */}
-      <section className="mb-10 rounded-3xl bg-[#0e0e0e] border border-[#D4AF37]/30 p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-        <div className="lg:col-span-8 space-y-2.5">
-          <div className="flex items-center gap-2 text-xs text-[#D4AF37] font-agrandir-bold uppercase tracking-wider">
-            <Gift className="w-4 h-4" />
-            <span>{isEn ? 'Member Surprise Drop' : 'Récompense Surprise Membre'}</span>
-          </div>
-          <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white leading-tight">
-            {alreadyClaimedToday
-              ? (isEn ? 'Today’s surprise has been unlocked.' : 'Votre surprise du jour est débloquée.')
-              : (isEn ? 'Open your surprise reward right now.' : 'Débloquez votre récompense surprise du jour.')}
-          </h2>
-          <p className="text-sm text-neutral-400 max-w-xl leading-relaxed">
-            {revealedSurprise
-              ? `${revealedSurprise.title} — ${revealedSurprise.detail} (${revealedSurprise.code})`
-              : (isEn
-                  ? 'Bonus loyalty points, instant ticketing discounts, or partner drink vouchers — revealed in one tap.'
-                  : 'Points fidélité bonus, réductions billetterie immédiates ou invitations boisson partenaires révélés en un geste.')}
+      {/* Sélecteur pilule plein-largeur : Surprise Drops | Flash Sales */}
+      <div className="grid grid-cols-2 p-1 rounded-full bg-[#141414] border border-white/[0.12] mb-6 max-w-md">
+        <button
+          type="button"
+          onClick={() => setActiveTab('drops')}
+          className={`min-h-[42px] rounded-full text-xs sm:text-sm transition-colors cursor-pointer ${
+            activeTab === 'drops'
+              ? 'bg-white text-black font-agrandir-extrabold'
+              : 'text-[#9A9A9A] hover:text-white font-agrandir-semibold'
+          }`}
+        >
+          Surprise Drops
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('flash')}
+          className={`min-h-[42px] rounded-full text-xs sm:text-sm transition-colors cursor-pointer ${
+            activeTab === 'flash'
+              ? 'bg-white text-black font-agrandir-extrabold'
+              : 'text-[#9A9A9A] hover:text-white font-agrandir-semibold'
+          }`}
+        >
+          Flash Sales
+        </button>
+      </div>
+
+      {activeTab === 'drops' ? (
+        <div className="space-y-8">
+          <p className="text-sm text-[#C8C8C8] leading-relaxed max-w-xl">
+            {isEn
+              ? 'Unexpected rewards dropped without warning for the community. Some are redeemed with points, others are gifted.'
+              : "Des récompenses inattendues, publiées sans prévenir pour la communauté. Certaines s'échangent contre des points, d'autres sont offertes."}
           </p>
-        </div>
 
-        <div className="lg:col-span-4 flex lg:justify-end">
-          <button
-            type="button"
-            onClick={handleUnlockSurprise}
-            disabled={alreadyClaimedToday}
-            className={`w-full lg:w-auto min-h-[48px] px-7 rounded-2xl font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 ${
-              alreadyClaimedToday
-                ? 'bg-white/10 text-neutral-400 cursor-not-allowed'
-                : 'bg-[#D4AF37] hover:bg-[#e6c252] text-black cursor-pointer'
-            }`}
-          >
-            {alreadyClaimedToday ? <CheckCircle2 className="w-4 h-4" /> : <Gift className="w-4 h-4" />}
-            <span>
-              {alreadyClaimedToday
-                ? (isEn ? 'Unlocked today' : 'Déjà ouverte aujourd’hui')
-                : (isEn ? 'Reveal my surprise' : 'Ouvrir ma surprise')}
-            </span>
-          </button>
-        </div>
-      </section>
+          {/* Carte Mystery Drop avec bordure dorée — 0px + animation de révélation */}
+          <section className="bg-gradient-to-b from-[#17120A] via-[#0E0D0A] to-[#0A0A0A] border border-[#D4AF6A]/45 p-5 sm:p-7 space-y-6 max-w-xl">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
+                DROP #04
+              </span>
+              <span className="text-xs font-agrandir-extrabold text-white">
+                {isEn ? 'Gifted · active members' : 'Offert · membres actifs'}
+              </span>
+            </div>
 
-      {/* Grille des Ventes Flash en direct */}
-      <section className="mb-12">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="font-agrandir-extrabold text-xl text-white">
-            {isEn ? 'Active flash sales' : 'Ventes flash en cours'}
-          </h2>
-          <span className="text-xs text-neutral-400">
-            {isEn ? 'Limited stock' : 'Stocks limités'}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {FLASH_OFFERS.map((offer) => {
-            const claimed = pointsState.claimedFlashOffers.find((c) => c.offerId === offer.id);
-            const secondsLeft = Math.max(0, offer.endsInSeconds - elapsed);
-            return (
-              <article
-                key={offer.id}
-                className="rounded-3xl overflow-hidden bg-[#0e0e0e] border border-white/10 flex flex-col justify-between"
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={revealedSurprise ? revealedSurprise.id : alreadyClaimedToday ? 'claimed' : 'ready'}
+                initial={{ opacity: 0, scale: 0.94, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: -6 }}
+                transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+                className="py-3 text-center space-y-3"
               >
-                <div>
-                  <div className="aspect-[4/3] relative bg-black overflow-hidden">
+                <Gift className="w-11 h-11 text-[#D4AF6A] mx-auto" strokeWidth={1.6} />
+                <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white leading-tight">
+                  {revealedSurprise ? (
+                    revealedSurprise.title
+                  ) : alreadyClaimedToday ? (
+                    isEn ? 'Surprise revealed!' : 'Surprise révélée !'
+                  ) : isEn ? (
+                    <>
+                      Something is
+                      <br />
+                      waiting for you.
+                    </>
+                  ) : (
+                    <>
+                      Quelque chose
+                      <br />
+                      vous attend.
+                    </>
+                  )}
+                </h2>
+                <p className="text-xs text-[#9A9A9A]">
+                  {revealedSurprise
+                    ? `${revealedSurprise.detail} · ${revealedSurprise.code}`
+                    : isEn
+                    ? `Available until ${formattedToday} · 14 left`
+                    : `Disponible jusqu'au ${formattedToday} · 14 restants`}
+                </p>
+                {!revealedSurprise && !alreadyClaimedToday && (
+                  <div className="pt-1">
+                    <CountdownTimer
+                      initialSeconds={3 * 3600 + 27 * 60 + 44}
+                      spaced
+                      className="text-xs text-[#D4AF6A]"
+                    />
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            <button
+              type="button"
+              onClick={handleUnlockSurprise}
+              disabled={alreadyClaimedToday}
+              className={`w-full min-h-[50px] rounded-[4px] font-agrandir-extrabold text-sm transition-colors ${
+                alreadyClaimedToday
+                  ? 'bg-white/10 text-[#9A9A9A] cursor-not-allowed'
+                  : 'bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black cursor-pointer lum-press'
+              }`}
+            >
+              {alreadyClaimedToday
+                ? isEn
+                  ? 'Revealed today'
+                  : "Déjà révélée aujourd'hui"
+                : isEn
+                ? 'Reveal my surprise'
+                : 'Révéler ma surprise'}
+            </button>
+          </section>
+
+          {/* Autres drops — miniatures 0px + Me prévenir */}
+          <section className="space-y-3 max-w-2xl">
+            <h2 className="font-agrandir-extrabold text-xl text-white">
+              {isEn ? 'Other drops' : 'Autres drops'}
+            </h2>
+
+            <div className="divide-y divide-white/[0.12] border-y border-white/[0.12]">
+              <div className="py-4 flex items-center justify-between gap-4">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage('rewards')}
+                  className="flex items-center gap-3.5 min-w-0 flex-1 text-left group cursor-pointer"
+                >
+                  <div className="w-14 h-14 overflow-hidden bg-[#16130D] border border-white/[0.12] shrink-0">
                     <img
-                      src={offer.image}
-                      alt={isEn ? offer.titleEn : offer.titleFr}
-                      referrerPolicy="no-referrer"
+                      src={COMMUNITY_MEDIA.backstageSoundcheckImg}
+                      alt="Expérience Backstage"
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-                    <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-xs">
-                      <span className="font-agrandir-bold text-[#D4AF37]">
-                        {isEn ? offer.discountLabelEn : offer.discountLabelFr}
-                      </span>
-                      <span className="font-mono text-white tabular-nums flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-[#D4AF37]" />
-                        {formatTimer(secondsLeft)}
-                      </span>
-                    </div>
                   </div>
-
-                  <div className="p-5 space-y-3">
-                    <h3 className="font-agrandir-extrabold text-base text-white leading-snug">
-                      {isEn ? offer.titleEn : offer.titleFr}
-                    </h3>
-                    <p className="text-xs text-neutral-400 leading-relaxed">
-                      {isEn ? offer.descEn : offer.descFr}
+                  <div className="min-w-0">
+                    <p className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors truncate">
+                      Expérience Backstage
                     </p>
-                    <div className="flex items-baseline gap-2.5 pt-1">
-                      <span className="text-xl font-agrandir-extrabold text-white tabular-nums">
-                        {offer.flashPrice.toLocaleString('fr-FR')} F CFA
-                      </span>
-                      <span className="text-xs text-neutral-500 line-through tabular-nums">
-                        {offer.originalPrice.toLocaleString('fr-FR')} F CFA
-                      </span>
-                    </div>
-                    <div className="text-xs text-neutral-400 tabular-nums">
+                    <p className="text-xs text-[#9A9A9A] truncate">
                       {isEn
-                        ? `${offer.remaining} of ${offer.total} remaining`
-                        : `${offer.remaining} restants sur ${offer.total}`}
-                    </div>
+                        ? `Until ${tomorrow} · 6 left`
+                        : `Jusqu'au ${tomorrow} · 6 restants`}
+                    </p>
                   </div>
-                </div>
+                </button>
+                <span className="font-agrandir-extrabold text-xs sm:text-sm text-[#D4AF6A] tabular-nums shrink-0">
+                  900 pts
+                </span>
+              </div>
 
-                <div className="px-5 pb-5 space-y-2">
+              <div className="py-4 flex items-center justify-between gap-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    primaryEvent ? handleBookEvent(primaryEvent) : setCurrentPage('rewards')
+                  }
+                  className="flex items-center gap-3.5 min-w-0 flex-1 text-left group cursor-pointer"
+                >
+                  <div className="w-14 h-14 overflow-hidden bg-[#141414] border border-white/[0.12] shrink-0">
+                    <img
+                      src={
+                        primaryEvent?.officialPoster ||
+                        primaryEvent?.bannerImage ||
+                        COMMUNITY_MEDIA.vipMezzanineImg
+                      }
+                      alt={primaryEvent?.artist || 'DOPELYM'}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors truncate">
+                      Cadeau {primaryEvent?.artist || 'DOPELYM'}
+                    </p>
+                    <p className="text-xs text-[#9A9A9A] truncate">
+                      {isEn ? 'Linked to 2026 edition' : "Lié à l'édition 2026"}
+                    </p>
+                  </div>
+                </button>
+
+                <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={() => handleClaimFlash(offer)}
-                    className={`w-full min-h-[44px] rounded-xl text-xs font-agrandir-extrabold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer ${
-                      claimed
-                        ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
-                        : 'bg-white hover:bg-neutral-200 text-black'
+                    onClick={() => toggleAlert('drop_upcoming_1')}
+                    className={`min-h-[34px] px-3 rounded-[4px] border text-[11px] font-agrandir-extrabold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                      alertSubscribedIds.includes('drop_upcoming_1')
+                        ? 'border-[#D4AF6A] text-[#D4AF6A] bg-[#D4AF6A]/10'
+                        : 'border-white/20 text-[#C8C8C8] hover:border-white'
                     }`}
                   >
-                    {claimed ? <CheckCircle2 className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
-                    <span>
-                      {claimed
-                        ? `${isEn ? 'Reserved' : 'Réservé'} · ${claimed.code}`
-                        : (isEn ? 'Claim flash deal' : 'Profiter de la vente flash')}
-                    </span>
-                  </button>
-                  {claimed && nextConcert && (
-                    <button
-                      type="button"
-                      onClick={() => setCheckoutEvent(nextConcert)}
-                      className="w-full min-h-[40px] rounded-xl border border-white/15 hover:border-white/30 text-xs text-neutral-300 hover:text-white flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Ticket className="w-3.5 h-3.5" />
-                      <span>{isEn ? 'Book concert now' : 'Utiliser sur un concert'}</span>
-                    </button>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Mes codes flash & surprises enregistrés */}
-      <section className="rounded-3xl bg-[#0e0e0e] border border-white/10 p-6 sm:p-7">
-        <h2 className="font-agrandir-extrabold text-lg text-white mb-4">
-          {isEn ? 'Your reserved flash offers & surprises' : 'Vos ventes flash et surprises réservées'}
-        </h2>
-        {pointsState.claimedFlashOffers.length === 0 ? (
-          <p className="text-sm text-neutral-400">
-            {isEn
-              ? 'Nothing claimed yet. Unlock your daily surprise or reserve a flash offer above.'
-              : 'Aucune offre réservée pour le moment. Ouvrez votre récompense surprise ou sélectionnez une vente flash ci-dessus.'}
-          </p>
-        ) : (
-          <div className="divide-y divide-white/8">
-            {pointsState.claimedFlashOffers.map((item) => (
-              <div key={item.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-agrandir-bold text-white">{item.title}</div>
-                  <div className="text-xs text-neutral-400 mt-0.5">{item.detail}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="px-3 py-1.5 rounded-lg bg-black border border-[#D4AF37]/30 font-mono text-xs text-[#D4AF37]">
-                    {item.code}
-                  </code>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      await navigator.clipboard?.writeText(item.code).catch(() => {});
-                      showToast(isEn ? 'Code copied.' : 'Code copié.', 'success');
-                    }}
-                    className="min-h-[40px] min-w-[40px] rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white cursor-pointer"
-                    aria-label={isEn ? 'Copy code' : 'Copier le code'}
-                  >
-                    <Copy className="w-4 h-4" />
+                    {alertSubscribedIds.includes('drop_upcoming_1') ? (
+                      <BellRing className="w-3.5 h-3.5" strokeWidth={1.6} />
+                    ) : (
+                      <Bell className="w-3.5 h-3.5" strokeWidth={1.6} />
+                    )}
+                    <span>{isEn ? 'Notify me' : 'Me prévenir'}</span>
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </section>
+
+              {secondaryEvent && (
+                <div className="py-4 flex items-center justify-between gap-4 opacity-50">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-14 h-14 overflow-hidden bg-[#111111] border border-white/[0.08] shrink-0">
+                      <img
+                        src={secondaryEvent.officialPoster || secondaryEvent.bannerImage}
+                        alt={secondaryEvent.title}
+                        className="w-full h-full object-cover grayscale"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-agrandir-extrabold text-sm sm:text-base text-[#C8C8C8] truncate">
+                        Billet offert — {secondaryEvent.artist || secondaryEvent.title}
+                      </p>
+                      <p className="text-xs text-[#9A9A9A]">
+                        {isEn ? 'Ended' : 'Terminé'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Surprises déjà obtenues */}
+          {pointsState.claimedFlashOffers.length > 0 && (
+            <section className="space-y-3 max-w-2xl">
+              <h3 className="font-agrandir-extrabold text-base text-white">
+                {isEn ? 'Your revealed surprises' : 'Vos surprises révélées'}
+              </h3>
+              <div className="divide-y divide-white/[0.12] border-y border-white/[0.12]">
+                {pointsState.claimedFlashOffers.map((item) => (
+                  <div key={item.id} className="py-3.5 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-agrandir-extrabold text-sm text-white truncate">
+                        {item.title}
+                      </p>
+                      <p className="text-xs text-[#9A9A9A] truncate">{item.detail}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await navigator.clipboard?.writeText(item.code).catch(() => {});
+                        showToast(isEn ? 'Code copied.' : 'Code copié.', 'success');
+                      }}
+                      className="px-3 py-1.5 rounded-[4px] bg-[#0E0E0E] border border-white/[0.16] font-mono text-xs text-[#D4AF6A] inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                      <span>{item.code}</span>
+                      <Copy className="w-3 h-3" strokeWidth={1.6} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      ) : (
+        /* ONGLET FLASH SALES : OFFRES PAYANT (FCFA) & POINTS AVEC COMPTE À REBOURS + BARRE QUANTITÉ */
+        <div className="space-y-5 max-w-3xl">
+          {/* Offre Flash POINTS dédiée */}
+          <article className="bg-[#0E0E0E] border border-[#D4AF6A]/40 p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <StatusBadge variant="points" label="POINTS" />
+              <div className="flex items-center gap-2 text-xs text-[#C8C8C8]">
+                <span className="text-[#9A9A9A]">{isEn ? 'Ends in' : 'Fin dans'}</span>
+                <CountdownTimer initialSeconds={1 * 3600 + 48 * 60 + 22} className="text-[#D4AF6A]" />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="w-16 h-16 overflow-hidden bg-[#141414] border border-white/[0.12] shrink-0">
+                  <img
+                    src={COMMUNITY_MEDIA.backstageSoundcheckImg}
+                    alt="Pass Balances Flash"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-agrandir-extrabold text-base text-white truncate">
+                    {isEn ? 'Flash Pass — Soundcheck & Lounge' : 'Pass Flash — Balances & Lounge'}
+                  </h3>
+                  <p className="text-xs text-[#9A9A9A] mt-0.5">
+                    {formattedToday} → {tomorrow} · {isEn ? 'Members only · 1 per account' : 'Membres uniquement · 1 par compte'}
+                  </p>
+                  <p className="text-sm font-agrandir-extrabold text-[#D4AF6A] mt-1 tabular-nums">
+                    650 pts
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleRedeemPointsFlash('Pass Flash — Balances & Lounge', 650)}
+                className="min-h-[42px] px-5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs whitespace-nowrap cursor-pointer shrink-0 lum-press"
+              >
+                {isEn ? 'Redeem 650 pts' : 'Échanger · 650 pts'}
+              </button>
+            </div>
+
+            <div className="space-y-1.5 pt-1">
+              <div className="h-1 w-full bg-white/[0.1] overflow-hidden">
+                <div className="h-full bg-[#D4AF6A]" style={{ width: '35%' }} />
+              </div>
+              <div className="flex items-center justify-between text-[11px] text-[#9A9A9A]">
+                <span>{isEn ? 'Valid while stock lasts' : 'Valable dans la limite des places'}</span>
+                <span className="font-mono text-[#D4AF6A]">7 / 20 {isEn ? 'left' : 'restantes'}</span>
+              </div>
+            </div>
+          </article>
+
+          {/* Offres Flash PAYANT en FCFA issues des vrais concerts */}
+          {liveEventDrops.length === 0 ? (
+            <div className="py-12 text-center space-y-2 border-y border-white/[0.12]">
+              <Ticket className="w-6 h-6 text-[#D4AF6A] mx-auto" strokeWidth={1.6} />
+              <p className="font-agrandir-extrabold text-base text-white">
+                {isEn ? 'No Flash Sales live right now' : 'Aucune Flash Sale en cours'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {liveEventDrops.map(({ event, totalQuota, totalRemaining, lowestPrice, currency }, idx) => {
+                const remainPct = Math.max(8, Math.min(100, Math.round((totalRemaining / totalQuota) * 100)));
+                return (
+                  <article
+                    key={event.id}
+                    className="bg-[#0E0E0E] border border-white/[0.12] p-5 space-y-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <StatusBadge variant="paid" label={isEn ? 'PAID' : 'PAYANT'} />
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-[#9A9A9A]">{isEn ? 'Ends in' : 'Fin dans'}</span>
+                        <CountdownTimer
+                          initialSeconds={(idx + 2) * 3600 + 19 * 60 + 11}
+                          className="text-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedEventSlug(event.slug);
+                          setCurrentPage('concert_detail');
+                        }}
+                        className="flex items-center gap-3.5 text-left min-w-0 flex-1 cursor-pointer group"
+                      >
+                        <div className="w-16 h-16 overflow-hidden bg-[#141414] border border-white/[0.12] shrink-0">
+                          <img
+                            src={event.officialPoster || event.bannerImage}
+                            alt={event.title}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-agrandir-extrabold text-base text-white group-hover:text-[#D4AF6A] transition-colors truncate">
+                            {event.artist} — {event.title}
+                          </p>
+                          <p className="text-xs text-[#9A9A9A] truncate mt-0.5">
+                            {formatDateLong(event.date, language)} · {event.venue}
+                          </p>
+                          <p className="text-xs font-agrandir-extrabold text-[#D4AF6A] mt-1 tabular-nums">
+                            {isEn ? 'From' : 'Dès'} {lowestPrice.toLocaleString('fr-FR')} {currency}
+                          </p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleBookEvent(event)}
+                        className="min-h-[42px] px-5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs whitespace-nowrap cursor-pointer shrink-0 lum-press"
+                      >
+                        {isEn ? 'Book now' : 'Réserver'}
+                      </button>
+                    </div>
+
+                    <div className="space-y-1.5 pt-1">
+                      <div className="h-1 w-full bg-white/[0.1] overflow-hidden">
+                        <div className="h-full bg-white" style={{ width: `${remainPct}%` }} />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] text-[#9A9A9A]">
+                        <span>
+                          {formattedToday} → {tomorrow} · {isEn ? 'Official rate, instant QR' : 'Tarif officiel, QR immédiat'}
+                        </span>
+                        <span className="font-mono text-[#C8C8C8] tabular-nums">
+                          {totalRemaining} {isEn ? 'left' : 'places restantes'}
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

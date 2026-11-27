@@ -145,7 +145,7 @@ export const UpcomingConcerts: React.FC = () => {
                       onClick={(e) => handleBookNow(event, e)}
                       className="px-6 py-3.5 text-xs font-agrandir-semibold tracking-widest uppercase border border-white/20 text-[#CCC] hover:text-white hover:border-white rounded-full transition-colors flex items-center justify-center gap-2 cursor-pointer bg-white/5"
                     >
-                      <Ticket className="w-3.5 h-3.5 text-[#d4af37]" />
+                      <Ticket className="w-3.5 h-3.5 text-white" />
                       <span>{t('upcoming.bookTickets')}</span>
                     </button>
                   </div>

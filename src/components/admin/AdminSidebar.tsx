@@ -15,10 +15,11 @@ import {
   Printer,
   Crown,
   Radio,
-  Cpu
+  Cpu,
+  Camera
 } from 'lucide-react';
 
-export type AdminSection = 'overview' | 'workshop' | 'membership' | 'events' | 'orders' | 'archives' | 'emails';
+export type AdminSection = 'overview' | 'workshop' | 'membership' | 'events' | 'orders' | 'media' | 'archives' | 'emails';
 
 interface AdminSidebarProps {
   currentSection: AdminSection;
@@ -29,6 +30,7 @@ interface AdminSidebarProps {
   eventsCount: number;
   ordersCount: number;
   archivesCount: number;
+  pendingMediaCount?: number;
   onExitAdmin: () => void;
   isMobileOpen: boolean;
   onCloseMobile: () => void;
@@ -44,6 +46,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   eventsCount,
   ordersCount,
   archivesCount,
+  pendingMediaCount = 0,
   onExitAdmin,
   isMobileOpen,
   onCloseMobile,
@@ -80,6 +83,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
       label: 'Commandes & Ventes',
       icon: ShoppingBag,
       badge: ordersCount > 0 ? String(ordersCount) : null,
+    },
+    {
+      id: 'media' as AdminSection,
+      label: 'Médias & Photographes',
+      icon: Camera,
+      badge: pendingMediaCount > 0 ? `${pendingMediaCount} à valider` : null,
     },
     {
       id: 'archives' as AdminSection,
@@ -120,7 +129,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 alt={platformSettings.platformName || 'LUMARÉEL CO.'}
                 className="h-7 w-auto object-contain"
               />
-              <span className="text-[9px] font-agrandir-semibold tracking-[0.2em] text-[#d4af37] uppercase">
+              <span className="text-[9px] font-agrandir-semibold tracking-[0.2em] text-neutral-400 uppercase">
                 CONSOLE DE GESTION
               </span>
             </div>
@@ -144,7 +153,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   onClearSelectedEvent();
                   onSelectSection('events');
                 }}
-                className="w-full py-1.5 px-3 rounded-xl bg-[#141414] hover:bg-white/10 border border-white/10 text-[10px] font-agrandir-semibold text-[#d4af37] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="w-full py-1.5 px-3 rounded-xl bg-[#141414] hover:bg-white/10 border border-white/10 text-[10px] font-agrandir-semibold text-white flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-3 h-3" />
                 <span>Tous les concerts</span>
@@ -186,7 +195,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                       className={`text-[10px] px-2 py-0.5 rounded-full font-agrandir-bold ${
                         isActive
                           ? 'bg-black/10 text-black'
-                          : 'bg-white/10 text-[#d4af37]'
+                          : 'bg-white/10 text-white'
                       }`}
                     >
                       {item.badge}
@@ -208,14 +217,14 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
                 onOpenBatchPrint();
                 onCloseMobile();
               }}
-              className="w-full py-2.5 px-3 rounded-xl bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/30 text-xs font-agrandir-bold text-[#d4af37] flex items-center justify-between transition-colors cursor-pointer group"
+              className="w-full py-2.5 px-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.15] border border-white/20 text-xs font-agrandir-bold text-white flex items-center justify-between transition-colors cursor-pointer group"
               title="Générer et imprimer des planches de billets physiques"
             >
               <div className="flex items-center gap-2">
-                <Printer className="w-3.5 h-3.5 text-[#d4af37]" />
+                <Printer className="w-3.5 h-3.5 text-white" />
                 <span>Impression Billets</span>
               </div>
-              <ChevronRight className="w-3.5 h-3.5 text-[#d4af37]/60 group-hover:translate-x-0.5 transition-transform" />
+              <ChevronRight className="w-3.5 h-3.5 text-neutral-400 group-hover:translate-x-0.5 transition-transform" />
             </button>
           )}
 
@@ -225,7 +234,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             className="w-full py-2.5 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-agrandir-semibold text-white flex items-center justify-between transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2">
-              <ExternalLink className="w-3.5 h-3.5 text-[#d4af37]" />
+              <ExternalLink className="w-3.5 h-3.5 text-neutral-300" />
               <span>Voir le site public</span>
             </div>
             <ChevronRight className="w-3.5 h-3.5 text-[#666]" />

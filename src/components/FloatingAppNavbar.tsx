@@ -1,23 +1,131 @@
 import React from 'react';
 import { useApp, PageView } from '../context/AppContext';
-import { CreditCard, Home, Compass, Ticket, User } from 'lucide-react';
+import { Home, Ticket, Compass, CreditCard, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-/** Barre flottante mobile : navigation directe, Explorer est une page complète. */
+/**
+ * Navigation mobile flottante LUMARÉEL — 5 accès principaux :
+ * Accueil · Billets · Explorer · Black Card · Compte
+ * Hauteur 64px, marges 16px, fond rgba(16,16,16,0.94), capsule active #D4AF6A.
+ */
 export const FloatingAppNavbar: React.FC = () => {
-  const { currentPage, setCurrentPage, language } = useApp();
-  if (['splash', 'gate_scanner', 'admin'].includes(currentPage)) return null;
-  const items = [
-    { id: 'home', page: 'home' as PageView, label: language === 'en' ? 'Home' : 'Accueil', icon: Home, active: currentPage === 'home' || currentPage === 'discover' },
-    { id: 'tickets', page: 'client_space' as PageView, label: language === 'en' ? 'Tickets' : 'Billets', icon: Ticket, active: currentPage === 'client_space' },
-    { id: 'explore', page: 'explore' as PageView, label: language === 'en' ? 'Explore' : 'Explorer', icon: Compass, active: currentPage === 'explore' || ['rewards','backstage','flash_drops','memories','suggestions','archive','news'].includes(currentPage) },
-    { id: 'card', page: 'member_card' as PageView, label: language === 'en' ? 'Black Card' : 'Carte', icon: CreditCard, active: currentPage === 'member_card' || currentPage === 'card' },
-    { id: 'account', page: 'profile' as PageView, label: language === 'en' ? 'Account' : 'Compte', icon: User, active: currentPage === 'profile' },
+  const { currentPage, setCurrentPage, language, hideBottomNav } = useApp();
+
+  if (hideBottomNav || ['splash', 'gate_scanner', 'admin', 'concert_detail'].includes(currentPage)) {
+    return null;
+  }
+
+  const isEn = language === 'en';
+
+  const items: Array<{
+    id: string;
+    page: PageView;
+    label: string;
+    icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
+    active: boolean;
+  }> = [
+    {
+      id: 'home',
+      page: 'home',
+      label: isEn ? 'Home' : 'Accueil',
+      icon: Home,
+      active: currentPage === 'home' || currentPage === 'discover',
+    },
+    {
+      id: 'tickets',
+      page: 'client_space',
+      label: isEn ? 'Tickets' : 'Billets',
+      icon: Ticket,
+      active: currentPage === 'client_space',
+    },
+    {
+      id: 'explore',
+      page: 'explore',
+      label: isEn ? 'Explore' : 'Explorer',
+      icon: Compass,
+      active: [
+        'explore',
+        'backstage',
+        'media_detail',
+        'memories',
+        'archive',
+        'rewards',
+        'privileged_access',
+        'flash_drops',
+        'suggestions',
+        'organizers',
+        'news',
+      ].includes(currentPage),
+    },
+    {
+      id: 'black_card',
+      page: 'member_card',
+      label: 'Black Card',
+      icon: CreditCard,
+      active: ['member_card', 'card', 'card_verify'].includes(currentPage),
+    },
+    {
+      id: 'account',
+      page: 'profile',
+      label: isEn ? 'Account' : 'Compte',
+      icon: User,
+      active: [
+        'profile',
+        'contact',
+        'contributor_studio',
+        'about',
+        'partners',
+      ].includes(currentPage),
+    },
   ];
-  return <nav aria-label={language === 'en' ? 'Main navigation' : 'Navigation principale'} className="fixed bottom-[calc(.7rem+env(safe-area-inset-bottom,0px))] left-1/2 z-[70] flex w-[min(94vw,430px)] -translate-x-1/2 items-center justify-between rounded-full border border-white/10 bg-[#111]/95 px-2 py-2 shadow-[0_12px_45px_rgba(0,0,0,.65)] backdrop-blur-xl md:hidden">
-    {items.map(item => { const Icon=item.icon; return <button key={item.id} type="button" onClick={() => setCurrentPage(item.page)} aria-current={item.active ? 'page' : undefined} className={`relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-full px-2 py-2 text-[9px] transition-colors ${item.active ? 'text-black' : 'text-neutral-400 hover:text-white'}`}>
-      {item.active && <motion.span layoutId="lumareel-active-nav" className="absolute inset-0 rounded-full bg-[#D4AF37]" transition={{ type:'spring', stiffness:420, damping:34 }}/>}
-      <span className="relative z-10"><Icon size={18} strokeWidth={item.active ? 2.4 : 1.8}/></span><span className="relative z-10 whitespace-nowrap font-agrandir-bold">{item.label}</span>
-    </button>; })}
-  </nav>;
+
+  return (
+    <div
+      className="fixed inset-x-0 bottom-0 z-[70] md:hidden pointer-events-none px-4"
+      style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))' }}
+    >
+      <nav
+        aria-label={isEn ? 'Primary navigation' : 'Navigation principale'}
+        className="pointer-events-auto mx-auto w-full max-w-[396px] h-[64px] rounded-full border border-white/[0.12] bg-[rgba(16,16,16,0.94)] backdrop-blur-2xl shadow-[0_18px_48px_rgba(0,0,0,0.9)] px-2 flex items-center"
+      >
+        <div className="flex items-center justify-between gap-1 w-full">
+          {items.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setCurrentPage(item.page)}
+                aria-label={item.label}
+                aria-current={item.active ? 'page' : undefined}
+                className={`relative flex items-center justify-center gap-2 h-[48px] rounded-full transition-colors cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF6A]/70 ${
+                  item.active
+                    ? 'px-4 text-black shrink-0'
+                    : 'min-w-[44px] flex-1 text-white/75 hover:text-white'
+                }`}
+              >
+                {item.active && (
+                  <motion.span
+                    layoutId="lumareel-mobile-gold-capsule"
+                    transition={{ type: 'spring', stiffness: 430, damping: 34, mass: 0.8 }}
+                    className="absolute inset-0 rounded-full bg-[#D4AF6A]"
+                  />
+                )}
+                <Icon
+                  size={18}
+                  strokeWidth={1.6}
+                  className="relative z-10 shrink-0"
+                />
+                {item.active && (
+                  <span className="relative z-10 text-xs font-agrandir-extrabold tracking-tight whitespace-nowrap leading-none">
+                    {item.label}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
+  );
 };

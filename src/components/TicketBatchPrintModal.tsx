@@ -217,11 +217,11 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
         {/* En-tête avec la petite croix de fermeture très accessible */}
         <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#d4af37]/15 border border-[#d4af37]/30 flex items-center justify-center text-[#d4af37]">
+            <div className="w-10 h-10 rounded-2xl bg-white/15 border border-white/30 flex items-center justify-center text-white">
               <Printer className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-[10px] text-[#d4af37] tracking-[0.25em] uppercase font-agrandir-bold">MOTEUR DE PRODUCTION LUMARÉEL</div>
+              <div className="text-[10px] text-white tracking-[0.25em] uppercase font-agrandir-bold">MOTEUR DE PRODUCTION LUMARÉEL</div>
               <h2 className="font-agrandir-extrabold text-xl sm:text-2xl uppercase tracking-tight">Générateur de billets physiques</h2>
             </div>
           </div>
@@ -238,10 +238,10 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
 
         <form onSubmit={handleGenerateBatch} className="space-y-6">
           {initialEventId && selectedEvent ? (
-            <div className="p-4 bg-[#141414] border border-[#d4af37]/30 rounded-2xl flex items-center gap-3.5">
+            <div className="p-4 bg-[#141414] border border-white/30 rounded-2xl flex items-center gap-3.5">
               <img src={selectedEvent.officialPoster || selectedEvent.artistPortrait} alt={selectedEvent.artist} className="w-14 h-14 rounded-xl object-cover border border-white/15 shrink-0" />
               <div>
-                <div className="text-[9px] text-[#d4af37] font-agrandir-bold tracking-[0.2em] uppercase">Événement sélectionné</div>
+                <div className="text-[9px] text-white font-agrandir-bold tracking-[0.2em] uppercase">Événement sélectionné</div>
                 <div className="text-white font-agrandir-extrabold text-base uppercase">{selectedEvent.artist} EN CONCERT</div>
                 <div className="text-xs text-neutral-300 mt-0.5">{selectedEvent.venue} · {formatDateLongFrench(selectedEvent.date)}</div>
               </div>
@@ -249,7 +249,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
           ) : (
             <div>
               <label className="block text-[11px] uppercase font-agrandir-bold text-[#888] mb-1.5">1. Événement</label>
-              <select value={selectedEventId} onChange={(event) => setSelectedEventId(event.target.value)} className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-[#d4af37]" required disabled={isGenerating}>
+              <select value={selectedEventId} onChange={(event) => setSelectedEventId(event.target.value)} className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-white" required disabled={isGenerating}>
                 {events.map((event) => <option key={event.id} value={event.id}>{event.artist} EN CONCERT — {event.venue} ({formatDateLongFrench(event.date)})</option>)}
               </select>
             </div>
@@ -262,10 +262,10 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
                 {selectedEvent.categories.map((category) => {
                   const active = selectedCategoryId === category.id;
                   return (
-                    <button type="button" key={category.id} onClick={() => setSelectedCategoryId(category.id)} className={`p-4 rounded-2xl border text-left transition-all ${active ? 'bg-[#181818] border-[#d4af37] ring-1 ring-[#d4af37]/40' : 'bg-[#111] border-white/10 hover:border-white/30'}`}>
+                    <button type="button" key={category.id} onClick={() => setSelectedCategoryId(category.id)} className={`p-4 rounded-2xl border text-left transition-all ${active ? 'bg-[#181818] border-white ring-1 ring-white/40' : 'bg-[#111] border-white/10 hover:border-white/30'}`}>
                       <div className="flex items-center justify-between gap-2 mb-1.5">
                         <span className="font-agrandir-extrabold text-sm text-white uppercase">{category.name}</span>
-                        <span className="text-xs font-agrandir-bold text-[#d4af37]">{category.price.toLocaleString('fr-FR')} {category.currency || 'FCFA'}</span>
+                        <span className="text-xs font-agrandir-bold text-white">{category.price.toLocaleString('fr-FR')} {category.currency || 'FCFA'}</span>
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-neutral-400">
                         <span>{category.quota.toLocaleString('fr-FR')} places prévues</span>
@@ -278,8 +278,8 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
             </div>
           )}
 
-          <div className="rounded-2xl border border-[#d4af37]/30 bg-[#141414] p-4 space-y-2">
-            <label htmlFor="physical-ticket-quantity" className="block text-[11px] uppercase font-agrandir-bold text-[#d4af37]">
+          <div className="rounded-2xl border border-white/30 bg-[#141414] p-4 space-y-2">
+            <label htmlFor="physical-ticket-quantity" className="block text-[11px] uppercase font-agrandir-bold text-white">
               3. Nombre de QR codes à produire (1 à 1 000)
             </label>
             <input
@@ -296,7 +296,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
               }}
               disabled={isGenerating}
               required
-              className="w-full bg-[#0b0b0b] border border-white/15 rounded-xl px-4 py-3 text-white text-lg font-agrandir-extrabold outline-none focus:border-[#d4af37]"
+              className="w-full bg-[#0b0b0b] border border-white/15 rounded-xl px-4 py-3 text-white text-lg font-agrandir-extrabold outline-none focus:border-white"
             />
             <p className="text-[10px] text-neutral-500">Choisissez librement le nombre exact de billets physiques à générer. La quantité et chaque QR code seront enregistrés dans le registre avant l’export Excel.</p>
           </div>
@@ -313,7 +313,7 @@ export const TicketBatchPrintModal: React.FC<TicketBatchPrintModalProps> = ({
           >
             {isGenerating ? (
               <>
-                <div className="absolute inset-y-0 left-0 bg-[#d4af37]/25" style={{ width: `${generationProgress}%`, transition: 'width 0.2s' }} />
+                <div className="absolute inset-y-0 left-0 bg-white/25" style={{ width: `${generationProgress}%`, transition: 'width 0.2s' }} />
                 <Loader2 className="w-5 h-5 animate-spin relative z-10" />
                 <span className="relative z-10">Préparation en cours... {generationProgress}%</span>
               </>

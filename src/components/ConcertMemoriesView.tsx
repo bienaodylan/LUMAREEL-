@@ -1,129 +1,400 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { ConcertEvent } from '../types';
 import {
   ConcertMemoryAlbum,
   SharedConcertMemory,
   buildConcertMemoryAlbums,
+  compressImageDataUrl,
+  deleteSharedMemory,
+  downloadMediaAsset,
+  fileToDataUrl,
+  isMemorySharingWindowOpen,
   loadSharedMemories,
   markChallengeCompleted,
   saveSharedMemory,
+  shareMediaAsset,
 } from '../utils/communityStorage';
 import {
-  ArrowLeft,
+  MediaHubItem,
+  getPublishedMediaItems,
+  subscribeMediaHub,
+} from '../utils/mediaHubStorage';
+import { BottomSheet, ScrollReveal, Tabs } from './ui/LumareelKit';
+import {
+  ArrowRight,
   Camera,
-  ChevronRight,
+  Check,
+  ChevronLeft,
   Download,
   Film,
   Image as ImageIcon,
-  MapPin,
+  Loader2,
   Play,
+  Plus,
   Share2,
+  Smartphone,
+  Ticket,
+  Trash2,
   Upload,
   X,
 } from 'lucide-react';
 
-export const ConcertMemoriesView: React.FC = () => {
-  const { archives, currentUser, showToast, language } = useApp();
+interface ConcertMemoriesViewProps {
+  embedded?: boolean;
+  onJumpToBackstage?: () => void;
+}
+
+type AlbumTab = 'official' | 'highlights' | 'videos' | 'participants';
+
+const MAX_INLINE_VIDEO_BYTES = 3.5 * 1024 * 1024;
+
+function downloadCollectorTicketPng(album: ConcertMemoryAlbum, holderName: string) {
+  if (typeof document === 'undefined') return false;
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1350;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return false;
+
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.strokeStyle = 'rgba(212, 175, 106, 0.45)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(56, 56, canvas.width - 112, canvas.height - 112);
+
+    ctx.fillStyle = '#D4AF6A';
+    ctx.font = '700 22px sans-serif';
+    ctx.fillText('LUMARÉEL · BILLET SOUVENIR COLLECTOR', 110, 150);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '800 84px sans-serif';
+    const title = (album.artist || album.title).toUpperCase().slice(0, 18);
+    ctx.fillText(title, 110, 340);
+
+    ctx.fillStyle = '#C8C8C8';
+    ctx.font = '400 32px sans-serif';
+    ctx.fillText(`${album.date}`, 110, 420);
+    ctx.fillText(`${album.venue}, ${album.city}`, 110, 470);
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+    ctx.setLineDash([12, 10]);
+    ctx.beginPath();
+    ctx.moveTo(110, 860);
+    ctx.lineTo(970, 860);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#9A9A9A';
+    ctx.font = '600 22px sans-serif';
+    ctx.fillText('TITULAIRE', 110, 940);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '700 38px sans-serif';
+    ctx.fillText(holderName || 'Membre LUMARÉEL', 110, 995);
+
+    ctx.fillStyle = '#D4AF6A';
+    ctx.font = '700 26px monospace';
+    ctx.fillText('VOUS Y ÉTIEZ · © LUMARÉEL', 110, 1180);
+
+    const url = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lumareel-collector-${album.id}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
+  embedded = false,
+}) => {
+  const {
+    archives,
+    events,
+    customerOrders,
+    currentUser,
+    setCurrentPage,
+    setSelectedEventSlug,
+    setSelectedMediaId,
+    setHideBottomNav,
+    showToast,
+    language,
+  } = useApp();
   const isEn = language === 'en';
 
   const albums = useMemo(() => buildConcertMemoryAlbums(archives), [archives]);
+  const publishedEvents = useMemo(
+    () => (events || []).filter((e) => e.status !== 'draft'),
+    [events]
+  );
+
+  const [publishedHubMemories, setPublishedHubMemories] = useState<MediaHubItem[]>(() =>
+    getPublishedMediaItems().filter((m) => m.placement === 'memories')
+  );
+
+  useEffect(() => {
+    const sync = () =>
+      setPublishedHubMemories(
+        getPublishedMediaItems().filter((m) => m.placement === 'memories')
+      );
+    sync();
+    return subscribeMediaHub(sync);
+  }, []);
+
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
-  const [sharedMemories, setSharedMemories] = useState<SharedConcertMemory[]>(() => loadSharedMemories());
-  const [lightboxPhoto, setLightboxPhoto] = useState<{ url: string; caption: string } | null>(null);
+  const [albumTab, setAlbumTab] = useState<AlbumTab>('official');
+  const [isSelectingPhotos, setIsSelectingPhotos] = useState(false);
+  const [selectedPhotoUrls, setSelectedPhotoUrls] = useState<string[]>([]);
+  const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
+  const [isDownloadSheetOpen, setIsDownloadSheetOpen] = useState(false);
+
+  const [sharedMemories, setSharedMemories] = useState<SharedConcertMemory[]>(() =>
+    loadSharedMemories()
+  );
+  const [lightboxPhoto, setLightboxPhoto] = useState<{
+    url: string;
+    caption: string;
+    filename: string;
+  } | null>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isChapterVideoPlaying, setIsChapterVideoPlaying] = useState(false);
 
   // Formulaire de partage photo/vidéo par les participants
   const [uploadCaption, setUploadCaption] = useState('');
   const [uploadMediaType, setUploadMediaType] = useState<'photo' | 'video'>('photo');
   const [uploadPreviewUrl, setUploadPreviewUrl] = useState<string>('');
+  const [isPreparingFile, setIsPreparingFile] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Masquer la barre flottante en mode Sélectionner (Maquette 07)
+  useEffect(() => {
+    setHideBottomNav(isSelectingPhotos);
+    return () => setHideBottomNav(false);
+  }, [isSelectingPhotos, setHideBottomNav]);
 
   const selectedAlbum: ConcertMemoryAlbum | null = useMemo(
     () => albums.find((a) => a.id === selectedAlbumId) || null,
     [albums, selectedAlbumId]
   );
 
+  const nextAlbum: ConcertMemoryAlbum | null = useMemo(() => {
+    if (!selectedAlbum || albums.length <= 1) return null;
+    const idx = albums.findIndex((a) => a.id === selectedAlbum.id);
+    return albums[(idx + 1) % albums.length] || null;
+  }, [albums, selectedAlbum]);
+
+  const resolveLinkedEvent = (album: ConcertMemoryAlbum): ConcertEvent | null => {
+    if (publishedEvents.length === 0) return null;
+    const albumHay = `${album.title} ${album.artist}`.toLowerCase();
+    return (
+      publishedEvents.find((ev) => {
+        const artist = (ev.artist || '').trim().toLowerCase();
+        const title = (ev.title || '').trim().toLowerCase();
+        return (
+          (artist.length >= 3 && albumHay.includes(artist)) ||
+          (title.length >= 4 && albumHay.includes(title))
+        );
+      }) || null
+    );
+  };
+
+  // Vérifie si l'utilisateur a assisté au concert (billet réel associé)
+  const didAttendAlbum = (album: ConcertMemoryAlbum): boolean => {
+    if (!customerOrders || customerOrders.length === 0) return false;
+    const hay = `${album.title} ${album.artist}`.toLowerCase();
+    return customerOrders.some((ord) => {
+      if (ord.paymentStatus !== 'completed') return false;
+      const evTitle = (ord.eventTitle || '').toLowerCase();
+      return evTitle.length >= 3 && (hay.includes(evTitle) || evTitle.includes(album.artist.toLowerCase()));
+    });
+  };
+
+  // Photos officielles strictement rattachées à ce concert précis
+  const albumOfficialPhotos = useMemo(() => {
+    if (!selectedAlbum) return [];
+    const base = [...selectedAlbum.officialPhotos];
+    const seen = new Set(base.map((p) => p.url));
+    const normTitle = selectedAlbum.title.trim().toLowerCase();
+
+    for (const item of publishedHubMemories) {
+      if (item.mediaType !== 'photo') continue;
+      const matchesId = item.eventId && item.eventId === selectedAlbum.id;
+      const matchesTitle =
+        item.albumTitle && item.albumTitle.trim().toLowerCase() === normTitle;
+      if ((matchesId || matchesTitle) && !seen.has(item.url)) {
+        seen.add(item.url);
+        base.push({
+          url: item.url,
+          captionFr: item.title,
+          captionEn: item.titleEn || item.title,
+        });
+      }
+    }
+    return base;
+  }, [selectedAlbum, publishedHubMemories]);
+
+  // Souvenirs partagés strictement rattachés à ce concert (zéro fuite entre concerts)
   const albumSharedItems = useMemo(() => {
     if (!selectedAlbum) return [];
-    const exact = sharedMemories.filter((m) => m.eventId === selectedAlbum.id);
-    if (exact.length > 0) return exact;
-    return sharedMemories.filter((m) => m.eventId === 'memory_abidjan_night');
+    return sharedMemories.filter((m) => m.eventId === selectedAlbum.id);
   }, [selectedAlbum, sharedMemories]);
 
-  const handleDownloadAsset = async (url: string, filename: string) => {
-    try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
-      showToast(isEn ? 'Memory downloaded to your device.' : 'Souvenir téléchargé sur votre appareil.', 'success');
-    } catch {
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      showToast(isEn ? 'Download started.' : 'Téléchargement lancé.', 'success');
+  const albumSharedVideos = useMemo(
+    () => albumSharedItems.filter((m) => m.mediaType === 'video'),
+    [albumSharedItems]
+  );
+
+  const handleDownload = async (url: string, filename: string) => {
+    const ok = await downloadMediaAsset(url, filename);
+    if (ok) {
+      showToast(
+        isEn ? 'Downloaded to your device.' : 'Téléchargé sur votre appareil.',
+        'success'
+      );
+    } else {
+      showToast(
+        isEn ? 'Unable to download this file.' : 'Téléchargement impossible pour ce fichier.',
+        'error'
+      );
     }
+  };
+
+  const handleBatchDownload = async (explicitUrls?: string[]) => {
+    if (!selectedAlbum) return;
+    const urlsToDownload =
+      explicitUrls && explicitUrls.length > 0
+        ? explicitUrls
+        : selectedPhotoUrls.length > 0
+        ? selectedPhotoUrls
+        : albumOfficialPhotos.slice(0, 6).map((p) => p.url);
+
+    const targets = urlsToDownload.length > 0 ? urlsToDownload : [selectedAlbum.coverImage];
+
+    let okCount = 0;
+    for (let i = 0; i < targets.length; i += 1) {
+      const ok = await downloadMediaAsset(
+        targets[i],
+        `lumareel-${selectedAlbum.id}-photo-${i + 1}.jpg`
+      );
+      if (ok) okCount += 1;
+    }
+
+    if (okCount > 0) {
+      showToast(
+        isEn
+          ? `${okCount} photo${okCount > 1 ? 's' : ''} downloaded.`
+          : `${okCount} photo${okCount > 1 ? 's' : ''} téléchargée${okCount > 1 ? 's' : ''}.`,
+        'success'
+      );
+      setIsSelectingPhotos(false);
+      setSelectedPhotoUrls([]);
+      setIsDownloadSheetOpen(false);
+    } else {
+      showToast(
+        isEn ? 'Unable to download.' : 'Téléchargement impossible.',
+        'error'
+      );
+    }
+  };
+
+  const handleShareSelected = async () => {
+    if (!selectedAlbum) return;
+    const firstUrl = selectedPhotoUrls[0];
+    if (!firstUrl) {
+      await handleShareAlbum(selectedAlbum);
+      return;
+    }
+    await handleShareItem({
+      title: `${selectedAlbum.artist || selectedAlbum.title} — LUMARÉEL`,
+      assetUrl: firstUrl,
+      filename: `lumareel-${selectedAlbum.id}-selection.jpg`,
+    });
+    setIsSelectingPhotos(false);
+    setSelectedPhotoUrls([]);
   };
 
   const handleShareAlbum = async (album: ConcertMemoryAlbum) => {
-    const shareText = isEn
-      ? `Relive ${album.title} at ${album.venue} — official photos & recap on LUMARÉEL.`
-      : `Revivez ${album.title} à ${album.venue} — photos officielles et récap sur LUMARÉEL.`;
-    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
-
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({ title: album.title, text: shareText, url: shareUrl });
-        return;
-      } catch {
-        // fallback below
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-      showToast(isEn ? 'Memory page link copied.' : 'Lien de la page souvenir copié.', 'success');
-    } catch {
-      showToast(shareText, 'info');
+    const result = await shareMediaAsset({
+      title: album.title,
+      text: `${album.title} — ${album.venue}`,
+    });
+    if (result === 'copied') {
+      showToast(isEn ? 'Link copied.' : 'Lien copié.', 'success');
+    } else if (result === 'failed') {
+      showToast(isEn ? 'Sharing unavailable.' : 'Partage indisponible.', 'info');
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleShareItem = async (params: {
+    title: string;
+    assetUrl: string;
+    filename: string;
+  }) => {
+    const result = await shareMediaAsset({
+      title: params.title,
+      text: params.title,
+      assetUrl: params.assetUrl,
+      filename: params.filename,
+    });
+    if (result === 'copied') {
+      showToast(isEn ? 'Link copied.' : 'Lien copié.', 'success');
+    } else if (result === 'failed') {
+      showToast(isEn ? 'Sharing unavailable.' : 'Partage indisponible.', 'info');
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const isVideo = file.type.startsWith('video/');
     setUploadMediaType(isVideo ? 'video' : 'photo');
+    setIsPreparingFile(true);
 
-    if (isVideo) {
-      const objectUrl = URL.createObjectURL(file);
-      setUploadPreviewUrl(objectUrl);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setUploadPreviewUrl(reader.result);
+    try {
+      if (isVideo) {
+        if (file.size <= MAX_INLINE_VIDEO_BYTES) {
+          const dataUrl = await fileToDataUrl(file);
+          setUploadPreviewUrl(dataUrl);
+        } else {
+          const objectUrl = URL.createObjectURL(file);
+          setUploadPreviewUrl(objectUrl);
+        }
+      } else {
+        const compressed = await compressImageDataUrl(file, 1280, 0.78);
+        setUploadPreviewUrl(compressed);
       }
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      showToast(
+        isEn
+          ? 'Could not load this file. Try another photo or video.'
+          : 'Impossible de charger ce fichier. Essayez une autre photo ou vidéo.',
+        'error'
+      );
+      setUploadPreviewUrl('');
+    } finally {
+      setIsPreparingFile(false);
+    }
   };
 
   const handlePublishMemory = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAlbum) return;
+    if (!isMemorySharingWindowOpen(selectedAlbum.date)) return;
     if (!uploadPreviewUrl) {
-      showToast(isEn ? 'Select a photo or video to share.' : 'Choisissez une photo ou une vidéo à partager.', 'error');
+      showToast(
+        isEn
+          ? 'Choose a photo or video first.'
+          : 'Choisissez d’abord une photo ou une vidéo.',
+        'error'
+      );
       return;
     }
 
@@ -132,25 +403,29 @@ export const ConcertMemoriesView: React.FC = () => {
       const entry: SharedConcertMemory = {
         id: `mem_${Date.now()}`,
         eventId: selectedAlbum.id,
-        authorName: currentUser?.name || (isEn ? 'Concert Guest' : 'Participant'),
+        authorName: currentUser?.name || (isEn ? 'Guest' : 'Participant'),
         mediaType: uploadMediaType,
         mediaUrl: uploadPreviewUrl,
-        caption:
-          uploadCaption.trim() ||
-          (isEn ? `Live moment at ${selectedAlbum.title}` : `Instant live à ${selectedAlbum.title}`),
+        caption: uploadCaption.trim(),
         createdAt: new Date().toISOString(),
       };
       const updated = saveSharedMemory(entry);
       setSharedMemories(updated);
       setUploadCaption('');
       setUploadPreviewUrl('');
+      setIsAddSheetOpen(false);
+      setAlbumTab('participants');
       if (fileInputRef.current) fileInputRef.current.value = '';
 
       const challengeUnlocked = markChallengeCompleted(currentUser, 'challenge_memory');
       showToast(
         challengeUnlocked
-          ? (isEn ? 'Memory shared! +100 challenge points added.' : 'Souvenir partagé ! +100 points défi ajoutés.')
-          : (isEn ? 'Your concert memory is now live on this event page.' : 'Votre souvenir est publié sur la page de l’événement.'),
+          ? isEn
+            ? 'Memory published! +100 points.'
+            : 'Souvenir publié ! +100 points.'
+          : isEn
+          ? 'Memory published.'
+          : 'Souvenir publié.',
         'success'
       );
     } finally {
@@ -158,325 +433,985 @@ export const ConcertMemoriesView: React.FC = () => {
     }
   };
 
+  const handleDeleteMemory = (id: string) => {
+    const updated = deleteSharedMemory(id);
+    setSharedMemories(updated);
+    showToast(isEn ? 'Removed.' : 'Supprimé.', 'info');
+  };
+
+  const togglePhotoSelection = (url: string) => {
+    setSelectedPhotoUrls((prev) =>
+      prev.includes(url) ? prev.filter((u) => u !== url) : [...prev, url]
+    );
+  };
+
   // =========================================================================
-  // PAGE DÉDIÉE À UN CONCERT SPÉCIFIQUE
+  // PAGE DÉDIÉE À UN CONCERT (ÉCRANS 07 + 03 RÉUNIS — ZÉRO ARRONDI)
   // =========================================================================
   if (selectedAlbum) {
+    const linkedEvent = resolveLinkedEvent(selectedAlbum);
+    const canShareAndDownload = isMemorySharingWindowOpen(selectedAlbum.date);
+    const attended = didAttendAlbum(selectedAlbum);
+    const editionYear = selectedAlbum.date.match(/\b20\d{2}\b/)?.[0] || '2026';
+    const embedSrc = selectedAlbum.recapEmbedUrl.includes('autoplay=1')
+      ? selectedAlbum.recapEmbedUrl
+      : `${selectedAlbum.recapEmbedUrl}${
+          selectedAlbum.recapEmbedUrl.includes('?') ? '&' : '?'
+        }autoplay=1`;
+
+    const chapter1Photos = albumOfficialPhotos.slice(0, 3);
+    const chapter3Photos =
+      albumOfficialPhotos.length > 3 ? albumOfficialPhotos.slice(3) : albumOfficialPhotos;
+
     return (
-      <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
-        {/* Retour vers la liste des concerts */}
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              setSelectedAlbumId(null);
-              setIsVideoPlaying(false);
-            }}
-            className="min-h-[44px] inline-flex items-center gap-2 text-xs sm:text-sm font-agrandir-bold text-neutral-300 hover:text-white transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>{isEn ? 'All concert memories' : 'Tous les souvenirs de concerts'}</span>
-          </button>
+      <div
+        className={
+          embedded
+            ? 'w-full text-white font-agrandir-regular'
+            : 'min-h-screen w-full bg-black text-white font-agrandir-regular pb-28'
+        }
+      >
+        <div className={embedded ? '' : 'max-w-[1280px] mx-auto'}>
+          {/* 1. HERO PHOTO PLEINE LARGEUR — 0px */}
+          <div className="relative w-full aspect-[4/3] sm:aspect-[21/9] bg-[#0E0E0E] overflow-hidden">
+            <img
+              src={selectedAlbum.coverImage}
+              alt={selectedAlbum.title}
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-black/25" />
 
-          <button
-            type="button"
-            onClick={() => handleShareAlbum(selectedAlbum)}
-            className="min-h-[42px] px-4 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-agrandir-bold text-white flex items-center gap-2 cursor-pointer"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>{isEn ? 'Share page' : 'Partager'}</span>
-          </button>
-        </div>
+            {/* Bouton retour circulaire haut-gauche + libellé haut-droite */}
+            <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedAlbumId(null);
+                  setAlbumTab('official');
+                  setIsVideoPlaying(false);
+                  setIsChapterVideoPlaying(false);
+                  setIsSelectingPhotos(false);
+                  setSelectedPhotoUrls([]);
+                  setIsAddSheetOpen(false);
+                  setIsDownloadSheetOpen(false);
+                }}
+                aria-label={isEn ? 'Back to memories' : 'Retour aux souvenirs'}
+                className="w-10 h-10 rounded-full bg-black/75 hover:bg-black border border-white/[0.18] backdrop-blur-md flex items-center justify-center text-white transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-5 h-5" strokeWidth={1.6} />
+              </button>
 
-        {/* En-tête de l'événement */}
-        <header className="mb-10 pb-6 border-b border-white/10 space-y-3">
-          <div className="text-xs text-neutral-400 flex flex-wrap items-center gap-2">
-            <span className="text-[#D4AF37] font-agrandir-bold uppercase tracking-wider">
-              {isEn ? 'Event Memory Page' : 'Page Souvenir Officielle'}
-            </span>
-            <span aria-hidden="true">·</span>
-            <span>{selectedAlbum.date}</span>
-            <span aria-hidden="true">·</span>
-            <span className="inline-flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-[#D4AF37]" />
-              {selectedAlbum.venue}, {selectedAlbum.city}
-            </span>
-          </div>
-          <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-tight text-white leading-[1.03] text-balance">
-            {selectedAlbum.title}
-          </h1>
-          <p className="text-sm text-neutral-400">{selectedAlbum.artist}</p>
-        </header>
-
-        {/* 1. VIDÉO RÉCAPITULATIVE & MEILLEURS MOMENTS */}
-        <section className="mb-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <div className="lg:col-span-7 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="font-agrandir-extrabold text-lg sm:text-xl text-white">
-                {isEn ? 'Official Recap Video' : 'Vidéo récapitulative'}
-              </h2>
-              <span className="text-xs font-mono text-neutral-400">{selectedAlbum.recapDuration}</span>
-            </div>
-
-            <div className="aspect-[16/9] w-full rounded-3xl overflow-hidden bg-black border border-white/15 relative">
-              {isVideoPlaying ? (
-                <iframe
-                  src={`${selectedAlbum.recapEmbedUrl}${selectedAlbum.recapEmbedUrl.includes('?') ? '&' : '?'}autoplay=1`}
-                  title={selectedAlbum.title}
-                  className="w-full h-full border-0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setIsVideoPlaying(true)}
-                  className="w-full h-full relative group cursor-pointer block text-left"
-                >
-                  <img
-                    src={selectedAlbum.coverImage}
-                    alt={selectedAlbum.title}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-white/20 group-hover:bg-white text-white group-hover:text-black backdrop-blur-md border border-white/30 flex items-center justify-center transition-colors">
-                      <Play className="w-6 h-6 ml-0.5 fill-current" />
-                    </div>
-                  </div>
-                </button>
-              )}
+              <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#C8C8C8]">
+                {albumTab === 'highlights'
+                  ? isEn
+                    ? 'COVER · B&W PHOTO'
+                    : 'COUVERTURE · PHOTO N&B'
+                  : isEn
+                  ? 'OFFICIAL PHOTO'
+                  : 'PHOTO OFFICIELLE'}
+              </span>
             </div>
           </div>
 
-          {/* Meilleurs moments */}
-          <div className="lg:col-span-5 rounded-3xl bg-[#0e0e0e] border border-white/10 p-6 space-y-4">
-            <h2 className="font-agrandir-extrabold text-lg text-white">
-              {isEn ? 'Best moments' : 'Les meilleurs moments'}
-            </h2>
-            <div className="divide-y divide-white/8">
-              {selectedAlbum.highlights.map((hl, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setIsVideoPlaying(true)}
-                  className="w-full py-3.5 text-left group cursor-pointer flex items-start gap-3"
-                >
-                  <span className="font-mono text-xs text-[#D4AF37] pt-0.5 shrink-0 tabular-nums">
-                    {hl.time}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="text-sm font-agrandir-bold text-white group-hover:text-[#D4AF37] transition-colors">
-                      {isEn ? hl.titleEn : hl.titleFr}
-                    </div>
-                    <p className="text-xs text-neutral-400 mt-0.5 leading-relaxed">
-                      {isEn ? hl.descEn : hl.descFr}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
+          {/* 2. CORPS PRINCIPAL */}
+          <div className="px-4 sm:px-8 -mt-12 relative z-10 space-y-6 max-w-5xl mx-auto">
+            {/* En-tête : SOUVENIRS DE CONCERT + Titre + Date/Lieu + Badge VOUS Y ÉTIEZ */}
+            <header className="space-y-2">
+              <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#D4AF6A]">
+                {albumTab === 'highlights'
+                  ? `SOUVENIRS · ÉDITION ${editionYear}`
+                  : isEn
+                  ? 'CONCERT MEMORIES'
+                  : 'SOUVENIRS DE CONCERT'}
+              </p>
 
-        {/* 2. PHOTOGRAPHIES OFFICIELLES + TÉLÉCHARGEMENT */}
-        <section className="mb-12">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="font-agrandir-extrabold text-xl text-white">
-              {isEn ? 'Official Photographs' : 'Photographies officielles'}
-            </h2>
-            <span className="text-xs text-neutral-400 tabular-nums">
-              {selectedAlbum.officialPhotos.length} {isEn ? 'photos' : 'photos'}
-            </span>
-          </div>
+              <h1 className="font-agrandir-extrabold text-[2.2rem] sm:text-5xl uppercase tracking-tight leading-[0.98] text-white">
+                {selectedAlbum.artist || selectedAlbum.title}
+              </h1>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {selectedAlbum.officialPhotos.map((photo, idx) => {
-              const caption = isEn ? photo.captionEn : photo.captionFr;
-              return (
-                <figure
-                  key={idx}
-                  className="rounded-3xl overflow-hidden bg-[#0e0e0e] border border-white/10 flex flex-col"
-                >
-                  <button
-                    type="button"
-                    onClick={() => setLightboxPhoto({ url: photo.url, caption })}
-                    className="aspect-[4/3] w-full overflow-hidden bg-black cursor-pointer group block"
-                  >
-                    <img
-                      src={photo.url}
-                      alt={caption}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                    />
-                  </button>
-                  <figcaption className="p-4 flex items-center justify-between gap-3">
-                    <span className="text-xs text-neutral-300 truncate">{caption}</span>
+              <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+                <p className="text-xs sm:text-sm text-[#C8C8C8]">
+                  {selectedAlbum.date} · {selectedAlbum.venue}, {selectedAlbum.city}
+                </p>
+
+                <div className="flex items-center gap-2">
+                  {(attended || currentUser) && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[2px] border border-[#D4AF6A]/65 bg-black/80 text-[#D4AF6A] text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em]">
+                      <Check className="w-3 h-3" strokeWidth={1.8} />
+                      <span>{isEn ? 'YOU WERE THERE' : 'VOUS Y ÉTIEZ'}</span>
+                    </span>
+                  )}
+                  {linkedEvent && (
                     <button
                       type="button"
-                      onClick={() =>
-                        handleDownloadAsset(
-                          photo.url,
-                          `lumareel-${selectedAlbum.id}-photo-${idx + 1}.jpg`
-                        )
-                      }
-                      className="min-h-[38px] px-3 rounded-xl bg-white/10 hover:bg-white hover:text-black text-white text-xs font-agrandir-bold transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
+                      onClick={() => {
+                        setSelectedEventSlug(linkedEvent.slug);
+                        setCurrentPage('concert_detail');
+                      }}
+                      className="px-3 py-1 rounded-[4px] border border-white/25 hover:border-white text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em] text-white cursor-pointer transition-colors"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>{isEn ? 'Download' : 'Télécharger'}</span>
+                      {isEn ? 'Concert' : 'Voir le concert'}
                     </button>
-                  </figcaption>
-                </figure>
-              );
-            })}
-          </div>
-        </section>
+                  )}
+                </div>
+              </div>
+            </header>
 
-        {/* 3. PARTAGER VOS PHOTOS & VIDÉOS + MUR DES PARTICIPANTS */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <form
-            onSubmit={handlePublishMemory}
-            className="lg:col-span-5 rounded-3xl bg-[#0e0e0e] border border-white/10 p-6 space-y-4"
+            {/* 3. BARRE DES 3 TUILES D'ACTION (4px — MAQUETTE 07, MASQUÉE APRÈS 7 JOURS) */}
+            {canShareAndDownload && (
+              <div className="grid grid-cols-3 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsDownloadSheetOpen(true)}
+                  className="min-h-[72px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer lum-press"
+                >
+                  <Download className="w-4 h-4" strokeWidth={1.6} />
+                  <span className="text-xs font-agrandir-extrabold">
+                    {isEn ? 'Download' : 'Télécharger'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleShareAlbum(selectedAlbum)}
+                  className="min-h-[72px] rounded-[4px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] text-white flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer lum-press"
+                >
+                  <Share2 className="w-4 h-4 text-[#C8C8C8]" strokeWidth={1.6} />
+                  <span className="text-xs font-agrandir-extrabold">
+                    {isEn ? 'Share' : 'Partager'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsAddSheetOpen((prev) => !prev)}
+                  className="min-h-[72px] rounded-[4px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] text-white flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer lum-press"
+                >
+                  <Plus className="w-4 h-4 text-[#C8C8C8]" strokeWidth={1.6} />
+                  <span className="text-xs font-agrandir-extrabold">
+                    {isEn ? 'Add' : 'Ajouter'}
+                  </span>
+                </button>
+              </div>
+            )}
+
+            {/* Formulaire d'ajout de souvenir (0px container, 4px inputs/buttons) */}
+            {canShareAndDownload && isAddSheetOpen && (
+              <form
+                onSubmit={handlePublishMemory}
+                className="bg-[#0E0E0E] border border-white/[0.12] p-4 sm:p-5 space-y-3.5"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="font-agrandir-extrabold text-sm text-white">
+                    {isEn ? 'Add your photo or video' : 'Ajouter ma photo ou vidéo'}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddSheetOpen(false)}
+                    className="w-8 h-8 rounded-full bg-[#141414] border border-white/[0.12] flex items-center justify-center text-[#9A9A9A] hover:text-white cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" strokeWidth={1.6} />
+                  </button>
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isPreparingFile}
+                  className="w-full min-h-[112px] rounded-[4px] border border-dashed border-white/25 hover:border-[#D4AF6A] bg-black flex flex-col items-center justify-center gap-2 p-3 text-center transition-colors cursor-pointer disabled:opacity-60"
+                >
+                  {isPreparingFile ? (
+                    <Loader2 className="w-5 h-5 text-[#D4AF6A] animate-spin" />
+                  ) : uploadPreviewUrl ? (
+                    uploadMediaType === 'video' ? (
+                      <video
+                        src={uploadPreviewUrl}
+                        className="max-h-36"
+                        controls
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <img
+                        src={uploadPreviewUrl}
+                        alt="Preview"
+                        className="max-h-36 object-contain"
+                      />
+                    )
+                  ) : (
+                    <>
+                      <Upload className="w-5 h-5 text-[#D4AF6A]" strokeWidth={1.6} />
+                      <span className="text-xs font-agrandir-semibold text-white">
+                        {isEn ? 'Choose a photo or video' : 'Choisir une photo ou vidéo'}
+                      </span>
+                    </>
+                  )}
+                </button>
+
+                <input
+                  type="text"
+                  value={uploadCaption}
+                  onChange={(e) => setUploadCaption(e.target.value)}
+                  placeholder={isEn ? 'Caption (optional)' : 'Légende (optionnel)'}
+                  className="w-full min-h-[44px] px-3.5 rounded-[4px] bg-black border border-white/[0.16] text-sm text-white placeholder:text-[#9A9A9A] focus:border-[#D4AF6A] focus:outline-none"
+                />
+
+                <button
+                  type="submit"
+                  disabled={isUploading || isPreparingFile || !uploadPreviewUrl}
+                  className="w-full min-h-[46px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs transition-colors cursor-pointer disabled:opacity-40 lum-press"
+                >
+                  {isUploading
+                    ? isEn
+                      ? 'Publishing...'
+                      : 'Publication...'
+                    : isEn
+                    ? 'Publish my memory'
+                    : 'Publier mon souvenir'}
+                </button>
+              </form>
+            )}
+
+            {/* 4. AFTERMOVIE OFFICIEL — 0px, miniature dégagée sans texte/durée */}
+            {albumTab !== 'highlights' && (
+              <section className="space-y-3 pt-1">
+                <h2 className="font-agrandir-extrabold text-lg sm:text-xl text-white">
+                  {isEn ? 'Official Aftermovie' : 'Aftermovie officiel'}
+                </h2>
+
+                <div className="aspect-[16/9] w-full overflow-hidden bg-[#0E0E0E] border border-white/[0.12] relative">
+                  {isVideoPlaying ? (
+                    <iframe
+                      src={embedSrc}
+                      title={selectedAlbum.title}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsVideoPlaying(true)}
+                      aria-label={isEn ? 'Play official aftermovie' : "Lire l'aftermovie officiel"}
+                      className="w-full h-full relative group cursor-pointer block"
+                    >
+                      <img
+                        src={selectedAlbum.coverImage}
+                        alt={selectedAlbum.title}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                      />
+                      <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black/55 group-hover:bg-[#D4AF6A] text-white group-hover:text-black backdrop-blur-md border border-white/30 flex items-center justify-center transition-colors">
+                          <Play className="w-6 h-6 ml-0.5 fill-current" strokeWidth={1.6} />
+                        </div>
+                      </div>
+                    </button>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* 5. QUATRE ONGLETS SOULIGNÉS : Officielles | Meilleurs moments | Vidéos | Participants */}
+            <Tabs<AlbumTab>
+              activeId={albumTab}
+              onChange={(next) => {
+                setAlbumTab(next);
+                if (next !== 'official') {
+                  setIsSelectingPhotos(false);
+                  setSelectedPhotoUrls([]);
+                }
+              }}
+              items={[
+                { id: 'official', label: isEn ? 'Official' : 'Officielles' },
+                { id: 'highlights', label: isEn ? 'Highlights' : 'Meilleurs moments' },
+                { id: 'videos', label: isEn ? 'Videos' : 'Vidéos' },
+                { id: 'participants', label: isEn ? 'Attendees' : 'Participants' },
+              ]}
+            />
+
+            {/* ONGLET A : OFFICIELLES (MAQUETTE 07 — GRILLE 3 COLONNES CARRÉE 0px + SÉLECTIONNER) */}
+            {albumTab === 'official' && (
+              <section className="space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs sm:text-sm text-[#9A9A9A]">
+                    {albumOfficialPhotos.length}{' '}
+                    {isEn ? 'official photos' : 'photos officielles'}
+                  </span>
+
+                  {canShareAndDownload && albumOfficialPhotos.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsSelectingPhotos((prev) => !prev);
+                        setSelectedPhotoUrls([]);
+                      }}
+                      className={`min-h-[34px] px-4 rounded-full border text-xs font-agrandir-extrabold transition-colors cursor-pointer ${
+                        isSelectingPhotos
+                          ? 'bg-[#D4AF6A] border-[#D4AF6A] text-black'
+                          : 'border-white/25 text-white hover:border-white'
+                      }`}
+                    >
+                      {isSelectingPhotos
+                        ? isEn
+                          ? 'Cancel'
+                          : 'Annuler'
+                        : isEn
+                        ? 'Select'
+                        : 'Sélectionner'}
+                    </button>
+                  )}
+                </div>
+
+                {albumOfficialPhotos.length > 0 ? (
+                  <div className="grid grid-cols-3 md:grid-cols-4 gap-1 sm:gap-2">
+                    {albumOfficialPhotos.map((photo, idx) => {
+                      const caption = isEn ? photo.captionEn : photo.captionFr;
+                      const filename = `lumareel-${selectedAlbum.id}-photo-${idx + 1}.jpg`;
+                      const isSelected = selectedPhotoUrls.includes(photo.url);
+
+                      return (
+                        <button
+                          key={`${photo.url}_${idx}`}
+                          type="button"
+                          onClick={() => {
+                            if (isSelectingPhotos && canShareAndDownload) {
+                              togglePhotoSelection(photo.url);
+                            } else {
+                              setLightboxPhoto({ url: photo.url, caption, filename });
+                            }
+                          }}
+                          className={`group relative aspect-square overflow-hidden bg-[#0E0E0E] cursor-pointer block ${
+                            isSelected ? 'ring-2 ring-inset ring-[#D4AF6A]' : ''
+                          }`}
+                        >
+                          <img
+                            src={photo.url}
+                            alt={caption}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                          />
+                          {isSelectingPhotos && canShareAndDownload && (
+                            <span
+                              className={`absolute top-2 right-2 w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${
+                                isSelected
+                                  ? 'bg-[#D4AF6A] border-[#D4AF6A] text-black'
+                                  : 'bg-black/65 border-white/65 text-transparent'
+                              }`}
+                            >
+                              <Check className="w-3.5 h-3.5" strokeWidth={2} />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="py-10 text-center text-xs text-[#9A9A9A]">
+                    {isEn
+                      ? 'Official photos for this concert will appear here.'
+                      : 'Les photos officielles de ce concert apparaîtront ici.'}
+                  </p>
+                )}
+
+                <p className="pt-3 text-center text-[11px] text-[#9A9A9A]">
+                  {isEn
+                    ? 'Official photos · © LUMARÉEL — personal use'
+                    : 'Photos officielles · © LUMARÉEL — usage personnel'}
+                </p>
+              </section>
+            )}
+
+            {/* ONGLET B : MEILLEURS MOMENTS (MAQUETTE 03 — RÉCIT ÉDITORIAL EN 3 CHAPITRES, 0px) */}
+            {albumTab === 'highlights' && (
+              <article className="space-y-10 pt-1">
+                <p className="text-base sm:text-lg text-[#C8C8C8] leading-relaxed max-w-xl">
+                  {isEn
+                    ? "We don't just stage concerts. We create memories. A look back at the night, from the first chord to the final encore."
+                    : "On ne fait pas des concerts. On crée des souvenirs. Retour sur la nuit, du premier accord au dernier rappel."}
+                </p>
+
+                <div className="py-3.5 border-y border-white/[0.12] flex items-center gap-6 text-xs text-[#9A9A9A]">
+                  <span>{albumOfficialPhotos.length} photos</span>
+                  <span>
+                    {1 + albumSharedVideos.length}{' '}
+                    {isEn ? 'video(s)' : albumSharedVideos.length > 0 ? 'vidéos' : 'vidéo'}
+                  </span>
+                  <span>3 {isEn ? 'chapters' : 'chapitres'}</span>
+                </div>
+
+                {/* CHAPITRE I : L'arrivée (collage asymétrique 2+1, 0px) */}
+                <ScrollReveal>
+                  <section className="space-y-4">
+                    <div>
+                      <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
+                        CHAPITRE I
+                      </p>
+                      <h2 className="mt-1 font-agrandir-extrabold text-2xl sm:text-3xl text-white">
+                        {isEn ? 'Arrival' : "L'arrivée"}
+                      </h2>
+                    </div>
+
+                    {chapter1Photos.length > 0 && (
+                      <div className="grid grid-cols-12 gap-1.5 sm:gap-2">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setLightboxPhoto({
+                              url: chapter1Photos[0].url,
+                              caption: isEn
+                                ? chapter1Photos[0].captionEn
+                                : chapter1Photos[0].captionFr,
+                              filename: `lumareel-${selectedAlbum.id}-ch1-1.jpg`,
+                            })
+                          }
+                          className="col-span-7 aspect-[3/4] overflow-hidden bg-[#0E0E0E] cursor-pointer block"
+                        >
+                          <img
+                            src={chapter1Photos[0].url}
+                            alt={selectedAlbum.title}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-500"
+                          />
+                        </button>
+
+                        <div className="col-span-5 grid grid-rows-2 gap-1.5 sm:gap-2">
+                          {[1, 2].map((slotIdx) => {
+                            const p = chapter1Photos[slotIdx] || chapter1Photos[0];
+                            return (
+                              <button
+                                key={slotIdx}
+                                type="button"
+                                onClick={() =>
+                                  setLightboxPhoto({
+                                    url: p.url,
+                                    caption: isEn ? p.captionEn : p.captionFr,
+                                    filename: `lumareel-${selectedAlbum.id}-ch1-${slotIdx + 1}.jpg`,
+                                  })
+                                }
+                                className="w-full h-full overflow-hidden bg-[#0E0E0E] cursor-pointer block"
+                              >
+                                <img
+                                  src={p.url}
+                                  alt={selectedAlbum.title}
+                                  referrerPolicy="no-referrer"
+                                  className="w-full h-full object-cover hover:scale-[1.03] transition-transform duration-500"
+                                />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Citation éditoriale */}
+                    <blockquote className="pt-4 font-agrandir-extrabold text-xl sm:text-2xl text-white leading-snug max-w-xl">
+                      «{' '}
+                      {isEn
+                        ? `An electric night at ${selectedAlbum.venue} — the entire crowd sang every word from start to finish.`
+                        : `Une énergie rare à ${selectedAlbum.venue} — toute la salle a vibré du premier accord jusqu'au dernier rappel.`}
+                      {' '}»
+                    </blockquote>
+                  </section>
+                </ScrollReveal>
+
+                {/* CHAPITRE II : Sur scène (lecteur vidéo 0px, miniature dégagée) */}
+                <ScrollReveal>
+                  <section className="space-y-4">
+                    <div>
+                      <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
+                        CHAPITRE II
+                      </p>
+                      <h2 className="mt-1 font-agrandir-extrabold text-2xl sm:text-3xl text-white">
+                        {isEn ? 'On stage' : 'Sur scène'}
+                      </h2>
+                    </div>
+
+                    <div className="aspect-[16/9] w-full overflow-hidden bg-[#0E0E0E] border border-white/[0.12] relative">
+                      {isChapterVideoPlaying ? (
+                        <iframe
+                          src={embedSrc}
+                          title={selectedAlbum.title}
+                          className="w-full h-full border-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setIsChapterVideoPlaying(true)}
+                          aria-label={isEn ? 'Play stage video' : 'Lire la vidéo sur scène'}
+                          className="w-full h-full relative group cursor-pointer block"
+                        >
+                          <img
+                            src={selectedAlbum.coverImage}
+                            alt={selectedAlbum.title}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                          />
+                          <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-black/55 group-hover:bg-[#D4AF6A] text-white group-hover:text-black backdrop-blur-md border border-white/30 flex items-center justify-center transition-colors">
+                              <Play className="w-6 h-6 ml-0.5 fill-current" strokeWidth={1.6} />
+                            </div>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  </section>
+                </ScrollReveal>
+
+                {/* CHAPITRE III : Meilleurs instants (0px) */}
+                {chapter3Photos.length > 0 && (
+                  <ScrollReveal>
+                    <section className="space-y-4">
+                      <div>
+                        <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
+                          CHAPITRE III
+                        </p>
+                        <h2 className="mt-1 font-agrandir-extrabold text-2xl sm:text-3xl text-white">
+                          {isEn ? 'Best moments' : 'Meilleurs instants'}
+                        </h2>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {chapter3Photos.map((photo, idx) => {
+                          const caption = isEn ? photo.captionEn : photo.captionFr;
+                          return (
+                            <button
+                              key={`${photo.url}_ch3_${idx}`}
+                              type="button"
+                              onClick={() =>
+                                setLightboxPhoto({
+                                  url: photo.url,
+                                  caption,
+                                  filename: `lumareel-${selectedAlbum.id}-best-${idx + 1}.jpg`,
+                                })
+                              }
+                              className="aspect-[4/3] overflow-hidden bg-[#0E0E0E] cursor-pointer block group"
+                            >
+                              <img
+                                src={photo.url}
+                                alt={caption}
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                              />
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  </ScrollReveal>
+                )}
+
+                {/* PIED DU RÉCIT ÉDITORIAL (MAQUETTE 03) : CTA Photos/Vidéos + Souvenir suivant → */}
+                <div className="pt-6 border-t border-white/[0.12] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAlbumTab('official');
+                      if (typeof window !== 'undefined') {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
+                    }}
+                    className="min-h-[48px] px-6 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs sm:text-sm transition-colors cursor-pointer lum-press"
+                  >
+                    {isEn ? 'Photos, videos & downloads' : 'Photos, vidéos & téléchargements'}
+                  </button>
+
+                  {nextAlbum && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedAlbumId(nextAlbum.id);
+                        setAlbumTab('highlights');
+                        setIsVideoPlaying(false);
+                        setIsChapterVideoPlaying(false);
+                        if (typeof window !== 'undefined') {
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                      }}
+                      className="inline-flex items-center justify-center gap-2 min-h-[44px] text-xs sm:text-sm font-agrandir-extrabold text-white hover:text-[#D4AF6A] transition-colors cursor-pointer"
+                    >
+                      <span>
+                        {isEn ? 'Next memory' : 'Souvenir suivant'} · {nextAlbum.artist || nextAlbum.title}
+                      </span>
+                      <ArrowRight className="w-4 h-4" strokeWidth={1.6} />
+                    </button>
+                  )}
+                </div>
+              </article>
+            )}
+
+            {/* ONGLET C : VIDÉOS */}
+            {albumTab === 'videos' && (
+              <section className="space-y-5">
+                {albumSharedVideos.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {albumSharedVideos.map((vid) => (
+                      <article key={vid.id} className="space-y-2">
+                        <div className="aspect-[16/9] overflow-hidden bg-black border border-white/[0.12]">
+                          <video
+                            src={vid.mediaUrl}
+                            controls
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-2 text-xs text-[#9A9A9A]">
+                          <span className="truncate">{vid.caption || vid.authorName}</span>
+                          {canShareAndDownload && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDownload(vid.mediaUrl, `lumareel-video-${vid.id}.mp4`)
+                              }
+                              className="text-[#C8C8C8] hover:text-white cursor-pointer"
+                            >
+                              <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
+                            </button>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="py-6 text-xs sm:text-sm text-[#9A9A9A]">
+                    {isEn
+                      ? 'The official aftermovie is available above. Participant clips shared for this concert will also appear here.'
+                      : "L'aftermovie officiel est disponible ci-dessus. Les vidéos partagées par les participants pour ce concert s'afficheront ici."}
+                  </p>
+                )}
+              </section>
+            )}
+
+            {/* ONGLET D : PARTICIPANTS (STRICTEMENT LIÉS À CE CONCERT + NOTE MODÉRATION) */}
+            {albumTab === 'participants' && (
+              <section className="space-y-5">
+                <p className="text-xs text-[#9A9A9A] border-l-2 border-[#D4AF6A] pl-3 py-0.5">
+                  {isEn
+                    ? 'Attendee photos and clips are published after moderation.'
+                    : 'Les photos des participants sont publiées après modération.'}
+                </p>
+
+                {albumSharedItems.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                    {albumSharedItems.map((item) => {
+                      const ext = item.mediaType === 'video' ? 'mp4' : 'jpg';
+                      const filename = `lumareel-souvenir-${item.id}.${ext}`;
+                      const canRemove =
+                        canShareAndDownload &&
+                        (!currentUser?.name || item.authorName === currentUser.name);
+
+                      return (
+                        <article key={item.id} className="space-y-2">
+                          <div className="aspect-square bg-[#0E0E0E] border border-white/[0.12] overflow-hidden">
+                            {item.mediaType === 'video' ? (
+                              <video
+                                src={item.mediaUrl}
+                                controls
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <img
+                                src={item.mediaUrl}
+                                alt={item.caption || selectedAlbum.title}
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover cursor-pointer hover:scale-[1.03] transition-transform duration-500"
+                                onClick={() =>
+                                  setLightboxPhoto({
+                                    url: item.mediaUrl,
+                                    caption: item.caption || item.authorName,
+                                    filename,
+                                  })
+                                }
+                              />
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between gap-2 text-[11px] text-[#9A9A9A]">
+                            <span className="truncate">{item.authorName}</span>
+                            {canShareAndDownload && (
+                              <div className="flex items-center gap-2.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleShareItem({
+                                      title: item.caption || selectedAlbum.title,
+                                      assetUrl: item.mediaUrl,
+                                      filename,
+                                    })
+                                  }
+                                  className="hover:text-white cursor-pointer"
+                                  aria-label={isEn ? 'Share' : 'Partager'}
+                                >
+                                  <Share2 className="w-3.5 h-3.5" strokeWidth={1.6} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDownload(item.mediaUrl, filename)}
+                                  className="hover:text-white cursor-pointer"
+                                  aria-label={isEn ? 'Download' : 'Télécharger'}
+                                >
+                                  <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
+                                </button>
+                                {canRemove && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteMemory(item.id)}
+                                    className="text-[#9A9A9A] hover:text-white cursor-pointer"
+                                    aria-label={isEn ? 'Delete' : 'Supprimer'}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" strokeWidth={1.6} />
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-10 text-center space-y-3 border border-white/[0.12] bg-[#0E0E0E] p-6">
+                    <p className="text-xs sm:text-sm text-[#9A9A9A]">
+                      {isEn
+                        ? 'No attendee memories shared for this concert yet.'
+                        : 'Aucun souvenir de participant partagé pour ce concert pour le moment.'}
+                    </p>
+                    {canShareAndDownload && (
+                      <button
+                        type="button"
+                        onClick={() => setIsAddSheetOpen(true)}
+                        className="min-h-[42px] px-5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs cursor-pointer lum-press"
+                      >
+                        {isEn ? 'Share the first memory' : 'Partager le premier souvenir'}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
+          </div>
+        </div>
+
+        {/* BARRE FLOTTANTE MODE SÉLECTIONNER (remplace la barre de navigation en bas) */}
+        {isSelectingPhotos && canShareAndDownload && (
+          <div
+            className="fixed left-4 right-4 z-[85] max-w-md mx-auto bg-[#0E0E0E] border border-white/[0.16] px-4 py-3 flex items-center justify-between gap-3 shadow-2xl"
+            style={{ bottom: 'max(24px, env(safe-area-inset-bottom, 0px))' }}
           >
-            <div>
-              <h2 className="font-agrandir-extrabold text-lg text-white">
-                {isEn ? 'Share your photos & videos' : 'Partager vos photos et vidéos'}
-              </h2>
-              <p className="text-xs text-neutral-400 mt-1">
+            <div className="min-w-0">
+              <p className="font-agrandir-extrabold text-xs sm:text-sm text-white truncate tabular-nums">
+                {selectedPhotoUrls.length}{' '}
                 {isEn
-                  ? 'Add your live shots to this concert’s wall and earn +100 challenge points.'
-                  : 'Publiez vos plus beaux clichés ou vidéos du concert et gagnez +100 points défi.'}
+                  ? selectedPhotoUrls.length > 1
+                    ? 'selected'
+                    : 'selected'
+                  : selectedPhotoUrls.length > 1
+                  ? 'sélectionnées'
+                  : 'sélectionnée'}
               </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSelectingPhotos(false);
+                  setSelectedPhotoUrls([]);
+                }}
+                className="text-[11px] text-[#9A9A9A] hover:text-white cursor-pointer"
+              >
+                {isEn ? 'Cancel' : 'Annuler'}
+              </button>
             </div>
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              onChange={handleFileChange}
-              className="hidden"
-            />
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                disabled={selectedPhotoUrls.length === 0}
+                onClick={handleShareSelected}
+                className="min-h-[40px] px-3.5 rounded-[4px] border border-white/25 hover:border-white text-white text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+              >
+                <Share2 className="w-3.5 h-3.5" strokeWidth={1.6} />
+                <span>{isEn ? 'Share' : 'Partager'}</span>
+              </button>
+              <button
+                type="button"
+                disabled={selectedPhotoUrls.length === 0}
+                onClick={() => handleBatchDownload()}
+                className="min-h-[40px] px-4 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-40 lum-press"
+              >
+                <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
+                <span>{isEn ? 'Download' : 'Télécharger'}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* BOTTOM SHEET TÉLÉCHARGEMENT — 4 CHOIX (MAQUETTE 07) */}
+        <BottomSheet
+          open={isDownloadSheetOpen}
+          onClose={() => setIsDownloadSheetOpen(false)}
+          kicker={selectedAlbum.artist || selectedAlbum.title}
+          title={isEn ? 'Download memories' : 'Télécharger vos souvenirs'}
+        >
+          <div className="divide-y divide-white/[0.12] border-y border-white/[0.12]">
+            <button
+              type="button"
+              onClick={() => handleBatchDownload()}
+              className="w-full py-4 flex items-center justify-between gap-4 text-left group cursor-pointer"
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <ImageIcon className="w-5 h-5 text-[#D4AF6A] shrink-0" strokeWidth={1.6} />
+                <div className="min-w-0">
+                  <p className="font-agrandir-extrabold text-sm text-white group-hover:text-[#D4AF6A] transition-colors">
+                    {isEn ? 'HD Photo Pack (ZIP)' : 'Pack photos HD (ZIP)'}
+                  </p>
+                  <p className="text-xs text-[#9A9A9A] mt-0.5">
+                    {albumOfficialPhotos.length} {isEn ? 'official captures' : 'clichés officiels'}
+                  </p>
+                </div>
+              </div>
+              <Download className="w-4 h-4 text-[#9A9A9A] group-hover:text-white shrink-0" strokeWidth={1.6} />
+            </button>
 
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full min-h-[120px] rounded-2xl border border-dashed border-white/20 hover:border-[#D4AF37] bg-black/60 flex flex-col items-center justify-center gap-2 p-4 text-center transition-colors cursor-pointer"
+              onClick={() => {
+                setIsDownloadSheetOpen(false);
+                setIsVideoPlaying(true);
+                showToast(
+                  isEn
+                    ? 'Official aftermovie ready for playback.'
+                    : "Aftermovie officiel ouvert en lecture HD.",
+                  'info'
+                );
+              }}
+              className="w-full py-4 flex items-center justify-between gap-4 text-left group cursor-pointer"
             >
-              {uploadPreviewUrl ? (
-                uploadMediaType === 'video' ? (
-                  <video src={uploadPreviewUrl} className="max-h-36 rounded-xl" controls />
-                ) : (
-                  <img src={uploadPreviewUrl} alt="Preview" className="max-h-36 rounded-xl object-contain" />
-                )
-              ) : (
-                <>
-                  <Upload className="w-5 h-5 text-[#D4AF37]" />
-                  <span className="text-xs font-agrandir-bold text-white">
-                    {isEn ? 'Choose a photo or video' : 'Choisir une photo ou vidéo'}
-                  </span>
-                  <span className="text-[11px] text-neutral-500">JPG, PNG, MP4, MOV</span>
-                </>
-              )}
+              <div className="flex items-center gap-3.5 min-w-0">
+                <Film className="w-5 h-5 text-[#D4AF6A] shrink-0" strokeWidth={1.6} />
+                <div className="min-w-0">
+                  <p className="font-agrandir-extrabold text-sm text-white group-hover:text-[#D4AF6A] transition-colors">
+                    Aftermovie (MP4)
+                  </p>
+                  <p className="text-xs text-[#9A9A9A] mt-0.5">
+                    {isEn ? 'Full HD official concert film' : 'Film officiel Full HD du concert'}
+                  </p>
+                </div>
+              </div>
+              <Download className="w-4 h-4 text-[#9A9A9A] group-hover:text-white shrink-0" strokeWidth={1.6} />
             </button>
-
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1">
-                {isEn ? 'Caption' : 'Légende du moment'}
-              </label>
-              <input
-                type="text"
-                value={uploadCaption}
-                onChange={(e) => setUploadCaption(e.target.value)}
-                placeholder={isEn ? 'Best moment from the front row...' : 'Meilleur moment depuis la fosse...'}
-                className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
-              />
-            </div>
 
             <button
-              type="submit"
-              disabled={isUploading}
-              className="w-full min-h-[46px] rounded-xl bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors cursor-pointer disabled:opacity-50"
+              type="button"
+              onClick={() =>
+                handleBatchDownload(albumOfficialPhotos.slice(0, 3).map((p) => p.url))
+              }
+              className="w-full py-4 flex items-center justify-between gap-4 text-left group cursor-pointer"
             >
-              {isEn ? 'Publish my memory' : 'Publier mon souvenir'}
+              <div className="flex items-center gap-3.5 min-w-0">
+                <Smartphone className="w-5 h-5 text-[#D4AF6A] shrink-0" strokeWidth={1.6} />
+                <div className="min-w-0">
+                  <p className="font-agrandir-extrabold text-sm text-white group-hover:text-[#D4AF6A] transition-colors">
+                    {isEn ? 'Vertical story clips' : 'Clips verticaux'}
+                  </p>
+                  <p className="text-xs text-[#9A9A9A] mt-0.5">
+                    {isEn ? 'Ready for Instagram & TikTok stories' : 'Format 9:16 prêt pour vos stories'}
+                  </p>
+                </div>
+              </div>
+              <Download className="w-4 h-4 text-[#9A9A9A] group-hover:text-white shrink-0" strokeWidth={1.6} />
             </button>
-          </form>
 
-          <div className="lg:col-span-7 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-agrandir-extrabold text-lg text-white">
-                {isEn ? 'Shared by attendees' : 'Souvenirs partagés par le public'}
-              </h2>
-              <span className="text-xs text-neutral-400 tabular-nums">
-                {albumSharedItems.length} {isEn ? 'uploads' : 'partages'}
-              </span>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const ok = downloadCollectorTicketPng(
+                  selectedAlbum,
+                  currentUser?.name || 'Membre LUMARÉEL'
+                );
+                setIsDownloadSheetOpen(false);
+                showToast(
+                  ok
+                    ? isEn
+                      ? 'Collector souvenir ticket downloaded.'
+                      : 'Billet souvenir collector téléchargé.'
+                    : isEn
+                    ? 'Unable to generate ticket.'
+                    : 'Impossible de générer le billet.',
+                  ok ? 'success' : 'error'
+                );
+              }}
+              className="w-full py-4 flex items-center justify-between gap-4 text-left group cursor-pointer"
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <Ticket className="w-5 h-5 text-[#D4AF6A] shrink-0" strokeWidth={1.6} />
+                <div className="min-w-0">
+                  <p className="font-agrandir-extrabold text-sm text-white group-hover:text-[#D4AF6A] transition-colors">
+                    {isEn ? 'Collector souvenir ticket' : 'Billet souvenir collector'}
+                  </p>
+                  <p className="text-xs text-[#9A9A9A] mt-0.5">
+                    {isEn ? 'Personalized PNG keepsake' : 'Visuel souvenir personnalisé PNG'}
+                  </p>
+                </div>
+              </div>
+              <Download className="w-4 h-4 text-[#9A9A9A] group-hover:text-white shrink-0" strokeWidth={1.6} />
+            </button>
+          </div>
+        </BottomSheet>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {albumSharedItems.map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-3xl overflow-hidden bg-[#0e0e0e] border border-white/10 flex flex-col"
-                >
-                  <div className="aspect-[4/3] bg-black overflow-hidden">
-                    {item.mediaType === 'video' ? (
-                      <video src={item.mediaUrl} controls className="w-full h-full object-cover" />
-                    ) : (
-                      <img
-                        src={item.mediaUrl}
-                        alt={item.caption}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover cursor-pointer"
-                        onClick={() => setLightboxPhoto({ url: item.mediaUrl, caption: item.caption })}
-                      />
-                    )}
-                  </div>
-                  <div className="p-4 space-y-2">
-                    <p className="text-xs text-neutral-200 leading-relaxed">{item.caption}</p>
-                    <div className="flex items-center justify-between text-[11px] text-neutral-500">
-                      <span>{item.authorName}</span>
+        {/* Lightbox plein écran — 0px image */}
+        {lightboxPhoto && (
+          <div
+            className="fixed inset-0 z-[95] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
+            onClick={() => setLightboxPhoto(null)}
+          >
+            <div className="max-w-4xl w-full space-y-4" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-xs sm:text-sm text-[#C8C8C8] truncate">
+                  {lightboxPhoto.caption}
+                </span>
+                <div className="flex items-center gap-2">
+                  {canShareAndDownload && (
+                    <>
                       <button
                         type="button"
                         onClick={() =>
-                          handleDownloadAsset(
-                            item.mediaUrl,
-                            `lumareel-souvenir-${item.id}.${item.mediaType === 'video' ? 'mp4' : 'jpg'}`
-                          )
+                          handleShareItem({
+                            title: lightboxPhoto.caption || selectedAlbum.title,
+                            assetUrl: lightboxPhoto.url,
+                            filename: lightboxPhoto.filename,
+                          })
                         }
-                        className="text-[#D4AF37] hover:underline cursor-pointer"
+                        className="min-h-[38px] px-3.5 rounded-[4px] border border-white/25 hover:border-white text-white text-xs font-agrandir-semibold flex items-center gap-1.5 cursor-pointer"
                       >
-                        {isEn ? 'Download' : 'Télécharger'}
+                        <Share2 className="w-3.5 h-3.5" strokeWidth={1.6} />
+                        <span>{isEn ? 'Share' : 'Partager'}</span>
                       </button>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Lightbox plein écran */}
-        {lightboxPhoto && (
-          <div className="fixed inset-0 z-[85] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4">
-            <div className="max-w-4xl w-full space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <span className="text-xs sm:text-sm text-neutral-300 truncate">{lightboxPhoto.caption}</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadAsset(lightboxPhoto.url, 'lumareel-souvenir.jpg')}
-                    className="min-h-[40px] px-3.5 rounded-full bg-white text-black text-xs font-agrandir-bold flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    <span>{isEn ? 'Download' : 'Télécharger'}</span>
-                  </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleDownload(lightboxPhoto.url, lightboxPhoto.filename)
+                        }
+                        className="min-h-[38px] px-3.5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
+                        <span>{isEn ? 'Download' : 'Télécharger'}</span>
+                      </button>
+                    </>
+                  )}
                   <button
                     type="button"
                     onClick={() => setLightboxPhoto(null)}
                     aria-label={isEn ? 'Close' : 'Fermer'}
-                    className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
+                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4" strokeWidth={1.6} />
                   </button>
                 </div>
               </div>
@@ -484,7 +1419,7 @@ export const ConcertMemoriesView: React.FC = () => {
                 src={lightboxPhoto.url}
                 alt={lightboxPhoto.caption}
                 referrerPolicy="no-referrer"
-                className="w-full max-h-[76vh] object-contain rounded-2xl border border-white/10"
+                className="w-full max-h-[78vh] object-contain"
               />
             </div>
           </div>
@@ -494,45 +1429,131 @@ export const ConcertMemoriesView: React.FC = () => {
   }
 
   // =========================================================================
-  // VUE INDEX : LISTE DES CONCERTS PASSÉS (PAGES SOUVENIRS)
+  // VUE INDEX SOUVENIRS — MINIATURES PROPRES, 0px
   // =========================================================================
-  const featuredAlbum = albums[0];
-  const otherAlbums = albums.slice(1);
-
   return (
-    <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-5 sm:pt-10 pb-24 text-white font-agrandir-regular">
-      <header className="mb-8 sm:mb-10">
-        <p className="mb-3 text-[10px] sm:text-xs font-agrandir-bold uppercase tracking-[.22em] text-[#D4AF37]">{isEn ? 'After the show · The collection' : 'Après le concert · La collection'}</p>
-        <h1 className="text-4xl sm:text-6xl font-agrandir-extrabold tracking-[-.055em] leading-none">{isEn ? 'The memories.' : 'Les souvenirs.'}</h1>
-        <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed text-neutral-400">{isEn ? 'The nights do not end when the lights go out. Find the official images, the recap and the moments shared by the crowd.' : 'La soirée ne s’arrête pas quand les lumières s’éteignent. Retrouvez les images officielles, le récap et les instants partagés par le public.'}</p>
-      </header>
+    <div
+      className={
+        embedded
+          ? 'w-full text-white font-agrandir-regular'
+          : 'min-h-screen w-full max-w-[1280px] mx-auto px-4 sm:px-8 md:px-10 pt-5 sm:pt-10 pb-24 text-white font-agrandir-regular'
+      }
+    >
+      {!embedded && (
+        <header className="mb-7 space-y-1.5">
+          <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#D4AF6A]">
+            {isEn ? 'CONCERT MEMORIES' : 'SOUVENIRS DE CONCERT'}
+          </p>
+          <h1 className="text-[2.25rem] sm:text-5xl font-agrandir-extrabold tracking-tight leading-none text-white">
+            {isEn ? 'Memories' : 'Souvenirs'}
+          </h1>
+        </header>
+      )}
 
-      {featuredAlbum ? (
-        <>
-          <button type="button" onClick={() => setSelectedAlbumId(featuredAlbum.id)} className="group relative mb-12 grid w-full overflow-hidden border border-white/10 bg-[#101010] text-left md:grid-cols-12">
-            <div className="relative aspect-[16/10] overflow-hidden bg-black md:col-span-8 md:aspect-auto md:min-h-[390px]">
-              <img src={featuredAlbum.coverImage} alt={featuredAlbum.title} referrerPolicy="no-referrer" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.035]"/>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent"/>
-              <span className="absolute bottom-4 left-5 text-[10px] font-agrandir-bold uppercase tracking-[.18em] text-white/80">{isEn ? 'Featured memory' : 'Souvenir à la une'}</span>
-            </div>
-            <div className="flex flex-col justify-between gap-8 p-6 sm:p-8 md:col-span-4">
-              <div><p className="mb-3 text-xs text-[#D4AF37]">{featuredAlbum.date} · {featuredAlbum.venue}</p><h2 className="text-2xl sm:text-3xl font-agrandir-extrabold leading-tight">{featuredAlbum.title}</h2><p className="mt-2 text-sm text-neutral-400">{featuredAlbum.artist}</p><p className="mt-5 text-xs leading-relaxed text-neutral-500">{isEn ? 'Official photos, the concert recap and memories shared by attendees.' : 'Photos officielles, vidéo récapitulative et souvenirs partagés par les participants.'}</p></div>
-              <span className="flex items-center justify-between border-t border-white/10 pt-4 text-xs font-agrandir-bold uppercase tracking-wider text-white group-hover:text-[#D4AF37]"><span>{isEn ? 'Open the memory' : 'Voir le souvenir'}</span><ChevronRight className="h-4 w-4"/></span>
-            </div>
-          </button>
+      {albums.length > 0 ? (
+        <div className="space-y-12">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+            {albums.map((album) => (
+              <button
+                key={album.id}
+                type="button"
+                onClick={() => {
+                  setSelectedAlbumId(album.id);
+                  setAlbumTab('official');
+                  if (typeof window !== 'undefined') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                className="group text-left cursor-pointer block lum-press"
+              >
+                <div className="aspect-[16/10] w-full overflow-hidden bg-[#0E0E0E] border border-white/[0.12]">
+                  <img
+                    src={album.coverImage}
+                    alt={album.title}
+                    referrerPolicy="no-referrer"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  />
+                </div>
+                <div className="pt-3 space-y-0.5">
+                  <h2 className="text-base font-agrandir-extrabold text-white group-hover:text-[#D4AF6A] transition-colors line-clamp-1">
+                    {album.title}
+                  </h2>
+                  <p className="text-xs text-[#9A9A9A] truncate">
+                    {album.date} · {album.venue}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </section>
 
-          {otherAlbums.length > 0 && <section>
-            <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-3"><h2 className="text-xs font-agrandir-bold uppercase tracking-[.18em] text-neutral-300">{isEn ? 'More nights to relive' : 'D’autres soirées à revivre'}</h2><span className="text-[10px] text-neutral-600">{otherAlbums.length} {isEn ? 'albums' : 'albums'}</span></div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-              {otherAlbums.map(album => <button key={album.id} type="button" onClick={() => setSelectedAlbumId(album.id)} className="group overflow-hidden border border-white/10 bg-[#0d0d0d] text-left transition-colors hover:border-white/30">
-                <div className="relative aspect-[16/10] overflow-hidden bg-black"><img src={album.coverImage} alt={album.title} referrerPolicy="no-referrer" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"/><span className="absolute bottom-3 left-3 text-[10px] text-white/90">{album.officialPhotos.length} {isEn ? 'photos' : 'photos'} · {album.recapDuration}</span></div>
-                <span className="block p-4"><span className="block text-[10px] text-neutral-500">{album.date} · {album.venue}</span><span className="mt-2 block text-base font-agrandir-extrabold text-white">{album.title}</span><span className="mt-1 block text-xs text-neutral-500">{album.artist}</span></span>
-              </button>)}
-            </div>
-          </section>}
-        </>
+          {publishedHubMemories.length > 0 && (
+            <section className="pt-8 border-t border-white/[0.12]">
+              <h2 className="text-base sm:text-lg font-agrandir-extrabold text-white mb-5">
+                {isEn ? 'Official captures' : 'Clichés officiels'}
+              </h2>
+
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                {publishedHubMemories.map((item) => {
+                  const title = isEn && item.titleEn ? item.titleEn : item.title;
+                  const canDownloadCapture =
+                    item.downloadable &&
+                    item.mediaType === 'photo' &&
+                    isMemorySharingWindowOpen(item.date);
+
+                  return (
+                    <article key={item.id} className="group">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedMediaId(item.id);
+                          setCurrentPage('media_detail');
+                        }}
+                        className="block w-full aspect-[4/3] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] cursor-pointer"
+                      >
+                        <img
+                          src={item.thumbnailUrl || item.url}
+                          alt={title}
+                          referrerPolicy="no-referrer"
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                        />
+                      </button>
+
+                      <div className="pt-2.5 flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <h3 className="text-xs sm:text-sm font-agrandir-extrabold text-white line-clamp-1">
+                            {title}
+                          </h3>
+                          <p className="text-[11px] text-[#9A9A9A] truncate">
+                            {item.albumTitle || item.date}
+                          </p>
+                        </div>
+                        {canDownloadCapture && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDownload(item.url, `lumareel-memory-${item.id}.jpg`)
+                            }
+                            aria-label={isEn ? 'Download photo' : 'Télécharger'}
+                            className="w-8 h-8 rounded-full border border-white/[0.16] hover:border-[#D4AF6A] text-[#C8C8C8] hover:text-[#D4AF6A] flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                          >
+                            <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+        </div>
       ) : (
-        <div className="border-y border-white/10 py-16 text-center"><Camera className="mx-auto mb-4 h-8 w-8 text-[#D4AF37]"/><h2 className="text-xl font-agrandir-extrabold">{isEn ? 'The next memories are waiting to be made.' : 'Les prochains souvenirs restent à créer.'}</h2><p className="mt-2 text-sm text-neutral-500">{isEn ? 'Official concert albums will appear here after each production.' : 'Les albums officiels apparaîtront ici après chaque production.'}</p></div>
+        <div className="py-16 px-6 text-center max-w-md mx-auto">
+          <Camera className="mx-auto mb-4 h-7 w-7 text-[#D4AF6A]" strokeWidth={1.6} />
+          <h2 className="text-lg font-agrandir-extrabold">
+            {isEn ? 'Memories coming soon' : 'Souvenirs à venir'}
+          </h2>
+        </div>
       )}
     </div>
   );

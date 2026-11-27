@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { FloatingAppNavbar } from './components/FloatingAppNavbar';
-import { DesktopSidebar } from './components/DesktopSidebar';
+import { DesktopTopNav } from './components/DesktopTopNav';
 import { HomeFeed } from './components/HomeFeed';
 import { ExplorerView } from './components/ExplorerView';
 import { ConcertDetailView } from './components/ConcertDetailView';
 import { ArchiveView } from './components/ArchiveView';
-import { NewsView } from './components/NewsView';
+import { MediaDetailView } from './components/MediaDetailView';
+import { ContributorPortalView } from './components/ContributorPortalView';
 import { OrganizersView } from './components/OrganizersView';
 import { CustomerSpace } from './components/CustomerSpace';
 import { ProfileView } from './components/ProfileView';
@@ -19,18 +20,18 @@ import { AuthModal } from './components/AuthModal';
 import { LumareelMemberCardPage } from './components/LumareelMemberCardPage';
 import { CardVerificationView } from './components/CardVerificationView';
 import { RewardsHubView } from './components/RewardsHubView';
+import { PrivilegedAccessView } from './components/PrivilegedAccessView';
 import { BackstageView } from './components/BackstageView';
 import { FlashDropsView } from './components/FlashDropsView';
 import { ConcertMemoriesView } from './components/ConcertMemoriesView';
 import { SuggestionsView } from './components/SuggestionsView';
+import { ContactView } from './components/ContactView';
 import { OfflineIndicator } from './components/OfflineIndicator';
-import { usePWAInstall } from './hooks/usePWAInstall';
 import { saveStoredMemberCard } from './utils/memberCardStorage';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const MainApp: React.FC = () => {
-  const { currentPage, setCurrentPage, toast, showToast, refreshCustomerOrders, refreshEvents, language } = useApp();
-  const { isStandalone } = usePWAInstall();
+  const { currentPage, setCurrentPage, toast, showToast, refreshCustomerOrders, refreshEvents, language, hideBottomNav } = useApp();
 
   // Vérification automatique au retour de la page de paiement PayMeTrust (?payment_status=...&ref=PMT-...)
   useEffect(() => {
@@ -107,54 +108,64 @@ const MainApp: React.FC = () => {
   }, [currentPage]);
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
-  const isHomePage = currentPage === 'home' || currentPage === 'discover';
-  const isStandaloneRootTab =
-    isHomePage ||
-    currentPage === 'client_space' ||
-    currentPage === 'member_card' ||
-    currentPage === 'card' ||
-    currentPage === 'profile';
-  const hasVisibleMobileHeader = !isAdminOrScanner && (!isStandalone || isHomePage || !isStandaloneRootTab);
+  const hasMobileTopBar =
+    !isAdminOrScanner &&
+    ![
+      'splash',
+      'home',
+      'discover',
+      'explore',
+      'client_space',
+      'member_card',
+      'card',
+      'memories',
+      'rewards',
+      'privileged_access',
+      'flash_drops',
+      'suggestions',
+      'profile',
+    ].includes(currentPage);
+  const hasBottomNav =
+    !isAdminOrScanner &&
+    !hideBottomNav &&
+    currentPage !== 'concert_detail';
 
   return (
-    <div className="min-h-screen w-full max-w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative">
+    <div className="min-h-screen w-full max-w-full bg-black text-white flex flex-col justify-between selection:bg-[#D4AF6A] selection:text-black font-agrandir-regular relative">
       {/* Indicateur hors-ligne discret pour la PWA */}
       <OfflineIndicator />
 
-      {/* Top Navbar (Masquée sur le scanner et la console admin) */}
+      {/* En-tête mobile contextuel + barre horizontale desktop (masqués sur scanner/admin) */}
       {!isAdminOrScanner && (
         <>
           <Navbar />
-          <DesktopSidebar />
+          <DesktopTopNav />
         </>
       )}
 
-      {/* Dynamic View Router avec transition de page fluide et espacement adapté au mobile web & app */}
+      {/* Dynamic View Router */}
       <main
         className={`flex-1 w-full max-w-full min-w-0 relative z-10 ${
           !isAdminOrScanner
             ? `${
-                'pb-[calc(6.25rem+env(safe-area-inset-bottom,0px))]'
+                hasBottomNav
+                  ? 'pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))]'
+                  : 'pb-12'
               } ${
-                hasVisibleMobileHeader && !isHomePage
-                  ? 'pt-[calc(4.1rem+env(safe-area-inset-top,0px))] md:pt-0'
-                  : ''
-              } md:pb-12 md:pl-[232px]`
+                hasMobileTopBar
+                  ? 'pt-[calc(3.6rem+env(safe-area-inset-top,0px))] md:pt-[72px]'
+                  : 'md:pt-[72px]'
+              } md:pb-16`
             : ''
         }`}
-        style={
-          !isAdminOrScanner && !hasVisibleMobileHeader
-            ? { paddingTop: 'env(safe-area-inset-top, 0px)' }
-            : undefined
-        }
       >
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPage}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="w-full max-w-full min-w-0"
           >
             {currentPage === 'splash' && <HomeFeed />}
@@ -162,8 +173,10 @@ const MainApp: React.FC = () => {
             {currentPage === 'discover' && <HomeFeed />}
             {currentPage === 'explore' && <ExplorerView />}
             {currentPage === 'concert_detail' && <ConcertDetailView />}
+            {currentPage === 'media_detail' && <MediaDetailView />}
+            {currentPage === 'contributor_studio' && <ContributorPortalView />}
             {currentPage === 'archive' && <ArchiveView />}
-            {currentPage === 'news' && <NewsView />}
+            {currentPage === 'news' && <ExplorerView />}
             {currentPage === 'organizers' && <OrganizersView />}
             {currentPage === 'client_space' && <CustomerSpace />}
             {currentPage === 'profile' && <ProfileView />}
@@ -171,17 +184,19 @@ const MainApp: React.FC = () => {
             {currentPage === 'member_card' && <LumareelMemberCardPage />}
             {currentPage === 'card_verify' && <CardVerificationView />}
             {currentPage === 'rewards' && <RewardsHubView />}
+            {currentPage === 'privileged_access' && <PrivilegedAccessView />}
             {currentPage === 'backstage' && <BackstageView />}
             {currentPage === 'flash_drops' && <FlashDropsView />}
             {currentPage === 'memories' && <ConcertMemoriesView />}
             {currentPage === 'suggestions' && <SuggestionsView />}
+            {currentPage === 'contact' && <ContactView />}
             {currentPage === 'gate_scanner' && <ScannerView />}
             {currentPage === 'admin' && <AdminDashboard />}
           </motion.div>
         </AnimatePresence>
       </main>
 
-      {/* Barre de Navigation Flottante Mobile (uniquement en mode application installée / standalone) */}
+      {/* Barre de Navigation Mobile Flottante (5 destinations majeures) */}
       {!isAdminOrScanner && <FloatingAppNavbar />}
 
       {/* Active Modals */}
@@ -191,23 +206,24 @@ const MainApp: React.FC = () => {
       {/* Minimal Toast Notification */}
       {toast && (
         <div
-          className={`fixed left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-[95] bg-[#141414]/95 backdrop-blur-md border border-white/20 px-4 py-3 shadow-2xl font-agrandir-regular text-xs flex items-center gap-3 text-white animate-slideUp rounded-2xl ${
-            isStandalone ? 'bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:bottom-8' : 'bottom-6 sm:bottom-8'
+          className={`fixed left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-[95] bg-[#141414]/96 backdrop-blur-md border border-white/[0.16] px-4 py-3 shadow-2xl font-agrandir-regular text-xs flex items-center gap-3 text-white rounded-[4px] ${
+            hasBottomNav
+              ? 'bottom-[calc(6.2rem+env(safe-area-inset-bottom,0px))] md:bottom-8'
+              : 'bottom-6 sm:bottom-8'
           }`}
         >
           <span
             className={`w-2 h-2 rounded-full shrink-0 ${
               toast.type === 'success'
-                ? 'bg-emerald-400'
+                ? 'bg-[#7FE0A6]'
                 : toast.type === 'error'
-                ? 'bg-rose-500'
-                : 'bg-white'
+                ? 'bg-[#B3122B]'
+                : 'bg-[#D4AF6A]'
             }`}
           />
           <span className="min-w-0 break-words">{toast.message}</span>
         </div>
       )}
-
     </div>
   );
 };
@@ -222,8 +238,8 @@ const AdminEmergencyAccess: React.FC<{ error: Error }> = ({ error }) => {
 
   return (
     <div className="min-h-screen bg-black text-white p-5 sm:p-10 font-agrandir-regular">
-      <div className="max-w-3xl mx-auto mt-8 rounded-3xl border border-[#d4af37]/30 bg-[#101010] p-6 sm:p-8">
-        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[#d4af37]">LUMARÉEL · Accès de secours</p>
+      <div className="max-w-3xl mx-auto mt-8 rounded-3xl border border-white/20 bg-[#101010] p-6 sm:p-8">
+        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-neutral-400">LUMARÉEL · Accès de secours</p>
         <h1 className="mb-3 text-2xl font-bold">Console d’administration</h1>
         <p className="mb-5 text-sm text-neutral-300">
           Une erreur empêche le tableau de bord complet de s’afficher. Tu peux néanmoins accéder directement à l’impression des billets.
@@ -233,7 +249,7 @@ const AdminEmergencyAccess: React.FC<{ error: Error }> = ({ error }) => {
           {error.stack && <pre className="mt-3 max-h-40 overflow-auto whitespace-pre-wrap text-neutral-500">{error.stack}</pre>}
         </div>
         <div className="flex flex-wrap gap-3">
-          <button type="button" onClick={() => setPrintOpen(true)} className="rounded-xl bg-[#d4af37] px-5 py-3 text-sm font-bold text-black">
+          <button type="button" onClick={() => setPrintOpen(true)} className="rounded-xl bg-white px-5 py-3 text-sm font-bold text-black hover:bg-neutral-200 transition-colors cursor-pointer">
             Ouvrir l’impression des billets
           </button>
           <button type="button" onClick={() => window.location.reload()} className="rounded-xl border border-white/20 px-5 py-3 text-sm">

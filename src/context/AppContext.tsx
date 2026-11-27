@@ -22,11 +22,14 @@ export type PageView =
   | 'member_card'
   | 'card_verify'
   | 'rewards'
+  | 'privileged_access'
   | 'backstage'
+  | 'media_detail'
   | 'flash_drops'
   | 'memories'
   | 'suggestions'
   | 'contact'
+  | 'contributor_studio'
   | 'about'
   | 'partners';
 
@@ -36,12 +39,16 @@ interface AppContextType {
   canGoBack: boolean;
   setCurrentPage: (page: PageView) => void;
   goBack: () => void;
+  hideBottomNav: boolean;
+  setHideBottomNav: (hide: boolean) => void;
   hasEnteredPlatform: boolean;
   enterPlatform: () => void;
   currentUser: User | null;
   setCurrentUser: (user: User | null) => void;
   selectedEventSlug: string | null;
   setSelectedEventSlug: (slug: string | null) => void;
+  selectedMediaId: string | null;
+  setSelectedMediaId: (id: string | null) => void;
   events: ConcertEvent[];
   featuredEvent: ConcertEvent | null;
   saveEvent: (event: ConcertEvent) => Promise<void>;
@@ -225,10 +232,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return 'home';
   });
   const [previousPage, setPreviousPage] = useState<PageView>('home');
+  const [hideBottomNav, setHideBottomNav] = useState<boolean>(false);
   const pageHistoryRef = useRef<PageView[]>([]);
   const isPoppingHistoryRef = useRef(false);
 
   const setCurrentPage = useCallback((nextPage: PageView) => {
+    setHideBottomNav(false);
     setCurrentPageState((prev) => {
       if (prev === nextPage) return prev;
       if (prev !== 'splash') {
@@ -294,6 +303,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const canGoBack = currentPage !== 'home' && currentPage !== 'discover' && currentPage !== 'splash';
 
   const [selectedEventSlug, setSelectedEventSlug] = useState<string | null>(null);
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
 
   // Storage keys pour persistance indestructible (résout le problème d'images qui quittent)
   const STORAGE_KEYS = {
@@ -1253,12 +1263,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         canGoBack,
         setCurrentPage,
         goBack,
+        hideBottomNav,
+        setHideBottomNav,
         hasEnteredPlatform,
         enterPlatform,
         currentUser,
         setCurrentUser,
         selectedEventSlug,
         setSelectedEventSlug,
+        selectedMediaId,
+        setSelectedMediaId,
         events,
         featuredEvent,
         saveEvent,

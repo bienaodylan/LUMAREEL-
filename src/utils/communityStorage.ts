@@ -393,39 +393,314 @@ export function computeUserPointsSummary(
 }
 
 // ============================================================================
-// SOUVENIRS DE CONCERTS PARTAGÉS PAR LES PARTICIPANTS
+// SOUVENIRS DE CONCERTS PARTAGÉS PAR LES PARTICIPANTS & FENÊTRE 7 JOURS
 // ============================================================================
 
-const SEED_SHARED_MEMORIES: SharedConcertMemory[] = [
-  {
-    id: 'mem_seed_1',
-    eventId: 'memory_abidjan_night',
-    authorName: 'Koffi A.',
-    mediaType: 'photo',
-    mediaUrl: concertMemoriesCrowdImg,
-    caption: 'L’énergie au rappel devant la scène principale, inoubliable.',
-    createdAt: '2026-10-20T22:15:00Z',
-  },
-  {
-    id: 'mem_seed_2',
-    eventId: 'memory_abidjan_night',
-    authorName: 'Amina T.',
-    mediaType: 'photo',
-    mediaUrl: crowdArchiveImg,
-    caption: 'Vue depuis le carré VIP au moment des projecteurs or.',
-    createdAt: '2026-10-21T09:40:00Z',
-  },
-];
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+const MONTH_INDEX_MAP: Record<string, number> = {
+  jan: 0,
+  janv: 0,
+  janvier: 0,
+  january: 0,
+  feb: 1,
+  fev: 1,
+  fevr: 1,
+  fevrier: 1,
+  february: 1,
+  mar: 2,
+  mars: 2,
+  march: 2,
+  apr: 3,
+  avr: 3,
+  avril: 3,
+  april: 3,
+  may: 4,
+  mai: 4,
+  jun: 5,
+  juin: 5,
+  june: 5,
+  jul: 6,
+  juil: 6,
+  juillet: 6,
+  july: 6,
+  aug: 7,
+  aou: 7,
+  aout: 7,
+  august: 7,
+  sep: 8,
+  sept: 8,
+  septembre: 8,
+  september: 8,
+  oct: 9,
+  octobre: 9,
+  october: 9,
+  nov: 10,
+  novembre: 10,
+  november: 10,
+  dec: 11,
+  decembre: 11,
+  december: 11,
+};
+
+function parseConcertDateToDayEndMs(dateStr?: string): number | null {
+  if (!dateStr) return null;
+  const trimmed = dateStr.trim();
+  if (!trimmed) return null;
+
+  // Format ISO / YYYY-MM-DD
+  const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) {
+    const year = Number(isoMatch[1]);
+    const month = Number(isoMatch[2]) - 1;
+    const day = Number(isoMatch[3]);
+    const d = new Date(year, month, day, 23, 59, 59, 999);
+    return Number.isNaN(d.getTime()) ? null : d.getTime();
+  }
+
+  // Format DD/MM/YYYY ou DD-MM-YYYY
+  const dmyMatch = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (dmyMatch) {
+    const day = Number(dmyMatch[1]);
+    const month = Number(dmyMatch[2]) - 1;
+    const year = Number(dmyMatch[3]);
+    const d = new Date(year, month, day, 23, 59, 59, 999);
+    return Number.isNaN(d.getTime()) ? null : d.getTime();
+  }
+
+  // Normalisation accents pour dates FR/EN : "19 Décembre 2026", "1er Octobre 2026", "Oct 2026"
+  const normalized = trimmed
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+
+  // "19 decembre 2026" ou "1er decembre 2026"
+  const frMatch = normalized.match(/^(\d{1,2})(?:er|e|st|nd|rd|th)?\s+([a-z]+)\.?\s+(\d{4})$/);
+  if (frMatch) {
+    const day = Number(frMatch[1]);
+    const monthIdx = MONTH_INDEX_MAP[frMatch[2]];
+    const year = Number(frMatch[3]);
+    if (monthIdx !== undefined) {
+      const d = new Date(year, monthIdx, day, 23, 59, 59, 999);
+      return Number.isNaN(d.getTime()) ? null : d.getTime();
+    }
+  }
+
+  // "Oct 2026" -> fin du mois concerné
+  const monthYearMatch = normalized.match(/^([a-z]+)\.?\s+(\d{4})$/);
+  if (monthYearMatch) {
+    const monthIdx = MONTH_INDEX_MAP[monthYearMatch[1]];
+    const year = Number(monthYearMatch[2]);
+    if (monthIdx !== undefined) {
+      const d = new Date(year, monthIdx + 1, 0, 23, 59, 59, 999);
+      return Number.isNaN(d.getTime()) ? null : d.getTime();
+    }
+  }
+
+  // Année seule "2024", "2025" -> considérée comme archive clôturée si antérieure à l'année en cours
+  const yearOnlyMatch = normalized.match(/^(\d{4})$/);
+  if (yearOnlyMatch) {
+    const year = Number(yearOnlyMatch[1]);
+    const d = new Date(year, 11, 31, 23, 59, 59, 999);
+    return Number.isNaN(d.getTime()) ? null : d.getTime();
+  }
+
+  const parsed = Date.parse(trimmed);
+  return Number.isNaN(parsed) ? null : parsed;
+}
+
+/**
+ * Fenêtre silencieuse de 7 jours après la date du concert pour publier,
+ * télécharger ou partager les souvenirs. Une fois la semaine écoulée,
+ * retourne `false` sans aucun message affiché à l'utilisateur.
+ */
+export function isMemorySharingWindowOpen(dateStr?: string): boolean {
+  const concertDayEndMs = parseConcertDateToDayEndMs(dateStr);
+  if (concertDayEndMs === null) return false;
+  return Date.now() <= concertDayEndMs + SEVEN_DAYS_MS;
+}
+
+/** Compresse une image côté client en JPEG optimisé pour une publication fiable. */
+export async function compressImageDataUrl(
+  file: File,
+  maxDimension = 1280,
+  quality = 0.78
+): Promise<string> {
+  const rawDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () =>
+      typeof reader.result === 'string'
+        ? resolve(reader.result)
+        : reject(new Error('Impossible de lire le fichier image.'));
+    reader.onerror = () => reject(new Error('Erreur de lecture du fichier image.'));
+    reader.readAsDataURL(file);
+  });
+
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return rawDataUrl;
+  }
+
+  return new Promise<string>((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const naturalW = img.naturalWidth || img.width;
+        const naturalH = img.naturalHeight || img.height;
+        if (!naturalW || !naturalH) {
+          resolve(rawDataUrl);
+          return;
+        }
+        const scale = Math.min(1, maxDimension / Math.max(naturalW, naturalH));
+        const targetW = Math.max(1, Math.round(naturalW * scale));
+        const targetH = Math.max(1, Math.round(naturalH * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(rawDataUrl);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        const compressed = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressed && compressed.length < rawDataUrl.length ? compressed : rawDataUrl);
+      } catch {
+        resolve(rawDataUrl);
+      }
+    };
+    img.onerror = () => resolve(rawDataUrl);
+    img.src = rawDataUrl;
+  });
+}
+
+export async function fileToDataUrl(file: File): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () =>
+      typeof reader.result === 'string'
+        ? resolve(reader.result)
+        : reject(new Error('Lecture impossible'));
+    reader.onerror = () => reject(new Error('Lecture impossible'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function resolveAssetBlob(url: string): Promise<Blob | null> {
+  try {
+    if (url.startsWith('data:')) {
+      const res = await fetch(url);
+      return await res.blob();
+    }
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) return null;
+    return await response.blob();
+  } catch {
+    return null;
+  }
+}
+
+export async function downloadMediaAsset(url: string, filename: string): Promise<boolean> {
+  if (typeof document === 'undefined') return false;
+  try {
+    const blob = await resolveAssetBlob(url);
+    if (blob) {
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = filename;
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 2500);
+      return true;
+    }
+  } catch {
+    // fallback direct link below
+  }
+
+  try {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function shareMediaAsset(params: {
+  title: string;
+  text: string;
+  url?: string;
+  assetUrl?: string;
+  filename?: string;
+}): Promise<'shared' | 'copied' | 'failed'> {
+  const { title, text, url, assetUrl, filename } = params;
+  const pageUrl = url || (typeof window !== 'undefined' ? window.location.href : '');
+
+  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    // Tentative de partage du fichier réel (photo ou vidéo) lorsque le navigateur le permet
+    if (assetUrl && filename && typeof File !== 'undefined') {
+      try {
+        const blob = await resolveAssetBlob(assetUrl);
+        if (blob) {
+          const mime =
+            blob.type || (filename.endsWith('.mp4') ? 'video/mp4' : 'image/jpeg');
+          const file = new File([blob], filename, { type: mime });
+          if (
+            typeof navigator.canShare === 'function' &&
+            navigator.canShare({ files: [file] })
+          ) {
+            await navigator.share({ title, text, files: [file] });
+            return 'shared';
+          }
+        }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return 'shared';
+      }
+    }
+
+    try {
+      await navigator.share({ title, text, url: pageUrl });
+      return 'shared';
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return 'shared';
+    }
+  }
+
+  try {
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(`${text} ${pageUrl}`.trim());
+      return 'copied';
+    }
+  } catch {
+    // ignore clipboard error
+  }
+  return 'failed';
+}
 
 export function loadSharedMemories(): SharedConcertMemory[] {
-  if (typeof window === 'undefined') return SEED_SHARED_MEMORIES;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(MEMORIES_KEY);
-    if (!raw) return SEED_SHARED_MEMORIES;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : SEED_SHARED_MEMORIES;
+    if (!Array.isArray(parsed)) return [];
+    // Filtrer d'éventuels anciens seeds génériques non reliés à un concert réel
+    return parsed.filter(
+      (item: SharedConcertMemory) =>
+        item &&
+        typeof item.id === 'string' &&
+        !item.id.startsWith('mem_seed_') &&
+        typeof item.eventId === 'string'
+    );
   } catch {
-    return SEED_SHARED_MEMORIES;
+    return [];
   }
 }
 
@@ -433,10 +708,29 @@ export function saveSharedMemory(memory: SharedConcertMemory): SharedConcertMemo
   const existing = loadSharedMemories();
   const next = [memory, ...existing];
   if (typeof window !== 'undefined') {
+    // Sauvegarde robuste : si le quota est atteint, on réduit progressivement les plus anciens
+    let candidate = next.slice(0, 40);
+    while (candidate.length > 0) {
+      try {
+        localStorage.setItem(MEMORIES_KEY, JSON.stringify(candidate));
+        break;
+      } catch {
+        if (candidate.length === 1) break;
+        candidate = candidate.slice(0, candidate.length - 1);
+      }
+    }
+  }
+  return next;
+}
+
+export function deleteSharedMemory(id: string): SharedConcertMemory[] {
+  const existing = loadSharedMemories();
+  const next = existing.filter((m) => m.id !== id);
+  if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem(MEMORIES_KEY, JSON.stringify(next.slice(0, 60)));
+      localStorage.setItem(MEMORIES_KEY, JSON.stringify(next));
     } catch {
-      // storage quota fallback
+      // ignore
     }
   }
   return next;
@@ -451,21 +745,18 @@ export interface ConcertMemoryAlbum {
   city: string;
   coverImage: string;
   recapEmbedUrl: string;
-  recapDuration: string;
+  recapDuration?: string;
   officialPhotos: Array<{ url: string; captionFr: string; captionEn: string }>;
-  highlights: Array<{ time: string; titleFr: string; titleEn: string; descFr: string; descEn: string }>;
+  highlights?: Array<{ time: string; titleFr: string; titleEn: string; descFr: string; descEn: string }>;
 }
 
 export function buildConcertMemoryAlbums(archives: ArchiveProduction[]): ConcertMemoryAlbum[] {
   const fromArchives: ConcertMemoryAlbum[] = (archives || [])
     .filter((a) => a.isPublished)
-    .map((a, idx) => {
-      const photos = (a.photos && a.photos.length > 0 ? a.photos : [a.coverImage]).filter(Boolean);
-      const fallbackPool = [concertMemoriesCrowdImg, crowdArchiveImg, vipMezzanineImg, backstageSoundcheckImg];
-      const enrichedPhotos = [...photos];
-      while (enrichedPhotos.length < 3) {
-        enrichedPhotos.push(fallbackPool[(idx + enrichedPhotos.length) % fallbackPool.length]);
-      }
+    .map((a) => {
+      // Uniquement les vraies photographies appartenant à ce concert (zéro image générique ajoutée)
+      const rawPhotos = (a.photos && a.photos.length > 0 ? a.photos : [a.coverImage]).filter(Boolean);
+      const uniquePhotos = Array.from(new Set(rawPhotos));
 
       return {
         id: a.id,
@@ -474,37 +765,13 @@ export function buildConcertMemoryAlbums(archives: ArchiveProduction[]): Concert
         date: a.date || a.year,
         venue: a.venue,
         city: a.city,
-        coverImage: a.coverImage || concertMemoriesCrowdImg,
+        coverImage: a.coverImage || uniquePhotos[0] || concertMemoriesCrowdImg,
         recapEmbedUrl: a.youtubeEmbedUrl || 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
-        recapDuration: a.duration || '14:20',
-        officialPhotos: enrichedPhotos.map((url, pIdx) => ({
+        officialPhotos: uniquePhotos.map((url, pIdx) => ({
           url,
-          captionFr: `${a.title} — Prise officielle #${pIdx + 1}`,
-          captionEn: `${a.title} — Official still #${pIdx + 1}`,
+          captionFr: `${a.title} — ${pIdx + 1}`,
+          captionEn: `${a.title} — ${pIdx + 1}`,
         })),
-        highlights: [
-          {
-            time: '00:45',
-            titleFr: 'Entrée en scène & ouverture lumineuse',
-            titleEn: 'Stage entrance & lighting reveal',
-            descFr: 'L’instant où la salle bascule dans le noir avant le premier drop.',
-            descEn: 'The moment the hall goes dark before the opening drop.',
-          },
-          {
-            time: '06:18',
-            titleFr: 'Chœur du public à l’unisson',
-            titleEn: 'Crowd sing-along peak',
-            descFr: 'Plus de 3 000 voix reprises a cappella sous les faisceaux dorés.',
-            descEn: 'Over 3,000 voices singing a cappella beneath the gold beams.',
-          },
-          {
-            time: '12:04',
-            titleFr: 'Final & salut des artistes',
-            titleEn: 'Encore finale & curtain call',
-            descFr: 'Rappel prolongé et photo de famille officielle face au public.',
-            descEn: 'Extended encore and official crowd family photo.',
-          },
-        ],
       };
     });
 
@@ -520,50 +787,16 @@ export function buildConcertMemoryAlbums(archives: ArchiveProduction[]): Concert
       city: 'Abidjan',
       coverImage: concertMemoriesCrowdImg,
       recapEmbedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
-      recapDuration: '16:45',
       officialPhotos: [
         {
           url: concertMemoriesCrowdImg,
-          captionFr: 'Vue scène principale au moment du rappel',
-          captionEn: 'Main stage view during the encore',
+          captionFr: 'LUMARÉEL Live Session — 1',
+          captionEn: 'LUMARÉEL Live Session — 1',
         },
         {
           url: crowdArchiveImg,
-          captionFr: 'Public en fusion sous les projecteurs',
-          captionEn: 'Crowd under the warm tungsten beams',
-        },
-        {
-          url: vipMezzanineImg,
-          captionFr: 'Ambiance mezzanine & carré privilégié',
-          captionEn: 'VIP mezzanine atmosphere',
-        },
-        {
-          url: backstageSoundcheckImg,
-          captionFr: 'Balances de dernière minute avant ouverture des portes',
-          captionEn: 'Final soundcheck before doors open',
-        },
-      ],
-      highlights: [
-        {
-          time: '01:12',
-          titleFr: 'Ouverture scénographique',
-          titleEn: 'Scenography opening',
-          descFr: 'Mise en lumière monumentale et entrée des musiciens live.',
-          descEn: 'Monumental lighting reveal and live band entrance.',
-        },
-        {
-          time: '07:50',
-          titleFr: 'Invité surprise sur scène',
-          titleEn: 'Surprise guest appearance',
-          descFr: 'Duo inédit accueilli par une ovation debout.',
-          descEn: 'Unannounced duet met with a standing ovation.',
-        },
-        {
-          time: '14:30',
-          titleFr: 'Final acoustique',
-          titleEn: 'Acoustic finale',
-          descFr: 'Clôture intimiste éclairée par les téléphones du public.',
-          descEn: 'Intimate closing moment lit by the crowd.',
+          captionFr: 'LUMARÉEL Live Session — 2',
+          captionEn: 'LUMARÉEL Live Session — 2',
         },
       ],
     },

@@ -97,7 +97,7 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
       {/* 1. Header Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="text-[10px] font-agrandir-semibold tracking-[0.25em] text-[#d4af37] uppercase mb-1">
+          <div className="text-[10px] font-agrandir-semibold tracking-[0.25em] text-white uppercase mb-1">
             MÉTHODOLOGIE VIDÉO YOUTUBE &amp; RÉCAPS
           </div>
           <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight uppercase">
@@ -144,7 +144,7 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
                 alt={arc.title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
-              <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[9px] font-agrandir-semibold text-[#d4af37] border border-white/10">
+              <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[9px] font-agrandir-semibold text-white border border-white/10">
                 #{idx + 1} {idx < 3 ? '· ACCUEIL' : ''}
               </div>
 
@@ -201,7 +201,7 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
           <div className="bg-[#0f0f0f] border border-white/20 rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 space-y-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
-                <div className="text-[10px] font-agrandir-semibold text-[#d4af37] uppercase">CMS ARCHIVES VIDÉO</div>
+                <div className="text-[10px] font-agrandir-semibold text-white uppercase">CMS ARCHIVES VIDÉO</div>
                 <h2 className="font-agrandir-extrabold text-xl text-white uppercase">
                   {editingArchive.id ? 'Modifier l’archive' : 'Nouvelle archive de concert'}
                 </h2>
@@ -288,7 +288,7 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
                     />
                   )}
                   <label className="py-2 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-agrandir-semibold text-white flex items-center gap-2 cursor-pointer transition-colors">
-                    <Upload className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <Upload className="w-3.5 h-3.5 text-white" />
                     <span>{uploadingCover ? 'Chargement...' : 'Téléverser fichier image'}</span>
                     <input
                       type="file"
@@ -309,7 +309,7 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
                   Galerie Photos Backstage ({editingArchive.photos?.length || 0} photos)
                 </label>
                 <label className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-agrandir-semibold text-white flex items-center justify-center gap-2 cursor-pointer transition-colors">
-                  <ImageIcon className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <ImageIcon className="w-3.5 h-3.5 text-white" />
                   <span>{uploadingGallery ? 'Importation en cours...' : 'Ajouter des photos à la galerie (sélection multiple)'}</span>
                   <input
                     type="file"

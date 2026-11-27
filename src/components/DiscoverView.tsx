@@ -89,7 +89,7 @@ export const DiscoverView: React.FC = () => {
       return 'from-indigo-950/45 via-[#0e091b]/85 to-[#0b0b0b] border-indigo-900/30 hover:border-indigo-500/50';
     }
     if (name.includes('LION')) {
-      return 'from-amber-950/35 via-[#140e06]/85 to-[#0b0b0b] border-[#d4af37]/30 hover:border-[#d4af37]/60';
+      return 'from-amber-950/35 via-[#140e06]/85 to-[#0b0b0b] border-white/30 hover:border-white/60';
     }
     if (name.includes('JAMSCO')) {
       return 'from-rose-950/40 via-[#18090f]/85 to-[#0b0b0b] border-rose-900/30 hover:border-rose-500/50';
@@ -257,14 +257,14 @@ export const DiscoverView: React.FC = () => {
 
                           {/* Venue Location with MapPin */}
                           <div className="flex items-center gap-1.5 text-xs text-[#ccc] font-agrandir-regular mt-2 truncate">
-                            <MapPin className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
+                            <MapPin className="w-3.5 h-3.5 text-white shrink-0" />
                             <span className="truncate"><strong className="font-agrandir-extrabold text-white">{event.venue}</strong> ({event.city})</span>
                           </div>
 
                           {/* Ticket Price Badge Pill (Matching "TICKETS FROM RM 298") */}
                           <div className="mt-2.5">
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[11px] font-agrandir-semibold text-white backdrop-blur-sm shadow-sm">
-                              <Ticket className="w-3.5 h-3.5 text-[#d4af37]" />
+                              <Ticket className="w-3.5 h-3.5 text-white" />
                               <span>BILLETS DÈS {minPrice.toLocaleString()} FCFA</span>
                             </span>
                           </div>

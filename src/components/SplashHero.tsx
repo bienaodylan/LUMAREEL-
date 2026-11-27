@@ -39,7 +39,7 @@ export const SplashHero: React.FC = () => {
       <header className="relative z-30 w-full px-6 sm:px-12 pt-7 sm:pt-9 flex items-center justify-between text-xs font-agrandir-regular tracking-[0.22em] uppercase text-[#777]">
         <button
           onClick={() => handleNavigate('home')}
-          className="text-xs sm:text-sm font-agrandir-semibold text-white tracking-[0.25em] hover:text-[#d4af37] transition-colors cursor-pointer"
+          className="text-xs sm:text-sm font-agrandir-semibold text-white tracking-[0.25em] hover:text-white transition-colors cursor-pointer"
         >
           LUMAREEL CO.
         </button>
@@ -137,7 +137,7 @@ export const SplashHero: React.FC = () => {
             onClick={() => handleNavigate('home')}
             className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] font-agrandir-regular tracking-[0.22em] text-[#888] hover:text-white uppercase transition-colors cursor-pointer"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] shadow-[0_0_8px_#d4af37] animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-white shadow-[0_0_8px_#FFFFFF] animate-pulse" />
             <span>PROCHAIN CONCERT · JEUNE LION · 19 DÉC. 2026</span>
           </button>
         </div>
@@ -149,7 +149,7 @@ export const SplashHero: React.FC = () => {
           <div className="bg-[#0a0a0a] border border-[#222] p-8 sm:p-10 max-w-xl w-full text-left space-y-6">
             <div className="flex items-center justify-between border-b border-[#222] pb-4">
               <span className="text-xs font-agrandir-regular text-[#888] uppercase tracking-[0.25em] flex items-center gap-2">
-                <Handshake className="w-3.5 h-3.5 text-[#d4af37]" />
+                <Handshake className="w-3.5 h-3.5 text-white" />
                 PARTENAIRES &amp; ALLIANCES
               </span>
               <button
@@ -171,7 +171,7 @@ export const SplashHero: React.FC = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-agrandir-regular border-t border-[#1a1a1a] pt-4">
               <div className="p-3 bg-[#111] border border-[#222]">
-                <span className="text-[#d4af37] font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
+                <span className="text-white font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
                   LIEUX PARTENAIRES
                 </span>
                 <p className="text-white font-agrandir-semibold">Sofitel Abidjan Hôtel Ivoire</p>
@@ -179,7 +179,7 @@ export const SplashHero: React.FC = () => {
               </div>
 
               <div className="p-3 bg-[#111] border border-[#222]">
-                <span className="text-[#d4af37] font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
+                <span className="text-white font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
                   SCÈNE XXL
                 </span>
                 <p className="text-white font-agrandir-semibold">Parc des Expositions d'Abidjan</p>
@@ -187,7 +187,7 @@ export const SplashHero: React.FC = () => {
               </div>
 
               <div className="p-3 bg-[#111] border border-[#222]">
-                <span className="text-[#d4af37] font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
+                <span className="text-white font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
                   COLLECTIFS ASSOCIÉS
                 </span>
                 <p className="text-white font-agrandir-semibold">Dope Music Hub &amp; Nyokobop</p>
@@ -195,7 +195,7 @@ export const SplashHero: React.FC = () => {
               </div>
 
               <div className="p-3 bg-[#111] border border-[#222]">
-                <span className="text-[#d4af37] font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
+                <span className="text-white font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
                   TRANSACTIONS SÉCURISÉES
                 </span>
                 <p className="text-white font-agrandir-semibold">PayMeTrust &amp; Mobile Money</p>
@@ -225,7 +225,7 @@ export const SplashHero: React.FC = () => {
           <div className="bg-[#0a0a0a] border border-[#222] p-8 sm:p-10 max-w-xl w-full text-left space-y-6">
             <div className="flex items-center justify-between border-b border-[#222] pb-4">
               <span className="text-xs font-agrandir-regular text-[#888] uppercase tracking-[0.25em] flex items-center gap-2">
-                <Info className="w-3.5 h-3.5 text-[#d4af37]" />
+                <Info className="w-3.5 h-3.5 text-white" />
                 À PROPOS DE LUMARÉEL CO.
               </span>
               <button
@@ -254,7 +254,7 @@ export const SplashHero: React.FC = () => {
                 <div className="text-[10px] text-[#666] tracking-widest uppercase mt-1">Spectateurs</div>
               </div>
               <div>
-                <div className="font-agrandir-extrabold text-2xl text-[#d4af37]">100%</div>
+                <div className="font-agrandir-extrabold text-2xl text-white">100%</div>
                 <div className="text-[10px] text-[#666] tracking-widest uppercase mt-1">Billets Certifiés</div>
               </div>
               <div>

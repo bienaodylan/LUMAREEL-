@@ -1,453 +1,471 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
-import {
-  Award,
-  Camera,
-  ChevronLeft,
-  ChevronRight,
-  Clapperboard,
-  Crown,
-  Image as ImageIcon,
-  Lightbulb,
-  Newspaper,
-  Play,
-  Ticket,
-  User,
-  Zap,
-} from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
+import {
+  MediaHubItem,
+  getPublishedMediaItems,
+  subscribeMediaHub,
+} from '../utils/mediaHubStorage';
+import { COMMUNITY_MEDIA } from '../utils/communityStorage';
+import {
+  CountdownTimer,
+  EditorialRow,
+  HeroMedia,
+  PosterCard,
+  ScrollReveal,
+  SkeletonBlock,
+} from './ui/LumareelKit';
+import { ArrowRight, Bell, X } from 'lucide-react';
 
+function getMinPrice(ev: ConcertEvent): number | null {
+  const prices = (ev.categories || [])
+    .map((c) => Number(c.price))
+    .filter((p) => Number.isFinite(p) && p > 0);
+  return prices.length > 0 ? Math.min(...prices) : null;
+}
+
+/**
+ * 01 — Accueil LUMARÉEL
+ * Fidèle à la maquette 01 : Hero À l'affiche + Événements à découvrir (0px) + À ne pas manquer + Univers LUMARÉEL (01–05).
+ */
 export const HomeFeed: React.FC = () => {
   const {
     events,
+    isLoadingEvents,
     setSelectedEventSlug,
+    setSelectedMediaId,
     setCurrentPage,
     setCheckoutEvent,
-    news,
-    archives,
-    currentUser,
-    setIsAuthModalOpen,
-    showToast,
     language,
-    setLanguage,
-    t,
   } = useApp();
 
-  // Carousel state
-  const featuredSlides = events.filter((e) => e.isFeatured && e.status !== 'draft');
-  const activeSlides = featuredSlides.length > 0 ? featuredSlides : events.slice(0, 3);
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const activeSlide = activeSlides[currentSlideIndex] || activeSlides[0];
-
-const calculateEventCountdown = (dateStr?: string, timeStr?: string) => {
-  if (!dateStr) return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-  const safeTime = timeStr ? (timeStr.includes(':') ? timeStr : `${timeStr}:00`) : '18:00';
-  let targetDate = 0;
-  if (dateStr.includes('-')) {
-    const parts = dateStr.split('T')[0].split('-').map(Number);
-    const [h, min] = safeTime.split(':').map(Number);
-    targetDate = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1, h || 0, min || 0, 0).getTime();
-  } else {
-    targetDate = new Date(`${dateStr} ${safeTime}`).getTime();
-  }
-  const now = Date.now();
-  const diff = Math.max(0, targetDate - now);
-  return {
-    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-    minutes: Math.floor((diff / 1000 / 60) % 60),
-    seconds: Math.floor((diff / 1000) % 60),
-  };
-};
-
-const EventCardCountdown: React.FC<{
-  dateStr?: string;
-  timeStr?: string;
-  isActive: boolean;
-  t: (key: string) => string;
-}> = ({ dateStr, timeStr, isActive, t }) => {
-  const [cd, setCd] = useState(() => calculateEventCountdown(dateStr, timeStr));
-
-  useEffect(() => {
-    setCd(calculateEventCountdown(dateStr, timeStr));
-    const interval = setInterval(() => {
-      setCd(calculateEventCountdown(dateStr, timeStr));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [dateStr, timeStr]);
-
-  return (
-    <div className={`transition-all duration-300 ${isActive ? 'opacity-100 scale-[1.005]' : 'opacity-80'}`}>
-      <p className={`text-[9px] font-agrandir-semibold tracking-widest mb-2 uppercase transition-colors ${isActive ? 'text-[#d4af37]' : 'text-neutral-400'}`}>
-        {t('home.startsIn')}
-      </p>
-      <div className="flex gap-2 sm:gap-3">
-        {[
-          { value: cd.days, label: t('home.days') },
-          { value: cd.hours, label: t('home.hours') },
-          { value: cd.minutes, label: t('home.minutes') },
-          { value: cd.seconds, label: t('home.seconds'), isYellow: true },
-        ].map((time, i) => (
-          <div key={i} className="flex flex-col items-center flex-1">
-            <div className={`w-full aspect-[4/3] rounded-xl bg-[#0a0a0a] border transition-all duration-300 flex items-center justify-center shadow-inner mb-1.5 ${
-              isActive 
-                ? 'border-[#d4af37]/50 shadow-[0_0_15px_rgba(212,175,55,0.25)]' 
-                : 'border-white/10'
-            }`}>
-              <span className={`text-xl sm:text-2xl font-agrandir-extrabold transition-colors ${time.isYellow || isActive ? 'text-[#d4af37]' : 'text-white'}`}>
-                {String(time.value).padStart(2, '0')}
-              </span>
-            </div>
-            <span className={`text-[8px] font-agrandir-semibold tracking-widest uppercase transition-colors ${isActive ? 'text-[#ddd]' : 'text-[#777]'}`}>
-              {time.label}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
+  const isEn = language === 'en';
+  const [publishedMedia, setPublishedMedia] = useState<MediaHubItem[]>(() =>
+    getPublishedMediaItems()
   );
-};
+  const [showAlerts, setShowAlerts] = useState(false);
 
-  const featuredRowRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const isProgrammaticScroll = useRef(false);
-  const scrollRafRef = useRef<number | null>(null);
-
-  // Défilement automatique fluide vers un concert précis
-  const scrollToSlide = (index: number) => {
-    const container = featuredRowRef.current;
-    const card = cardRefs.current[index];
-    if (!container || !card) return;
-
-    isProgrammaticScroll.current = true;
-    setCurrentSlideIndex(index);
-
-    const containerRect = container.getBoundingClientRect();
-    const cardRect = card.getBoundingClientRect();
-    const scrollOffset = cardRect.left - containerRect.left - (containerRect.width - cardRect.width) / 2;
-
-    container.scrollBy({ left: scrollOffset, behavior: 'smooth' });
-
-    setTimeout(() => {
-      isProgrammaticScroll.current = false;
-    }, 500);
-  };
-
-  // Détection en temps réel lors du scroll tactile ou souris sur téléphone/desktop
-  const handleContainerScroll = () => {
-    if (isProgrammaticScroll.current) return;
-    if (scrollRafRef.current) {
-      cancelAnimationFrame(scrollRafRef.current);
-    }
-
-    scrollRafRef.current = requestAnimationFrame(() => {
-      const container = featuredRowRef.current;
-      if (!container) return;
-
-      const containerRect = container.getBoundingClientRect();
-      const containerCenter = containerRect.left + containerRect.width / 2;
-
-      let closestIndex = 0;
-      let minDistance = Infinity;
-
-      cardRefs.current.forEach((card, idx) => {
-        if (!card) return;
-        const cardRect = card.getBoundingClientRect();
-        const cardCenter = cardRect.left + cardRect.width / 2;
-        const distance = Math.abs(containerCenter - cardCenter);
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestIndex = idx;
-        }
-      });
-
-      if (closestIndex !== currentSlideIndex && closestIndex >= 0 && closestIndex < activeSlides.length) {
-        setCurrentSlideIndex(closestIndex);
-      }
-    });
-  };
-
-  // Auto-play du carrousel avec défilement visible automatique
   useEffect(() => {
-    if (activeSlides.length <= 1) return;
-    const interval = setInterval(() => {
-      if (!isProgrammaticScroll.current) {
-        setCurrentSlideIndex((prev) => {
-          const next = (prev + 1) % activeSlides.length;
-          scrollToSlide(next);
-          return next;
-        });
-      }
+    const sync = () => setPublishedMedia(getPublishedMediaItems());
+    sync();
+    return subscribeMediaHub(sync);
+  }, []);
+
+  const publishedEvents = useMemo(
+    () => (events || []).filter((e) => e.status !== 'draft'),
+    [events]
+  );
+
+  const heroSlides = useMemo(() => {
+    const featured = publishedEvents.filter((e) => e.isFeatured);
+    return (featured.length > 0 ? featured : publishedEvents).slice(0, 3);
+  }, [publishedEvents]);
+
+  const [slideIdx, setSlideIdx] = useState(0);
+  const activeHero = heroSlides[slideIdx] || publishedEvents[0] || null;
+
+  useEffect(() => {
+    if (heroSlides.length <= 1) return;
+    const id = window.setInterval(() => {
+      setSlideIdx((prev) => (prev + 1) % heroSlides.length);
     }, 7000);
-    return () => clearInterval(interval);
-  }, [activeSlides.length]);
+    return () => window.clearInterval(id);
+  }, [heroSlides.length]);
 
-  const scrollFeaturedRow = (direction: 'left' | 'right') => {
-    const newIndex = direction === 'left' 
-      ? (currentSlideIndex === 0 ? activeSlides.length - 1 : currentSlideIndex - 1)
-      : (currentSlideIndex + 1) % activeSlides.length;
-    scrollToSlide(newIndex);
-  };
+  const discoverEvents = useMemo(() => {
+    if (!activeHero) return publishedEvents;
+    const others = publishedEvents.filter((e) => e.id !== activeHero.id);
+    return others.length > 0 ? others : publishedEvents;
+  }, [publishedEvents, activeHero]);
 
-  const handleSelectEvent = (event: ConcertEvent) => {
-    setSelectedEventSlug(event.slug);
+  const leadDiscoverEvent = discoverEvents[0] || activeHero;
+  const secondaryDiscoverEvents = discoverEvents.slice(1);
+
+  const latestBackstage = useMemo(
+    () => publishedMedia.find((m) => m.placement === 'backstage') || null,
+    [publishedMedia]
+  );
+
+  const openConcert = (ev: ConcertEvent) => {
+    setSelectedEventSlug(ev.slug);
     setCurrentPage('concert_detail');
   };
 
-  const handleBookNow = (event: ConcertEvent, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!currentUser) {
-      showToast(language === 'en' ? 'Account required to book tickets.' : 'Création de compte obligatoire pour réserver vos billets.', 'info');
-      setCheckoutEvent(event);
-      setIsAuthModalOpen(true);
-      return;
-    }
-    setCheckoutEvent(event);
-  };
-
-  const handleSelectArtistSlide = (index: number) => {
-    scrollToSlide(index);
-  };
+  const universeItems = [
+    {
+      num: '01',
+      title: isEn ? 'Experiences' : 'Expériences',
+      meta: 'Backstage · Drops',
+      page: 'backstage' as const,
+    },
+    {
+      num: '02',
+      title: 'Black Card',
+      meta: isEn ? 'Members' : 'Membres',
+      page: 'member_card' as const,
+    },
+    {
+      num: '03',
+      title: isEn ? 'Memories' : 'Souvenirs',
+      meta: isEn ? 'Relive' : 'Revivre',
+      page: 'memories' as const,
+    },
+    {
+      num: '04',
+      title: 'Archives',
+      meta: isEn ? 'Editions' : 'Éditions',
+      page: 'archive' as const,
+    },
+    {
+      num: '05',
+      title: isEn ? 'Rewards & Points' : 'Rewards & Points',
+      meta: isEn ? 'Loyalty' : 'Fidélité',
+      page: 'rewards' as const,
+    },
+  ];
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-clip bg-transparent text-[#FFFFFF] pb-16 select-none">
-      
-      {/* =========================================================================
-          1. SECTION PRINCIPALE : PROGRAMMATION OFFICIELLE
-         ========================================================================= */}
-      <section className="relative z-30 w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] md:pt-12">
-        <div className="flex items-center justify-between mb-4 pb-2 border-b border-white/10">
-          <div className="min-w-0 pr-4">
-            <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white tracking-tight uppercase whitespace-nowrap overflow-hidden text-ellipsis">
-              {t('home.upcomingTitle')}
-            </h2>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="hidden md:flex items-center p-1 rounded-full bg-black/60 border border-white/15 text-[11px] font-agrandir-bold tracking-wider mr-1">
-              <button
-                type="button"
-                onClick={() => setLanguage('fr')}
-                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
-                  language === 'fr' ? 'bg-white text-black font-agrandir-extrabold' : 'text-[#888] hover:text-white'
-                }`}
-              >
-                FR
-              </button>
-              <button
-                type="button"
-                onClick={() => setLanguage('en')}
-                className={`px-2.5 py-1 rounded-full transition-all cursor-pointer ${
-                  language === 'en' ? 'bg-white text-black font-agrandir-extrabold' : 'text-[#888] hover:text-white'
-                }`}
-              >
-                EN
-              </button>
-            </div>
-            <button 
-              onClick={() => scrollFeaturedRow('left')} 
-              className="p-2.5 rounded-full border border-white/20 hover:border-white text-neutral-300 hover:text-white transition-colors cursor-pointer bg-white/5 active:scale-95"
-              aria-label={t('home.prevConcert')}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button 
-              onClick={() => scrollFeaturedRow('right')} 
-              className="p-2.5 rounded-full border border-white/20 hover:border-white text-neutral-300 hover:text-white transition-colors cursor-pointer bg-white/5 active:scale-95"
-              aria-label={t('home.nextConcert')}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        <div 
-          ref={featuredRowRef} 
-          onScroll={handleContainerScroll}
-          className="flex items-start gap-4 sm:gap-6 overflow-x-auto pb-6 scrollbar-none snap-x snap-mandatory pt-2 scroll-smooth" 
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+    <div className="min-h-screen w-full bg-black text-white font-agrandir-regular">
+      {/* =====================================================================
+          1. HERO — À L'AFFICHE (PLEIN CADRE, 0PX)
+         ===================================================================== */}
+      <HeroMedia
+        imageUrl={activeHero?.bannerImage || activeHero?.officialPoster}
+        alt={activeHero?.artist || activeHero?.title || 'LUMARÉEL'}
+        heightClass="min-h-[550px] sm:min-h-[600px] lg:min-h-[640px]"
+      >
+        {/* Barre supérieure mobile (LUMARÉEL + cloche) / cloche discrète desktop */}
+        <header
+          className="relative z-20 w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pt-5 sm:pt-6 flex items-center justify-between"
+          style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
         >
-          {activeSlides.map((event, idx) => {
-            const isActive = idx === currentSlideIndex;
-            return (
-              <div 
-                key={event.id} 
-                ref={(el) => { cardRefs.current[idx] = el; }}
-                onClick={() => handleSelectArtistSlide(idx)} 
-                className="w-[82vw] max-w-[340px] sm:w-[380px] sm:max-w-none md:w-[420px] shrink-0 cursor-pointer group snap-start transition-all duration-300 select-none"
-              >
-                
-                {/* Image 16:9 avec bordure jaune / or automatique dès que le concert est sélectionné ou au scroll */}
-                <div className={`aspect-[16/9] w-full rounded-2xl sm:rounded-3xl overflow-hidden relative transition-all duration-300 bg-[#111111] ${
-                  isActive 
-                    ? 'ring-2 sm:ring-[2.5px] ring-[#d4af37] ring-offset-2 ring-offset-black shadow-[0_10px_35px_rgba(0,0,0,0.9),0_0_25px_rgba(212,175,55,0.45)] scale-[1.01]' 
-                    : 'border border-white/10 hover:border-white/30 opacity-90 hover:opacity-100 hover:scale-[1.01]'
-                }`}>
-                  <img 
-                    src={event.officialPoster || event.bannerImage} 
-                    alt={event.title} 
-                    referrerPolicy="no-referrer" 
-                    className="w-full h-full object-cover filter brightness-[0.95] group-hover:brightness-105 group-hover:scale-105 transition-all duration-500 ease-out" 
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-                </div>
-
-                {/* Les informations : Artiste EN CONCERT + Lieu et Date en gras */}
-                <div className="pt-4 px-1 flex flex-col gap-4">
-                  <div>
-                    <h3 className={`font-agrandir-extrabold text-base sm:text-lg tracking-tight uppercase truncate transition-colors ${
-                      isActive ? 'text-white' : 'text-neutral-300 group-hover:text-white'
-                    }`}>
-                      {event.artist} {t('home.inConcert')}
-                    </h3>
-                    <p className="text-xs font-agrandir-regular text-neutral-300 truncate mt-1">
-                      <strong className={`font-agrandir-extrabold transition-colors ${isActive ? 'text-white' : 'text-neutral-200'}`}>
-                        {event.venue}
-                      </strong> · <strong className={`font-agrandir-extrabold transition-colors ${isActive ? 'text-white' : 'text-neutral-200'}`}>
-                        {formatDateLong(event.date, language)}
-                      </strong>
-                    </p>
-                  </div>
-
-                  {/* Boutons d'action */}
-                  <div className="flex items-center gap-3">
-                    <button 
-                      onClick={(e) => handleBookNow(event, e)} 
-                      className="flex-1 bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-[10px] sm:text-xs py-3 px-2 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg uppercase tracking-wider cursor-pointer"
-                    >
-                      <Ticket className="w-4 h-4" />
-                      {t('home.buyTickets')}
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); handleSelectEvent(event); }} 
-                      className="flex-1 bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 text-white font-agrandir-semibold text-[10px] sm:text-xs py-3 px-2 rounded-xl active:scale-95 transition-all uppercase tracking-wider cursor-pointer"
-                    >
-                      {t('home.concertDetails')}
-                    </button>
-                  </div>
-
-                  {/* Compte à rebours dynamique éclairci automatiquement */}
-                  <EventCardCountdown dateStr={event.date} timeStr={event.time} isActive={isActive} t={t} />
-                </div>
-
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* =========================================================================
-          2. NAVIGATION RAPIDE — accès visuels aux services LUMARÉEL
-         ========================================================================= */}
-      <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-7 sm:pt-10 relative z-20">
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div><p className="mb-1 text-[9px] font-agrandir-bold uppercase tracking-[.2em] text-[#D4AF37]">LUMARÉEL</p><h2 className="text-lg sm:text-xl font-agrandir-extrabold uppercase tracking-tight text-white">{language === 'en' ? 'Quick access' : 'Accès rapide'}</h2></div>
-          <button type="button" onClick={() => setCurrentPage('explore')} className="text-[10px] sm:text-xs font-agrandir-bold uppercase tracking-wider text-neutral-400 hover:text-[#D4AF37]">{language === 'en' ? 'Explore all' : 'Tout explorer'} <span aria-hidden="true">↗</span></button>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <button type="button" onClick={() => setCurrentPage('member_card')} className="group relative min-h-[142px] sm:min-h-[175px] overflow-hidden border border-[#D4AF37]/25 bg-gradient-to-br from-[#3b2e17] via-[#17130b] to-[#090909] p-4 sm:p-5 text-left transition-all hover:border-[#D4AF37]/60"><Crown className="mb-5 h-6 w-6 text-[#D4AF37]"/><span className="block text-sm sm:text-base font-agrandir-extrabold uppercase text-white">{t('home.cardTitle')}</span><span className="mt-1 block text-[10px] text-white/50">{language === 'en' ? 'Your exclusive membership' : 'Votre accès privilégié'}</span><span className="absolute bottom-4 right-4 text-[#D4AF37]">↗</span></button>
-          <button type="button" onClick={() => setCurrentPage('backstage')} className="group relative min-h-[142px] sm:min-h-[175px] overflow-hidden border border-white/10 bg-gradient-to-br from-[#29231d] via-[#15120f] to-[#090909] p-4 sm:p-5 text-left transition-all hover:border-white/30"><Clapperboard className="mb-5 h-6 w-6 text-[#D4AF37]"/><span className="block text-sm sm:text-base font-agrandir-extrabold uppercase text-white">BACKSTAGE</span><span className="mt-1 block text-[10px] text-white/50">{language === 'en' ? 'Inside the show' : 'Dans les coulisses'}</span><span className="absolute bottom-4 right-4 text-white/50">↗</span></button>
-          <button type="button" onClick={() => setCurrentPage('flash_drops')} className="group relative min-h-[142px] sm:min-h-[175px] overflow-hidden border border-white/10 bg-gradient-to-br from-[#392b16] via-[#17130c] to-[#090909] p-4 sm:p-5 text-left transition-all hover:border-[#D4AF37]/50"><Zap className="mb-5 h-6 w-6 text-[#D4AF37]"/><span className="block text-sm sm:text-base font-agrandir-extrabold uppercase text-white">FLASH DROPS</span><span className="mt-1 block text-[10px] text-white/50">{language === 'en' ? 'Limited offers & surprises' : 'Offres limitées & surprises'}</span><span className="absolute bottom-4 right-4 text-white/50">↗</span></button>
-          <button type="button" onClick={() => setCurrentPage('memories')} className="group relative min-h-[142px] sm:min-h-[175px] overflow-hidden border border-white/10 bg-gradient-to-br from-[#203038] via-[#11191d] to-[#090909] p-4 sm:p-5 text-left transition-all hover:border-white/30"><Camera className="mb-5 h-6 w-6 text-[#a9d5e5]"/><span className="block text-sm sm:text-base font-agrandir-extrabold text-white">{language === 'en' ? 'MEMORIES' : 'SOUVENIRS'}</span><span className="mt-1 block text-[10px] text-white/50">{language === 'en' ? 'Relive the highlights' : 'Revivez les meilleurs moments'}</span><span className="absolute bottom-4 right-4 text-white/50">↗</span></button>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-white/10 pb-5">
-          <button type="button" onClick={() => setCurrentPage('rewards')} className="text-[10px] sm:text-xs text-neutral-400 hover:text-white">{language === 'en' ? 'Points & referrals' : 'Points & parrainage'} ↗</button>
-          <button type="button" onClick={() => setCurrentPage('suggestions')} className="text-[10px] sm:text-xs text-neutral-400 hover:text-white">{language === 'en' ? 'Share an idea' : 'Proposer une idée'} ↗</button>
-          <button type="button" onClick={() => setCurrentPage('archive')} className="text-[10px] sm:text-xs text-neutral-400 hover:text-white">{t('home.archives')} ↗</button>
-          <button type="button" onClick={() => setCurrentPage('news')} className="text-[10px] sm:text-xs text-neutral-400 hover:text-white">{t('home.newsEditions')} ↗</button>
-          <button type="button" onClick={() => setCurrentPage('client_space')} className="text-[10px] sm:text-xs text-neutral-400 hover:text-white">{t('home.bookingsCatalog')} ↗</button>
-          <button type="button" onClick={() => setCurrentPage('profile')} className="text-[10px] sm:text-xs text-neutral-400 hover:text-white">{t('home.profileSettings')} ↗</button>
-        </div>
-      </section>
-
-      {/* =========================================================================
-          3. SECTION : ARCHIVES
-         ========================================================================= */}
-      <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-14 sm:pt-20">
-        <div className="mb-6 pb-4 border-b border-white/10 flex items-center justify-between">
-          <div>
-            <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight uppercase">
-              {t('home.archives')}
-            </h2>
-          </div>
-          <button onClick={() => setCurrentPage('archive')} className="w-9 h-9 rounded-full border border-white/15 hover:border-white text-neutral-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer bg-white/5 shadow-sm">
-            <ChevronRight className="w-4 h-4" />
+          <button
+            type="button"
+            onClick={() => setCurrentPage('home')}
+            className="font-agrandir-extrabold text-sm tracking-[0.28em] text-white cursor-pointer md:invisible"
+          >
+            LUMARÉEL
           </button>
-        </div>
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 sm:gap-5 pb-5 scrollbar-none md:grid md:grid-cols-3 md:gap-6">
-          {(archives || []).slice(0, 3).map((item) => {
-            const safeCover = item.coverImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg';
-            return (
-              <div key={item.id} onClick={() => setCurrentPage('archive')} className="w-[76vw] sm:w-[320px] md:w-auto shrink-0 snap-start group cursor-pointer flex flex-col justify-between">
-                <div className="aspect-[16/9] w-full rounded-2xl sm:rounded-3xl overflow-hidden relative bg-[#111111] border border-white/15 group-hover:border-white/40 transition-all duration-300 shadow-xl group-hover:scale-[1.02]">
-                  <img src={safeCover} alt={item.title} referrerPolicy="no-referrer" className="w-full h-full object-cover object-center filter brightness-[0.88] group-hover:brightness-100 group-hover:scale-105 transition-all duration-500" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-white/20 hover:bg-white text-white hover:text-black backdrop-blur-md border border-white/30 flex items-center justify-center transition-all duration-300 shadow-2xl group-hover:scale-110">
-                      <Play className="w-5 h-5 ml-0.5 fill-current" />
-                    </div>
-                  </div>
-                  <div className="absolute bottom-3 right-3">
-                    <span className="px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md text-[10px] font-mono text-white border border-white/20 uppercase font-semibold">{item.duration || t('home.liveHd')}</span>
-                  </div>
-                  <div className="absolute top-3 left-3">
-                    <span className="px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[9px] font-agrandir-semibold text-[#d4af37] border border-white/15 uppercase tracking-wider">{t('home.videoRecap')}</span>
-                  </div>
-                </div>
-                <div className="pt-3 px-1">
-                  <div className="text-[10px] font-agrandir-regular text-[#888] uppercase tracking-wider flex items-center gap-2 mb-1">
-                    <strong className="font-agrandir-extrabold text-white">{item.date ? formatDateLong(item.date, language) : item.year}</strong><span>·</span><strong className="font-agrandir-extrabold text-white truncate">{item.venue}</strong>
-                  </div>
-                  <h3 className="font-agrandir-extrabold text-base text-white uppercase tracking-tight group-hover:text-white transition-colors truncate">{item.title}</h3>
-                  <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
-                    <button onClick={(e) => { e.stopPropagation(); setCurrentPage('archive'); }} className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-[#d4af37] text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center gap-1.5 border border-[#d4af37]/30 transition-colors">
-                      <ImageIcon className="w-3.5 h-3.5 text-[#d4af37]" /><span>{t('home.viewImages')}</span>
-                    </button>
-                    <span className="text-[10px] text-[#777] font-agrandir-regular">{item.duration || t('home.liveHd')}</span>
-                  </div>
-                </div>
+
+          <button
+            type="button"
+            onClick={() => setShowAlerts((v) => !v)}
+            aria-label={isEn ? 'Notifications' : 'Notifications'}
+            className="w-10 h-10 rounded-full bg-black/50 hover:bg-white/15 backdrop-blur-md border border-white/[0.14] flex items-center justify-center text-white transition-colors cursor-pointer lum-press"
+          >
+            <Bell className="w-[18px] h-[18px]" strokeWidth={1.6} />
+          </button>
+        </header>
+
+        {/* Panneau d'alertes au clic sur la cloche */}
+        {showAlerts && (
+          <div className="relative z-30 w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 mt-2">
+            <div className="ml-auto max-w-sm bg-[#0E0E0E]/96 backdrop-blur-xl border border-white/[0.12] p-4 shadow-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
+                  {isEn ? 'Alerts & Releases' : 'Alertes & Sorties'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowAlerts(false)}
+                  aria-label={isEn ? 'Close' : 'Fermer'}
+                  className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-[#9A9A9A] hover:text-white cursor-pointer"
+                >
+                  <X className="w-4 h-4" strokeWidth={1.6} />
+                </button>
               </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* =========================================================================
-          4. SECTION : ACTUALITÉS
-         ========================================================================= */}
-      {news && news.length > 0 && (
-        <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-14 sm:pt-20">
-          <div className="mb-6 pb-4 border-b border-white/10 flex items-center justify-between">
-            <div>
-              <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight uppercase">
-                {t('nav.news')}
-              </h2>
+              <div className="divide-y divide-white/[0.12] text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAlerts(false);
+                    setCurrentPage('flash_drops');
+                  }}
+                  className="w-full py-2.5 text-left hover:text-[#D4AF6A] transition-colors cursor-pointer"
+                >
+                  <p className="font-agrandir-extrabold text-white">
+                    {isEn ? 'Members presale live' : 'Prévente membres en cours'}
+                  </p>
+                  <p className="text-[#9A9A9A] mt-0.5">
+                    {activeHero
+                      ? `${activeHero.artist} — Carré Or & VIP`
+                      : 'Flash Drop LUMARÉEL'}
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAlerts(false);
+                    setCurrentPage('memories');
+                  }}
+                  className="w-full py-2.5 text-left hover:text-[#D4AF6A] transition-colors cursor-pointer"
+                >
+                  <p className="font-agrandir-extrabold text-white">
+                    {isEn ? 'Concert memories available' : 'Souvenirs de concerts en ligne'}
+                  </p>
+                  <p className="text-[#9A9A9A] mt-0.5">
+                    {isEn
+                      ? 'Official photos & aftermovies ready.'
+                      : 'Photos officielles et aftermovies disponibles.'}
+                  </p>
+                </button>
+              </div>
             </div>
-            <button onClick={() => setCurrentPage('news')} className="w-9 h-9 rounded-full border border-white/15 hover:border-white text-neutral-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer bg-white/5 shadow-sm">
-              <ChevronRight className="w-4 h-4" />
-            </button>
           </div>
-          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 sm:gap-5 pb-5 scrollbar-none md:grid md:grid-cols-3 md:gap-6">
-            {news.slice(0, 3).map((article: any) => (
-              <article key={article.id} onClick={() => setCurrentPage('news')} className="w-[76vw] sm:w-[320px] md:w-auto shrink-0 snap-start bg-[#0b0b0b] border border-white/10 rounded-3xl p-6 hover:border-white/30 transition-all cursor-pointer flex flex-col justify-between shadow-xl">
-                <div>
-                  <div className="flex items-center justify-between text-[10px] font-agrandir-regular tracking-wider uppercase text-[#777] mb-3">
-                    <span className="text-[#d4af37] font-agrandir-semibold">{article.category}</span>
-                    <strong className="font-agrandir-bold text-white">{formatDateLong(article.date, language)}</strong>
-                  </div>
-                  <h3 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight mb-3 leading-snug">{article.title}</h3>
-                  <p className="font-agrandir-regular text-xs text-[#888] leading-relaxed line-clamp-3 mb-6">{article.summary}</p>
-                </div>
-                <div className="pt-3 border-t border-white/10 text-[11px] font-agrandir-semibold text-white uppercase tracking-wider flex items-center justify-between">
-                  <span>{t('home.readRelease')}</span>
-                  <span className="text-[#666] font-agrandir-regular">{article.readTime}</span>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
+        )}
 
+        {/* Contenu principal Hero — Bas gauche */}
+        <div className="relative z-10 w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pt-24 pb-8 sm:pb-12">
+          {isLoadingEvents && !activeHero ? (
+            <div className="max-w-xl space-y-3">
+              <SkeletonBlock className="h-4 w-28" />
+              <SkeletonBlock className="h-14 w-80" />
+              <SkeletonBlock className="h-5 w-64" />
+            </div>
+          ) : (
+            activeHero && (
+              <div className="max-w-2xl space-y-3.5">
+                <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.26em] text-[#D4AF6A]">
+                  {isEn ? 'FEATURED' : 'À L’AFFICHE'}
+                </p>
+
+                <h1 className="font-agrandir-extrabold text-[2.6rem] sm:text-6xl lg:text-7xl uppercase tracking-tight text-white leading-[0.96]">
+                  {activeHero.artist || activeHero.title}
+                </h1>
+
+                <p className="text-xs sm:text-sm text-[#C8C8C8]">
+                  Concert · {activeHero.venue}, {activeHero.city || 'Abidjan'} —{' '}
+                  {formatDateLong(activeHero.date, language)}
+                </p>
+
+                <div className="pt-2 flex items-center gap-5">
+                  <button
+                    type="button"
+                    onClick={() => setCheckoutEvent(activeHero)}
+                    className="min-h-[46px] px-7 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs sm:text-sm transition-colors cursor-pointer lum-press"
+                  >
+                    {isEn ? 'Book now' : 'Réserver'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => openConcert(activeHero)}
+                    className="min-h-[46px] px-1 text-xs sm:text-sm font-agrandir-extrabold text-white hover:text-[#D4AF6A] inline-flex items-center gap-2 transition-colors cursor-pointer lum-press"
+                  >
+                    <span>{isEn ? 'Discover' : 'Découvrir'}</span>
+                    <ArrowRight className="w-4 h-4" strokeWidth={1.6} />
+                  </button>
+                </div>
+
+                {/* Indicateurs de slides */}
+                {heroSlides.length > 1 && (
+                  <div className="pt-4 flex items-center gap-2">
+                    {heroSlides.map((slide, idx) => (
+                      <button
+                        key={slide.id}
+                        type="button"
+                        onClick={() => setSlideIdx(idx)}
+                        aria-label={slide.artist || slide.title}
+                        className={`h-[2px] transition-all cursor-pointer ${
+                          idx === slideIdx
+                            ? 'w-7 bg-white'
+                            : 'w-4 bg-white/25 hover:bg-white/55'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          )}
+        </div>
+      </HeroMedia>
+
+      <div className="w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 space-y-14 pb-10">
+        {/* ===================================================================
+            2. ÉVÉNEMENTS À DÉCOUVRIR (1 GRANDE CARTE 0PX + GRILLE PORTRAITS 0PX)
+           =================================================================== */}
+        {leadDiscoverEvent && (
+          <ScrollReveal>
+            <section className="space-y-4">
+              <div className="flex items-baseline justify-between gap-4">
+                <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight">
+                  {isEn ? 'Events to discover' : 'Événements à découvrir'}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage('explore')}
+                  className="text-xs sm:text-sm font-agrandir-semibold text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
+                >
+                  {isEn ? 'See all' : 'Tout voir'}
+                </button>
+              </div>
+
+              {/* Grande carte événement (0px corners) */}
+              {(() => {
+                const minPrice = getMinPrice(leadDiscoverEvent);
+                return (
+                  <button
+                    type="button"
+                    onClick={() => openConcert(leadDiscoverEvent)}
+                    className="group relative w-full aspect-[16/10] sm:aspect-[21/9] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] text-left cursor-pointer block lum-press"
+                  >
+                    <img
+                      src={leadDiscoverEvent.bannerImage || leadDiscoverEvent.officialPoster}
+                      alt={leadDiscoverEvent.title}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/92 via-black/25 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6 flex items-end justify-between gap-4">
+                      <div className="min-w-0">
+                        <h3 className="font-agrandir-extrabold text-2xl sm:text-3xl uppercase text-white tracking-tight leading-none truncate">
+                          {leadDiscoverEvent.artist || leadDiscoverEvent.title}
+                        </h3>
+                        <p className="mt-1.5 text-xs text-[#C8C8C8] truncate">
+                          {formatDateLong(leadDiscoverEvent.date, language)} · {leadDiscoverEvent.venue}
+                        </p>
+                      </div>
+                      {minPrice && (
+                        <span className="text-xs sm:text-sm font-agrandir-extrabold text-white whitespace-nowrap shrink-0 tabular-nums">
+                          {isEn ? 'from' : 'dès'} {minPrice.toLocaleString('fr-FR')} FCFA
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })()}
+
+              {/* Rail portraits horizontaux mobile -> grille 3-4 colonnes desktop */}
+              {secondaryDiscoverEvents.length > 0 && (
+                <div className="flex overflow-x-auto snap-x snap-mandatory gap-3.5 pb-1 scrollbar-hide -mx-5 px-5 sm:mx-0 sm:px-0 md:grid md:grid-cols-3 lg:grid-cols-4">
+                  {secondaryDiscoverEvents.map((ev) => (
+                    <PosterCard
+                      key={ev.id}
+                      imageUrl={ev.officialPoster || ev.bannerImage}
+                      title={ev.artist || ev.title}
+                      subtitle={`${formatDateLong(ev.date, language)} · ${ev.genre || 'Concert'}`}
+                      onClick={() => openConcert(ev)}
+                      className="w-[46vw] sm:w-[220px] md:w-auto shrink-0 snap-start"
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          </ScrollReveal>
+        )}
+
+        {/* ===================================================================
+            3. À NE PAS MANQUER (FLASH DROP EN COURS + BACKSTAGE)
+           =================================================================== */}
+        <ScrollReveal>
+          <section className="space-y-5">
+            <div>
+              <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight">
+                {isEn ? 'Do not miss' : 'À ne pas manquer'}
+              </h2>
+              <div className="mt-3 h-px w-full bg-[#D4AF6A]/55" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
+              {/* Flash Drop en cours */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage('flash_drops')}
+                className="lg:col-span-7 w-full text-left group cursor-pointer space-y-3"
+              >
+                <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
+                  ● FLASH DROP · {isEn ? 'LIVE NOW' : 'EN COURS'}
+                </p>
+                <h3 className="font-agrandir-extrabold text-xl sm:text-2xl text-white leading-snug group-hover:text-[#D4AF6A] transition-colors">
+                  {activeHero
+                    ? `${isEn ? 'Members presale' : 'Prévente membres'} ${activeHero.artist} — Carré Or`
+                    : isEn
+                    ? 'Members presale — Limited seats'
+                    : 'Prévente membres — Carré Or'}
+                </h3>
+                <div className="pt-1 flex items-center justify-between text-xs sm:text-sm">
+                  <span className="text-[#9A9A9A]">
+                    {isEn ? 'Ends in' : 'Se termine dans'}
+                  </span>
+                  <CountdownTimer
+                    spaced
+                    className="font-agrandir-extrabold text-sm text-white tracking-wider"
+                  />
+                </div>
+              </button>
+
+              {/* Séparateur mobile */}
+              <div className="h-px w-full bg-white/[0.12] lg:hidden" />
+
+              {/* Bloc Backstage compact (0px corners) */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (latestBackstage) {
+                    setSelectedMediaId(latestBackstage.id);
+                    setCurrentPage('media_detail');
+                  } else {
+                    setCurrentPage('backstage');
+                  }
+                }}
+                className="lg:col-span-5 w-full flex items-center gap-4 text-left group cursor-pointer"
+              >
+                <div className="w-28 h-20 overflow-hidden bg-[#0E0E0E] border border-white/[0.12] shrink-0">
+                  <img
+                    src={
+                      latestBackstage?.thumbnailUrl ||
+                      latestBackstage?.url ||
+                      COMMUNITY_MEDIA.backstageSoundcheckImg
+                    }
+                    alt={latestBackstage?.title || 'BACKSTAGE'}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-500"
+                  />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#9A9A9A]">
+                    BACKSTAGE
+                  </p>
+                  <p className="font-agrandir-extrabold text-sm sm:text-base text-white leading-snug line-clamp-2 group-hover:text-[#D4AF6A] transition-colors">
+                    {latestBackstage
+                      ? isEn && latestBackstage.titleEn
+                        ? latestBackstage.titleEn
+                        : latestBackstage.title
+                      : isEn
+                      ? 'Before the stage: inside the night'
+                      : 'Avant la scène : dans les coulisses'}
+                  </p>
+                </div>
+              </button>
+            </div>
+          </section>
+        </ScrollReveal>
+
+        {/* ===================================================================
+            4. UNIVERS LUMARÉEL — INDEX ÉDITORIAL NUMÉROTÉ 01–05
+           =================================================================== */}
+        <ScrollReveal>
+          <section>
+            <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight mb-4">
+              {isEn ? 'LUMARÉEL Universe' : 'Univers LUMARÉEL'}
+            </h2>
+
+            <div className="border-t border-white/[0.12] divide-y divide-white/[0.12]">
+              {universeItems.map((row) => (
+                <EditorialRow
+                  key={row.num}
+                  index={row.num}
+                  title={row.title}
+                  rightText={row.meta}
+                  onClick={() => setCurrentPage(row.page)}
+                />
+              ))}
+            </div>
+          </section>
+        </ScrollReveal>
+      </div>
     </div>
   );
 };

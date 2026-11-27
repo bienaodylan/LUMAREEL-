@@ -150,7 +150,7 @@ export const AuthModal: React.FC = () => {
         <div className="text-[10px] tracking-[0.25em] text-[#888] uppercase mb-1 flex items-center gap-2">
           <span>{t('auth.kicker')}</span>
           {mode === 'login' && (
-            <span className="text-[#d4af37] font-agrandir-bold">{t('auth.secureAccess')}</span>
+            <span className="text-white font-agrandir-bold">{t('auth.secureAccess')}</span>
           )}
         </div>
         <h2 className="font-agrandir-extrabold text-2xl text-white uppercase tracking-tight mb-2">
@@ -208,7 +208,7 @@ export const AuthModal: React.FC = () => {
                   type="button"
                   onClick={handlePasswordReset}
                   disabled={isResettingPassword}
-                  className="text-[10px] text-[#888] hover:text-[#d4af37] underline cursor-pointer transition-colors"
+                  className="text-[10px] text-[#888] hover:text-white underline cursor-pointer transition-colors"
                 >
                   {isResettingPassword ? t('auth.sending') : t('auth.forgot')}
                 </button>
@@ -255,7 +255,7 @@ export const AuthModal: React.FC = () => {
             onClick={() => {
               setMode(mode === 'login' ? 'register' : 'login');
             }}
-            className="text-white hover:text-[#d4af37] underline uppercase tracking-wider font-agrandir-semibold cursor-pointer transition-colors"
+            className="text-white hover:text-white underline uppercase tracking-wider font-agrandir-semibold cursor-pointer transition-colors"
           >
             {mode === 'login' ? t('auth.switchRegister') : t('auth.switchLogin')}
           </button>
