@@ -143,6 +143,7 @@ export const HomeFeed: React.FC = () => {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/10" />
+            <EventCountdown event={heroEvent} />
             <div className="absolute bottom-8 left-5 right-5 max-w-3xl sm:bottom-12 sm:left-10 lg:bottom-16 lg:left-16">
               <div className="mb-3 inline-flex items-center gap-2 text-[10px] font-agrandir-extrabold uppercase tracking-[0.25em] text-white/80">
                 <span className="h-px w-7 bg-white/70" /> {isEn ? 'Featured event' : 'À l’affiche'}
@@ -157,10 +158,6 @@ export const HomeFeed: React.FC = () => {
                 <span>{formatEventDate(heroEvent.date)}{heroEvent.time ? ` · ${heroEvent.time}` : ''}</span>
               </div>
               <div className="mt-5 flex flex-wrap items-center gap-4">
-                <div className="border border-white/35 bg-black/40 px-3 py-2 backdrop-blur-sm">
-                  <div className="mb-1 text-[8px] font-agrandir-semibold uppercase tracking-[0.2em] text-white/60">{isEn ? 'Countdown' : 'Compte à rebours'}</div>
-                  <EventCountdown event={heroEvent} />
-                </div>
                 <button type="button" onClick={() => handleViewDetails(heroEvent)} className="inline-flex min-h-11 items-center gap-3 bg-white px-5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white/80">
                   {isEn ? 'Discover' : 'Découvrir'} <ArrowUpRight className="h-4 w-4" />
                 </button>
@@ -196,7 +193,7 @@ export const HomeFeed: React.FC = () => {
                   className="home-event-card w-[78vw] max-w-[390px] shrink-0 snap-start bg-transparent text-left sm:w-[42vw] lg:w-[30vw]"
                 >
                   <button type="button" onClick={() => handleViewDetails(event)} className="group block w-full overflow-hidden bg-[#111] text-left" aria-label={`${event.artist} — ${isEn ? 'Event details' : 'Détails du concert'}`}>
-                    <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#111]">
+                    <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#111]">
                       <img src={event.officialPoster || event.bannerImage} alt={event.title || event.artist} referrerPolicy="no-referrer" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
                     </div>
                   </button>
