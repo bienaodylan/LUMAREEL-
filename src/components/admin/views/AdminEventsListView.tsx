@@ -195,9 +195,9 @@ export const AdminEventsListView: React.FC<AdminEventsListViewProps> = ({
                       <td className="py-4 px-6">
                         <div className="flex items-center gap-3.5">
                           <img
-                            src={evt.officialPoster || evt.artistPortrait}
+                            src={evt.artistPortrait || evt.officialPoster}
                             alt={evt.artist}
-                            className="w-12 h-12 rounded-xl object-cover border border-white/10 shrink-0 group-hover:border-white/30 transition-colors"
+                            className="w-12 h-12 rounded-xl object-cover object-top border border-white/10 shrink-0 group-hover:border-white/30 transition-colors"
                           />
                           <div className="truncate max-w-xs">
                             <div className="font-agrandir-extrabold text-sm text-white uppercase group-hover:text-white transition-colors truncate">

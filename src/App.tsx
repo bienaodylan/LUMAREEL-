@@ -28,6 +28,7 @@ import { ContactView } from './components/ContactView';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { AppSplashScreen } from './components/AppSplashScreen';
 import { saveStoredMemberCard } from './utils/memberCardStorage';
+import { initAutoMobileFullscreen } from './utils/mobileFullscreen';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const MainApp: React.FC = () => {
@@ -41,6 +42,11 @@ const MainApp: React.FC = () => {
     }
     return true;
   });
+
+  // Plein écran automatique sur appareils mobiles au lancement (avec Screen Orientation API)
+  useEffect(() => {
+    return initAutoMobileFullscreen();
+  }, []);
 
   // Vérification automatique au retour de la page de paiement PayMeTrust (?payment_status=...&ref=PMT-...)
   useEffect(() => {

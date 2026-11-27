@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import { ArchiveProduction } from '../../../types';
 import { Plus, Edit3, Trash2, Film, Play, Upload, Image as ImageIcon, CheckCircle2, X } from 'lucide-react';
 import { convertToYouTubeEmbed } from '../../../utils/mediaUtils';
-import { uploadAdminImage } from '../../../utils/uploadAdminImage';
+import {
+  extractVideoMetadata,
+  uploadAdminImage,
+  uploadAdminVideo,
+} from '../../../utils/uploadAdminImage';
+import { isDirectVideoUrl } from '../../../utils/mediaHubStorage';
 
 interface AdminArchivesViewProps {
   archives: ArchiveProduction[];
@@ -19,6 +24,8 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
 }) => {
   const [editingArchive, setEditingArchive] = useState<Partial<ArchiveProduction> | null>(null);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
   const [uploadingGallery, setUploadingGallery] = useState(false);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -33,6 +40,13 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
     }
 
     try {
+      const rawVideoUrl = (editingArchive.youtubeUrl || editingArchive.youtubeEmbedUrl || '').trim();
+      const resolvedEmbed = rawVideoUrl
+        ? isDirectVideoUrl(rawVideoUrl)
+          ? rawVideoUrl
+          : convertToYouTubeEmbed(rawVideoUrl)
+        : '';
+
       await onSaveArchive({
         id: editingArchive.id,
         title: editingArchive.title,
@@ -44,8 +58,8 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
         venue: editingArchive.venue || 'Palais de la Culture',
         artists: editingArchive.artists || [editingArchive.title],
         description: editingArchive.description || '',
-        youtubeUrl: editingArchive.youtubeUrl || '',
-        youtubeEmbedUrl: editingArchive.youtubeEmbedUrl || (editingArchive.youtubeUrl ? convertToYouTubeEmbed(editingArchive.youtubeUrl) : ''),
+        youtubeUrl: rawVideoUrl,
+        youtubeEmbedUrl: resolvedEmbed,
         duration: editingArchive.duration || 'Live HD',
         photos: editingArchive.photos || [],
         isPublished: true,
@@ -56,6 +70,29 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
       setEditingArchive(null);
     } catch (err: any) {
       showToast(err.message || 'Erreur lors de la sauvegarde.', 'error');
+    }
+  };
+
+  const handleVideoUpload = async (file: File) => {
+    try {
+      setUploadingVideo(true);
+      setVideoProgress(5);
+      const [meta, videoUrl] = await Promise.all([
+        extractVideoMetadata(file),
+        uploadAdminVideo(file, (pct) => setVideoProgress(pct)),
+      ]);
+      setEditingArchive((prev) => ({
+        ...prev,
+        youtubeUrl: videoUrl,
+        youtubeEmbedUrl: videoUrl,
+        duration: meta.durationLabel || prev?.duration || 'Live HD',
+        coverImage: prev?.coverImage || meta.posterDataUrl || prev?.coverImage,
+      }));
+      showToast('Vidéo importée depuis votre ordinateur ! Enregistrez pour publier.', 'success');
+    } catch (err: any) {
+      showToast(err?.message || "Erreur lors de l'import vidéo.", 'error');
+    } finally {
+      setUploadingVideo(false);
     }
   };
 
@@ -97,8 +134,8 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
       {/* 1. Header Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="text-[10px] font-agrandir-semibold tracking-[0.25em] text-white uppercase mb-1">
-            MÉTHODOLOGIE VIDÉO YOUTUBE &amp; RÉCAPS
+          <div className="text-[10px] font-agrandir-semibold tracking-[0.25em] text-[#D4AF6A] uppercase mb-1">
+            VIDÉOS IMPORTÉES &amp; SOUVENIRS DE CONCERT
           </div>
           <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight uppercase">
             ARCHIVES &amp; RÉCAPS VIDÉO ({archives.length})
@@ -254,10 +291,51 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-agrandir-semibold uppercase text-[#888] mb-1">
-                  Lien Vidéo YouTube
-                </label>
+              {/* Import fichier vidéo depuis l'ordinateur */}
+              <div className="rounded-2xl border border-[#D4AF6A]/35 bg-[#131313] p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <label className="block text-xs font-agrandir-extrabold text-white">
+                      Importer la vidéo depuis l'ordinateur (MP4, MOV, WebM)
+                    </label>
+                    <p className="text-[11px] text-[#888]">
+                      Publiez directement vos propres montages vidéo sans passer par YouTube.
+                    </p>
+                  </div>
+                  <label className="py-2 px-4 rounded-xl bg-[#D4AF6A] hover:bg-[#dfc07f] text-black text-xs font-agrandir-extrabold flex items-center gap-2 cursor-pointer transition-colors">
+                    <Upload className="w-3.5 h-3.5 text-black" />
+                    <span>{uploadingVideo ? `Envoi ${videoProgress}%...` : 'Choisir une vidéo'}</span>
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/quicktime,video/x-m4v,video/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleVideoUpload(file);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                {uploadingVideo && (
+                  <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                    <div
+                      className="h-full bg-[#D4AF6A] transition-all duration-200"
+                      style={{ width: `${Math.max(8, videoProgress)}%` }}
+                    />
+                  </div>
+                )}
+
+                {editingArchive.youtubeEmbedUrl && isDirectVideoUrl(editingArchive.youtubeEmbedUrl) && (
+                  <video
+                    src={editingArchive.youtubeEmbedUrl}
+                    poster={editingArchive.coverImage}
+                    controls
+                    playsInline
+                    className="w-full max-h-[200px] rounded-xl bg-black border border-white/10 object-contain"
+                  />
+                )}
+
                 <input
                   type="text"
                   value={editingArchive.youtubeUrl || ''}
@@ -266,11 +344,11 @@ export const AdminArchivesView: React.FC<AdminArchivesViewProps> = ({
                     setEditingArchive({
                       ...editingArchive,
                       youtubeUrl: url,
-                      youtubeEmbedUrl: convertToYouTubeEmbed(url),
+                      youtubeEmbedUrl: isDirectVideoUrl(url) ? url : convertToYouTubeEmbed(url),
                     });
                   }}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full bg-[#161616] border border-white/15 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-white font-mono"
+                  placeholder="Optionnel : chemin vidéo direct (/uploads/videos/...) ou URL"
+                  className="w-full bg-[#181818] border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-white font-mono"
                 />
               </div>
 

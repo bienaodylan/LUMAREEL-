@@ -14,6 +14,7 @@ import {
   deleteMediaHubItem,
   generateContributorCode,
   getPublishedMediaItems,
+  isDirectVideoUrl,
   isSafeMediaUrl,
   loadContributorInvites,
   loadMediaHubItems,
@@ -23,12 +24,17 @@ import {
   saveContributorInvites,
   saveEventVisualOverride,
   subscribeMediaHub,
+  syncMediaHubFromServer,
   upsertMediaHubItem,
 } from '../../../utils/mediaHubStorage';
 import type { TvAccessTier } from '../../../utils/tvAccess';
 import { AdminLumareelTvSubscriptionsPanel } from './AdminLumareelTvSubscriptionsPanel';
 import { selectEventVisual } from '../../../utils/visualSelector';
-import { uploadAdminImage } from '../../../utils/uploadAdminImage';
+import {
+  extractVideoMetadata,
+  uploadAdminImage,
+  uploadAdminVideo,
+} from '../../../utils/uploadAdminImage';
 import { convertToYouTubeEmbed, readFileAsDataURL } from '../../../utils/mediaUtils';
 import {
   Camera,
@@ -75,7 +81,7 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
     loadContributorInvites()
   );
 
-  // Sync live updates across tabs / photographer submissions
+  // Sync live updates across tabs / server / photographer submissions
   useEffect(() => {
     const sync = () => {
       setItems(loadMediaHubItems());
@@ -83,6 +89,7 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
       setInvites(loadContributorInvites());
     };
     sync();
+    void syncMediaHubFromServer().then((merged) => setItems(merged));
     return subscribeMediaHub(sync);
   }, []);
 
@@ -111,7 +118,11 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
   const [newDownloadable, setNewDownloadable] = useState(false);
   const [newPublishNow, setNewPublishNow] = useState(true);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
+  const [uploadedVideoName, setUploadedVideoName] = useState('');
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
 
   const draftCount = useMemo(
     () => items.filter((i) => i.status === 'draft').length,
@@ -133,14 +144,39 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
       try {
         const publicUrl = await uploadAdminImage(file, 'media-hub');
         setNewUrl(publicUrl);
-        showToast('Photo téléversée dans le stockage cloud.', 'success');
+        showToast('Miniature téléversée avec succès.', 'success');
       } catch {
         const dataUrl = await readFileAsDataURL(file);
         setNewUrl(dataUrl);
-        showToast('Photo chargée localement (mode aperçu).', 'info');
+        showToast('Image chargée localement.', 'info');
       }
     } finally {
       setIsUploadingFile(false);
+    }
+  };
+
+  const handleUploadMediaVideo = async (file: File) => {
+    setIsUploadingVideo(true);
+    setVideoUploadProgress(5);
+    setUploadedVideoName(file.name);
+    try {
+      const [meta, videoUrl] = await Promise.all([
+        extractVideoMetadata(file),
+        uploadAdminVideo(file, (pct) => setVideoUploadProgress(pct)),
+      ]);
+      setNewEmbedUrl(videoUrl);
+      if (meta.durationLabel && !newDuration.trim()) {
+        setNewDuration(meta.durationLabel);
+      }
+      if (meta.posterDataUrl && !newUrl.trim()) {
+        setNewUrl(meta.posterDataUrl);
+      }
+      showToast('Vidéo importée depuis votre ordinateur et prête à publier !', 'success');
+    } catch (err: any) {
+      setUploadedVideoName('');
+      showToast(err?.message || "Échec de l'import vidéo.", 'error');
+    } finally {
+      setIsUploadingVideo(false);
     }
   };
 
@@ -151,13 +187,23 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
       return;
     }
 
+    const rawVideo = newEmbedUrl.trim();
     const finalEmbed =
-      newMediaType === 'video' && newEmbedUrl.trim()
-        ? convertToYouTubeEmbed(newEmbedUrl.trim())
+      newMediaType === 'video' && rawVideo
+        ? isDirectVideoUrl(rawVideo)
+          ? rawVideo
+          : convertToYouTubeEmbed(rawVideo)
         : undefined;
 
-    const finalUrl = newUrl.trim();
-    if (!finalUrl || !isSafeMediaUrl(finalUrl)) {
+    if (newMediaType === 'video' && !finalEmbed) {
+      showToast('Importez un fichier vidéo depuis votre ordinateur avant de publier.', 'error');
+      return;
+    }
+
+    const finalUrl =
+      newUrl.trim() ||
+      '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg';
+    if (!isSafeMediaUrl(finalUrl)) {
       showToast(
         'Ajoutez une photo valide (import fichier ou URL https://) pour la couverture/image.',
         'error'
@@ -212,6 +258,8 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
     setNewUrl('');
     setNewEmbedUrl('');
     setNewDuration('');
+    setUploadedVideoName('');
+    setVideoUploadProgress(0);
     setNewVisualRole('none');
     setNewIsFeaturedOnTv(false);
     setShowAddForm(false);
@@ -768,16 +816,90 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
                 />
               </div>
 
-              {/* Fichier image ou URL + Lien YouTube si vidéo */}
+              {/* Import vidéo directe depuis l'ordinateur + Miniature */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
+                {newMediaType === 'video' && (
+                  <div className="space-y-2.5 md:col-span-2 rounded-2xl border border-[#D4AF6A]/35 bg-[#121212] p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <label className="block text-xs font-agrandir-extrabold text-white">
+                          Importer votre vidéo depuis l'ordinateur *
+                        </label>
+                        <p className="text-[11px] text-neutral-400">
+                          Formats acceptés : MP4, MOV, WebM, M4V (jusqu'à 250 Mo) — miniature et durée détectées automatiquement.
+                        </p>
+                      </div>
+                      <input
+                        ref={videoInputRef}
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime,video/x-m4v,video/*"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) handleUploadMediaVideo(f);
+                        }}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        disabled={isUploadingVideo}
+                        onClick={() => videoInputRef.current?.click()}
+                        className="min-h-[42px] px-4 rounded-xl bg-[#D4AF6A] hover:bg-[#dfc07f] text-black text-xs font-agrandir-extrabold inline-flex items-center gap-2 cursor-pointer shrink-0 disabled:opacity-60"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>
+                          {isUploadingVideo
+                            ? `Envoi ${videoUploadProgress}%...`
+                            : 'Choisir une vidéo (MP4 / MOV)'}
+                        </span>
+                      </button>
+                    </div>
+
+                    {isUploadingVideo && (
+                      <div className="w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+                        <div
+                          className="h-full bg-[#D4AF6A] transition-all duration-200"
+                          style={{ width: `${Math.max(8, videoUploadProgress)}%` }}
+                        />
+                      </div>
+                    )}
+
+                    {newEmbedUrl && isDirectVideoUrl(newEmbedUrl) && (
+                      <div className="space-y-2 pt-1">
+                        {uploadedVideoName && (
+                          <p className="text-[11px] text-emerald-400 font-agrandir-semibold">
+                            Vidéo prête : {uploadedVideoName}
+                          </p>
+                        )}
+                        <video
+                          src={newEmbedUrl}
+                          poster={newUrl || undefined}
+                          controls
+                          playsInline
+                          className="w-full max-h-[220px] rounded-xl bg-black border border-white/10 object-contain"
+                        />
+                      </div>
+                    )}
+
+                    <div className="pt-1">
+                      <input
+                        type="text"
+                        value={newEmbedUrl}
+                        onChange={(e) => setNewEmbedUrl(e.target.value)}
+                        placeholder="Optionnel : lien vidéo direct (/uploads/videos/... ou URL)"
+                        className="w-full min-h-[38px] px-3 rounded-xl bg-[#181818] border border-white/[0.10] text-xs text-neutral-300 focus:outline-none focus:border-white"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className={`space-y-2 ${newMediaType === 'video' ? 'md:col-span-2' : 'md:col-span-2'}`}>
                   <label className="block text-[11px] text-neutral-400">
-                    {newMediaType === 'video' ? 'Miniature vidéo (photo) *' : 'Photo *'}
+                    {newMediaType === 'video' ? 'Miniature couverture (auto-générée ou personnalisée)' : 'Photo *'}
                   </label>
                   <input
                     ref={photoInputRef}
                     type="file"
-                    accept="image/png,image/jpeg,image/webp"
+                    accept="image/png,image/jpeg,image/webp,image/avif"
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       if (f) handleUploadMediaPhoto(f);
@@ -785,6 +907,13 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
                     className="hidden"
                   />
                   <div className="flex items-center gap-2">
+                    {newUrl && (
+                      <img
+                        src={newUrl}
+                        alt="Miniature"
+                        className="w-16 h-10 rounded-lg object-cover border border-white/15 shrink-0"
+                      />
+                    )}
                     <button
                       type="button"
                       disabled={isUploadingFile}
@@ -792,32 +921,17 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
                       className="min-h-[42px] px-4 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/[0.14] text-xs font-agrandir-semibold text-white inline-flex items-center gap-2 cursor-pointer shrink-0"
                     >
                       <Upload className="w-3.5 h-3.5" />
-                      <span>{isUploadingFile ? 'Envoi...' : 'Importer fichier'}</span>
+                      <span>{isUploadingFile ? 'Envoi...' : 'Importer image'}</span>
                     </button>
                     <input
-                      type="url"
+                      type="text"
                       value={newUrl}
                       onChange={(e) => setNewUrl(e.target.value)}
-                      placeholder="ou coller une URL https://..."
+                      placeholder="ou coller une URL /uploads/..."
                       className="flex-1 min-h-[42px] px-3 rounded-xl bg-[#141414] border border-white/[0.12] text-xs text-white focus:outline-none focus:border-white"
                     />
                   </div>
                 </div>
-
-                {newMediaType === 'video' && (
-                  <div className="space-y-2">
-                    <label className="block text-[11px] text-neutral-400">
-                      Lien vidéo YouTube (converti automatiquement)
-                    </label>
-                    <input
-                      type="text"
-                      value={newEmbedUrl}
-                      onChange={(e) => setNewEmbedUrl(e.target.value)}
-                      placeholder="https://youtube.com/watch?v=..."
-                      className="w-full min-h-[42px] px-3.5 rounded-xl bg-[#141414] border border-white/[0.12] text-xs text-white focus:outline-none focus:border-white"
-                    />
-                  </div>
-                )}
               </div>
 
               {/* Options de diffusion */}

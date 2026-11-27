@@ -332,7 +332,7 @@ export const HomeFeed: React.FC = () => {
           A. ÉVÉNEMENT PRINCIPAL — BANNIÈRE PLEIN CADRE SANS MARGE NI ARRONDIS
          ===================================================================== */}
       <HeroMedia
-        imageUrl={activeHero?.bannerImage || activeHero?.officialPoster}
+        imageUrl={activeHero?.artistPortrait || activeHero?.bannerImage || activeHero?.officialPoster}
         alt={activeHero?.artist || activeHero?.title || 'LUMARÉEL'}
         heightClass="min-h-[520px] sm:min-h-[560px] lg:min-h-[600px]"
         className="w-full rounded-none"
@@ -501,7 +501,7 @@ export const HomeFeed: React.FC = () => {
                   return (
                     <PosterCard
                       key={ev.id}
-                      imageUrl={ev.officialPoster || ev.bannerImage}
+                      imageUrl={ev.artistPortrait || ev.officialPoster || ev.bannerImage}
                       title={ev.artist || ev.title}
                       subtitle={`${formatDateLong(ev.date, language)}${ev.venue ? ` · ${ev.venue}` : ''}`}
                       badgeText={status.soldOut || status.limited ? status.label : undefined}

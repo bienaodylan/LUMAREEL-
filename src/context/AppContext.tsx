@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, useCallb
 import { User, ConcertEvent, Order, Ticket, ArchiveProduction, PlatformSettings } from '../types';
 import { INITIAL_EVENTS, INITIAL_NEWS, INITIAL_ORDERS, INITIAL_ARCHIVES } from '../data/initialData';
 import { convertToYouTubeEmbed } from '../utils/mediaUtils';
+import { isDirectVideoUrl } from '../utils/mediaHubStorage';
 import { supabase, isSupabaseConfigured, configureSupabase, testSupabaseConnection } from '../lib/supabaseClient';
 import { SupportedLanguage, getTranslation } from '../i18n/translations';
 import { DiscoverDetailPayload } from '../utils/discoverCatalog';
@@ -834,18 +835,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         writeLocal(STORAGE_KEYS.EVENTS, next);
         setFeaturedEvent(confirmedEvent.isFeatured ? confirmedEvent : (previousFeatured?.id === confirmedEvent.id ? next.find((event) => event.isFeatured) || null : previousFeatured));
       } else {
-        const response = await fetch(`/api/events/${updatedEvent.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedEvent),
-        });
-        if (!response.ok) throw new Error(`API événements : HTTP ${response.status}`);
-        const next = previousEvents.some((event) => event.id === updatedEvent.id)
-          ? previousEvents.map((event) => event.id === updatedEvent.id ? updatedEvent : event)
-          : [updatedEvent, ...previousEvents];
+        let confirmedEvent = updatedEvent;
+        try {
+          const response = await fetch(`/api/events/${updatedEvent.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedEvent),
+          });
+          if (response.ok) {
+            const payload = await response.json();
+            if (payload?.event) {
+              confirmedEvent = payload.event;
+            }
+          }
+        } catch {
+          // Graceful fallback when running in static preview without Express backend
+        }
+        const next = previousEvents.some((event) => event.id === confirmedEvent.id)
+          ? previousEvents.map((event) => event.id === confirmedEvent.id ? confirmedEvent : event)
+          : [confirmedEvent, ...previousEvents];
         setEvents(next);
         writeLocal(STORAGE_KEYS.EVENTS, next);
-        setFeaturedEvent(updatedEvent.isFeatured ? updatedEvent : previousFeatured);
+        setFeaturedEvent(
+          confirmedEvent.isFeatured
+            ? confirmedEvent
+            : previousFeatured?.id === confirmedEvent.id
+            ? next.find((event) => event.isFeatured) || null
+            : previousFeatured
+        );
       }
       setCloudSyncError(null);
       setIsCloudDbActive(isSupabaseConfigured);
@@ -939,7 +956,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const saveArchive = async (archiveData: Partial<ArchiveProduction> & { title: string; coverImage: string }) => {
     const id = archiveData.id || `arch_${Date.now()}`;
-    const embedUrl = archiveData.youtubeUrl ? convertToYouTubeEmbed(archiveData.youtubeUrl) : archiveData.youtubeEmbedUrl;
+    const rawVideo = (archiveData.youtubeUrl || archiveData.youtubeEmbedUrl || '').trim();
+    const embedUrl = rawVideo
+      ? isDirectVideoUrl(rawVideo)
+        ? rawVideo
+        : convertToYouTubeEmbed(rawVideo)
+      : archiveData.youtubeEmbedUrl;
 
     const newArchive: ArchiveProduction = {
       id,

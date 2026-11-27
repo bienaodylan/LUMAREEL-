@@ -15,6 +15,7 @@ import {
   shareMediaAsset,
 } from '../utils/communityStorage';
 import { formatDateLong } from '../utils/dateUtils';
+import { isDirectVideoUrl } from '../utils/mediaHubStorage';
 import { BottomSheet, Tabs } from './ui/LumareelKit';
 import {
   Camera,
@@ -639,13 +640,24 @@ export const ArchiveView: React.FC = () => {
             <div className="relative aspect-[16/9] w-full rounded-[18px] overflow-hidden bg-[#0E0E0E] border border-white/[0.10]">
               {isVideoPlaying ? (
                 <>
-                  <iframe
-                    src={embedSrc}
-                    title={activeEntry.title}
-                    className="w-full h-full border-0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+                  {isDirectVideoUrl(activeEntry.youtubeEmbedUrl) ? (
+                    <video
+                      src={activeEntry.youtubeEmbedUrl}
+                      poster={activeEntry.coverImage}
+                      controls
+                      autoPlay
+                      playsInline
+                      className="w-full h-full object-contain bg-black"
+                    />
+                  ) : (
+                    <iframe
+                      src={embedSrc}
+                      title={activeEntry.title}
+                      className="w-full h-full border-0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => setIsVideoPlaying(false)}

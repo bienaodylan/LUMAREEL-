@@ -90,12 +90,15 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
   const handleUploadVisual = async (field: 'officialPoster' | 'artistPortrait' | 'bannerImage', file: File) => {
     try {
       const fileUrl = await uploadAdminImage(file, `events/${event.id}`);
-      const updated = { ...formData, [field]: fileUrl };
+      const updated =
+        field === 'artistPortrait'
+          ? { ...formData, artistPortrait: fileUrl, officialPoster: fileUrl }
+          : { ...formData, [field]: fileUrl };
       setFormData(updated);
       setIsDirty(true);
       await onSaveEvent(updated);
       setIsDirty(false);
-      showToast('Image téléversée et sauvegardée dans Supabase.', 'success');
+      showToast('Portrait téléversé et mis à jour sur le site public.', 'success');
     } catch (err: any) {
       showToast(err.message || "Échec du téléversement de l'image.", 'error');
     }
@@ -175,7 +178,7 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
   const tabs: Array<{ id: EventSubTab; label: string }> = [
     { id: 'overview', label: 'Vue générale' },
     { id: 'details', label: 'Informations' },
-    { id: 'media', label: 'Médias & Affiches' },
+    { id: 'media', label: 'Portraits & Visuels' },
     { id: 'tickets', label: 'Billetterie & Tarifs' },
     { id: 'orders', label: `Commandes (${eventOrders.length})` },
     { id: 'analytics', label: 'Statistiques' },
@@ -239,9 +242,9 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
         {/* Concert Identity Title & Venue */}
         <div className="flex items-center gap-4 pt-2">
           <img
-            src={formData.officialPoster || formData.artistPortrait}
+            src={formData.artistPortrait || formData.officialPoster}
             alt={formData.artist}
-            className="w-16 h-16 rounded-2xl object-cover border border-white/15 shrink-0"
+            className="w-16 h-16 rounded-2xl object-cover object-top border border-white/15 shrink-0"
           />
           <div>
             <div className="text-[10px] font-agrandir-semibold tracking-[0.2em] text-white uppercase">
@@ -320,20 +323,20 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-4 bg-[#0c0c0c] border border-white/10 rounded-3xl p-5 space-y-3">
               <div className="text-[10px] font-agrandir-semibold tracking-wider text-[#888] uppercase">
-                AFFICHE DU CONCERT
+                PORTRAIT DE L'ARTISTE
               </div>
-              <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden bg-black border border-white/10">
+              <div className="aspect-[3/4] max-h-[260px] mx-auto w-full max-w-[200px] rounded-2xl overflow-hidden bg-black border border-white/10">
                 <img
-                  src={formData.officialPoster || formData.artistPortrait}
+                  src={formData.artistPortrait || formData.officialPoster}
                   alt={formData.title}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover object-top"
                 />
               </div>
               <button
                 onClick={() => setCurrentTab('media')}
                 className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-agrandir-semibold text-white transition-colors cursor-pointer"
               >
-                Gérer les affiches &amp; photos &rarr;
+                Modifier le portrait &amp; visuels &rarr;
               </button>
             </div>
 
@@ -518,86 +521,36 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
         </div>
       )}
 
-      {/* TAB 3: MÉDIAS (VISUELS, AFFICHES, PORTRAITS) */}
+      {/* TAB 3: PORTRAITS & VISUELS DE L'ARTISTE */}
       {currentTab === 'media' && (
         <div className="space-y-6">
           <div className="bg-[#0c0c0c] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-4">
             <div className="border-b border-white/10 pb-3">
-              <div className="text-[10px] font-agrandir-semibold tracking-wider text-white uppercase">
-                RÉGIE VISUELLE ET DIRECTION ARTISTIQUE
+              <div className="text-[10px] font-agrandir-semibold tracking-wider text-[#D4AF6A] uppercase">
+                PORTRAITS OFFICIELS · SYNCHRONISATION DIRECTE
               </div>
               <h2 className="font-agrandir-extrabold text-lg text-white uppercase tracking-tight">
-                GESTION DES AFFICHES ET VISUELS OFFICIELS
+                PORTRAIT DE L'ARTISTE &amp; VISUELS
               </h2>
               <p className="text-xs text-[#888] mt-0.5">
-                Chaque image modifiée ici se répercute instantanément sur la bannière Hero et la section « Prochains concerts » du site public.
+                Importez un portrait simple de l'artiste (sans texte d'affiche). Il s'adapte automatiquement aux cadres de l'accueil et de la billetterie.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-2">
-              
-              {/* 1. AFFICHE OFFICIELLE DU CONCERT */}
-              <div className="bg-[#121212] border border-white/10 rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-agrandir-bold text-sm text-white uppercase">AFFICHE OFFICIELLE</h3>
-                    <p className="text-[11px] text-[#888]">Affichée dans le carrousel « Prochains concerts » et sur les billets clients.</p>
-                  </div>
-                  <span className="text-[10px] text-white font-mono">16:9 / 4:3</span>
-                </div>
-
-                <div className="aspect-[16/9] w-full rounded-xl overflow-hidden bg-black border border-white/15 relative group">
-                  <img
-                    src={formData.officialPoster || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg'}
-                    alt="Affiche officielle"
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-[10px] text-[#888] uppercase tracking-wider font-agrandir-semibold">
-                    Importer un nouveau fichier affiche
-                  </label>
-                  <label className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-agrandir-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors">
-                    <Upload className="w-3.5 h-3.5 text-white" />
-                    <span>Choisir une image sur l'ordinateur</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleUploadVisual('officialPoster', file);
-                      }}
-                      className="hidden"
-                    />
-                  </label>
-
-                  <div className="pt-1">
-                    <span className="text-[9px] text-[#666] uppercase">Ou coller une URL d'image :</span>
-                    <input
-                      type="text"
-                      value={formData.officialPoster}
-                      onChange={(e) => handleChange('officialPoster', e.target.value)}
-                      placeholder="/assets/... ou https://..."
-                      className="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-[#555] font-mono mt-1 focus:outline-none focus:border-white"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 2. PORTRAIT DE L'ARTISTE */}
-              <div className="bg-[#121212] border border-white/10 rounded-2xl p-5 space-y-4">
+              {/* 1. PORTRAIT PRINCIPAL DE L'ARTISTE (Hero + Cartes Prochains Concerts) */}
+              <div className="bg-[#121212] border border-[#D4AF6A]/35 rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-agrandir-bold text-sm text-white uppercase">PORTRAIT DE L'ARTISTE</h3>
-                    <p className="text-[11px] text-[#888]">Affiché en plein écran sur la bannière Hero supérieure à l'accueil.</p>
+                    <p className="text-[11px] text-[#888]">Utilisé dans la bannière d'accueil et les cartes « Prochains concerts ».</p>
                   </div>
-                  <span className="text-[10px] text-white font-mono">Plein écran</span>
+                  <span className="text-[10px] text-[#D4AF6A] font-mono">Principal</span>
                 </div>
 
-                <div className="aspect-[16/9] w-full rounded-xl overflow-hidden bg-black border border-white/15 relative group">
+                <div className="aspect-[3/4] max-h-[340px] mx-auto w-full max-w-[260px] rounded-xl overflow-hidden bg-black border border-white/15 relative group">
                   <img
-                    src={formData.artistPortrait || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg'}
+                    src={formData.artistPortrait || formData.officialPoster || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg'}
                     alt="Portrait de l'artiste"
                     className="w-full h-full object-cover object-top"
                   />
@@ -605,11 +558,11 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
 
                 <div className="space-y-2">
                   <label className="block text-[10px] text-[#888] uppercase tracking-wider font-agrandir-semibold">
-                    Importer un nouveau portrait d'artiste
+                    Importer un portrait depuis l'ordinateur
                   </label>
-                  <label className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-agrandir-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors">
-                    <Upload className="w-3.5 h-3.5 text-white" />
-                    <span>Choisir une image sur l'ordinateur</span>
+                  <label className="w-full py-2.5 px-4 rounded-xl bg-[#D4AF6A] hover:bg-[#dfc07f] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors">
+                    <Upload className="w-3.5 h-3.5 text-black" />
+                    <span>Choisir un portrait sur l'ordinateur</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -626,14 +579,66 @@ export const AdminEventWorkspace: React.FC<AdminEventWorkspaceProps> = ({
                     <input
                       type="text"
                       value={formData.artistPortrait}
-                      onChange={(e) => handleChange('artistPortrait', e.target.value)}
-                      placeholder="/assets/... ou https://..."
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData((prev) => ({ ...prev, artistPortrait: val, officialPoster: val }));
+                        setIsDirty(true);
+                      }}
+                      placeholder="/uploads/... ou https://..."
                       className="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-[#555] font-mono mt-1 focus:outline-none focus:border-white"
                     />
                   </div>
                 </div>
               </div>
 
+              {/* 2. PHOTO LARGE / SCÈNE (OPTIONNEL) */}
+              <div className="bg-[#121212] border border-white/10 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-agrandir-bold text-sm text-white uppercase">VISUEL SECONDAIRE / SCÈNE</h3>
+                    <p className="text-[11px] text-[#888]">Optionnel : photo panoramique pour les aperçus larges.</p>
+                  </div>
+                  <span className="text-[10px] text-[#9A9A9A] font-mono">16:9</span>
+                </div>
+
+                <div className="aspect-[16/9] w-full rounded-xl overflow-hidden bg-black border border-white/15 relative group">
+                  <img
+                    src={formData.bannerImage || formData.artistPortrait || formData.officialPoster || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg'}
+                    alt="Visuel secondaire"
+                    className="w-full h-full object-cover object-top"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] text-[#888] uppercase tracking-wider font-agrandir-semibold">
+                    Importer un visuel secondaire
+                  </label>
+                  <label className="w-full py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-agrandir-semibold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors">
+                    <Upload className="w-3.5 h-3.5 text-white" />
+                    <span>Choisir une image sur l'ordinateur</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleUploadVisual('bannerImage', file);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <div className="pt-1">
+                    <span className="text-[9px] text-[#666] uppercase">Ou coller une URL d'image :</span>
+                    <input
+                      type="text"
+                      value={formData.bannerImage || ''}
+                      onChange={(e) => handleChange('bannerImage', e.target.value)}
+                      placeholder="/uploads/... ou https://..."
+                      className="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-[#555] font-mono mt-1 focus:outline-none focus:border-white"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

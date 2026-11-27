@@ -274,6 +274,7 @@ export function isSafeMediaUrl(url?: string): boolean {
   if (!trimmed) return false;
   if (trimmed.startsWith('/')) return true;
   if (trimmed.startsWith('data:image/')) return true;
+  if (trimmed.startsWith('data:video/')) return true;
   if (trimmed.startsWith('blob:')) return true;
   try {
     const parsed = new URL(trimmed);
@@ -281,6 +282,15 @@ export function isSafeMediaUrl(url?: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function isDirectVideoUrl(url?: string): boolean {
+  if (!url) return false;
+  const trimmed = url.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith('/uploads/videos/')) return true;
+  if (trimmed.startsWith('blob:') || trimmed.startsWith('data:video/')) return true;
+  return /\.(mp4|webm|ogg|mov|m4v)(\?.*)?$/i.test(trimmed);
 }
 
 /**
@@ -752,6 +762,29 @@ export function saveMediaHubItems(items: MediaHubItem[]): void {
   }
 }
 
+export async function syncMediaHubFromServer(): Promise<MediaHubItem[]> {
+  const localItems = loadMediaHubItems();
+  if (typeof window === 'undefined') return localItems;
+  try {
+    const res = await fetch('/api/media-hub');
+    if (!res.ok) return localItems;
+    const data = await res.json();
+    if (!data?.success || !Array.isArray(data.items) || data.items.length === 0) {
+      return localItems;
+    }
+    const serverItems = (data.items as MediaHubItem[]).map(normalizeMediaHubItem);
+    const serverIds = new Set(serverItems.map((i) => i.id));
+    const merged = [
+      ...serverItems,
+      ...localItems.filter((item) => !serverIds.has(item.id)),
+    ];
+    saveMediaHubItems(merged);
+    return merged;
+  } catch {
+    return localItems;
+  }
+}
+
 export function upsertMediaHubItem(item: MediaHubItem): MediaHubItem[] {
   const normalized = normalizeMediaHubItem(item);
   const existing = loadMediaHubItems();
@@ -761,6 +794,14 @@ export function upsertMediaHubItem(item: MediaHubItem): MediaHubItem[] {
       ? existing.map((x) => (x.id === normalized.id ? normalized : x))
       : [normalized, ...existing];
   saveMediaHubItems(next);
+
+  if (typeof window !== 'undefined') {
+    fetch('/api/media-hub', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(normalized),
+    }).catch(() => {});
+  }
   return next;
 }
 
@@ -768,6 +809,12 @@ export function deleteMediaHubItem(id: string): MediaHubItem[] {
   const existing = loadMediaHubItems();
   const next = existing.filter((x) => x.id !== id);
   saveMediaHubItems(next);
+
+  if (typeof window !== 'undefined') {
+    fetch(`/api/media-hub/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    }).catch(() => {});
+  }
   return next;
 }
 

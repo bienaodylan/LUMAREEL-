@@ -9,6 +9,7 @@ import {
   loadMediaHubItems,
   resolveTvCategory,
   subscribeMediaHub,
+  syncMediaHubFromServer,
 } from '../utils/mediaHubStorage';
 import {
   DEFAULT_TV_PASS_PLANS,
@@ -280,10 +281,11 @@ export const LumareelTvView: React.FC = () => {
   const [subscriberPhone, setSubscriberPhone] = useState('');
   const [isSubmittingSub, setIsSubmittingSub] = useState(false);
 
-  // Sync media hub & watch history live
+  // Sync media hub & watch history live (including server-uploaded videos)
   useEffect(() => {
     const syncMedia = () => setMediaItems(loadMediaHubItems());
     syncMedia();
+    void syncMediaHubFromServer().then((merged) => setMediaItems(merged));
     return subscribeMediaHub(syncMedia);
   }, []);
 

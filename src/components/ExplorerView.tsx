@@ -206,7 +206,7 @@ export const ExplorerView: React.FC = () => {
         badgeVariant: 'valid',
         title: `${isEn ? 'Flash Sale' : 'Vente Flash'} · ${firstLive.artist || firstLive.title}`,
         meta: `${formatDateLong(firstLive.date, language)}`,
-        image: firstLive.officialPoster || firstLive.bannerImage || COMMUNITY_MEDIA.vipMezzanineImg,
+        image: firstLive.artistPortrait || firstLive.officialPoster || firstLive.bannerImage || COMMUNITY_MEDIA.vipMezzanineImg,
       });
     }
 

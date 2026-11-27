@@ -5,9 +5,11 @@ import {
   TV_CATEGORY_META,
   evaluateTvMediaAccess,
   getPublishedMediaItems,
+  isDirectVideoUrl,
   loadMediaHubItems,
   resolveTvCategory,
   subscribeMediaHub,
+  syncMediaHubFromServer,
 } from '../utils/mediaHubStorage';
 import {
   EMPTY_TV_ENTITLEMENT,
@@ -31,8 +33,7 @@ import {
 } from 'lucide-react';
 
 function isDirectVideoFile(url?: string): boolean {
-  if (!url) return false;
-  return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url.trim());
+  return isDirectVideoUrl(url);
 }
 
 /**
@@ -63,6 +64,7 @@ export const MediaDetailView: React.FC = () => {
   const [isCheckingAccess, setIsCheckingAccess] = useState(true);
 
   useEffect(() => {
+    void syncMediaHubFromServer().then((merged) => setAllItems(merged));
     return subscribeMediaHub(() => setAllItems(loadMediaHubItems()));
   }, []);
 
@@ -414,10 +416,10 @@ export const MediaDetailView: React.FC = () => {
               </p>
               <div className="flex items-center gap-3.5">
                 <img
-                  src={linkedConcert.officialPoster || linkedConcert.bannerImage}
+                  src={linkedConcert.artistPortrait || linkedConcert.officialPoster || linkedConcert.bannerImage}
                   alt={linkedConcert.title}
                   referrerPolicy="no-referrer"
-                  className="w-16 h-20 rounded-xl object-cover shrink-0 bg-[#111]"
+                  className="w-16 h-20 rounded-xl object-cover object-top shrink-0 bg-[#111]"
                 />
                 <div className="min-w-0">
                   <p className="font-agrandir-extrabold text-base text-white leading-snug truncate">

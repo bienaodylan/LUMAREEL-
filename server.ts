@@ -98,13 +98,41 @@ async function startServer() {
     next();
   });
 
-  // Ensure public/uploads directory exists
+  // Ensure public/uploads and public/uploads/videos directories exist
   const uploadsDir = path.join(__dirname, 'public', 'uploads');
+  const videoUploadsDir = path.join(uploadsDir, 'videos');
+  const dataDir = path.join(__dirname, 'data');
+  const mediaHubFilePath = path.join(dataDir, 'media-hub.json');
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
+  if (!fs.existsSync(videoUploadsDir)) {
+    fs.mkdirSync(videoUploadsDir, { recursive: true });
+  }
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
 
-  // Multer Storage Configuration
+  const readServerMediaHub = (): any[] => {
+    try {
+      if (!fs.existsSync(mediaHubFilePath)) return [];
+      const raw = fs.readFileSync(mediaHubFilePath, 'utf8');
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const writeServerMediaHub = (items: any[]): void => {
+    try {
+      fs.writeFileSync(mediaHubFilePath, JSON.stringify(items, null, 2), 'utf8');
+    } catch (err) {
+      console.error('[MediaHub] Save error:', err);
+    }
+  };
+
+  // Multer Storage Configuration (Images)
   const storage = multer.diskStorage({
     destination: (_req, _file, cb) => {
       cb(null, uploadsDir);
@@ -121,16 +149,42 @@ async function startServer() {
     limits: { fileSize: 15 * 1024 * 1024 }, // 15MB limit
   });
 
+  // Multer Storage Configuration (Videos imported from computer)
+  const videoStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, videoUploadsDir);
+    },
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || '.mp4';
+      const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
+      cb(null, `${Date.now()}-${baseName}${ext.toLowerCase()}`);
+    },
+  });
+
+  const videoUpload = multer({
+    storage: videoStorage,
+    limits: { fileSize: 250 * 1024 * 1024 }, // 250MB limit
+    fileFilter: (_req, file, cb) => {
+      const isVideoMime = (file.mimetype || '').startsWith('video/');
+      const isVideoExt = /\.(mp4|webm|mov|m4v|ogg)$/i.test(file.originalname || '');
+      if (isVideoMime || isVideoExt) {
+        cb(null, true);
+      } else {
+        cb(new Error('Formats vidéo acceptés : MP4, WebM, MOV, M4V.'));
+      }
+    },
+  });
+
   const eventUploadFields = upload.fields([
     { name: 'officialPoster', maxCount: 1 },
     { name: 'artistPortrait', maxCount: 1 },
     { name: 'bannerImage', maxCount: 1 },
   ]);
 
-  // Serve static uploaded files
+  // Serve static uploaded files (images & videos with Range streaming support)
   app.use('/uploads', express.static(uploadsDir));
 
-  // Direct File Upload Route (Multer)
+  // Direct Image File Upload Route (Multer)
   app.post('/api/upload', upload.single('file'), (req: Request, res: Response) => {
     try {
       if (!req.file) {
@@ -138,6 +192,67 @@ async function startServer() {
       }
       const fileUrl = `/uploads/${req.file.filename}`;
       res.json({ success: true, url: fileUrl, filename: req.file.filename });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Direct Video File Upload Route (Multer — up to 250MB)
+  app.post('/api/upload/video', videoUpload.single('file'), (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: 'Aucun fichier vidéo reçu.' });
+      }
+      const fileUrl = `/uploads/videos/${req.file.filename}`;
+      res.json({
+        success: true,
+        url: fileUrl,
+        filename: req.file.filename,
+        size: req.file.size,
+        mimeType: req.file.mimetype,
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Persistent Media Hub / LUMARÉEL TV routes (connected Admin <-> Public)
+  app.get('/api/media-hub', (_req: Request, res: Response) => {
+    try {
+      const items = readServerMediaHub();
+      res.json({ success: true, items });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/media-hub', async (req: Request, res: Response) => {
+    if (!await requireMemberAdmin(req, res, ['super_admin'])) return;
+    try {
+      const item = req.body;
+      if (!item || !item.id || !item.title) {
+        return res.status(400).json({ success: false, error: 'Contenu média invalide.' });
+      }
+      const existing = readServerMediaHub();
+      const idx = existing.findIndex((x: any) => x.id === item.id);
+      const next =
+        idx >= 0
+          ? existing.map((x: any) => (x.id === item.id ? item : x))
+          : [item, ...existing];
+      writeServerMediaHub(next);
+      res.status(201).json({ success: true, item, items: next });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.delete('/api/media-hub/:id', async (req: Request, res: Response) => {
+    if (!await requireMemberAdmin(req, res, ['super_admin'])) return;
+    try {
+      const existing = readServerMediaHub();
+      const next = existing.filter((x: any) => x.id !== req.params.id);
+      writeServerMediaHub(next);
+      res.json({ success: true, items: next });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
@@ -260,14 +375,14 @@ async function startServer() {
     }
   });
 
-  // PUT /api/events/:id (update existing event with Multer upload support)
+  // PUT /api/events/:id (update or upsert event with Multer upload support)
   app.put('/api/events/:id', eventUploadFields, async (req: Request, res: Response) => {
     if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const payload = extractEventPayload(req);
-      const updated = db.updateEvent(req.params.id, payload);
+      let updated = db.updateEvent(req.params.id, payload);
       if (!updated) {
-        return res.status(404).json({ success: false, error: 'Concert introuvable.' });
+        updated = db.saveEvent({ ...payload, id: req.params.id });
       }
       res.json({ success: true, event: updated });
     } catch (error: any) {

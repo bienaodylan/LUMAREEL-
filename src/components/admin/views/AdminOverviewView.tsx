@@ -207,9 +207,9 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
                 {/* Visual & Artist Title */}
                 <div className="flex items-center gap-4 min-w-[260px]">
                   <img
-                    src={evt.officialPoster || evt.artistPortrait}
+                    src={evt.artistPortrait || evt.officialPoster}
                     alt={evt.artist}
-                    className="w-14 h-14 rounded-xl object-cover border border-white/10 shrink-0"
+                    className="w-14 h-14 rounded-xl object-cover object-top border border-white/10 shrink-0"
                   />
                   <div className="truncate">
                     <div className="font-agrandir-extrabold text-sm text-white uppercase group-hover:text-white transition-colors truncate">

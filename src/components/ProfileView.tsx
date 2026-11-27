@@ -18,6 +18,7 @@ import {
   History,
   SlidersHorizontal,
   ScanLine,
+  Maximize2,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import {
@@ -26,6 +27,12 @@ import {
   saveUserPointsState,
 } from '../utils/communityStorage';
 import { loadStoredMemberCard } from '../utils/memberCardStorage';
+import {
+  enterMobileFullscreen,
+  exitMobileFullscreen,
+  isMobileFullscreenEnabled,
+  setMobileFullscreenEnabled,
+} from '../utils/mobileFullscreen';
 import { BottomSheet } from './ui/LumareelKit';
 
 const NOTIF_STORAGE_KEY = 'lumareel_notifications_enabled_v1';
@@ -69,6 +76,10 @@ export const ProfileView: React.FC = () => {
       return true;
     }
   });
+
+  const [mobileFullscreenOn, setMobileFullscreenOn] = useState<boolean>(() =>
+    isMobileFullscreenEnabled()
+  );
 
   useEffect(() => {
     try {
@@ -157,6 +168,25 @@ export const ProfileView: React.FC = () => {
         : 'Alertes en pause.',
       'info'
     );
+  };
+
+  const handleToggleMobileFullscreen = async () => {
+    const next = !mobileFullscreenOn;
+    setMobileFullscreenOn(next);
+    setMobileFullscreenEnabled(next);
+    if (next) {
+      await enterMobileFullscreen();
+      showToast(
+        isEn ? 'Auto fullscreen enabled on mobile.' : 'Plein écran mobile activé.',
+        'success'
+      );
+    } else {
+      await exitMobileFullscreen();
+      showToast(
+        isEn ? 'Auto fullscreen disabled.' : 'Plein écran mobile désactivé.',
+        'info'
+      );
+    }
   };
 
   const assistanceItems: Array<{
@@ -444,6 +474,35 @@ export const ProfileView: React.FC = () => {
                 <span
                   className={`inline-block h-5 w-5 rounded-full bg-black transition-transform ${
                     notificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="min-h-[58px] py-3.5 flex items-center justify-between gap-4">
+              <span className="flex items-center gap-3.5 min-w-0">
+                <Maximize2 className="w-4 h-4 text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
+                <span className="min-w-0">
+                  <span className="block text-sm sm:text-[15px] font-agrandir-semibold text-white truncate">
+                    {isEn ? 'Mobile fullscreen' : 'Plein écran mobile'}
+                  </span>
+                  <span className="block text-[11px] text-[#9A9A9A] truncate">
+                    {isEn ? 'Auto immersion on launch' : 'Immersion automatique au lancement'}
+                  </span>
+                </span>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={mobileFullscreenOn}
+                onClick={handleToggleMobileFullscreen}
+                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                  mobileFullscreenOn ? 'bg-[#D4AF6A]' : 'bg-white/15'
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 rounded-full bg-black transition-transform ${
+                    mobileFullscreenOn ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
               </button>

@@ -167,7 +167,7 @@ export const HeroMedia: React.FC<HeroMediaProps> = ({
         src={imageUrl}
         alt={alt}
         referrerPolicy="no-referrer"
-        className="absolute inset-0 w-full h-full object-cover object-center transition-all duration-700"
+        className="absolute inset-0 w-full h-full object-cover object-[50%_20%] transition-all duration-700"
       />
     ) : (
       <div className="absolute inset-0 bg-gradient-to-b from-[#2A2216] via-[#0E0E0E] to-black" />
