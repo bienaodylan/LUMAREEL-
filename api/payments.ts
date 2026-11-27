@@ -19,5 +19,6 @@ import {
 } from './_lib/emailService';
 
 export default function handler(req: VercelRequest, res: VercelResponse) {
-  return res.status(200).json({ success: true, message: 'All payment module imports loaded.' });
+  applyCors(req, res, 'GET, POST, PUT, PATCH, OPTIONS');
+  return res.status(200).json({ success: true, message: 'CORS helper loaded.' });
 }
