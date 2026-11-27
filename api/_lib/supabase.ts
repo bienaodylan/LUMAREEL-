@@ -113,28 +113,32 @@ export async function requireRole(req: VercelRequest, roles: string[]) {
  * CORS strict (évite le wildcard '*' sur les routes authentifiées).
  */
 export function applyCors(req: VercelRequest, res: VercelResponse, methods = 'GET, POST, OPTIONS') {
-  const headers = req?.headers || {};
-  const origin = String(headers.origin || '').trim();
-  const host = String(headers['x-forwarded-host'] || headers.host || '').split(',')[0].trim();
-  const configuredPublic = (process.env.APP_PUBLIC_URL || process.env.APP_URL || '').trim().replace(/\/+$/, '');
+  try {
+    const headers = req?.headers || {};
+    const origin = String(headers.origin || '').trim();
+    const host = String(headers['x-forwarded-host'] || headers.host || '').split(',')[0].trim();
+    const configuredPublic = (process.env.APP_PUBLIC_URL || process.env.APP_URL || '').trim().replace(/\/+$/, '');
 
-  if (origin) {
-    let allowed = false;
-    try {
-      const originHost = new URL(origin).host;
-      if (host && originHost === host) allowed = true;
-      if (configuredPublic && origin.replace(/\/+$/, '') === configuredPublic) allowed = true;
-      if (/^localhost(:\d+)?$/i.test(originHost)) allowed = true;
-    } catch {
-      allowed = false;
+    if (origin) {
+      let allowed = false;
+      try {
+        const originHost = new URL(origin).host;
+        if (host && originHost === host) allowed = true;
+        if (configuredPublic && origin.replace(/\/+$/, '') === configuredPublic) allowed = true;
+        if (/^localhost(:\d+)?$/i.test(originHost)) allowed = true;
+      } catch {
+        allowed = false;
+      }
+      if (allowed) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
+      }
     }
-    if (allowed) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Vary', 'Origin');
-    }
+    res.setHeader('Access-Control-Allow-Methods', methods);
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Api-Key');
+  } catch (error) {
+    console.warn('[cors] Unable to set response headers:', error instanceof Error ? error.message : error);
   }
-  res.setHeader('Access-Control-Allow-Methods', methods);
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Api-Key');
 }
 
 export function methodNotAllowed(res: VercelResponse, allowed: string[]) {
