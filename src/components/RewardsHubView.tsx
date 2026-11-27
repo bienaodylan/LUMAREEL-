@@ -622,9 +622,9 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
       {activeTab === 'gifts' && (
         <div className="space-y-10">
           {/* Bloc Cadeau Surprise du jour */}
-          <section className="rounded-3xl bg-[#0e0e0e] border border-[#D4AF37]/30 p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+          <section className="rounded-3xl bg-[#0e0e0e] border border-[#FFFFFF]/30 p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
             <div className="lg:col-span-8 space-y-2.5">
-              <div className="flex items-center gap-2 text-xs text-[#D4AF37] font-agrandir-bold uppercase tracking-wider">
+              <div className="flex items-center gap-2 text-xs text-[#FFFFFF] font-agrandir-bold uppercase tracking-wider">
                 <Gift className="w-4 h-4" />
                 <span>{isEn ? 'Member Surprise Gift' : 'Gift Surprise Membre'}</span>
               </div>
@@ -654,7 +654,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                 className={`w-full lg:w-auto min-h-[48px] px-7 rounded-2xl font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 ${
                   alreadyClaimedToday
                     ? 'bg-white/10 text-neutral-400 cursor-not-allowed'
-                    : 'bg-[#D4AF37] hover:bg-[#e6c252] text-black cursor-pointer'
+                    : 'bg-[#FFFFFF] hover:bg-[#e6c252] text-black cursor-pointer'
                 }`}
               >
                 {alreadyClaimedToday ? <CheckCircle2 className="w-4 h-4" /> : <Gift className="w-4 h-4" />}
@@ -701,11 +701,11 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
                         <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-xs">
-                          <span className="font-agrandir-bold text-[#D4AF37]">
+                          <span className="font-agrandir-bold text-[#FFFFFF]">
                             {isEn ? offer.discountLabelEn : offer.discountLabelFr}
                           </span>
                           <span className="font-mono text-white tabular-nums flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-[#D4AF37]" />
+                            <Clock className="w-3.5 h-3.5 text-[#FFFFFF]" />
                             {formatTimer(secondsLeft)}
                           </span>
                         </div>
@@ -790,7 +790,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                       <div className="text-xs text-neutral-400 mt-0.5">{item.detail}</div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <code className="px-3 py-1.5 rounded-lg bg-black border border-[#D4AF37]/30 font-mono text-xs text-[#D4AF37]">
+                      <code className="px-3 py-1.5 rounded-lg bg-black border border-[#FFFFFF]/30 font-mono text-xs text-[#FFFFFF]">
                         {item.code}
                       </code>
                       <button
@@ -836,7 +836,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                     <span className="text-sm text-neutral-200 leading-snug">
                       {isEn ? row.activityEn : row.activityFr}
                     </span>
-                    <span className="font-mono text-sm font-bold text-[#D4AF37] tabular-nums whitespace-nowrap shrink-0">
+                    <span className="font-mono text-sm font-bold text-[#FFFFFF] tabular-nums whitespace-nowrap shrink-0">
                       +{row.points} pts
                     </span>
                   </div>
@@ -905,7 +905,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                 <h3 className="font-agrandir-extrabold text-base text-white">
                   {isEn ? 'Complete your profile' : 'Compléter votre profil'}
                 </h3>
-                <span className="font-mono text-xs font-bold text-[#D4AF37] tabular-nums">+50 pts</span>
+                <span className="font-mono text-xs font-bold text-[#FFFFFF] tabular-nums">+50 pts</span>
               </div>
               <form onSubmit={handleSaveProfileBonus} className="space-y-3.5">
                 <div>
@@ -917,7 +917,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                     value={profileCity}
                     onChange={(e) => setProfileCity(e.target.value)}
                     placeholder="Abidjan"
-                    className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                    className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
                   />
                 </div>
                 <div>
@@ -929,7 +929,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                     value={profilePhone}
                     onChange={(e) => setProfilePhone(e.target.value)}
                     placeholder="+225 07 00 00 00 00"
-                    className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                    className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
                   />
                 </div>
                 <div>
@@ -939,7 +939,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                   <select
                     value={profileGenre}
                     onChange={(e) => setProfileGenre(e.target.value)}
-                    className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                    className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
                   >
                     <option value="Afrobeats / Live">Afrobeats / Live</option>
                     <option value="Rap / Hip-Hop">Rap / Hip-Hop</option>
@@ -991,7 +991,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                       <span className="text-xs text-neutral-300 leading-snug">
                         {isEn ? entry.labelEn : entry.labelFr}
                       </span>
-                      <span className="font-mono text-xs font-bold text-[#D4AF37] tabular-nums shrink-0">
+                      <span className="font-mono text-xs font-bold text-[#FFFFFF] tabular-nums shrink-0">
                         +{entry.points}
                       </span>
                     </li>
@@ -1010,7 +1010,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                   <button
                     type="button"
                     onClick={() => setCurrentPage('member_card')}
-                    className="min-h-[40px] px-3.5 py-2 rounded-xl border border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black text-xs font-agrandir-bold transition-colors cursor-pointer shrink-0"
+                    className="min-h-[40px] px-3.5 py-2 rounded-xl border border-[#FFFFFF]/40 text-[#FFFFFF] hover:bg-[#FFFFFF] hover:text-black text-xs font-agrandir-bold transition-colors cursor-pointer shrink-0"
                   >
                     {isEn ? 'View card' : 'Découvrir'}
                   </button>
@@ -1037,7 +1037,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-xs text-neutral-400">
                       <span>{isEn ? item.tagEn : item.tagFr}</span>
-                      <span className="font-mono font-bold text-[#D4AF37] tabular-nums">
+                      <span className="font-mono font-bold text-[#FFFFFF] tabular-nums">
                         {item.pointsCost.toLocaleString('fr-FR')} pts
                       </span>
                     </div>
@@ -1093,7 +1093,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <code className="px-3 py-1.5 rounded-lg bg-black border border-[#D4AF37]/35 font-mono text-xs text-[#D4AF37]">
+                      <code className="px-3 py-1.5 rounded-lg bg-black border border-[#FFFFFF]/35 font-mono text-xs text-[#FFFFFF]">
                         {rw.voucherCode}
                       </code>
                       <button
@@ -1125,7 +1125,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
             {/* Carte code personnel */}
             <section className="rounded-3xl bg-[#0e0e0e] border border-white/10 p-6 sm:p-8 space-y-6">
               <div>
-                <p className="text-xs tracking-[0.18em] text-[#D4AF37] uppercase mb-2">
+                <p className="text-xs tracking-[0.18em] text-[#FFFFFF] uppercase mb-2">
                   {isEn ? 'Your personal referral code' : 'Votre code de parrainage personnel'}
                 </p>
                 <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white leading-tight text-balance">
@@ -1136,7 +1136,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
               </div>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                <div className="flex-1 min-h-[52px] px-5 rounded-2xl bg-black border border-[#D4AF37]/40 flex items-center justify-between">
+                <div className="flex-1 min-h-[52px] px-5 rounded-2xl bg-black border border-[#FFFFFF]/40 flex items-center justify-between">
                   <span className="font-mono text-lg sm:text-xl font-bold tracking-widest text-white">
                     {myReferralCode}
                   </span>
@@ -1186,7 +1186,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                   },
                 ].map((s) => (
                   <li key={s.step} className="space-y-1.5">
-                    <span className="font-mono text-xs text-[#D4AF37] font-bold">{s.step}</span>
+                    <span className="font-mono text-xs text-[#FFFFFF] font-bold">{s.step}</span>
                     <div className="font-agrandir-bold text-sm text-white">
                       {isEn ? s.titleEn : s.titleFr}
                     </div>
@@ -1215,7 +1215,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                   value={inviteFriendName}
                   onChange={(e) => setInviteFriendName(e.target.value)}
                   placeholder={isEn ? 'Friend name to track...' : 'Prénom de l’ami invité...'}
-                  className="flex-1 min-h-[44px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                  className="flex-1 min-h-[44px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
                 />
                 <button
                   type="submit"
@@ -1291,11 +1291,11 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                     value={friendCodeInput}
                     onChange={(e) => setFriendCodeInput(e.target.value.toUpperCase())}
                     placeholder="LMR-XXXXX"
-                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 font-mono text-sm uppercase tracking-wider text-white focus:border-[#D4AF37] focus:outline-none"
+                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 font-mono text-sm uppercase tracking-wider text-white focus:border-[#FFFFFF] focus:outline-none"
                   />
                   <button
                     type="submit"
-                    className="w-full min-h-[46px] rounded-xl bg-[#D4AF37] hover:bg-[#e5c252] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors cursor-pointer"
+                    className="w-full min-h-[46px] rounded-xl bg-[#FFFFFF] hover:bg-[#e5c252] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors cursor-pointer"
                   >
                     {isEn ? 'Activate 500 FCFA credit' : 'Activer mes 500 F CFA'}
                   </button>
@@ -1306,7 +1306,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
             {/* Rappel crédit disponible */}
             <section className="rounded-3xl bg-[#0e0e0e] border border-white/10 p-6 space-y-3">
               <div className="flex items-center gap-3">
-                <Ticket className="w-5 h-5 text-[#D4AF37]" />
+                <Ticket className="w-5 h-5 text-[#FFFFFF]" />
                 <div className="text-sm font-agrandir-bold text-white">
                   {isEn ? 'Your referral rewards' : 'Vos avantages parrainage'}
                 </div>
@@ -1315,7 +1315,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
                 <div>
                   <div className="text-xs text-neutral-400">{isEn ? 'Referrer' : 'Parrain'}</div>
                   <div className="text-base font-agrandir-extrabold text-white tabular-nums mt-0.5">500 F CFA</div>
-                  <div className="text-[11px] text-[#D4AF37] font-mono">+200 pts</div>
+                  <div className="text-[11px] text-[#FFFFFF] font-mono">+200 pts</div>
                 </div>
                 <div>
                   <div className="text-xs text-neutral-400">{isEn ? 'New member' : 'Nouvel invité'}</div>
