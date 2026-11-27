@@ -5,6 +5,34 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/api/tv/plans",
+      "destination": "/api/payments?route=tv-plans"
+    },
+    {
+      "source": "/api/tv/entitlement",
+      "destination": "/api/payments?route=tv-entitlement"
+    },
+    {
+      "source": "/api/admin/tv/overview",
+      "destination": "/api/payments?route=admin-tv&path=overview"
+    },
+    {
+      "source": "/api/admin/tv/plans",
+      "destination": "/api/payments?route=admin-tv&path=plans"
+    },
+    {
+      "source": "/api/admin/tv/card-eligibility",
+      "destination": "/api/payments?route=admin-tv&path=card-eligibility"
+    },
+    {
+      "source": "/api/admin/tv/subscriptions/grant",
+      "destination": "/api/payments?route=admin-tv&path=subscriptions/grant"
+    },
+    {
+      "source": "/api/admin/tv/subscriptions/:id/status",
+      "destination": "/api/payments?route=admin-tv&path=subscriptions/:id/status"
+    },
+    {
       "source": "/api/payments/paymetrust/initiate",
       "destination": "/api/payments?route=initiate"
     },
