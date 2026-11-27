@@ -41,17 +41,17 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
 
   const buttonClass =
     variant === 'compact'
-      ? 'inline-flex items-center gap-1.5 min-h-[36px] px-3 py-1.5 rounded-full bg-[#d4af37] text-black text-[11px] font-agrandir-extrabold tracking-wide cursor-pointer hover:bg-[#e5c352] transition-colors shrink-0'
+      ? 'inline-flex items-center gap-1.5 min-h-[36px] px-3 py-1.5 rounded-full bg-white text-black text-[11px] font-agrandir-extrabold tracking-wide cursor-pointer hover:bg-[#e5c352] transition-colors shrink-0'
       : variant === 'sidebar'
-      ? 'flex w-full h-11 items-center gap-3 rounded-xl border border-[#d4af37]/35 bg-[#d4af37]/10 px-3 text-sm font-agrandir-bold text-[#d4af37] hover:bg-[#d4af37]/20 transition-colors cursor-pointer'
-      : 'flex w-full min-h-[48px] items-center justify-between gap-3 rounded-2xl border border-[#d4af37]/40 bg-[#d4af37]/12 px-4 py-3 text-left text-white hover:bg-[#d4af37]/20 transition-colors cursor-pointer';
+      ? 'flex w-full h-11 items-center gap-3 rounded-xl border border-white/35 bg-white/10 px-3 text-sm font-agrandir-bold text-white hover:bg-white/20 transition-colors cursor-pointer'
+      : 'flex w-full min-h-[48px] items-center justify-between gap-3 rounded-2xl border border-white/40 bg-white/12 px-4 py-3 text-left text-white hover:bg-white/20 transition-colors cursor-pointer';
 
   return (
     <>
       <button type="button" onClick={handlePress} className={buttonClass}>
         <span className="flex items-center gap-2.5 min-w-0">
           {variant === 'drawer' ? (
-            <Smartphone className="w-4 h-4 text-[#d4af37] shrink-0" />
+            <Smartphone className="w-4 h-4 text-white shrink-0" />
           ) : (
             <Download className="w-3.5 h-3.5 shrink-0" />
           )}
@@ -69,7 +69,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
           </span>
         </span>
         {variant === 'drawer' && (
-          <Download className="w-4 h-4 text-[#d4af37] shrink-0" />
+          <Download className="w-4 h-4 text-white shrink-0" />
         )}
       </button>
 
@@ -86,7 +86,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
 
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#d4af37]">
+                <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-white">
                   LUMARÉEL APP
                 </div>
                 <h3 className="text-lg font-agrandir-extrabold text-white mt-0.5">
@@ -112,7 +112,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
             {isIOS ? (
               <ol className="space-y-3 text-xs text-neutral-200">
                 <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
-                  <Share className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
+                  <Share className="w-4 h-4 text-white shrink-0 mt-0.5" />
                   <span>
                     {isEn ? (
                       <>
@@ -126,7 +126,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
                   </span>
                 </li>
                 <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
-                  <PlusSquare className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
+                  <PlusSquare className="w-4 h-4 text-white shrink-0 mt-0.5" />
                   <span>
                     {isEn ? (
                       <>
@@ -143,7 +143,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
             ) : (
               <ol className="space-y-3 text-xs text-neutral-200">
                 <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
-                  <Smartphone className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
+                  <Smartphone className="w-4 h-4 text-white shrink-0 mt-0.5" />
                   <span>
                     {isEn ? (
                       <>
@@ -157,7 +157,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
                   </span>
                 </li>
                 <li className="flex items-start gap-3 p-3 rounded-2xl bg-white/5 border border-white/10">
-                  <PlusSquare className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
+                  <PlusSquare className="w-4 h-4 text-white shrink-0 mt-0.5" />
                   <span>
                     {isEn ? (
                       <>

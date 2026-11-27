@@ -71,11 +71,11 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
       
       {/* 1. Top Welcome Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 sm:p-8 rounded-3xl bg-[#0c0c0c] border border-white/10 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-[#d4af37]/5 rounded-full filter blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full filter blur-3xl pointer-events-none" />
         
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-agrandir-semibold tracking-[0.25em] text-[#d4af37] uppercase mb-1">
-            <Sparkles className="w-3 h-3 text-[#d4af37]" />
+          <div className="flex items-center gap-2 text-[10px] font-agrandir-semibold tracking-[0.25em] text-white uppercase mb-1">
+            <Sparkles className="w-3 h-3 text-white" />
             <span>CENTRE DE CONTRÔLE GÉNÉRAL</span>
           </div>
           <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight uppercase">
@@ -106,10 +106,10 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
             <span className="text-[10px] font-agrandir-semibold uppercase tracking-wider">
               CHIFFRE D'AFFAIRES RÉEL
             </span>
-            <DollarSign className="w-4 h-4 text-[#d4af37]" />
+            <DollarSign className="w-4 h-4 text-white" />
           </div>
           <div className="font-agrandir-extrabold text-2xl text-white tracking-tight">
-            {totalRevenue.toLocaleString()} <span className="text-xs text-[#d4af37]">FCFA</span>
+            {totalRevenue.toLocaleString()} <span className="text-xs text-white">FCFA</span>
           </div>
           <div className="text-[11px] text-[#777] font-agrandir-regular">
             Cumul des catégories vendues
@@ -138,14 +138,14 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
             <span className="text-[10px] font-agrandir-semibold uppercase tracking-wider">
               TAUX DE REMPLISSAGE
             </span>
-            <TrendingUp className="w-4 h-4 text-[#d4af37]" />
+            <TrendingUp className="w-4 h-4 text-white" />
           </div>
           <div className="font-agrandir-extrabold text-2xl text-white tracking-tight">
             {globalFillRate} %
           </div>
           <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mt-2">
             <div
-              className="bg-gradient-to-r from-[#d4af37] to-white h-full rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-white to-white h-full rounded-full transition-all duration-500"
               style={{ width: `${Math.min(100, globalFillRate)}%` }}
             />
           </div>
@@ -183,7 +183,7 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
 
           <button
             onClick={() => onNavigateSection('events')}
-            className="text-xs font-agrandir-semibold text-[#d4af37] hover:text-white transition-colors flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+            className="text-xs font-agrandir-semibold text-white hover:text-white transition-colors flex items-center gap-1 self-start sm:self-auto cursor-pointer"
           >
             <span>Voir tous les événements ({events.length})</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -207,12 +207,12 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
                 {/* Visual & Artist Title */}
                 <div className="flex items-center gap-4 min-w-[260px]">
                   <img
-                    src={evt.officialPoster || evt.artistPortrait}
+                    src={evt.artistPortrait || evt.officialPoster}
                     alt={evt.artist}
-                    className="w-14 h-14 rounded-xl object-cover border border-white/10 shrink-0"
+                    className="w-14 h-14 rounded-xl object-cover object-top border border-white/10 shrink-0"
                   />
                   <div className="truncate">
-                    <div className="font-agrandir-extrabold text-sm text-white uppercase group-hover:text-[#d4af37] transition-colors truncate">
+                    <div className="font-agrandir-extrabold text-sm text-white uppercase group-hover:text-white transition-colors truncate">
                       {evt.artist}
                     </div>
                     <div className="text-xs text-[#888] truncate">{evt.venue}</div>
@@ -228,7 +228,7 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
                   </div>
                   <div className="w-full bg-black/60 h-2 rounded-full overflow-hidden border border-white/5">
                     <div
-                      className="bg-gradient-to-r from-[#d4af37] to-white h-full rounded-full transition-all duration-500"
+                      className="bg-gradient-to-r from-white to-white h-full rounded-full transition-all duration-500"
                       style={{ width: `${Math.min(100, evtRate)}%` }}
                     />
                   </div>
@@ -237,7 +237,7 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
                 {/* Revenue & Share */}
                 <div className="text-right shrink-0 min-w-[140px]">
                   <div className="font-agrandir-extrabold text-base text-white">
-                    {evtRevenue.toLocaleString()} <span className="text-[10px] text-[#d4af37]">FCFA</span>
+                    {evtRevenue.toLocaleString()} <span className="text-[10px] text-white">FCFA</span>
                   </div>
                   <div className="text-[10px] text-[#777]">
                     {revenueShare}% du CA global
@@ -288,7 +288,7 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
                   </div>
                   <div className="flex items-center justify-between text-[11px] text-[#888]">
                     <span>Places restantes : <strong>{alt.remaining}</strong></span>
-                    <span className="text-[#d4af37] underline text-[10px]">Ajuster quota &rarr;</span>
+                    <span className="text-white underline text-[10px]">Ajuster quota &rarr;</span>
                   </div>
                 </div>
               ))}
@@ -304,7 +304,7 @@ export const AdminOverviewView: React.FC<AdminOverviewViewProps> = ({
             </div>
             <button
               onClick={() => onNavigateSection('orders')}
-              className="text-xs font-agrandir-semibold text-[#d4af37] hover:text-white transition-colors cursor-pointer"
+              className="text-xs font-agrandir-semibold text-white hover:text-white transition-colors cursor-pointer"
             >
               Voir tout &rarr;
             </button>

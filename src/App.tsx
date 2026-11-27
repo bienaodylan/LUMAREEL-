@@ -4,9 +4,7 @@ import { Navbar } from './components/Navbar';
 import { FloatingAppNavbar } from './components/FloatingAppNavbar';
 import { DesktopSidebar } from './components/DesktopSidebar';
 import { HomeFeed } from './components/HomeFeed';
-import { ConcertDetailView } from './components/ConcertDetailView';
 import { ArchiveView } from './components/ArchiveView';
-import { NewsView } from './components/NewsView';
 import { OrganizersView } from './components/OrganizersView';
 import { CustomerSpace } from './components/CustomerSpace';
 import { ProfileView } from './components/ProfileView';
@@ -19,7 +17,6 @@ import { LumareelMemberCardPage } from './components/LumareelMemberCardPage';
 import { CardVerificationView } from './components/CardVerificationView';
 import { RewardsHubView } from './components/RewardsHubView';
 import { BackstageView } from './components/BackstageView';
-import { FlashDropsView } from './components/FlashDropsView';
 import { ConcertMemoriesView } from './components/ConcertMemoriesView';
 import { SuggestionsView } from './components/SuggestionsView';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -161,9 +158,7 @@ const MainApp: React.FC = () => {
             {currentPage === 'splash' && <HomeFeed />}
             {currentPage === 'home' && <HomeFeed />}
             {currentPage === 'discover' && <HomeFeed />}
-            {currentPage === 'concert_detail' && <ConcertDetailView />}
             {currentPage === 'archive' && <ArchiveView />}
-            {currentPage === 'news' && <NewsView />}
             {currentPage === 'organizers' && <OrganizersView />}
             {currentPage === 'client_space' && <CustomerSpace />}
             {currentPage === 'profile' && <ProfileView />}
@@ -172,7 +167,7 @@ const MainApp: React.FC = () => {
             {currentPage === 'card_verify' && <CardVerificationView />}
             {currentPage === 'rewards' && <RewardsHubView />}
             {currentPage === 'backstage' && <BackstageView />}
-            {currentPage === 'flash_drops' && <FlashDropsView />}
+            {currentPage === 'flash_drops' && <RewardsHubView initialTab="gifts" />}
             {currentPage === 'memories' && <ConcertMemoriesView />}
             {currentPage === 'suggestions' && <SuggestionsView />}
             {currentPage === 'gate_scanner' && <ScannerView />}

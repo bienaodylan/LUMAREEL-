@@ -5,21 +5,19 @@ import { PWAInstallButton } from './PWAInstallButton';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
-  Award,
   Camera,
   ChevronRight,
   Clapperboard,
   CreditCard,
   Film,
+  Gift,
   Home,
-  Lightbulb,
   Menu,
-  Newspaper,
+  Mic2,
   Shield,
   Ticket,
   User,
   X,
-  Zap,
 } from 'lucide-react';
 
 /**
@@ -89,13 +87,11 @@ export const Navbar: React.FC = () => {
     member_card: 'LUMARÉEL Black Card',
     card: 'LUMARÉEL Black Card',
     profile: t('nav.account'),
-    news: t('nav.news'),
-    concert_detail: isEn ? 'Concert' : 'Concert',
-    rewards: isEn ? 'Points & Referrals' : 'Points & Parrainage',
-    backstage: 'BACKSTAGE',
-    flash_drops: isEn ? 'Flash & Surprises' : 'Ventes Flash',
-    memories: isEn ? 'Concert Memories' : 'Souvenirs',
-    suggestions: isEn ? 'Suggestion Box' : 'Suggestions',
+    rewards: isEn ? 'Gifts, Points & Referrals' : 'Gifts, Points & Parrainage',
+    flash_drops: isEn ? 'Gifts, Points & Referrals' : 'Gifts, Points & Parrainage',
+    backstage: 'Backstage',
+    memories: isEn ? 'My Moments' : 'Mes Moments',
+    suggestions: isEn ? 'Your Voice' : 'Ta Voix',
     organizers: isEn ? 'Organizers' : 'Organisateurs',
     card_verify: isEn ? 'Card Verification' : 'Vérification Carte',
   };
@@ -109,7 +105,6 @@ export const Navbar: React.FC = () => {
     { label: t('nav.home'), page: 'home', icon: Home },
     { label: t('nav.orders'), page: 'client_space', icon: Ticket },
     { label: 'LUMARÉEL Black Card', page: 'member_card', icon: CreditCard, isGold: true },
-    { label: isEn ? 'Points & Referrals' : 'Points & Parrainage', page: 'rewards', icon: Award },
     { label: t('nav.account'), page: 'profile', icon: User },
   ];
 
@@ -118,12 +113,11 @@ export const Navbar: React.FC = () => {
     page: PageView;
     icon: React.ComponentType<{ className?: string }>;
   }> = [
-    { label: 'BACKSTAGE', page: 'backstage', icon: Clapperboard },
-    { label: isEn ? 'Flash Sales & Surprises' : 'Ventes Flash & Surprises', page: 'flash_drops', icon: Zap },
-    { label: isEn ? 'Concert Memories' : 'Souvenirs de concerts', page: 'memories', icon: Camera },
-    { label: isEn ? 'Suggestion Box' : 'Boîte à suggestions', page: 'suggestions', icon: Lightbulb },
+    { label: isEn ? 'Gifts, Points & Referrals' : 'Gifts, Points & Parrainage', page: 'rewards', icon: Gift },
+    { label: 'Backstage', page: 'backstage', icon: Clapperboard },
+    { label: isEn ? 'My Moments' : 'Mes Moments', page: 'memories', icon: Camera },
+    { label: isEn ? 'Your Voice' : 'Ta Voix', page: 'suggestions', icon: Mic2 },
     { label: t('nav.archives'), page: 'archive', icon: Film },
-    { label: t('nav.news'), page: 'news', icon: Newspaper },
   ];
 
   const isSuperAdmin =
@@ -321,14 +315,16 @@ export const Navbar: React.FC = () => {
                   })}
                 </nav>
 
-                {/* Club & Expériences */}
+                {/* Club LUMARÉEL */}
                 <nav className="space-y-1 pt-2 border-t border-white/10">
                   <div className="px-3 pb-1 text-[10px] font-agrandir-bold tracking-[0.18em] text-neutral-500 uppercase">
-                    {isEn ? 'Club & Experiences' : 'Club & Expériences'}
+                    {isEn ? 'LUMARÉEL Club' : 'Club LUMARÉEL'}
                   </div>
                   {clubNavItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive = currentPage === item.page;
+                    const isActive =
+                      currentPage === item.page ||
+                      (item.page === 'rewards' && currentPage === 'flash_drops');
                     return (
                       <button
                         key={item.page}

@@ -122,15 +122,15 @@ export const SuggestionsView: React.FC = () => {
     <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
       <header className="mb-8 pb-6 border-b border-white/10">
         <p className="text-xs tracking-[0.2em] text-[#D4AF37] uppercase mb-2">
-          {isEn ? 'Community Voice · Lineup Wishes' : 'Voix du Public · Programmation'}
+          {isEn ? 'LUMARÉEL Club · Lineup & Ideas' : 'Club LUMARÉEL · Programmation & Idées'}
         </p>
         <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-tight text-white leading-[1.02] text-balance">
-          {isEn ? 'Suggestion Box' : 'Boîte à Suggestions'}
+          {isEn ? 'Your Voice' : 'Ta Voix'}
         </h1>
         <p className="text-sm sm:text-base text-neutral-400 mt-3 max-w-2xl leading-relaxed">
           {isEn
-            ? 'Tell us which artist you want on stage and where, or pitch your own event concept. Vote on the community’s top requests.'
-            : 'Proposez l’artiste que vous rêvez de voir sur scène et la ville ou salle idéale, ou soumettez vos idées d’événements en général.'}
+            ? 'Shape the next LUMARÉEL shows: request the artists and venues you want to see live, pitch event concepts, and vote on community favorites.'
+            : 'Façonnez les prochains spectacles LUMARÉEL : proposez les artistes et salles que vous rêvez de voir sur scène, soumettez vos idées d’événements et votez pour vos envies.'}
         </p>
       </header>
 

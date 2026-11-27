@@ -74,7 +74,7 @@ export const CardVerificationView: React.FC<{ token?: string; onBack?: () => voi
         
         {/* En-tête avec bouton croix discret */}
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
+          <div className="flex items-center gap-2 text-xs font-agrandir-bold tracking-widest text-white uppercase">
             <Lock className="w-3.5 h-3.5" />
             <span>{t('verify.officialRegistry')}</span>
           </div>
@@ -92,8 +92,8 @@ export const CardVerificationView: React.FC<{ token?: string; onBack?: () => voi
 
         {/* Header */}
         <div className="text-center space-y-3">
-          <div className="w-16 h-16 rounded-full bg-[#d4af37]/15 border border-[#d4af37]/30 flex items-center justify-center mx-auto text-[#d4af37] shadow-xl">
-            <ShieldCheck className="w-8 h-8 text-[#d4af37]" />
+          <div className="w-16 h-16 rounded-full bg-white/15 border border-white/30 flex items-center justify-center mx-auto text-white shadow-xl">
+            <ShieldCheck className="w-8 h-8 text-white" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-agrandir-extrabold uppercase text-white tracking-tight">
             {t('verify.title')}
@@ -115,7 +115,7 @@ export const CardVerificationView: React.FC<{ token?: string; onBack?: () => voi
           <button
             type="submit"
             disabled={loading || !tokenInput.trim()}
-            className="px-6 py-2.5 rounded-xl bg-[#d4af37] text-black font-agrandir-bold text-xs uppercase tracking-wider transition-all cursor-pointer hover:bg-[#e5c04b] disabled:opacity-50 shrink-0"
+            className="px-6 py-2.5 rounded-xl bg-white text-black font-agrandir-bold text-xs uppercase tracking-wider transition-all cursor-pointer hover:bg-[#e5c04b] disabled:opacity-50 shrink-0"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : t('verify.submit')}
           </button>
@@ -124,7 +124,7 @@ export const CardVerificationView: React.FC<{ token?: string; onBack?: () => voi
         {/* Résultat de la Vérification */}
         {loading && (
           <div className="p-12 text-center space-y-3 rounded-3xl bg-[#0c0c0c] border border-white/10">
-            <Loader2 className="w-8 h-8 animate-spin text-[#d4af37] mx-auto" />
+            <Loader2 className="w-8 h-8 animate-spin text-white mx-auto" />
             <p className="text-xs text-neutral-400">{t('verify.querying')}</p>
           </div>
         )}
@@ -179,7 +179,7 @@ export const CardVerificationView: React.FC<{ token?: string; onBack?: () => voi
                     <span className="text-[10px] text-neutral-400 uppercase tracking-widest block font-mono">
                       {t('verify.maskedNum')}
                     </span>
-                    <strong className="text-sm font-mono text-[#d4af37]">
+                    <strong className="text-sm font-mono text-white">
                       {result.maskedCardNumber || 'LMR-2026-****'}
                     </strong>
                   </div>
@@ -216,7 +216,7 @@ export const CardVerificationView: React.FC<{ token?: string; onBack?: () => voi
 
                 <div className="border-t border-white/10 pt-3 text-[11px] text-neutral-400 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <Sparkles className="w-3.5 h-3.5 text-white" />
                     <span>{t('verify.cryptoNote')}</span>
                   </span>
                   <span className="font-mono text-[10px] text-neutral-500">

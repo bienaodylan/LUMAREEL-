@@ -131,7 +131,7 @@ export const GateScanner: React.FC = () => {
           {/* Scanner Input / Barcode reader box with rounded-3xl */}
           <div className="bg-[#101010] border border-white/10 rounded-3xl p-6 sm:p-8 text-center shadow-xl">
             <div className="w-16 h-16 rounded-full bg-white/5 border border-white/15 flex items-center justify-center mx-auto mb-4">
-              <Smartphone className="w-8 h-8 text-[#d4af37]" />
+              <Smartphone className="w-8 h-8 text-white" />
             </div>
 
             <h3 className="font-agrandir-extrabold text-lg text-white mb-1 uppercase">

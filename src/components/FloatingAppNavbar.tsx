@@ -2,27 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useApp, PageView } from '../context/AppContext';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import {
-  Award,
   Camera,
   ChevronRight,
   Clapperboard,
   Compass,
   CreditCard,
   Film,
+  Gift,
   Home,
-  Lightbulb,
-  Newspaper,
+  Mic2,
   Ticket,
   User,
   X,
-  Zap,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 /**
- * Barre de navigation flottante mobile (App installée / standalone).
- * Chaque icône dispose de sa propre pilule avec une pilule active animée fluide
- * (ressort Framer Motion layoutId) et un tiroir Explorer flottant pour les rubriques Club.
+ * Barre de navigation flottante mobile style Instagram (App installée / standalone).
+ * Barre minimaliste avec icônes épurées et une unique pilule animée derrière l'élément actif seulement.
  */
 export const FloatingAppNavbar: React.FC = () => {
   const { currentPage, setCurrentPage, language, t } = useApp();
@@ -42,12 +39,11 @@ export const FloatingAppNavbar: React.FC = () => {
   const isEn = language === 'en';
   const clubPages: PageView[] = [
     'rewards',
-    'backstage',
     'flash_drops',
+    'backstage',
     'memories',
     'suggestions',
     'archive',
-    'news',
   ];
   const isClubActive = clubSheetOpen || clubPages.includes(currentPage);
 
@@ -55,31 +51,41 @@ export const FloatingAppNavbar: React.FC = () => {
     id: string;
     page?: PageView;
     label: string;
-    ariaLabel?: string;
+    ariaLabel: string;
     isActive: boolean;
-    icon: React.ComponentType<{ className?: string }>;
+    fillWhenActive?: boolean;
+    icon: React.ComponentType<{ className?: string; fill?: string }>;
     onClick: () => void;
   }> = [
     {
       id: 'home',
       page: 'home',
       label: isEn ? 'Home' : 'Accueil',
+      ariaLabel: isEn ? 'Home' : 'Accueil',
       isActive: !clubSheetOpen && (currentPage === 'home' || currentPage === 'discover'),
+      fillWhenActive: true,
       icon: Home,
-      onClick: () => setCurrentPage('home'),
+      onClick: () => {
+        setClubSheetOpen(false);
+        setCurrentPage('home');
+      },
     },
     {
       id: 'tickets',
       page: 'client_space',
       label: isEn ? 'Tickets' : 'Billets',
+      ariaLabel: isEn ? 'My Tickets' : 'Mes billets',
       isActive: !clubSheetOpen && currentPage === 'client_space',
       icon: Ticket,
-      onClick: () => setCurrentPage('client_space'),
+      onClick: () => {
+        setClubSheetOpen(false);
+        setCurrentPage('client_space');
+      },
     },
     {
       id: 'club',
-      label: isEn ? 'Explore' : 'Club',
-      ariaLabel: isEn ? 'Explore LUMARÉEL Club' : 'Explorer le Club LUMARÉEL',
+      label: isEn ? 'Club' : 'Club',
+      ariaLabel: isEn ? 'LUMARÉEL Club' : 'Club LUMARÉEL',
       isActive: isClubActive,
       icon: Compass,
       onClick: () => setClubSheetOpen((prev) => !prev),
@@ -91,15 +97,22 @@ export const FloatingAppNavbar: React.FC = () => {
       ariaLabel: 'LUMARÉEL Black Card',
       isActive: !clubSheetOpen && (currentPage === 'member_card' || currentPage === 'card'),
       icon: CreditCard,
-      onClick: () => setCurrentPage('member_card'),
+      onClick: () => {
+        setClubSheetOpen(false);
+        setCurrentPage('member_card');
+      },
     },
     {
       id: 'profile',
       page: 'profile',
       label: isEn ? 'Account' : 'Compte',
+      ariaLabel: isEn ? 'My Account' : 'Mon compte',
       isActive: !clubSheetOpen && currentPage === 'profile',
       icon: User,
-      onClick: () => setCurrentPage('profile'),
+      onClick: () => {
+        setClubSheetOpen(false);
+        setCurrentPage('profile');
+      },
     },
   ];
 
@@ -111,33 +124,27 @@ export const FloatingAppNavbar: React.FC = () => {
   }> = [
     {
       page: 'rewards',
-      label: isEn ? 'Points & Referrals' : 'Points & Parrainage',
-      sub: isEn ? 'Earn points · 500 FCFA per friend' : 'Points fidélité · 500 F CFA par ami',
-      icon: Award,
+      label: isEn ? 'Gifts, Points & Referrals' : 'Gifts, Points & Parrainage',
+      sub: isEn ? 'Surprises, flash sales, points & 500 FCFA/friend' : 'Surprises, ventes flash, points & 500 F CFA/ami',
+      icon: Gift,
     },
     {
       page: 'backstage',
-      label: 'BACKSTAGE',
-      sub: isEn ? 'Soundchecks & exclusive studio drops' : 'Balances & contenus exclusifs',
+      label: 'Backstage',
+      sub: isEn ? 'Soundchecks & exclusive studio drops' : 'Balances, studio & contenus exclusifs',
       icon: Clapperboard,
     },
     {
-      page: 'flash_drops',
-      label: isEn ? 'Flash Sales & Surprises' : 'Ventes Flash & Surprises',
-      sub: isEn ? 'Limited drops & daily member perks' : 'Offres éclair & récompenses surprises',
-      icon: Zap,
-    },
-    {
       page: 'memories',
-      label: isEn ? 'Concert Memories' : 'Souvenirs de concerts',
-      sub: isEn ? 'Official photos, recaps & fan sharing' : 'Photos officielles, récaps & partages',
+      label: isEn ? 'My Moments' : 'Mes Moments',
+      sub: isEn ? 'Official photos, recaps & shared memories' : 'Photos officielles, récaps & partages',
       icon: Camera,
     },
     {
       page: 'suggestions',
-      label: isEn ? 'Suggestion Box' : 'Boîte à suggestions',
+      label: isEn ? 'Your Voice' : 'Ta Voix',
       sub: isEn ? 'Request artists, venues & event ideas' : 'Proposez des artistes, lieux & idées',
-      icon: Lightbulb,
+      icon: Mic2,
     },
     {
       page: 'archive',
@@ -145,17 +152,11 @@ export const FloatingAppNavbar: React.FC = () => {
       sub: isEn ? 'Past LUMARÉEL stage productions' : 'Productions scéniques passées',
       icon: Film,
     },
-    {
-      page: 'news',
-      label: t('nav.news'),
-      sub: isEn ? 'Official releases & announcements' : 'Communiqués et annonces officielles',
-      icon: Newspaper,
-    },
   ];
 
   return (
     <>
-      {/* Feuille flottante Club & Expériences au-dessus de la barre */}
+      {/* Feuille flottante Club LUMARÉEL au-dessus de la barre */}
       <AnimatePresence>
         {clubSheetOpen && (
           <div className="fixed inset-0 z-40 md:hidden">
@@ -175,12 +176,12 @@ export const FloatingAppNavbar: React.FC = () => {
               transition={{ type: 'spring', stiffness: 400, damping: 32 }}
               className="fixed left-3 right-3 max-w-md mx-auto z-50 rounded-[28px] bg-[#101010]/96 backdrop-blur-2xl border border-white/15 p-4 shadow-[0_20px_60px_rgba(0,0,0,0.9)] max-h-[70vh] overflow-y-auto"
               style={{
-                bottom: 'calc(5.65rem + env(safe-area-inset-bottom, 0px))',
+                bottom: 'calc(5.2rem + env(safe-area-inset-bottom, 0px))',
               }}
             >
               <div className="flex items-center justify-between px-2 pb-3 mb-2 border-b border-white/10">
                 <span className="text-xs font-agrandir-extrabold uppercase tracking-[0.18em] text-[#D4AF37]">
-                  {isEn ? 'LUMARÉEL Club & Experiences' : 'Club & Expériences LUMARÉEL'}
+                  {isEn ? 'LUMARÉEL Club' : 'Club LUMARÉEL'}
                 </span>
                 <button
                   type="button"
@@ -195,7 +196,9 @@ export const FloatingAppNavbar: React.FC = () => {
               <div className="space-y-1">
                 {clubDestinations.map((dest) => {
                   const Icon = dest.icon;
-                  const active = currentPage === dest.page;
+                  const active =
+                    currentPage === dest.page ||
+                    (dest.page === 'rewards' && currentPage === 'flash_drops');
                   return (
                     <button
                       key={dest.page}
@@ -220,7 +223,11 @@ export const FloatingAppNavbar: React.FC = () => {
                         </div>
                         <div className="min-w-0">
                           <div className="text-xs font-agrandir-extrabold truncate">{dest.label}</div>
-                          <div className={`text-[11px] truncate ${active ? 'text-neutral-700' : 'text-neutral-400'}`}>
+                          <div
+                            className={`text-[11px] truncate ${
+                              active ? 'text-neutral-700' : 'text-neutral-400'
+                            }`}
+                          >
                             {dest.sub}
                           </div>
                         </div>
@@ -235,22 +242,22 @@ export const FloatingAppNavbar: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Barre de navigation flottante avec pilule derrière chaque icône & transition ressort */}
+      {/* Barre de navigation flottante façon Instagram : icônes épurées + pilule uniquement derrière l'élément actif */}
       <motion.nav
-        initial={{ y: 28, opacity: 0 }}
+        initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 32 }}
         aria-label={t('nav.mainNav')}
-        className="fixed left-3 right-3 z-50 md:hidden select-none pointer-events-none"
+        className="fixed left-4 right-4 z-50 md:hidden select-none pointer-events-none"
         style={{
-          bottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
+          bottom: 'max(0.85rem, env(safe-area-inset-bottom, 0px))',
         }}
       >
         <div
-          className="pointer-events-auto mx-auto max-w-md rounded-[28px] border border-white/15 bg-[#0e0e0e]/90 backdrop-blur-2xl px-2 py-2 shadow-[0_16px_44px_rgba(0,0,0,0.88)]"
-          style={{ WebkitBackdropFilter: 'blur(26px)' }}
+          className="pointer-events-auto mx-auto max-w-[360px] rounded-full border border-white/14 bg-[#121212]/88 backdrop-blur-2xl px-1.5 py-1.5 shadow-[0_14px_40px_rgba(0,0,0,0.88)]"
+          style={{ WebkitBackdropFilter: 'blur(28px)' }}
         >
-          <div className="grid grid-cols-5 items-center gap-1">
+          <div className="grid grid-cols-5 items-center">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -258,53 +265,40 @@ export const FloatingAppNavbar: React.FC = () => {
                   key={item.id}
                   type="button"
                   onClick={item.onClick}
-                  whileTap={{ scale: 0.92 }}
-                  aria-label={item.ariaLabel || item.label}
+                  whileTap={{ scale: 0.9 }}
+                  aria-label={item.ariaLabel}
                   aria-current={item.isActive ? 'page' : undefined}
-                  className="relative flex min-h-[50px] flex-col items-center justify-center gap-1 outline-none cursor-pointer"
+                  className="relative flex h-[44px] w-full items-center justify-center rounded-full outline-none cursor-pointer"
                 >
-                  {/* Pilule dédiée derrière chaque icône + pilule active animée fluide */}
-                  <div className="relative flex h-8 w-12 items-center justify-center rounded-full bg-white/[0.06] transition-colors">
-                    {item.isActive && (
-                      <motion.div
-                        layoutId="lumareelFloatingIconPill"
-                        transition={{
-                          type: 'spring',
-                          stiffness: 430,
-                          damping: 32,
-                          mass: 0.72,
-                        }}
-                        className="absolute inset-0 rounded-full bg-[#D4AF37] shadow-[0_4px_18px_rgba(212,175,55,0.45)]"
-                      />
-                    )}
+                  {item.isActive && (
                     <motion.div
-                      animate={{
-                        scale: item.isActive ? 1.08 : 1,
-                        y: item.isActive ? -0.5 : 0,
+                      layoutId="lumareelInstagramActivePill"
+                      transition={{
+                        type: 'spring',
+                        stiffness: 450,
+                        damping: 33,
+                        mass: 0.72,
                       }}
-                      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                      className="relative z-10 flex items-center justify-center"
-                    >
-                      <Icon
-                        aria-hidden="true"
-                        className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${
-                          item.isActive
-                            ? 'text-black stroke-[2.35]'
-                            : 'text-neutral-300 stroke-[1.8]'
-                        }`}
-                      />
-                    </motion.div>
-                  </div>
-
-                  <span
-                    className={`text-center text-[10px] leading-none tracking-tight max-w-full truncate transition-colors duration-200 ${
-                      item.isActive
-                        ? 'font-agrandir-extrabold text-[#D4AF37]'
-                        : 'font-agrandir-regular text-neutral-400'
-                    }`}
+                      className="absolute inset-0.5 rounded-full bg-white/[0.16] ring-1 ring-inset ring-white/15"
+                    />
+                  )}
+                  <motion.div
+                    animate={{
+                      scale: item.isActive ? 1.06 : 1,
+                    }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                    className="relative z-10 flex items-center justify-center"
                   >
-                    {item.label}
-                  </span>
+                    <Icon
+                      aria-hidden="true"
+                      fill={item.isActive && item.fillWhenActive ? 'currentColor' : 'none'}
+                      className={`h-[22px] w-[22px] shrink-0 transition-colors duration-200 ${
+                        item.isActive
+                          ? 'text-white stroke-[2.2]'
+                          : 'text-neutral-400 stroke-[1.75]'
+                      }`}
+                    />
+                  </motion.div>
                 </motion.button>
               );
             })}

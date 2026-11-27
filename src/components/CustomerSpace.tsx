@@ -1,46 +1,56 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { Ticket } from '../types';
 import QRCode from 'qrcode';
 import {
   Ticket as TicketIcon,
   Printer,
-  QrCode,
-  Calendar,
-  MapPin,
   CheckCircle2,
-  User,
   ShieldCheck,
-  ExternalLink,
   Download,
-  Sparkles,
   Send,
-  RefreshCw,
-  Ban,
-  Archive,
-  ArrowRight,
-  Clock,
   Check,
-  Share2,
-  AlertCircle,
-  ArrowLeft,
   X,
   Loader2,
-  Copy
+  Copy,
+  ChevronRight,
+  Clock,
+  Lock,
+  Receipt,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { formatDateLong } from '../utils/dateUtils';
+import { EmptyState } from './ui/EditorialPrimitives';
+import { BottomSheet, QRTicket, StatusBadge, Tabs } from './ui/LumareelKit';
 
-type ScrollableTab = 'tickets' | 'transfer' | 'past';
+type TicketsTab = 'upcoming' | 'history' | 'transferred';
 
+/**
+ * 04 — Billets & QR code
+ * Carte billet 0px, QR 236px blanc pur immédiat, perforation pointillés, grille 2×2, Transférer | Itinéraire.
+ */
 export const CustomerSpace: React.FC = () => {
-  const { currentUser, customerOrders, refreshCustomerOrders, events, setCurrentPage, goBack, showToast, language, t } = useApp();
-  const [activeTab, setActiveTab] = useState<ScrollableTab>('tickets');
+  const {
+    currentUser,
+    setIsAuthModalOpen,
+    customerOrders,
+    refreshCustomerOrders,
+    events,
+    setCurrentPage,
+    showToast,
+    language,
+    t,
+  } = useApp();
+
+  const isEn = language === 'en';
+  const [activeTab, setActiveTab] = useState<TicketsTab>('upcoming');
+  const [selectedActiveTicketId, setSelectedActiveTicketId] = useState<string | null>(null);
   const [selectedTicketForQr, setSelectedTicketForQr] = useState<Ticket | null>(null);
   const [qrCodeDataUrls, setQrCodeDataUrls] = useState<Record<string, string>>({});
   const [modalQrCodeUrl, setModalQrCodeUrl] = useState<string>('');
 
-  // États pour le transfert de billet réel (côté serveur)
+  // Transfert de billet réel côté serveur (BottomSheet dédié)
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [transferTicketId, setTransferTicketId] = useState<string>('');
   const [recipientName, setRecipientName] = useState<string>('');
   const [recipientContact, setRecipientContact] = useState<string>('');
@@ -53,50 +63,108 @@ export const CustomerSpace: React.FC = () => {
     refreshCustomerOrders();
   }, [currentUser]);
 
-  // Aggregate all tickets from completed orders
-  const allTickets: Ticket[] = [];
-  customerOrders.forEach((ord) => {
-    if (ord.paymentStatus === 'completed' && ord.tickets) {
-      allTickets.push(...ord.tickets);
+  const allTickets = useMemo<Ticket[]>(() => {
+    const list: Ticket[] = [];
+    customerOrders.forEach((ord) => {
+      if (ord.paymentStatus === 'completed' && ord.tickets) {
+        list.push(...ord.tickets);
+      }
+    });
+    return list;
+  }, [customerOrders]);
+
+  const activeTickets = useMemo(
+    () =>
+      allTickets
+        .filter((tkt) => tkt.status === 'valid')
+        .sort((a, b) => {
+          const da = new Date(a.eventDate || 0).getTime() || 0;
+          const db = new Date(b.eventDate || 0).getTime() || 0;
+          return da - db;
+        }),
+    [allTickets]
+  );
+
+  const usedTickets = useMemo(
+    () => allTickets.filter((tkt) => tkt.status === 'used'),
+    [allTickets]
+  );
+
+  const transferredTickets = useMemo(
+    () => allTickets.filter((tkt) => tkt.status === 'cancelled'),
+    [allTickets]
+  );
+
+  const featuredTicket = useMemo(() => {
+    if (activeTickets.length === 0) return null;
+    if (selectedActiveTicketId) {
+      const match = activeTickets.find((tkt) => tkt.id === selectedActiveTicketId);
+      if (match) return match;
     }
-  });
+    return activeTickets[0];
+  }, [activeTickets, selectedActiveTicketId]);
 
-  // Seuls les billets encore valides peuvent être transférés
-  const transferableTickets = allTickets.filter((tkt) => tkt.status === 'valid');
+  const otherActiveTickets = useMemo(() => {
+    if (!featuredTicket) return [];
+    return activeTickets.filter((tkt) => tkt.id !== featuredTicket.id);
+  }, [activeTickets, featuredTicket]);
 
-  // Generate QR codes for all valid/used tickets in real time
+  const groupedOtherTickets = useMemo(() => {
+    const groups: {
+      key: string;
+      primaryTicket: Ticket;
+      count: number;
+    }[] = [];
+    const map = new Map<string, number>();
+
+    otherActiveTickets.forEach((ticket) => {
+      const key = `${ticket.eventId || ticket.eventTitle}__${ticket.categoryName}`;
+      const idx = map.get(key);
+      if (idx === undefined) {
+        map.set(key, groups.length);
+        groups.push({ key, primaryTicket: ticket, count: 1 });
+      } else {
+        groups[idx].count += 1;
+      }
+    });
+    return groups;
+  }, [otherActiveTickets]);
+
   useEffect(() => {
     allTickets.forEach((ticket) => {
       if (ticket.status !== 'cancelled' && !qrCodeDataUrls[ticket.id]) {
         QRCode.toDataURL(ticket.token, {
           margin: 1,
           color: { dark: '#000000', light: '#ffffff' },
-          width: 320,
+          width: 440,
         }).then((url) => {
           setQrCodeDataUrls((prev) => ({ ...prev, [ticket.id]: url }));
         });
       }
     });
-  }, [allTickets.length]);
+  }, [allTickets]);
 
-  // Generate QR code for the modal when opened
   useEffect(() => {
     if (selectedTicketForQr) {
       QRCode.toDataURL(selectedTicketForQr.token, {
         margin: 1,
         color: { dark: '#000000', light: '#ffffff' },
-        width: 400,
+        width: 520,
       }).then(setModalQrCodeUrl);
     } else {
       setModalQrCodeUrl('');
     }
   }, [selectedTicketForQr]);
 
-  const handlePrintTicket = () => {
-    window.print();
+  const openTransferModal = (ticket?: Ticket) => {
+    setTransferSuccessToken(null);
+    setTransferredToSummary(null);
+    setRecipientName('');
+    setRecipientContact('');
+    setTransferTicketId(ticket?.id || activeTickets[0]?.id || '');
+    setIsTransferModalOpen(true);
   };
 
-  // Traitement réel du transfert de billet côté serveur (révocation ancien QR + émission nouveau billet destinataire)
   const handleConfirmTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanName = recipientName.trim();
@@ -110,7 +178,7 @@ export const CustomerSpace: React.FC = () => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(cleanEmail)) {
       showToast(
-        language === 'en'
+        isEn
           ? 'Please enter a valid email address for the recipient.'
           : 'Veuillez saisir une adresse e-mail valide pour le destinataire.',
         'error'
@@ -118,7 +186,7 @@ export const CustomerSpace: React.FC = () => {
       return;
     }
 
-    const selectedTicket = transferableTickets.find((tkt) => tkt.id === transferTicketId);
+    const selectedTicket = activeTickets.find((tkt) => tkt.id === transferTicketId);
     const senderEmail = (currentUser?.email || selectedTicket?.holderEmail || '').trim().toLowerCase();
 
     setIsTransferring(true);
@@ -145,8 +213,7 @@ export const CustomerSpace: React.FC = () => {
 
       if (!res.ok || !data?.success || !data?.transferToken) {
         throw new Error(
-          data?.error ||
-            (language === 'en' ? 'Unable to transfer this ticket.' : 'Impossible de transférer ce billet.')
+          data?.error || (isEn ? 'Unable to transfer this ticket.' : 'Impossible de transférer ce billet.')
         );
       }
 
@@ -162,8 +229,7 @@ export const CustomerSpace: React.FC = () => {
       await refreshCustomerOrders();
     } catch (err: any) {
       showToast(
-        err?.message ||
-          (language === 'en' ? 'Transfer failed. Please try again.' : 'Échec du transfert. Veuillez réessayer.'),
+        err?.message || (isEn ? 'Transfer failed. Please try again.' : 'Échec du transfert. Veuillez réessayer.'),
         'error'
       );
     } finally {
@@ -171,355 +237,424 @@ export const CustomerSpace: React.FC = () => {
     }
   };
 
-  const tabsConfig: Array<{ id: ScrollableTab; label: string; count?: number; highlight?: boolean }> = [
-    { id: 'tickets', label: t('orders.tabTickets'), count: allTickets.length },
-    { id: 'past', label: t('orders.tabPast') },
-    { id: 'transfer', label: t('orders.tabTransfer') },
-  ];
+  const resolvePoster = (ticket: Ticket) => {
+    const matchingEvent = events.find(
+      (e) => e.id === ticket.eventId || e.title.toLowerCase() === ticket.eventTitle.toLowerCase()
+    );
+    return (
+      matchingEvent?.officialPoster ||
+      matchingEvent?.bannerImage ||
+      '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg'
+    );
+  };
+
+  const buildDirectionsUrl = (venue?: string) => {
+    const query = encodeURIComponent(venue ? `${venue}, Abidjan` : 'Abidjan');
+    return `https://www.google.com/maps/search/?api=1&query=${query}`;
+  };
+
+  const formatShortDate = (dateStr?: string) => {
+    if (!dateStr) return isEn ? 'TBA' : 'À confirmer';
+    return formatDateLong(dateStr, language).toUpperCase();
+  };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-10 pb-20 select-none font-agrandir-regular overflow-x-clip">
-      {/* 1. Page Header — "MES COMMANDES" */}
-      <div className="mb-6 border-b border-white/10 pb-6">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <div className="text-[10px] font-agrandir-regular tracking-[0.25em] text-[#d4af37] uppercase mb-1">
-              {t('orders.accountKicker')}
-            </div>
-            <h1 className="font-agrandir-extrabold text-3xl sm:text-4xl text-white tracking-tight uppercase">
-              {t('orders.headerTitle')}
-            </h1>
-            <div className="text-xs font-agrandir-regular text-[#aaa] mt-1.5 flex items-center gap-3">
-              <span>{t('orders.account')} <strong className="text-white">{currentUser?.email || 'bienaodylan428@gmail.com'}</strong></span>
-              <span aria-hidden="true" className="text-white/30">·</span>
-              <span className="text-emerald-400 font-agrandir-semibold">{t('orders.verified')}</span>
-            </div>
-          </div>
-        </div>
+    <div
+      className="w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pb-20 text-white font-agrandir-regular overflow-x-clip"
+      style={{ paddingTop: 'max(1.75rem, env(safe-area-inset-top, 0px))' }}
+    >
+      {/* En-tête fidèle à la maquette 04 : Billets */}
+      <header className="mb-5">
+        <h1 className="text-[2.25rem] sm:text-5xl font-agrandir-extrabold tracking-tight leading-none text-white">
+          {isEn ? 'Tickets' : 'Billets'}
+        </h1>
+      </header>
 
-        {/* 2. BARRE DE MENU DÉFILANT HORIZONTAL — "SCROLLABLE TABS" (Tout bien aligné sur une seule ligne) */}
-        <div className="mt-6 pt-2">
-          <div className="w-full overflow-x-auto scrollbar-none flex items-center gap-2 pb-1 text-xs select-none">
-            <div className="inline-flex items-center gap-2 p-1.5 bg-[#121212]/90 backdrop-blur-md border border-white/10 rounded-full shrink-0 shadow-lg">
-              {tabsConfig.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`whitespace-nowrap px-4 sm:px-5 py-2 text-xs font-agrandir-semibold uppercase tracking-wider rounded-full transition-all cursor-pointer shrink-0 flex items-center gap-1.5 ${
-                      isActive
-                        ? 'bg-white text-black shadow-md font-agrandir-extrabold'
-                        : 'text-[#888] hover:text-white hover:bg-white/5'
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                    {tab.count !== undefined && (
-                      <span
-                        className={`text-[10px] px-1.5 py-0.2 rounded-full font-agrandir-extrabold ${
-                          isActive ? 'bg-black text-white' : 'bg-white/10 text-[#aaa]'
-                        }`}
-                      >
-                        {tab.count}
-                      </span>
+      <Tabs
+        className="mb-6"
+        activeId={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { id: 'upcoming', label: isEn ? 'Upcoming' : 'À venir' },
+          { id: 'history', label: isEn ? 'History' : 'Historique' },
+          { id: 'transferred', label: isEn ? 'Transferred' : 'Transférés' },
+        ]}
+      />
+
+      {!currentUser && allTickets.length === 0 ? (
+        <EmptyState
+          icon={<Lock className="w-5 h-5" strokeWidth={1.6} />}
+          title={isEn ? 'Sign in to access your tickets' : 'Connectez-vous pour voir vos billets'}
+          description={
+            isEn
+              ? 'Your official QR passes, payment receipts and ticket transfers are securely linked to your LUMARÉEL account.'
+              : 'Vos billets QR officiels, reçus de commande et transferts sécurisés sont associés à votre compte LUMARÉEL.'
+          }
+          actionLabel={isEn ? 'Sign in' : 'Se connecter'}
+          onAction={() => setIsAuthModalOpen(true)}
+        />
+      ) : (
+        <>
+          {/* ONGLET 1 : À VENIR — QR CODE IMMÉDIATEMENT VISIBLE */}
+          {activeTab === 'upcoming' && (
+            <div>
+              {activeTickets.length === 0 ? (
+                <EmptyState
+                  icon={<TicketIcon className="w-5 h-5" strokeWidth={1.6} />}
+                  title={t('orders.noTickets')}
+                  description={t('orders.noTicketsDesc')}
+                  actionLabel={t('orders.discoverConcerts')}
+                  onAction={() => setCurrentPage('home')}
+                />
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
+                  {/* Carte billet principale (0px) */}
+                  <div className="lg:col-span-6 xl:col-span-5">
+                    {featuredTicket && (
+                      <QRTicket
+                        eventTitle={featuredTicket.eventTitle}
+                        dateTimeLine={`${formatShortDate(featuredTicket.eventDate)} · ${featuredTicket.eventTime || '20:00'}`}
+                        status={featuredTicket.status}
+                        qrDataUrl={qrCodeDataUrls[featuredTicket.id]}
+                        serialNumber={featuredTicket.serialNumber}
+                        categoryName={featuredTicket.categoryName}
+                        holderName={featuredTicket.holderName}
+                        venue={featuredTicket.eventVenue || 'Abidjan'}
+                        doorsLine={`${featuredTicket.eventTime || '19:00'} · ${isEn ? 'Gate A' : 'Entrée A'}`}
+                        directionsUrl={buildDirectionsUrl(featuredTicket.eventVenue)}
+                        isEn={isEn}
+                        onOpenQrFullscreen={() => setSelectedTicketForQr(featuredTicket)}
+                        onTransfer={() => openTransferModal(featuredTicket)}
+                      />
                     )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* --- ONGLET 1: MES BILLETS --- */}
-      {activeTab === 'tickets' && (
-        <div>
-          {allTickets.length === 0 ? (
-            <div className="text-center py-20 border border-dashed border-white/15 rounded-3xl bg-[#0c0c0c] p-8 space-y-4">
-              <TicketIcon className="w-12 h-12 text-[#555] mx-auto" />
-              <div className="space-y-1">
-                <h3 className="font-agrandir-extrabold text-xl text-white uppercase">{t('orders.noTickets')}</h3>
-                <p className="text-xs font-agrandir-regular text-[#888] max-w-sm mx-auto">
-                  {t('orders.noTicketsDesc')}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCurrentPage('home')}
-                className="px-6 py-3 rounded-full bg-white text-black font-agrandir-semibold text-xs tracking-wider uppercase hover:bg-neutral-200 transition-colors cursor-pointer"
-              >
-                {t('orders.discoverConcerts')}
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col space-y-6">
-              {allTickets.map((ticket) => {
-                const matchingEvent = events.find(
-                  (e) => e.id === ticket.eventId || e.title.toLowerCase() === ticket.eventTitle.toLowerCase()
-                );
-                const officialPoster = matchingEvent?.officialPoster || matchingEvent?.bannerImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg';
-                const qrUrl = qrCodeDataUrls[ticket.id];
-
-                const isCancelled = ticket.status === 'cancelled';
-
-                return (
-                  <div
-                    key={ticket.id}
-                    className={`bg-[#0d0d0d] border rounded-2xl sm:rounded-3xl shadow-2xl transition-all group overflow-hidden flex flex-row items-stretch relative ${
-                      isCancelled
-                        ? 'border-white/10 opacity-60'
-                        : 'border-white/15 hover:border-white/30'
-                    }`}
-                  >
-                    {/* GAUCHE : AFFICHE OFFICIELLE VERTICALE DU CONCERT */}
-                    <div className="w-20 sm:w-44 md:w-56 shrink-0 relative bg-black border-r border-white/10 overflow-hidden">
-                      {officialPoster ? (
-                        <img
-                          src={officialPoster}
-                          alt={ticket.eventTitle}
-                          className="w-full h-full object-cover filter contrast-[1.05] brightness-95 group-hover:scale-105 transition-transform duration-700"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-neutral-900" />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
-                      
-                      <div className="absolute top-2 left-2 sm:top-3 sm:left-3">
-                        <span className="rounded-full bg-black/80 backdrop-blur-md text-[8px] sm:text-[9px] font-agrandir-semibold px-2 py-0.5 sm:px-2.5 sm:py-1 tracking-widest text-[#d4af37] border border-[#d4af37]/40 uppercase shadow-md flex items-center gap-1">
-                          <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#d4af37]" />
-                          <span className="hidden sm:inline">{t('orders.officialBadge')}</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* MILIEU : DONNÉES DU CONCERT */}
-                    <div className="flex-1 min-w-0 p-3.5 sm:p-5 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-white/10">
-                          <div className="text-[9px] sm:text-[10px] font-agrandir-semibold text-[#888] tracking-widest uppercase truncate">
-                            N° {ticket.serialNumber}
-                          </div>
-                          <span
-                            className={`text-[8px] sm:text-[9px] font-agrandir-semibold tracking-wider uppercase px-2 sm:px-2.5 py-0.5 rounded-full border shrink-0 ${
-                              ticket.status === 'valid'
-                                ? 'border-emerald-500/50 text-emerald-400 bg-emerald-950/30'
-                                : isCancelled
-                                ? 'border-rose-500/40 text-rose-300 bg-rose-950/30'
-                                : 'border-amber-500/50 text-amber-400 bg-amber-950/30'
-                            }`}
-                          >
-                            {ticket.status === 'valid'
-                              ? t('orders.validEntry')
-                              : isCancelled
-                              ? (language === 'en' ? 'Transferred' : 'Transféré')
-                              : t('orders.used')}
-                          </span>
-                        </div>
-
-                        <h2 className="font-agrandir-extrabold text-sm sm:text-xl md:text-2xl text-white tracking-tight uppercase leading-tight mb-2 truncate">
-                          {ticket.eventTitle}
-                        </h2>
-
-                        <div className="inline-block rounded-lg sm:rounded-xl border border-[#d4af37]/60 bg-[#d4af37]/10 px-2.5 sm:px-3.5 py-1 mb-2.5 shadow-sm">
-                          <div className="text-[7px] sm:text-[8px] font-agrandir-semibold text-[#d4af37] tracking-widest uppercase">
-                            {t('orders.reservedCategory')}
-                          </div>
-                          <div className="font-agrandir-extrabold text-xs sm:text-base text-white tracking-wide uppercase">
-                            {ticket.categoryName}
-                          </div>
-                        </div>
-
-                        <div className="space-y-1 sm:space-y-1.5 text-[10px] sm:text-xs font-agrandir-regular text-[#ccc]">
-                          <div className="flex items-center gap-1.5 sm:gap-2">
-                            <Calendar className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-                            <span className="font-agrandir-semibold text-white truncate"><strong className="font-agrandir-extrabold text-white">{formatDateLong(ticket.eventDate, language)}</strong> {t('orders.atTime')} <strong className="font-agrandir-extrabold text-white">{ticket.eventTime}</strong></span>
-                          </div>
-                          <div className="flex items-center gap-1.5 sm:gap-2">
-                            <MapPin className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-                            <span className="text-[#ddd] truncate"><strong className="font-agrandir-extrabold text-white">{ticket.eventVenue}</strong></span>
-                          </div>
-                          <div className="hidden sm:flex items-center gap-2">
-                            <User className="w-3.5 h-3.5 text-[#888] shrink-0" />
-                            <span className="truncate">{t('orders.holder')} <strong className="text-white font-agrandir-semibold">{ticket.holderName}</strong></span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="pt-2 sm:pt-3 border-t border-white/10 flex items-center justify-between gap-2 text-[8px] sm:text-[9px] text-[#777] font-agrandir-regular">
-                        <span className="truncate hidden sm:inline">LUMARÉEL CO. · CRYPTO CHECK</span>
-                        <span className="text-[#999] tracking-widest truncate">{t('orders.ref')} {ticket.orderRef}</span>
-                      </div>
-                    </div>
-
-                    {/* LIGNE DE DÉCOUPE POINTILLÉE VERTICALE */}
-                    <div className="w-[1px] bg-dashed border-r border-dashed border-white/20 relative shrink-0">
-                      <div className="w-3 h-3 rounded-full bg-[#0a0a0a] absolute -top-1.5 -left-1.5 border border-white/10" />
-                      <div className="w-3 h-3 rounded-full bg-[#0a0a0a] absolute -bottom-1.5 -left-1.5 border border-white/10" />
-                    </div>
-
-                    {/* DROITE : PETIT CARRÉ DÉTACHÉ POUR LE QR CODE */}
-                    <div className="w-24 sm:w-44 md:w-56 shrink-0 bg-[#121212] p-2 sm:p-4 flex flex-col items-center justify-between text-center shadow-inner">
-                      {isCancelled ? (
-                        <div className="w-full flex-1 flex flex-col items-center justify-center gap-2 text-center px-1">
-                          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-300">
-                            <Ban className="w-5 h-5" />
-                          </div>
-                          <div className="text-[10px] font-agrandir-bold uppercase tracking-wider text-rose-300">
-                            {language === 'en' ? 'QR Revoked' : 'QR révoqué'}
-                          </div>
-                          <p className="text-[9px] text-neutral-400 leading-snug">
-                            {language === 'en'
-                              ? 'Transferred to new holder'
-                              : 'Transféré au nouveau porteur'}
-                          </p>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="w-full flex flex-col items-center">
-                            <div className="text-[8px] sm:text-[9px] font-agrandir-semibold tracking-wider text-[#d4af37] uppercase mb-1 sm:mb-1.5 flex items-center justify-center gap-1">
-                              <QrCode className="w-3 h-3 shrink-0" />
-                              <span className="hidden sm:inline">PASS QR</span>
-                            </div>
-
-                            <div
-                              className="w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 mx-auto bg-white rounded-xl sm:rounded-2xl p-1.5 sm:p-2 flex items-center justify-center shadow-lg relative group cursor-pointer"
-                              onClick={() => setSelectedTicketForQr(ticket)}
-                            >
-                              {qrUrl && qrUrl.trim() !== '' ? (
-                                <img
-                                  src={qrUrl}
-                                  alt={`QR Code ${ticket.serialNumber}`}
-                                  className="w-full h-full object-contain"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-black text-[9px] sm:text-xs">
-                                  {t('orders.generating')}
-                                </div>
-                              )}
-                              <div className="absolute inset-0 bg-black/60 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[9px] font-agrandir-semibold">
-                                {t('orders.enlarge')}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="w-full space-y-1.5 mt-2 pt-2 border-t border-white/10">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedTicketForQr(ticket)}
-                              className="w-full py-1.5 sm:py-2 text-[8px] sm:text-[10px] font-agrandir-semibold tracking-wider uppercase bg-white text-black rounded-full hover:bg-neutral-200 transition-all flex items-center justify-center gap-1 sm:gap-1.5 cursor-pointer shadow-sm"
-                            >
-                              <QrCode className="w-3 h-3 shrink-0" />
-                              <span>{t('orders.viewQr')}</span>
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={handlePrintTicket}
-                              className="hidden sm:flex w-full py-1.5 text-[8px] sm:text-[9px] font-agrandir-regular tracking-wider uppercase border border-white/20 hover:border-white text-[#bbb] hover:text-white rounded-full transition-colors items-center justify-center gap-1.5 cursor-pointer bg-white/5"
-                            >
-                              <Printer className="w-3 h-3 shrink-0" />
-                              <span>{t('orders.printUpper')}</span>
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
                   </div>
-                );
-              })}
+
+                  {/* Autres billets actifs (liste compacte cliquable 0px) */}
+                  <div className="lg:col-span-6 xl:col-span-7 space-y-5">
+                    {groupedOtherTickets.length > 0 && (
+                      <section>
+                        <p className="hidden lg:block text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#9A9A9A] mb-3">
+                          {isEn ? 'Other upcoming passes' : 'Autres billets à venir'}
+                        </p>
+                        <div className="divide-y divide-white/[0.12] border-b border-white/[0.12]">
+                          {groupedOtherTickets.map(({ key, primaryTicket, count }) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => {
+                                setSelectedActiveTicketId(primaryTicket.id);
+                                if (typeof window !== 'undefined') {
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
+                              }}
+                              className="w-full py-4 flex items-center justify-between gap-3.5 text-left hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                            >
+                              <div className="flex items-center gap-3.5 min-w-0">
+                                <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] shrink-0">
+                                  <img
+                                    src={resolvePoster(primaryTicket)}
+                                    alt={primaryTicket.eventTitle}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                                <div className="min-w-0">
+                                  <h3 className="font-agrandir-extrabold text-base text-white uppercase tracking-tight truncate group-hover:text-[#D4AF6A] transition-colors">
+                                    {primaryTicket.eventTitle}
+                                  </h3>
+                                  <p className="mt-0.5 text-xs text-[#9A9A9A] truncate">
+                                    {formatDateLong(primaryTicket.eventDate, language)} ·{' '}
+                                    {primaryTicket.categoryName} · ×{count}
+                                  </p>
+                                </div>
+                              </div>
+                              <ChevronRight
+                                className="w-4 h-4 text-[#9A9A9A] group-hover:text-white shrink-0 transition-colors"
+                                strokeWidth={1.6}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+
+                    {/* Accès rapide impression / sauvegarde */}
+                    {featuredTicket && (
+                      <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                        {qrCodeDataUrls[featuredTicket.id] && (
+                          <a
+                            href={qrCodeDataUrls[featuredTicket.id]}
+                            download={`QR_${featuredTicket.serialNumber}.png`}
+                            className="min-h-[42px] px-4 rounded-full border border-white/[0.16] hover:border-white/40 bg-[#0E0E0E] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white inline-flex items-center gap-2 transition-colors lum-press"
+                          >
+                            <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
+                            <span>{t('orders.saveQr')}</span>
+                          </a>
+                        )}
+                        <a
+                          href={`/api/customer/tickets/${featuredTicket.token}/print`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="min-h-[42px] px-4 rounded-full border border-white/[0.16] hover:border-white/40 bg-[#0E0E0E] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white inline-flex items-center gap-2 transition-colors lum-press"
+                        >
+                          <Printer className="w-3.5 h-3.5" strokeWidth={1.6} />
+                          <span>{t('orders.print')}</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
 
-      {/* --- ONGLET: TRANSFÉRER --- */}
-      {activeTab === 'transfer' && (
-        <div className="max-w-2xl bg-[#0e0e0e] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-[#d4af37]">
-              <Send className="w-5 h-5" />
-              <h2 className="font-agrandir-extrabold text-lg uppercase tracking-tight text-white">
-                {t('orders.transferTitle')}
-              </h2>
+          {/* ONGLET 2 : HISTORIQUE */}
+          {activeTab === 'history' && (
+            <div className="space-y-8">
+              {usedTickets.length === 0 && customerOrders.length === 0 ? (
+                <EmptyState
+                  icon={<Clock className="w-5 h-5" strokeWidth={1.6} />}
+                  title={isEn ? 'No past tickets or orders' : 'Aucun historique pour le moment'}
+                  description={
+                    isEn
+                      ? 'Your scanned concert passes and purchase receipts will appear here automatically.'
+                      : 'Vos billets déjà utilisés aux concerts et vos reçus de commandes apparaîtront ici.'
+                  }
+                />
+              ) : (
+                <>
+                  {usedTickets.length > 0 && (
+                    <section className="space-y-3">
+                      <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
+                        {isEn ? 'Scanned passes' : 'Billets scannés'}
+                      </p>
+                      <div className="divide-y divide-white/[0.12] border-y border-white/[0.12]">
+                        {usedTickets.map((ticket) => (
+                          <div key={ticket.id} className="py-4 flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-3.5 min-w-0">
+                              <div className="w-12 h-12 rounded-[12px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] shrink-0">
+                                <img
+                                  src={resolvePoster(ticket)}
+                                  alt={ticket.eventTitle}
+                                  className="w-full h-full object-cover opacity-80"
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <h3 className="font-agrandir-extrabold text-sm sm:text-base text-white truncate">
+                                  {ticket.eventTitle}
+                                </h3>
+                                <p className="text-xs text-[#9A9A9A] truncate">
+                                  {formatDateLong(ticket.eventDate, language)} · {ticket.categoryName} · N° {ticket.serialNumber}
+                                </p>
+                              </div>
+                            </div>
+                            <StatusBadge variant="retained" label={isEn ? 'SCANNED' : 'UTILISÉ'} />
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {customerOrders.length > 0 && (
+                    <section className="space-y-3">
+                      <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#9A9A9A] flex items-center gap-2">
+                        <Receipt className="w-3.5 h-3.5" strokeWidth={1.6} />
+                        <span>{isEn ? 'Order receipts' : 'Historique des commandes'}</span>
+                      </p>
+                      <div className="divide-y divide-white/[0.12] border-y border-white/[0.12]">
+                        {customerOrders.map((order) => {
+                          const statusMeta =
+                            order.paymentStatus === 'completed'
+                              ? { label: isEn ? 'Paid' : 'Payée', cls: 'text-[#7FE0A6]' }
+                              : order.paymentStatus === 'failed'
+                              ? { label: isEn ? 'Failed' : 'Échouée', cls: 'text-[#F29AA4]' }
+                              : { label: isEn ? 'Pending' : 'En attente', cls: 'text-[#D4AF6A]' };
+
+                          return (
+                            <div
+                              key={order.id}
+                              className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+                            >
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-mono text-[#9A9A9A]">
+                                  {order.reference || order.orderReference} · {formatDateLong(order.createdAt, language)}
+                                </p>
+                                <h3 className="font-agrandir-extrabold text-sm sm:text-base text-white truncate mt-0.5">
+                                  {order.eventTitle}
+                                </h3>
+                                <p className="text-xs text-[#9A9A9A]">
+                                  {order.quantity} × {order.categoryName} · {order.paymentMethod || 'PayMeTrust'}
+                                </p>
+                              </div>
+                              <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1 shrink-0">
+                                <span className="font-agrandir-extrabold text-sm sm:text-base text-white tabular-nums">
+                                  {Number(order.totalAmount || 0).toLocaleString('fr-FR')} {order.currency || 'FCFA'}
+                                </span>
+                                <span className={`text-xs font-agrandir-semibold ${statusMeta.cls}`}>
+                                  {statusMeta.label}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  )}
+                </>
+              )}
             </div>
-            <p className="text-xs text-[#888] leading-relaxed">
-              {t('orders.transferDesc')}
-            </p>
-          </div>
+          )}
 
-          {transferSuccessToken ? (
-            <div className="p-5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-center space-y-3">
-              <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
-              <div className="space-y-1">
-                <div className="font-agrandir-extrabold text-white uppercase text-base">{t('orders.transferValidated')}</div>
-                <div className="text-xs text-neutral-300">
-                  {t('orders.transferSuccessDesc')} <strong>{transferredToSummary?.name || recipientName}</strong>{' '}
-                  ({transferredToSummary?.email || recipientContact}).
-                </div>
-                <p className="text-[11px] text-neutral-400">
-                  {language === 'en'
-                    ? 'Your old QR code has been permanently revoked and a brand-new ticket is now available in the recipient’s space.'
-                    : 'Votre ancien QR code a été révoqué définitivement et un nouveau billet valide est disponible dans l’espace du destinataire.'}
-                </p>
-                <div className="p-2.5 rounded-xl bg-black/60 border border-emerald-500/30 text-xs font-mono text-[#d4af37] mt-2 flex items-center justify-between gap-2">
-                  <span className="truncate">{t('orders.transferToken')} {transferSuccessToken}</span>
+          {/* ONGLET 3 : TRANSFÉRÉS */}
+          {activeTab === 'transferred' && (
+            <div className="space-y-6">
+              {activeTickets.length > 0 && (
+                <div className="rounded-[20px] border border-white/[0.12] bg-[#0E0E0E] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h2 className="font-agrandir-extrabold text-base text-white">
+                      {isEn ? 'Send a ticket to a friend' : 'Transférer un billet actif'}
+                    </h2>
+                    <p className="text-xs text-[#9A9A9A] leading-relaxed max-w-lg">
+                      {t('orders.transferDesc')}
+                    </p>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      navigator.clipboard?.writeText(transferSuccessToken);
-                      setCopiedTransferToken(true);
-                      setTimeout(() => setCopiedTransferToken(false), 2000);
-                    }}
-                    className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] inline-flex items-center gap-1 cursor-pointer shrink-0"
+                    onClick={() => openTransferModal(activeTickets[0])}
+                    className="min-h-[44px] px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs whitespace-nowrap inline-flex items-center justify-center gap-2 transition-colors cursor-pointer shrink-0 lum-press"
                   >
-                    {copiedTransferToken ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    <span>{copiedTransferToken ? (language === 'en' ? 'Copied' : 'Copié') : (language === 'en' ? 'Copy' : 'Copier')}</span>
+                    <Send className="w-3.5 h-3.5" strokeWidth={1.6} />
+                    <span>{isEn ? 'Transfer a ticket' : 'Transférer un billet'}</span>
                   </button>
                 </div>
+              )}
+
+              {transferredTickets.length === 0 ? (
+                <EmptyState
+                  icon={<Send className="w-5 h-5" strokeWidth={1.6} />}
+                  title={isEn ? 'No transferred tickets' : 'Aucun billet transféré'}
+                  description={
+                    isEn
+                      ? 'Tickets you transfer to friends are automatically revoked on your device and listed here.'
+                      : 'Les billets que vous transférez à vos proches sont révoqués de votre compte et archivés ici.'
+                  }
+                />
+              ) : (
+                <div className="divide-y divide-white/[0.12] border-y border-white/[0.12]">
+                  {transferredTickets.map((ticket) => (
+                    <div key={ticket.id} className="py-4 flex items-center justify-between gap-4 opacity-80">
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className="w-12 h-12 rounded-[12px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] shrink-0">
+                          <img
+                            src={resolvePoster(ticket)}
+                            alt={ticket.eventTitle}
+                            className="w-full h-full object-cover grayscale"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <h3 className="font-agrandir-extrabold text-sm sm:text-base text-white truncate">
+                            {ticket.eventTitle}
+                          </h3>
+                          <p className="text-xs text-[#9A9A9A] truncate">
+                            {ticket.categoryName} · N° {ticket.serialNumber}
+                          </p>
+                        </div>
+                      </div>
+                      <StatusBadge variant="neutral" label={isEn ? 'TRANSFERRED' : 'TRANSFÉRÉ'} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* BOTTOM SHEET TRANSFERT SÉCURISÉ RÉEL */}
+      <BottomSheet
+        open={isTransferModalOpen}
+        onClose={() => !isTransferring && setIsTransferModalOpen(false)}
+        kicker={isEn ? 'Secure Transfer' : 'Transfert sécurisé'}
+        title={t('orders.transferTitle')}
+      >
+        {transferSuccessToken ? (
+          <div className="rounded-[18px] border border-[#7FE0A6]/30 bg-[#0F2A1A]/40 p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-[#7FE0A6] shrink-0 mt-0.5" strokeWidth={1.6} />
+              <div className="space-y-1">
+                <h3 className="font-agrandir-extrabold text-base text-white">
+                  {t('orders.transferValidated')}
+                </h3>
+                <p className="text-xs text-[#C8C8C8]">
+                  {t('orders.transferSuccessDesc')}{' '}
+                  <strong>{transferredToSummary?.name || recipientName}</strong> (
+                  {transferredToSummary?.email || recipientContact}).
+                </p>
+                <p className="text-xs text-[#9A9A9A]">
+                  {isEn
+                    ? 'Your previous QR code has been revoked and a new valid ticket is ready in the recipient’s account.'
+                    : 'Votre ancien QR code est révoqué et un nouveau billet valide est disponible dans l’espace du destinataire.'}
+                </p>
               </div>
+            </div>
+
+            <div className="rounded-xl bg-black border border-white/[0.14] px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs font-mono text-white">
+              <span className="truncate">
+                {t('orders.transferToken')} {transferSuccessToken}
+              </span>
               <button
                 type="button"
                 onClick={() => {
-                  setTransferSuccessToken(null);
-                  setTransferredToSummary(null);
-                  setRecipientName('');
-                  setRecipientContact('');
+                  navigator.clipboard?.writeText(transferSuccessToken);
+                  setCopiedTransferToken(true);
+                  setTimeout(() => setCopiedTransferToken(false), 2000);
                 }}
-                className="px-4 py-2 rounded-full bg-white text-black font-agrandir-semibold text-xs uppercase cursor-pointer"
+                className="min-h-[32px] px-3 rounded-full bg-white text-black font-agrandir-extrabold text-[11px] inline-flex items-center gap-1 cursor-pointer shrink-0 lum-press"
               >
-                {t('orders.anotherTransfer')}
+                {copiedTransferToken ? (
+                  <Check className="w-3.5 h-3.5" strokeWidth={1.8} />
+                ) : (
+                  <Copy className="w-3.5 h-3.5" strokeWidth={1.6} />
+                )}
+                <span>{copiedTransferToken ? (isEn ? 'Copied' : 'Copié') : isEn ? 'Copy' : 'Copier'}</span>
               </button>
             </div>
-          ) : transferableTickets.length === 0 ? (
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-neutral-400">
-              {t('orders.noTransferTickets')}
-            </div>
-          ) : (
-            <form onSubmit={handleConfirmTransfer} className="space-y-4">
-              <div>
-                <label className="text-[10px] uppercase font-agrandir-semibold text-[#888] block mb-1">
-                  {t('orders.selectTicket')}
-                </label>
-                <select
-                  value={transferTicketId}
-                  onChange={(e) => setTransferTicketId(e.target.value)}
-                  className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-[#d4af37]"
-                  required
-                  disabled={isTransferring}
-                >
-                  <option value="">{t('orders.chooseValidTicket')}</option>
-                  {transferableTickets.map((tkt) => (
-                    <option key={tkt.id} value={tkt.id}>
-                      {tkt.eventTitle} — {tkt.categoryName} ({tkt.serialNumber})
-                    </option>
-                  ))}
-                </select>
-              </div>
 
+            <button
+              type="button"
+              onClick={() => {
+                setIsTransferModalOpen(false);
+                setActiveTab('transferred');
+              }}
+              className="w-full min-h-[46px] rounded-full bg-[#D4AF6A] text-black font-agrandir-extrabold text-xs hover:bg-[#DFBE7D] transition-colors cursor-pointer lum-press"
+            >
+              {isEn ? 'Done' : 'Terminer'}
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleConfirmTransfer} className="space-y-4">
+            <div>
+              <label className="block text-xs font-agrandir-semibold text-[#C8C8C8] mb-1.5">
+                {t('orders.selectTicket')}
+              </label>
+              <select
+                value={transferTicketId}
+                onChange={(e) => setTransferTicketId(e.target.value)}
+                className="w-full min-h-[44px] bg-[#141414] border border-white/[0.16] rounded-xl px-3.5 text-xs sm:text-sm text-white outline-none focus:border-[#D4AF6A]"
+                required
+                disabled={isTransferring}
+              >
+                <option value="">{t('orders.chooseValidTicket')}</option>
+                {activeTickets.map((tkt) => (
+                  <option key={tkt.id} value={tkt.id}>
+                    {tkt.eventTitle} — {tkt.categoryName} ({tkt.serialNumber})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="text-[10px] uppercase font-agrandir-semibold text-[#888] block mb-1">
+                <label className="block text-xs font-agrandir-semibold text-[#C8C8C8] mb-1.5">
                   {t('orders.recipientFullName')}
                 </label>
                 <input
@@ -527,171 +662,122 @@ export const CustomerSpace: React.FC = () => {
                   value={recipientName}
                   onChange={(e) => setRecipientName(e.target.value)}
                   placeholder={t('orders.recipientName')}
-                  className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-[#d4af37]"
+                  className="w-full min-h-[44px] bg-[#141414] border border-white/[0.16] rounded-xl px-3.5 text-xs sm:text-sm text-white outline-none focus:border-[#D4AF6A]"
                   required
                   disabled={isTransferring}
                 />
               </div>
-
               <div>
-                <label className="text-[10px] uppercase font-agrandir-semibold text-[#888] block mb-1">
-                  {language === 'en' ? 'Recipient email address' : 'Adresse e-mail du destinataire'}
+                <label className="block text-xs font-agrandir-semibold text-[#C8C8C8] mb-1.5">
+                  {isEn ? 'Recipient email' : 'E-mail du destinataire'}
                 </label>
                 <input
                   type="email"
                   value={recipientContact}
                   onChange={(e) => setRecipientContact(e.target.value)}
                   placeholder="ami@exemple.com"
-                  className="w-full bg-[#161616] border border-white/15 rounded-2xl px-4 py-3 text-xs text-white outline-none focus:border-[#d4af37]"
+                  className="w-full min-h-[44px] bg-[#141414] border border-white/[0.16] rounded-xl px-3.5 text-xs sm:text-sm text-white outline-none focus:border-[#D4AF6A]"
                   required
                   disabled={isTransferring}
                 />
               </div>
-
-              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-[11px] text-[#888] flex items-start gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
-                <span>
-                  {t('orders.transferNotice')}
-                </span>
-              </div>
-
-              <button
-                type="submit"
-                disabled={isTransferring}
-                className="w-full py-3.5 rounded-full bg-white text-black font-agrandir-extrabold text-xs uppercase tracking-wider hover:bg-neutral-200 transition-colors cursor-pointer shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {isTransferring ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{language === 'en' ? 'Transferring...' : 'Transfert en cours...'}</span>
-                  </>
-                ) : (
-                  <span>{t('orders.confirmTransfer')}</span>
-                )}
-              </button>
-            </form>
-          )}
-        </div>
-      )}
-
-
-
-      {/* --- ONGLET: MES ANCIENS BILLETS --- */}
-      {activeTab === 'past' && (
-        <div className="space-y-4">
-          <div className="p-6 rounded-3xl bg-[#0c0c0c] border border-white/10 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-5 rounded-2xl bg-[#141414] border border-white/10 space-y-2">
-                <div className="flex items-center justify-between text-xs text-neutral-400 font-agrandir-bold">
-                  <span className="text-white font-agrandir-extrabold text-sm uppercase">TRK {t('home.inConcert')}</span>
-                  <span className="text-neutral-500 font-mono">2025</span>
-                </div>
-                <div className="text-[11px] text-[#aaa]">
-                  <strong className="text-white font-agrandir-bold">Palais des Congrès du Sofitel Ivoire</strong> · {language === 'en' ? '360° sound & visual scenography' : 'Scénographie sonore et visuelle 360°'}
-                </div>
-                <div className="pt-2 flex items-center justify-between">
-                  <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/10 text-[9px] text-neutral-300 uppercase font-agrandir-semibold">
-                    {t('orders.archivedTicket')}
-                  </span>
-                  <span className="text-[10px] text-emerald-400 font-agrandir-semibold">{t('orders.completed')}</span>
-                </div>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-[#141414] border border-white/10 space-y-2">
-                <div className="flex items-center justify-between text-xs text-neutral-400 font-agrandir-bold">
-                  <span className="text-white font-agrandir-extrabold text-sm uppercase">DOPELYM {t('home.inConcert')}</span>
-                  <span className="text-neutral-500 font-mono">2025</span>
-                </div>
-                <div className="text-[11px] text-[#aaa]">
-                  <strong className="text-white font-agrandir-bold">Palais de la Culture d'Abidjan</strong> · Live Show Signature
-                </div>
-                <div className="pt-2 flex items-center justify-between">
-                  <span className="inline-block px-2.5 py-0.5 rounded-full bg-white/10 text-[9px] text-neutral-300 uppercase font-agrandir-semibold">
-                    {t('orders.archivedTicket')}
-                  </span>
-                  <span className="text-[10px] text-emerald-400 font-agrandir-semibold">{t('orders.completed')}</span>
-                </div>
-              </div>
             </div>
-          </div>
-        </div>
-      )}
 
-      {/* --- MODALE QR CODE PLEIN ÉCRAN POUR SCAN AUX PORTES --- */}
-      {selectedTicketForQr && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
-          <div className="relative w-full max-w-sm bg-white text-black p-8 rounded-3xl text-center shadow-2xl">
+            <div className="rounded-[14px] bg-[#141414] border border-white/[0.12] p-3.5 text-xs text-[#9A9A9A] flex items-start gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-[#D4AF6A] shrink-0 mt-0.5" strokeWidth={1.6} />
+              <span>{t('orders.transferNotice')}</span>
+            </div>
+
             <button
+              type="submit"
+              disabled={isTransferring}
+              className="w-full min-h-[48px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 lum-press"
+            >
+              {isTransferring ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{isEn ? 'Transferring…' : 'Transfert en cours…'}</span>
+                </>
+              ) : (
+                <span>{t('orders.confirmTransfer')}</span>
+              )}
+            </button>
+          </form>
+        )}
+      </BottomSheet>
+
+      {/* MODALE QR PLEIN ÉCRAN — ARRONDI 24PX HAUT CONTRASTE FOND BLANC PUR */}
+      {selectedTicketForQr && (
+        <div
+          className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/94 backdrop-blur-md"
+          onClick={() => setSelectedTicketForQr(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-sm rounded-[24px] bg-white text-black p-6 sm:p-7 text-center shadow-2xl"
+          >
+            <button
+              type="button"
               onClick={() => setSelectedTicketForQr(null)}
-              className="absolute top-4 right-4 p-2 text-black hover:bg-black/10 rounded-full transition-colors cursor-pointer"
+              className="absolute top-3.5 right-3.5 w-9 h-9 rounded-full text-neutral-600 hover:text-black hover:bg-black/5 flex items-center justify-center transition-colors cursor-pointer"
               aria-label={t('nav.close')}
             >
-              ✕
+              <X className="w-4 h-4" strokeWidth={1.6} />
             </button>
 
-            <div className="text-[10px] font-agrandir-regular tracking-widest text-[#666] uppercase mb-1">
+            <p className="text-[10px] font-agrandir-semibold tracking-[0.2em] text-neutral-500 uppercase mb-1">
               {t('orders.qrScanTitle')}
-            </div>
-            <h3 className="font-agrandir-extrabold text-xl mb-1 uppercase text-black">
+            </p>
+            <h3 className="font-agrandir-extrabold text-lg text-black leading-snug pr-6 pl-6">
               {selectedTicketForQr.eventTitle}
             </h3>
-            <div className="text-xs font-agrandir-semibold text-[#444] mb-4 uppercase">
+            <p className="mt-1 text-xs font-agrandir-semibold text-neutral-600 mb-5">
               {selectedTicketForQr.categoryName} · {selectedTicketForQr.holderName}
-            </div>
+            </p>
 
-            {modalQrCodeUrl && modalQrCodeUrl.trim() !== '' ? (
-              <div className="p-3 border-2 border-black rounded-2xl bg-white mb-4">
+            {modalQrCodeUrl ? (
+              <div className="p-3 rounded-[16px] border border-neutral-200 bg-white mb-4">
                 <img
                   src={modalQrCodeUrl}
-                  alt="QR Code"
-                  className="w-56 h-56 mx-auto object-contain"
+                  alt={`QR ${selectedTicketForQr.serialNumber}`}
+                  className="w-60 h-60 mx-auto object-contain"
                 />
               </div>
             ) : (
-              <div className="w-56 h-56 mx-auto bg-neutral-100 flex items-center justify-center text-xs mb-4">
+              <div className="w-60 h-60 mx-auto rounded-[16px] bg-neutral-100 flex items-center justify-center text-xs text-neutral-500 mb-4">
                 {t('orders.loading')}
               </div>
             )}
 
-            <div className="text-[11px] font-agrandir-semibold text-black tracking-widest uppercase mb-1">
-              {selectedTicketForQr.serialNumber}
-            </div>
-            <p className="text-[10px] text-[#666] leading-tight mb-4">
+            <p className="text-xs font-mono font-bold text-black tracking-wider mb-1">
+              N° {selectedTicketForQr.serialNumber}
+            </p>
+            <p className="text-[11px] text-neutral-500 leading-snug mb-5">
               {t('orders.accessNotice')}
             </p>
 
-            <div className="flex items-center justify-center gap-2 mb-3">
+            <div className="grid grid-cols-2 gap-2.5 mb-3">
               <a
                 href={modalQrCodeUrl}
                 download={`QR_${selectedTicketForQr.serialNumber}.png`}
-                className="flex-1 py-2.5 px-3 bg-neutral-100 hover:bg-neutral-200 text-black border border-neutral-300 font-agrandir-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="min-h-[42px] px-3 rounded-full border border-neutral-300 text-xs font-agrandir-extrabold text-black hover:bg-neutral-100 inline-flex items-center justify-center gap-1.5 transition-colors"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
                 <span>{t('orders.saveQr')}</span>
               </a>
-
               <a
                 href={`/api/customer/tickets/${selectedTicketForQr.token}/print`}
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 py-2.5 px-3 bg-neutral-100 hover:bg-neutral-200 text-black border border-neutral-300 font-agrandir-semibold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                className="min-h-[42px] px-3 rounded-full bg-black text-white text-xs font-agrandir-extrabold hover:bg-neutral-800 inline-flex items-center justify-center gap-1.5 transition-colors"
               >
-                <Printer className="w-3.5 h-3.5" />
+                <Printer className="w-3.5 h-3.5" strokeWidth={1.6} />
                 <span>{t('orders.print')}</span>
               </a>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setSelectedTicketForQr(null)}
-              className="w-full py-2.5 bg-black text-white font-agrandir-semibold text-xs rounded-full uppercase tracking-wider hover:bg-neutral-800 transition-colors cursor-pointer"
-            >
-              {t('orders.close')}
-            </button>
           </div>
         </div>
       )}
-
     </div>
   );
 };

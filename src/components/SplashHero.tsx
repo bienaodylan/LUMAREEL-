@@ -21,7 +21,7 @@ export const SplashHero: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const handleNavigate = (page: 'home' | 'discover' | 'archive' | 'organizers' | 'news' | 'client_space') => {
+  const handleNavigate = (page: 'home' | 'discover' | 'archive' | 'organizers' | 'client_space') => {
     enterPlatform();
     setCurrentPage(page);
   };

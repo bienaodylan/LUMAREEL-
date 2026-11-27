@@ -175,7 +175,7 @@ const AdminDashboardContent: React.FC = () => {
 
   const handlePreviewPublic = (slug: string) => {
     setSelectedEventSlug(slug);
-    setCurrentPage('concert_detail');
+    setCurrentPage('home');
   };
 
   return (

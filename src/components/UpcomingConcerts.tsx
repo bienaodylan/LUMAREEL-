@@ -5,15 +5,10 @@ import { ArrowRight, Ticket } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
 
 export const UpcomingConcerts: React.FC = () => {
-  const { events, setSelectedEventSlug, setCurrentPage, setCheckoutEvent, language, t } = useApp();
+  const { events, setCheckoutEvent, language, t } = useApp();
 
-  const handleSelectEvent = (event: ConcertEvent) => {
-    setSelectedEventSlug(event.slug);
-    setCurrentPage('concert_detail');
-  };
-
-  const handleBookNow = (event: ConcertEvent, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleBookNow = (event: ConcertEvent, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setCheckoutEvent(event);
   };
 
@@ -46,7 +41,7 @@ export const UpcomingConcerts: React.FC = () => {
           return (
             <article
               key={event.id}
-              onClick={() => handleSelectEvent(event)}
+              onClick={() => handleBookNow(event)}
               className="group cursor-pointer border border-white/10 bg-[#0c0c0c] hover:border-white/30 rounded-3xl transition-all duration-300 p-6 sm:p-8 relative shadow-xl hover:shadow-2xl"
             >
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
@@ -131,22 +126,14 @@ export const UpcomingConcerts: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Actions with rounded-full buttons */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-4 border-t border-white/10">
-                    <button
-                      onClick={() => handleSelectEvent(event)}
-                      className="px-6 py-3.5 text-xs font-agrandir-semibold tracking-widest uppercase bg-white text-black hover:bg-[#EAEAEA] rounded-full transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg"
-                    >
-                      <span>{t('upcoming.viewDetails')}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-
+                  {/* Action unique pleine largeur : Acheter tickets */}
+                  <div className="pt-4 border-t border-white/10">
                     <button
                       onClick={(e) => handleBookNow(event, e)}
-                      className="px-6 py-3.5 text-xs font-agrandir-semibold tracking-widest uppercase border border-white/20 text-[#CCC] hover:text-white hover:border-white rounded-full transition-colors flex items-center justify-center gap-2 cursor-pointer bg-white/5"
+                      className="w-full px-6 py-3.5 text-xs font-agrandir-extrabold tracking-widest uppercase bg-white text-black hover:bg-[#EAEAEA] rounded-full transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg"
                     >
-                      <Ticket className="w-3.5 h-3.5 text-[#d4af37]" />
-                      <span>{t('upcoming.bookTickets')}</span>
+                      <Ticket className="w-4 h-4" />
+                      <span>{t('home.buyTickets')}</span>
                     </button>
                   </div>
 

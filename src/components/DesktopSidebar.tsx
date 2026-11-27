@@ -2,20 +2,18 @@ import React from 'react';
 import { useApp, PageView } from '../context/AppContext';
 import {
   Archive,
-  Award,
   Camera,
   Clapperboard,
   CreditCard,
+  Gift,
   Home,
-  Lightbulb,
-  Newspaper,
+  Mic2,
   Settings,
   Ticket,
   UserRound,
-  Zap,
 } from 'lucide-react';
 
-/** Navigation desktop LUMARÉEL: sidebar fixe organisée en Principal + Club & Expériences. */
+/** Navigation desktop LUMARÉEL: sidebar fixe organisée en Principal + Club LUMARÉEL. */
 export const DesktopSidebar: React.FC = () => {
   const { currentPage, setCurrentPage, platformSettings, language, setLanguage, t } = useApp();
   if (['splash', 'gate_scanner', 'admin'].includes(currentPage)) return null;
@@ -30,7 +28,6 @@ export const DesktopSidebar: React.FC = () => {
     { label: t('nav.home'), page: 'home', icon: Home },
     { label: t('nav.orders'), page: 'client_space', icon: Ticket },
     { label: 'LUMARÉEL Black Card', page: 'member_card', icon: CreditCard },
-    { label: isEn ? 'Points & Referrals' : 'Points & Parrainage', page: 'rewards', icon: Award },
     { label: t('nav.account'), page: 'profile', icon: UserRound },
   ];
 
@@ -39,12 +36,11 @@ export const DesktopSidebar: React.FC = () => {
     page: PageView;
     icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>;
   }> = [
-    { label: 'BACKSTAGE', page: 'backstage', icon: Clapperboard },
-    { label: isEn ? 'Flash & Surprises' : 'Ventes Flash', page: 'flash_drops', icon: Zap },
-    { label: isEn ? 'Memories' : 'Souvenirs', page: 'memories', icon: Camera },
-    { label: isEn ? 'Suggestions' : 'Boîte à idées', page: 'suggestions', icon: Lightbulb },
+    { label: isEn ? 'Gifts, Points & Referrals' : 'Gifts, Points & Parrainage', page: 'rewards', icon: Gift },
+    { label: 'Backstage', page: 'backstage', icon: Clapperboard },
+    { label: isEn ? 'My Moments' : 'Mes Moments', page: 'memories', icon: Camera },
+    { label: isEn ? 'Your Voice' : 'Ta Voix', page: 'suggestions', icon: Mic2 },
     { label: t('nav.archives'), page: 'archive', icon: Archive },
-    { label: t('nav.news'), page: 'news', icon: Newspaper },
   ];
 
   const go = (page: PageView) => setCurrentPage(page);
@@ -94,11 +90,12 @@ export const DesktopSidebar: React.FC = () => {
 
       <div className="mt-5 pt-4 border-t border-white/10">
         <div className="px-3 pb-2 text-[10px] font-agrandir-bold uppercase tracking-[0.18em] text-neutral-500">
-          {isEn ? 'Club & Experiences' : 'Club & Expériences'}
+          {isEn ? 'LUMARÉEL Club' : 'Club LUMARÉEL'}
         </div>
         <nav className="flex flex-col gap-0.5">
           {clubItems.map(({ label, page, icon: Icon }) => {
-            const active = currentPage === page;
+            const active =
+              currentPage === page || (page === 'rewards' && currentPage === 'flash_drops');
             return (
               <button
                 key={page}

@@ -620,11 +620,11 @@ export const OrganizersView: React.FC = () => {
                     <button
                       onClick={() => {
                         setSelectedEventSlug(evt.slug);
-                        setCurrentPage('concert_detail');
+                        setCurrentPage('home');
                       }}
                       className="px-3 py-1.5 border border-[#333] hover:border-white text-[10px] font-agrandir-semibold uppercase tracking-wider text-white transition-colors"
                     >
-                      {isEn ? 'Preview' : 'Aperçu Fiche'}
+                      {isEn ? 'View on Home' : 'Voir à l’accueil'}
                     </button>
                   </div>
                 </div>

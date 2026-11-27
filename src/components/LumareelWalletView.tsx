@@ -10,11 +10,11 @@ import {
 } from '../types';
 import { DigitalMembershipCard } from './DigitalMembershipCard';
 import { loadStoredMemberCard, saveStoredMemberCard } from '../utils/memberCardStorage';
+import { SkeletonBlock, StatusBadge, Tabs } from './ui/LumareelKit';
 import {
   Ticket as TicketIcon,
   Mail,
   Activity,
-  ArrowLeft,
   X,
   RefreshCw,
   Calendar,
@@ -33,10 +33,8 @@ interface LumareelWalletViewProps {
 }
 
 /**
- * Vue Black Card installée — inspirée d'une carte bancaire moderne (Apple Wallet / Revolut).
- * - Aucun bloc lourd ni carte imbriquée.
- * - Aucune section ni bouton "Mes avantages".
- * - Onglets épurés uniquement pour Billets, Invitations et Activités.
+ * Vue Black Card active (« Ma carte ») — Écran 05.
+ * Matérialise le statut membre (numérique + carte physique NFC). Ce n'est pas une carte de paiement.
  */
 export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
   embedded = false,
@@ -69,13 +67,11 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
     }
   };
 
-  // Modales QR plein écran pour les billets & invitations
   const [selectedTicketForQr, setSelectedTicketForQr] = useState<Ticket | null>(null);
   const [ticketQrModalUrl, setTicketQrModalUrl] = useState<string>('');
   const [selectedInvitationForQr, setSelectedInvitationForQr] = useState<PrivateInvitation | null>(null);
   const [invitationQrModalUrl, setInvitationQrModalUrl] = useState<string>('');
 
-  // Bloquer le scroll arrière-plan lorsqu'une modale QR est ouverte
   useEffect(() => {
     const isModalOpen = Boolean(selectedTicketForQr || selectedInvitationForQr);
     if (!isModalOpen) return;
@@ -150,7 +146,7 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
         setWallet(null);
       }
     } catch (err) {
-      console.error('Error loading wallet overview:', err);
+      console.error('Error loading member card overview:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -213,18 +209,16 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
 
   if (loading && !initialCard) {
     return (
-      <div className="w-full max-w-xl mx-auto px-4 pt-16 pb-24 flex flex-col items-center justify-center min-h-[55vh] space-y-3">
-        <RefreshCw className="w-6 h-6 animate-spin text-[#d4af37]" />
-        <p className="text-xs text-neutral-400">
-          {isEn ? 'Loading your LUMARÉEL Black Card...' : 'Chargement de votre LUMARÉEL Black Card...'}
-        </p>
+      <div className="w-full max-w-2xl mx-auto px-5 pt-8 pb-20 space-y-6">
+        <SkeletonBlock className="aspect-[1.586/1] max-w-[420px] mx-auto" />
+        <SkeletonBlock className="h-32 w-full" />
+        <SkeletonBlock className="h-24 w-full" />
       </div>
     );
   }
 
   const activeCard = wallet?.card || initialCard || storedFallbackCard;
 
-  // Fusionner les billets issus du wallet et des commandes locales complétées (sans doublons)
   const localTickets: Ticket[] = [];
   (customerOrders || []).forEach((ord) => {
     if (ord.paymentStatus === 'completed' && Array.isArray(ord.tickets)) {
@@ -240,7 +234,7 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
 
   const invitations = wallet?.invitations || [];
   const activities =
-    (wallet?.activities && wallet.activities.length > 0)
+    wallet?.activities && wallet.activities.length > 0
       ? wallet.activities
       : activeCard
       ? [
@@ -248,41 +242,31 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
             id: `act_init_${activeCard.id}`,
             title: isEn ? 'LUMARÉEL Black Card Activated' : 'LUMARÉEL Black Card activée',
             description: isEn
-              ? `Member reference ${activeCard.cardNumber} active for 3 years.`
-              : `Référence membre ${activeCard.cardNumber} active pour 3 ans.`,
+              ? `Member reference ${activeCard.cardNumber} active.`
+              : `Référence membre ${activeCard.cardNumber} active.`,
             timestamp: activeCard.issuedAt || new Date().toISOString(),
           },
         ]
       : [];
 
-  const tabs: Array<{ id: WalletTab; label: string; count?: number }> = [
-    { id: 'tickets', label: isEn ? 'Tickets' : 'Billets', count: tickets.length },
-    { id: 'invitations', label: 'Invitations', count: invitations.length },
-    { id: 'activity', label: isEn ? 'Activity' : 'Activités' },
-  ];
-
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 pt-3 sm:pt-6 pb-12 select-none font-agrandir-regular text-white">
-      {/* Croix discrète uniquement si ouvert hors page membre */}
+    <div className="w-full max-w-3xl mx-auto px-5 sm:px-8 pt-3 sm:pt-6 pb-16 select-none font-agrandir-regular text-white">
       {!embedded && (
         <div className="flex items-center justify-end mb-4">
           <button
             type="button"
             onClick={goBack}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-neutral-300 hover:text-white hover:border-white transition-all cursor-pointer active:scale-95 shadow-md group"
+            className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/[0.16] flex items-center justify-center text-[#C8C8C8] hover:text-white transition-all cursor-pointer lum-press"
             aria-label={t('nav.close')}
-            title={t('nav.close')}
           >
-            <X className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform duration-200" />
+            <X className="w-4 h-4" strokeWidth={1.6} />
           </button>
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* CARTE NOIRE INSTALLÉE — PRÉSENTATION BANCAIRE OUVERTE (ZÉRO BLOCS)    */}
-      {/* ===================================================================== */}
+      {/* Carte numérique active */}
       {activeCard && (
-        <section className="pt-2 pb-9">
+        <section className="pt-2 pb-8">
           <DigitalMembershipCard
             card={activeCard}
             onRefresh={() => fetchWalletOverview(true)}
@@ -291,55 +275,22 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
         </section>
       )}
 
-      {/* ===================================================================== */}
-      {/* ONGLETS ÉPURÉS : BILLETS · INVITATIONS · ACTIVITÉS (SANS AVANTAGES)   */}
-      {/* ===================================================================== */}
-      <div className="border-b border-white/10">
-        <nav
-          aria-label={isEn ? 'LUMARÉEL Black Card sections' : 'Sections LUMARÉEL Black Card'}
-          className="grid grid-cols-3"
-        >
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative min-h-[46px] pb-3 pt-2 text-xs sm:text-sm font-agrandir-semibold transition-colors cursor-pointer flex items-center justify-center gap-1.5 whitespace-nowrap ${
-                  isActive ? 'text-white' : 'text-neutral-500 hover:text-neutral-300'
-                }`}
-              >
-                <span>{tab.label}</span>
-                {typeof tab.count === 'number' && tab.count > 0 && (
-                  <span
-                    className={`font-mono text-[11px] tabular-nums ${
-                      isActive ? 'text-[#d4af37]' : 'text-neutral-500'
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                )}
-                {isActive && (
-                  <motion.span
-                    layoutId="wallet-active-tab-line"
-                    className="absolute bottom-0 inset-x-3 h-[2px] rounded-full bg-white"
-                    transition={{ duration: 0.2 }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
+      {/* Onglets épurés : Billets · Invitations · Activités */}
+      <Tabs
+        activeId={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { id: 'tickets', label: `${isEn ? 'Tickets' : 'Billets'}${tickets.length ? ` (${tickets.length})` : ''}` },
+          { id: 'invitations', label: `Invitations${invitations.length ? ` (${invitations.length})` : ''}` },
+          { id: 'activity', label: isEn ? 'Activity' : 'Activités' },
+        ]}
+      />
 
-      {/* ===================================================================== */}
-      {/* 1. BILLETS — LISTE OUVERTE FAÇON RELEVÉ BANCAIRE                      */}
-      {/* ===================================================================== */}
+      {/* 1. Billets */}
       {activeTab === 'tickets' && (
-        <div className="pt-2 animate-fadeIn">
+        <div className="pt-2">
           {tickets.length > 0 ? (
-            <ul className="divide-y divide-white/10">
+            <ul className="divide-y divide-white/[0.12]">
               {tickets.map((tkt) => {
                 const isCancelled = tkt.status === 'cancelled';
                 const isUsed = tkt.status === 'used';
@@ -351,14 +302,14 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
                     }`}
                   >
                     <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                      <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center shrink-0">
-                        <TicketIcon className="w-4 h-4 text-[#d4af37]" />
+                      <div className="w-10 h-10 rounded-[12px] bg-[#0E0E0E] border border-white/[0.12] flex items-center justify-center shrink-0">
+                        <TicketIcon className="w-4 h-4 text-[#D4AF6A]" strokeWidth={1.6} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-agrandir-bold text-white truncate">
+                        <div className="text-sm font-agrandir-extrabold text-white truncate">
                           {tkt.eventTitle}
                         </div>
-                        <div className="text-xs text-neutral-400 truncate mt-0.5">
+                        <div className="text-xs text-[#9A9A9A] truncate mt-0.5">
                           {tkt.categoryName}
                           {tkt.eventDate ? ` · ${tkt.eventDate}` : ''}
                         </div>
@@ -366,20 +317,16 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
                     </div>
 
                     {isCancelled ? (
-                      <span className="text-xs text-rose-400 shrink-0">
-                        {isEn ? 'Transferred' : 'Transféré'}
-                      </span>
+                      <StatusBadge variant="neutral" label={isEn ? 'TRANSFERRED' : 'TRANSFÉRÉ'} />
                     ) : isUsed ? (
-                      <span className="text-xs text-neutral-500 shrink-0">
-                        {isEn ? 'Used' : 'Utilisé'}
-                      </span>
+                      <StatusBadge variant="retained" label={isEn ? 'USED' : 'UTILISÉ'} />
                     ) : (
                       <button
                         type="button"
                         onClick={() => setSelectedTicketForQr(tkt)}
-                        className="min-h-[40px] px-3.5 rounded-full bg-white/10 hover:bg-white hover:text-black text-white text-xs font-agrandir-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                        className="min-h-[40px] px-4 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 lum-press"
                       >
-                        <QrCode className="w-3.5 h-3.5" />
+                        <QrCode className="w-3.5 h-3.5" strokeWidth={1.6} />
                         <span>QR</span>
                       </button>
                     )}
@@ -388,14 +335,14 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
               })}
             </ul>
           ) : (
-            <div className="py-14 text-center space-y-4">
-              <p className="text-sm text-neutral-400">
+            <div className="py-12 text-center space-y-4">
+              <p className="text-sm text-[#9A9A9A]">
                 {isEn ? 'No concert tickets yet.' : 'Aucun billet de concert pour le moment.'}
               </p>
               <button
                 type="button"
                 onClick={() => setCurrentPage('home')}
-                className="min-h-[44px] px-6 py-2.5 rounded-full bg-white text-black font-agrandir-bold text-xs uppercase tracking-wider hover:bg-neutral-200 transition-colors cursor-pointer"
+                className="min-h-[44px] px-6 rounded-full bg-[#D4AF6A] text-black font-agrandir-extrabold text-xs hover:bg-[#DFBE7D] transition-colors cursor-pointer lum-press"
               >
                 {isEn ? 'Explore concerts' : 'Voir les concerts'}
               </button>
@@ -404,52 +351,57 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* 2. INVITATIONS — LISTE OUVERTE SANS BLOCS                             */}
-      {/* ===================================================================== */}
+      {/* 2. Invitations */}
       {activeTab === 'invitations' && (
-        <div className="pt-2 animate-fadeIn">
+        <div className="pt-2">
           {invitations.length > 0 ? (
-            <ul className="divide-y divide-white/10">
+            <ul className="divide-y divide-white/[0.12]">
               {invitations.map((inv) => (
                 <li key={inv.id} className="py-4 space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                      <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center shrink-0 mt-0.5">
-                        <Mail className="w-4 h-4 text-[#d4af37]" />
+                      <div className="w-10 h-10 rounded-[12px] bg-[#0E0E0E] border border-white/[0.12] flex items-center justify-center shrink-0 mt-0.5">
+                        <Mail className="w-4 h-4 text-[#D4AF6A]" strokeWidth={1.6} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-agrandir-bold text-white truncate">
+                        <div className="text-sm font-agrandir-extrabold text-white truncate">
                           {inv.title}
                         </div>
-                        <div className="text-xs text-neutral-400 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                        <div className="text-xs text-[#9A9A9A] mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                           <span className="inline-flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-[#d4af37]" />
+                            <Calendar className="w-3 h-3 text-[#C8C8C8]" strokeWidth={1.6} />
                             {inv.eventDate} · {inv.eventTime}
                           </span>
                           <span className="inline-flex items-center gap-1 truncate">
-                            <MapPin className="w-3 h-3" />
+                            <MapPin className="w-3 h-3" strokeWidth={1.6} />
                             {inv.venue}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <span
-                      className={`text-xs font-agrandir-semibold shrink-0 ${
+                    <StatusBadge
+                      variant={
                         inv.status === 'accepted'
-                          ? 'text-emerald-400'
+                          ? 'valid'
                           : inv.status === 'used'
-                          ? 'text-neutral-500'
-                          : 'text-[#d4af37]'
-                      }`}
-                    >
-                      {inv.status === 'accepted'
-                        ? isEn ? 'Confirmed' : 'Confirmée'
-                        : inv.status === 'used'
-                        ? isEn ? 'Used' : 'Utilisée'
-                        : isEn ? 'Pending' : 'En attente'}
-                    </span>
+                          ? 'neutral'
+                          : 'retained'
+                      }
+                      label={
+                        inv.status === 'accepted'
+                          ? isEn
+                            ? 'CONFIRMED'
+                            : 'CONFIRMÉE'
+                          : inv.status === 'used'
+                          ? isEn
+                            ? 'USED'
+                            : 'UTILISÉE'
+                          : isEn
+                          ? 'PENDING'
+                          : 'EN ATTENTE'
+                      }
+                    />
                   </div>
 
                   {inv.status === 'pending' && (
@@ -457,15 +409,15 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
                       <button
                         type="button"
                         onClick={() => handleRespondInvitation(inv.id, 'accepted')}
-                        className="min-h-[40px] px-4 rounded-full bg-white text-black font-agrandir-bold text-xs inline-flex items-center gap-1.5 cursor-pointer hover:bg-neutral-200 transition-colors"
+                        className="min-h-[40px] px-4 rounded-full bg-[#D4AF6A] text-black font-agrandir-extrabold text-xs inline-flex items-center gap-1.5 cursor-pointer hover:bg-[#DFBE7D] transition-colors lum-press"
                       >
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-3.5 h-3.5" strokeWidth={1.8} />
                         <span>{isEn ? 'Accept' : 'Accepter'}</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => handleRespondInvitation(inv.id, 'declined')}
-                        className="min-h-[40px] px-4 rounded-full bg-white/10 text-neutral-300 hover:text-white font-agrandir-semibold text-xs cursor-pointer transition-colors"
+                        className="min-h-[40px] px-4 rounded-full border border-white/[0.16] text-[#C8C8C8] hover:text-white font-agrandir-semibold text-xs cursor-pointer transition-colors lum-press"
                       >
                         {isEn ? 'Decline' : 'Décliner'}
                       </button>
@@ -477,9 +429,9 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
                       <button
                         type="button"
                         onClick={() => setSelectedInvitationForQr(inv)}
-                        className="min-h-[40px] px-4 rounded-full bg-white/10 hover:bg-white hover:text-black text-white text-xs font-agrandir-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                        className="min-h-[40px] px-4 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 transition-colors cursor-pointer lum-press"
                       >
-                        <QrCode className="w-3.5 h-3.5" />
+                        <QrCode className="w-3.5 h-3.5" strokeWidth={1.6} />
                         <span>{isEn ? 'Open pass QR' : 'Afficher le pass QR'}</span>
                       </button>
                     </div>
@@ -488,8 +440,8 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
               ))}
             </ul>
           ) : (
-            <div className="py-14 text-center">
-              <p className="text-sm text-neutral-400">
+            <div className="py-12 text-center">
+              <p className="text-sm text-[#9A9A9A]">
                 {isEn ? 'No private invitations yet.' : 'Aucune invitation privée pour le moment.'}
               </p>
             </div>
@@ -497,29 +449,27 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* 3. ACTIVITÉS — JOURNAL LINÉAIRE FAÇON TRANSACTIONS BANCAIRES          */}
-      {/* ===================================================================== */}
+      {/* 3. Activités */}
       {activeTab === 'activity' && (
-        <div className="pt-2 animate-fadeIn">
+        <div className="pt-2">
           {activities.length > 0 ? (
-            <ul className="divide-y divide-white/10">
+            <ul className="divide-y divide-white/[0.12]">
               {activities.map((act) => (
                 <li key={act.id} className="py-4 flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                    <div className="w-10 h-10 rounded-full bg-white/[0.06] flex items-center justify-center shrink-0 mt-0.5">
-                      <Activity className="w-4 h-4 text-[#d4af37]" />
+                    <div className="w-10 h-10 rounded-[12px] bg-[#0E0E0E] border border-white/[0.12] flex items-center justify-center shrink-0 mt-0.5">
+                      <Activity className="w-4 h-4 text-[#D4AF6A]" strokeWidth={1.6} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-agrandir-bold text-white truncate">
+                      <div className="text-sm font-agrandir-extrabold text-white truncate">
                         {act.title}
                       </div>
-                      <p className="text-xs text-neutral-400 mt-0.5 leading-relaxed">
+                      <p className="text-xs text-[#9A9A9A] mt-0.5 leading-relaxed">
                         {act.description}
                       </p>
                     </div>
                   </div>
-                  <span className="text-[11px] font-mono tabular-nums text-neutral-500 shrink-0 pt-0.5">
+                  <span className="text-[11px] font-mono tabular-nums text-[#9A9A9A] shrink-0 pt-0.5">
                     {new Date(act.timestamp).toLocaleDateString(locale, {
                       day: '2-digit',
                       month: 'short',
@@ -529,8 +479,8 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
               ))}
             </ul>
           ) : (
-            <div className="py-14 text-center">
-              <p className="text-sm text-neutral-400">
+            <div className="py-12 text-center">
+              <p className="text-sm text-[#9A9A9A]">
                 {isEn ? 'No recent activity.' : 'Aucune activité récente.'}
               </p>
             </div>
@@ -538,9 +488,7 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
         </div>
       )}
 
-      {/* ===================================================================== */}
-      {/* MODALE QR BILLET PLEIN ÉCRAN (PORTAL SUR DOCUMENT.BODY)               */}
-      {/* ===================================================================== */}
+      {/* Modale QR Billet */}
       {typeof document !== 'undefined' &&
         createPortal(
           <AnimatePresence>
@@ -549,52 +497,48 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[90] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 touch-none"
+                className="fixed inset-0 z-[90] bg-black/92 backdrop-blur-xl flex items-center justify-center p-4 touch-none"
                 onClick={() => setSelectedTicketForQr(null)}
               >
                 <motion.div
-                  initial={{ scale: 0.94, opacity: 0 }}
+                  initial={{ scale: 0.96, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.94, opacity: 0 }}
-                  className="bg-[#101010] border border-white/15 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl relative"
+                  exit={{ scale: 0.96, opacity: 0 }}
+                  className="rounded-[24px] bg-[#0E0E0E] border border-white/[0.16] p-6 max-w-sm w-full text-center space-y-4 shadow-2xl relative"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
                     type="button"
                     onClick={() => setSelectedTicketForQr(null)}
-                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors"
+                    className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors"
                     aria-label={t('nav.close')}
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4" strokeWidth={1.6} />
                   </button>
 
                   <div className="space-y-1 pr-6">
-                    <div className="text-[10px] font-mono text-[#d4af37] tracking-widest uppercase">
+                    <div className="text-[10px] font-mono text-[#D4AF6A] tracking-widest uppercase">
                       {isEn ? 'CONCERT TICKET' : 'BILLET DE CONCERT'}
                     </div>
                     <h3 className="font-agrandir-extrabold text-base text-white uppercase truncate">
                       {selectedTicketForQr.eventTitle}
                     </h3>
-                    <div className="text-xs text-neutral-300">
+                    <div className="text-xs text-[#C8C8C8]">
                       {selectedTicketForQr.categoryName} · {selectedTicketForQr.serialNumber || selectedTicketForQr.id}
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-white shadow-2xl mx-auto w-fit">
+                  <div className="p-4 rounded-[16px] bg-white shadow-2xl mx-auto w-fit">
                     {ticketQrModalUrl ? (
-                      <img
-                        src={ticketQrModalUrl}
-                        alt="QR Code Ticket"
-                        className="w-52 h-52 object-contain"
-                      />
+                      <img src={ticketQrModalUrl} alt="QR Code Ticket" className="w-56 h-56 object-contain" />
                     ) : (
-                      <div className="w-52 h-52 bg-neutral-100 flex items-center justify-center">
-                        <RefreshCw className="w-7 h-7 animate-spin text-black" />
+                      <div className="w-56 h-56 bg-neutral-100 flex items-center justify-center">
+                        <RefreshCw className="w-6 h-6 animate-spin text-black" />
                       </div>
                     )}
                   </div>
 
-                  <div className="text-xs text-neutral-400">
+                  <div className="text-xs text-[#9A9A9A]">
                     {selectedTicketForQr.holderName || wallet?.user.name}
                   </div>
                 </motion.div>
@@ -604,9 +548,7 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
           document.body
         )}
 
-      {/* ===================================================================== */}
-      {/* MODALE QR INVITATION PLEIN ÉCRAN (PORTAL SUR DOCUMENT.BODY)           */}
-      {/* ===================================================================== */}
+      {/* Modale QR Invitation */}
       {typeof document !== 'undefined' &&
         createPortal(
           <AnimatePresence>
@@ -615,52 +557,46 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[90] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 touch-none"
+                className="fixed inset-0 z-[90] bg-black/92 backdrop-blur-xl flex items-center justify-center p-4 touch-none"
                 onClick={() => setSelectedInvitationForQr(null)}
               >
                 <motion.div
-                  initial={{ scale: 0.94, opacity: 0 }}
+                  initial={{ scale: 0.96, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  exit={{ scale: 0.94, opacity: 0 }}
-                  className="bg-[#101010] border border-[#d4af37]/30 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl relative"
+                  exit={{ scale: 0.96, opacity: 0 }}
+                  className="rounded-[24px] bg-[#0E0E0E] border border-[#D4AF6A]/45 p-6 max-w-sm w-full text-center space-y-4 shadow-2xl relative"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button
                     type="button"
                     onClick={() => setSelectedInvitationForQr(null)}
-                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors"
+                    className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer transition-colors"
                     aria-label={t('nav.close')}
                   >
-                    <X className="w-4 h-4" />
+                    <X className="w-4 h-4" strokeWidth={1.6} />
                   </button>
 
                   <div className="space-y-1 pr-6">
-                    <div className="text-[10px] font-mono text-[#d4af37] tracking-widest uppercase">
+                    <div className="text-[10px] font-mono text-[#D4AF6A] tracking-widest uppercase">
                       {isEn ? 'PRIVATE INVITATION' : 'INVITATION PRIVÉE'}
                     </div>
                     <h3 className="font-agrandir-extrabold text-base text-white uppercase truncate">
                       {selectedInvitationForQr.title}
                     </h3>
-                    <div className="text-xs text-neutral-300">{selectedInvitationForQr.venue}</div>
+                    <div className="text-xs text-[#C8C8C8]">{selectedInvitationForQr.venue}</div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-white shadow-2xl mx-auto w-fit">
+                  <div className="p-4 rounded-[16px] bg-white shadow-2xl mx-auto w-fit">
                     {invitationQrModalUrl ? (
-                      <img
-                        src={invitationQrModalUrl}
-                        alt="QR Code Invitation"
-                        className="w-52 h-52 object-contain"
-                      />
+                      <img src={invitationQrModalUrl} alt="QR Code Invitation" className="w-56 h-56 object-contain" />
                     ) : (
-                      <div className="w-52 h-52 bg-neutral-100 flex items-center justify-center">
-                        <RefreshCw className="w-7 h-7 animate-spin text-black" />
+                      <div className="w-56 h-56 bg-neutral-100 flex items-center justify-center">
+                        <RefreshCw className="w-6 h-6 animate-spin text-black" />
                       </div>
                     )}
                   </div>
 
-                  <div className="text-xs text-neutral-300">
-                    {selectedInvitationForQr.recipientName}
-                  </div>
+                  <div className="text-xs text-[#C8C8C8]">{selectedInvitationForQr.recipientName}</div>
                 </motion.div>
               </motion.div>
             )}

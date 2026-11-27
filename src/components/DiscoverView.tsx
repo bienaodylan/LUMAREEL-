@@ -17,7 +17,7 @@ interface MonthGroup {
 }
 
 export const DiscoverView: React.FC = () => {
-  const { events, setSelectedEventSlug, setCurrentPage, setCheckoutEvent } = useApp();
+  const { events, setCheckoutEvent } = useApp();
 
   const [search, setSearch] = useState('');
   const [selectedCity, setSelectedCity] = useState('all');
@@ -60,13 +60,8 @@ export const DiscoverView: React.FC = () => {
     return acc;
   }, []);
 
-  const handleSelectEvent = (event: ConcertEvent) => {
-    setSelectedEventSlug(event.slug);
-    setCurrentPage('concert_detail');
-  };
-
-  const handleBookNow = (event: ConcertEvent, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleBookNow = (event: ConcertEvent, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setCheckoutEvent(event);
   };
 
@@ -206,7 +201,7 @@ export const DiscoverView: React.FC = () => {
                   return (
                     <div
                       key={event.id}
-                      onClick={() => handleSelectEvent(event)}
+                      onClick={() => handleBookNow(event)}
                       className={`group relative rounded-2xl sm:rounded-3xl p-3 sm:p-5 bg-gradient-to-r ${ambient} border transition-all duration-300 hover:scale-[1.008] shadow-2xl cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 overflow-hidden`}
                     >
                       {/* Subtle Ambient Vignette / Spotlight inside Card */}
@@ -273,14 +268,13 @@ export const DiscoverView: React.FC = () => {
 
                       </div>
 
-                      {/* Right Action Button : Pill VIEW MORE matching screenshot */}
-                      <div className="relative z-10 flex items-center justify-end sm:justify-center gap-3 shrink-0 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0">
+                      <div className="relative z-10 flex items-center justify-end sm:justify-center gap-3 shrink-0 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0 w-full md:w-auto">
                         <button
-                          onClick={() => handleSelectEvent(event)}
-                          className="px-6 py-3 rounded-full bg-white/10 hover:bg-white text-white hover:text-black border border-white/20 font-agrandir-semibold text-xs tracking-widest uppercase flex items-center gap-2 backdrop-blur-md transition-all shadow-lg cursor-pointer"
+                          onClick={(e) => handleBookNow(event, e)}
+                          className="w-full md:w-auto px-6 py-3 rounded-full bg-white text-black hover:bg-neutral-200 font-agrandir-extrabold text-xs tracking-widest uppercase flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer"
                         >
-                          <span>VIEW MORE</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          <Ticket className="w-3.5 h-3.5" />
+                          <span>ACHETER TICKETS</span>
                         </button>
                       </div>
 

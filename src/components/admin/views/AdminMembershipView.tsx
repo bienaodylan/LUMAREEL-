@@ -172,10 +172,10 @@ export const AdminMembershipView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-[#d4af37] uppercase">
+            <span className="text-[10px] font-agrandir-bold tracking-[0.2em] text-white uppercase">
               MODULE CENTRAL
             </span>
-            <span className="px-2 py-0.5 rounded-full bg-[#d4af37]/10 text-[9px] font-agrandir-bold text-[#d4af37] uppercase border border-[#d4af37]/30">
+            <span className="px-2 py-0.5 rounded-full bg-white/10 text-[9px] font-agrandir-bold text-white uppercase border border-white/30">
               IDENTIFIANT QR CRYPTOGRAPHIQUE &amp; CARTE PVC
             </span>
           </div>
@@ -194,7 +194,7 @@ export const AdminMembershipView: React.FC = () => {
             className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-neutral-300 hover:text-white transition-colors cursor-pointer"
             title="Rafraîchir les données"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#d4af37]' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-white' : ''}`} />
           </button>
         </div>
       </div>
@@ -245,14 +245,14 @@ export const AdminMembershipView: React.FC = () => {
             <div className="p-5 rounded-2xl bg-[#0e0e0e] border border-white/10 space-y-2">
               <div className="flex items-center justify-between text-xs text-neutral-400">
                 <span className="font-agrandir-bold uppercase tracking-wider">Quota Attribué</span>
-                <Crown className="w-4 h-4 text-[#d4af37]" />
+                <Crown className="w-4 h-4 text-white" />
               </div>
               <div className="font-mono text-2xl sm:text-3xl font-extrabold text-white">
                 {stats?.allocated || 0} <span className="text-base text-neutral-500 font-normal">/ {stats?.quota || 100}</span>
               </div>
               <div className="text-[11px] text-neutral-400 flex items-center justify-between">
                 <span>Places restantes</span>
-                <strong className="text-[#d4af37] font-mono">{stats?.remainingQuota || 100}</strong>
+                <strong className="text-white font-mono">{stats?.remainingQuota || 100}</strong>
               </div>
             </div>
 
@@ -277,10 +277,10 @@ export const AdminMembershipView: React.FC = () => {
             <div className="p-5 rounded-2xl bg-[#0e0e0e] border border-white/10 space-y-2">
               <div className="flex items-center justify-between text-xs text-neutral-400">
                 <span className="font-agrandir-bold uppercase tracking-wider">Chiffre d’affaires</span>
-                <CreditCard className="w-4 h-4 text-[#d4af37]" />
+                <CreditCard className="w-4 h-4 text-white" />
               </div>
               <div className="font-mono text-2xl sm:text-3xl font-extrabold text-white">
-                {(stats?.totalRevenue || 0).toLocaleString('fr-FR')} <span className="text-sm text-[#d4af37]">FCFA</span>
+                {(stats?.totalRevenue || 0).toLocaleString('fr-FR')} <span className="text-sm text-white">FCFA</span>
               </div>
               <div className="text-[11px] text-neutral-400 flex items-center justify-between">
                 <span>Commandes confirmées</span>
@@ -299,7 +299,7 @@ export const AdminMembershipView: React.FC = () => {
               </div>
               <div className="text-[11px] text-neutral-400 flex items-center justify-between">
                 <span>Sans contact DESFire</span>
-                <span className="text-[#d4af37] font-mono font-bold">13.56 MHz</span>
+                <span className="text-white font-mono font-bold">13.56 MHz</span>
               </div>
             </div>
 
@@ -312,13 +312,13 @@ export const AdminMembershipView: React.FC = () => {
             <div className="p-6 rounded-2xl bg-[#0d0d0d] border border-white/10 space-y-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#d4af37]" />
+                  <Users className="w-4 h-4 text-white" />
                   <h3 className="font-agrandir-bold text-sm text-white uppercase">Dernières Adhésions Membres</h3>
                 </div>
                 <button
                   type="button"
                   onClick={() => setActiveSubTab('members')}
-                  className="text-xs text-[#d4af37] hover:underline cursor-pointer"
+                  className="text-xs text-white hover:underline cursor-pointer"
                 >
                   Voir tous les membres
                 </button>
@@ -340,7 +340,7 @@ export const AdminMembershipView: React.FC = () => {
                         }`}>
                           {card.cardStatus === 'active' ? 'Active' : 'En attente'}
                         </span>
-                        <div className="text-[9px] text-[#d4af37] font-mono mt-0.5">
+                        <div className="text-[9px] text-white font-mono mt-0.5">
                           {card.chipUid || 'Sans puce'}
                         </div>
                       </div>
@@ -354,7 +354,7 @@ export const AdminMembershipView: React.FC = () => {
             <div className="p-6 rounded-2xl bg-[#0d0d0d] border border-white/10 space-y-4">
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div className="flex items-center gap-2">
-                  <Crown className="w-4 h-4 text-[#d4af37]" />
+                  <Crown className="w-4 h-4 text-white" />
                   <h3 className="font-agrandir-bold text-sm text-white uppercase">Consommations de Privilèges</h3>
                 </div>
               </div>
@@ -370,7 +370,7 @@ export const AdminMembershipView: React.FC = () => {
                         <div className="text-[10px] text-neutral-400 font-mono">{red.cardNumber} · {red.cardholderName}</div>
                       </div>
                       <div className="text-right">
-                        <span className="font-mono text-[9px] text-[#d4af37]">{red.redemptionReference}</span>
+                        <span className="font-mono text-[9px] text-white">{red.redemptionReference}</span>
                         <div className="text-[9px] text-neutral-500 font-mono mt-0.5">
                           {new Date(red.redeemedAt).toLocaleDateString('fr-FR')}
                         </div>
@@ -399,7 +399,7 @@ export const AdminMembershipView: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Rechercher (LMR-2026-..., nom, email)..."
-                className="w-full bg-[#121212] border border-white/15 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#d4af37]"
+                className="w-full bg-[#121212] border border-white/15 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-white"
               />
             </div>
 
@@ -447,7 +447,7 @@ export const AdminMembershipView: React.FC = () => {
                     filteredCards.map((c) => (
                       <tr key={c.id} className="hover:bg-white/5 transition-colors">
                         <td className="py-3 px-4 font-mono text-neutral-500">#{c.cardSequence}</td>
-                        <td className="py-3 px-4 font-mono font-bold text-[#d4af37]">{c.cardNumber}</td>
+                        <td className="py-3 px-4 font-mono font-bold text-white">{c.cardNumber}</td>
                         <td className="py-3 px-4">
                           <div className="font-agrandir-bold text-white">{c.cardholderName}</div>
                           <div className="text-[10px] text-neutral-400 font-mono">{c.cardholderEmail}</div>
@@ -477,7 +477,7 @@ export const AdminMembershipView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setSelectedCard(c)}
-                            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-[#d4af37] hover:text-black font-agrandir-bold text-xs uppercase tracking-wider text-white transition-all cursor-pointer"
+                            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-neutral-200 hover:text-black font-agrandir-bold text-xs uppercase tracking-wider text-white transition-all cursor-pointer"
                           >
                             Gérer
                           </button>
@@ -499,7 +499,7 @@ export const AdminMembershipView: React.FC = () => {
           <div className="p-6 rounded-2xl bg-[#0c0c0c] border border-white/10 space-y-4">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
-                <span className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
+                <span className="text-[10px] font-agrandir-bold tracking-widest text-white uppercase">
                   ÉDITION COMMERCIALE EN COURS
                 </span>
                 <h3 className="text-xl font-agrandir-extrabold uppercase text-white mt-1">
@@ -518,7 +518,7 @@ export const AdminMembershipView: React.FC = () => {
               </div>
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <span className="text-neutral-400 block mb-1">Quota Strict</span>
-                <strong className="font-mono text-[#d4af37] text-sm">{edition?.quota || 100} membres max</strong>
+                <strong className="font-mono text-white text-sm">{edition?.quota || 100} membres max</strong>
               </div>
               <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                 <span className="text-neutral-400 block mb-1">Cartes Émises</span>
@@ -537,7 +537,7 @@ export const AdminMembershipView: React.FC = () => {
                 <div key={p.id} className="p-5 rounded-2xl bg-[#0e0e0e] border border-white/10 space-y-3">
                   <div className="flex justify-between items-center">
                     <h4 className="font-agrandir-bold text-white uppercase">{p.name}</h4>
-                    <span className="font-mono text-sm font-bold text-[#d4af37]">
+                    <span className="font-mono text-sm font-bold text-white">
                       {p.price.toLocaleString('fr-FR')} {p.currency}
                     </span>
                   </div>
@@ -561,7 +561,7 @@ export const AdminMembershipView: React.FC = () => {
               <div key={b.id} className="p-5 rounded-2xl bg-[#0c0c0c] border border-white/10 space-y-3 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[9px] font-agrandir-bold uppercase px-2 py-0.5 rounded-full bg-[#d4af37]/15 text-[#d4af37] border border-[#d4af37]/30">
+                    <span className="text-[9px] font-agrandir-bold uppercase px-2 py-0.5 rounded-full bg-white/15 text-white border border-white/30">
                       {b.benefitType.replace('_', ' ').toUpperCase()}
                     </span>
                     <span className="text-[10px] font-mono text-neutral-400">
@@ -590,7 +590,7 @@ export const AdminMembershipView: React.FC = () => {
           <div className="w-full max-w-lg bg-[#0e0e0e] border border-white/20 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative">
             <div className="flex items-center justify-between pb-3 border-b border-white/10">
               <div>
-                <span className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
+                <span className="text-[10px] font-agrandir-bold tracking-widest text-white uppercase">
                   GESTION DE CARTE
                 </span>
                 <h3 className="text-xl font-agrandir-extrabold text-white uppercase mt-0.5">
@@ -610,7 +610,7 @@ export const AdminMembershipView: React.FC = () => {
             <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-2 text-xs">
               <div className="flex justify-between"><span className="text-neutral-400">Titulaire :</span><strong className="text-white">{selectedCard.cardholderName}</strong></div>
               <div className="flex justify-between"><span className="text-neutral-400">Email :</span><span className="font-mono text-neutral-300">{selectedCard.cardholderEmail}</span></div>
-              <div className="flex justify-between"><span className="text-neutral-400">Statut actuel :</span><span className="font-bold text-[#d4af37] uppercase">{selectedCard.cardStatus}</span></div>
+              <div className="flex justify-between"><span className="text-neutral-400">Statut actuel :</span><span className="font-bold text-white uppercase">{selectedCard.cardStatus}</span></div>
               <div className="flex justify-between"><span className="text-neutral-400">Statut physique :</span><span className="font-mono text-neutral-300 uppercase">{selectedCard.physicalCardStatus}</span></div>
             </div>
 

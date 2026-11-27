@@ -10,7 +10,7 @@ export type PayMeTrustChannel =
   | 'djamo'
   | 'card';
 
-export type PayMeTrustTransactionKind = 'ticket_order' | 'membership_card';
+export type PayMeTrustTransactionKind = 'ticket_order' | 'membership_card' | 'tv_pass';
 
 export type PayMeTrustTransactionStatus =
   | 'INITIATED'

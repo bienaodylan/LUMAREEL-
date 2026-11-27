@@ -54,9 +54,9 @@ export interface TicketPurchaseFlowProps {
 type Step = 1 | 2 | 3 | 4;
 type Stage = 'redirecting' | 'confirm' | 'processing' | 'success' | 'failed';
 
-const GOLD = '#d4af37';
+const GOLD = '#FFFFFF';
 const focusRing =
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#d4af37]';
+  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white';
 
 const STEP_TITLES: Record<Step, string> = {
   1: 'Choix des billets',
@@ -306,7 +306,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
       <button
         type="button"
         onClick={restart}
-        className={`mt-2 w-full min-h-12 rounded-xl bg-[#d4af37] text-black font-agrandir-extrabold text-sm ${focusRing}`}
+        className={`mt-2 w-full min-h-12 rounded-xl bg-white text-black font-agrandir-extrabold text-sm ${focusRing}`}
       >
         Recommencer ma commande
       </button>
@@ -336,7 +336,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
           return (
             <li
               key={category.id}
-              className={`py-4 pl-3 border-l-2 ${quantity > 0 ? 'border-[#d4af37]' : 'border-transparent'} ${soldOut ? 'opacity-60' : ''}`}
+              className={`py-4 pl-3 border-l-2 ${quantity > 0 ? 'border-white' : 'border-transparent'} ${soldOut ? 'opacity-60' : ''}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -511,8 +511,8 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
               <label
                 key={m.id}
                 className={`flex items-center gap-3 rounded-xl border px-4 min-h-16 cursor-pointer motion-safe:transition-colors ${
-                  selected ? 'border-[#d4af37] bg-[#d4af37]/[0.07]' : 'border-white/15 hover:border-white/40'
-                } focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#d4af37]`}
+                  selected ? 'border-white bg-white/[0.07]' : 'border-white/15 hover:border-white/40'
+                } focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-white`}
               >
                 <input
                   type="radio"
@@ -538,7 +538,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
                 </span>
                 <span
                   className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                    selected ? 'border-[#d4af37] bg-[#d4af37]' : 'border-white/30'
+                    selected ? 'border-white bg-white' : 'border-white/30'
                   }`}
                   aria-hidden="true"
                 >
@@ -625,7 +625,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
           <button
             type="button"
             onClick={onDone || onClose || restart}
-            className={`mt-2 w-full min-h-12 rounded-xl bg-[#d4af37] text-black font-agrandir-extrabold text-sm ${focusRing}`}
+            className={`mt-2 w-full min-h-12 rounded-xl bg-white text-black font-agrandir-extrabold text-sm ${focusRing}`}
           >
             Voir mes billets
           </button>
@@ -734,7 +734,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
               onClick={goBack}
               className={`flex items-center gap-1.5 -ml-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 min-h-10 text-xs font-agrandir-bold tracking-wider text-neutral-200 hover:text-white uppercase transition-all ${focusRing}`}
             >
-              <ChevronLeft className="w-4 h-4 text-[#d4af37]" aria-hidden="true" />
+              <ChevronLeft className="w-4 h-4 text-white" aria-hidden="true" />
               Retour
             </button>
           ) : (
@@ -792,7 +792,7 @@ export const TicketPurchaseFlow: React.FC<TicketPurchaseFlowProps> = ({
               type="button"
               onClick={barAction}
               disabled={barDisabled}
-              className={`min-h-12 px-6 rounded-xl bg-[#d4af37] text-black font-agrandir-extrabold text-sm disabled:opacity-30 disabled:cursor-not-allowed ${focusRing}`}
+              className={`min-h-12 px-6 rounded-xl bg-white text-black font-agrandir-extrabold text-sm disabled:opacity-30 disabled:cursor-not-allowed ${focusRing}`}
             >
               {barLabel}
             </button>

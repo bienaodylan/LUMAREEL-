@@ -9,6 +9,7 @@ import QRCode from 'qrcode';
 import { db } from './src/server/db';
 import { membershipService } from './src/server/membershipService';
 import { paymetrustService, PayMeTrustChannel } from './src/server/paymetrustService';
+import { lumareelTvService } from './src/server/tvService';
 import {
   getResendFromAddress,
   isResendConfigured,
@@ -97,13 +98,41 @@ async function startServer() {
     next();
   });
 
-  // Ensure public/uploads directory exists
+  // Ensure public/uploads and public/uploads/videos directories exist
   const uploadsDir = path.join(__dirname, 'public', 'uploads');
+  const videoUploadsDir = path.join(uploadsDir, 'videos');
+  const dataDir = path.join(__dirname, 'data');
+  const mediaHubFilePath = path.join(dataDir, 'media-hub.json');
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
+  if (!fs.existsSync(videoUploadsDir)) {
+    fs.mkdirSync(videoUploadsDir, { recursive: true });
+  }
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
 
-  // Multer Storage Configuration
+  const readServerMediaHub = (): any[] => {
+    try {
+      if (!fs.existsSync(mediaHubFilePath)) return [];
+      const raw = fs.readFileSync(mediaHubFilePath, 'utf8');
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const writeServerMediaHub = (items: any[]): void => {
+    try {
+      fs.writeFileSync(mediaHubFilePath, JSON.stringify(items, null, 2), 'utf8');
+    } catch (err) {
+      console.error('[MediaHub] Save error:', err);
+    }
+  };
+
+  // Multer Storage Configuration (Images)
   const storage = multer.diskStorage({
     destination: (_req, _file, cb) => {
       cb(null, uploadsDir);
@@ -120,16 +149,42 @@ async function startServer() {
     limits: { fileSize: 15 * 1024 * 1024 }, // 15MB limit
   });
 
+  // Multer Storage Configuration (Videos imported from computer)
+  const videoStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, videoUploadsDir);
+    },
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || '.mp4';
+      const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
+      cb(null, `${Date.now()}-${baseName}${ext.toLowerCase()}`);
+    },
+  });
+
+  const videoUpload = multer({
+    storage: videoStorage,
+    limits: { fileSize: 250 * 1024 * 1024 }, // 250MB limit
+    fileFilter: (_req, file, cb) => {
+      const isVideoMime = (file.mimetype || '').startsWith('video/');
+      const isVideoExt = /\.(mp4|webm|mov|m4v|ogg)$/i.test(file.originalname || '');
+      if (isVideoMime || isVideoExt) {
+        cb(null, true);
+      } else {
+        cb(new Error('Formats vidéo acceptés : MP4, WebM, MOV, M4V.'));
+      }
+    },
+  });
+
   const eventUploadFields = upload.fields([
     { name: 'officialPoster', maxCount: 1 },
     { name: 'artistPortrait', maxCount: 1 },
     { name: 'bannerImage', maxCount: 1 },
   ]);
 
-  // Serve static uploaded files
+  // Serve static uploaded files (images & videos with Range streaming support)
   app.use('/uploads', express.static(uploadsDir));
 
-  // Direct File Upload Route (Multer)
+  // Direct Image File Upload Route (Multer)
   app.post('/api/upload', upload.single('file'), (req: Request, res: Response) => {
     try {
       if (!req.file) {
@@ -137,6 +192,67 @@ async function startServer() {
       }
       const fileUrl = `/uploads/${req.file.filename}`;
       res.json({ success: true, url: fileUrl, filename: req.file.filename });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Direct Video File Upload Route (Multer — up to 250MB)
+  app.post('/api/upload/video', videoUpload.single('file'), (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: 'Aucun fichier vidéo reçu.' });
+      }
+      const fileUrl = `/uploads/videos/${req.file.filename}`;
+      res.json({
+        success: true,
+        url: fileUrl,
+        filename: req.file.filename,
+        size: req.file.size,
+        mimeType: req.file.mimetype,
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Persistent Media Hub / LUMARÉEL TV routes (connected Admin <-> Public)
+  app.get('/api/media-hub', (_req: Request, res: Response) => {
+    try {
+      const items = readServerMediaHub();
+      res.json({ success: true, items });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/media-hub', async (req: Request, res: Response) => {
+    if (!await requireMemberAdmin(req, res, ['super_admin'])) return;
+    try {
+      const item = req.body;
+      if (!item || !item.id || !item.title) {
+        return res.status(400).json({ success: false, error: 'Contenu média invalide.' });
+      }
+      const existing = readServerMediaHub();
+      const idx = existing.findIndex((x: any) => x.id === item.id);
+      const next =
+        idx >= 0
+          ? existing.map((x: any) => (x.id === item.id ? item : x))
+          : [item, ...existing];
+      writeServerMediaHub(next);
+      res.status(201).json({ success: true, item, items: next });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.delete('/api/media-hub/:id', async (req: Request, res: Response) => {
+    if (!await requireMemberAdmin(req, res, ['super_admin'])) return;
+    try {
+      const existing = readServerMediaHub();
+      const next = existing.filter((x: any) => x.id !== req.params.id);
+      writeServerMediaHub(next);
+      res.json({ success: true, items: next });
     } catch (error: any) {
       res.status(500).json({ success: false, error: error.message });
     }
@@ -259,14 +375,14 @@ async function startServer() {
     }
   });
 
-  // PUT /api/events/:id (update existing event with Multer upload support)
+  // PUT /api/events/:id (update or upsert event with Multer upload support)
   app.put('/api/events/:id', eventUploadFields, async (req: Request, res: Response) => {
     if(!await requireMemberAdmin(req,res,['super_admin']))return;
     try {
       const payload = extractEventPayload(req);
-      const updated = db.updateEvent(req.params.id, payload);
+      let updated = db.updateEvent(req.params.id, payload);
       if (!updated) {
-        return res.status(404).json({ success: false, error: 'Concert introuvable.' });
+        updated = db.saveEvent({ ...payload, id: req.params.id });
       }
       res.json({ success: true, event: updated });
     } catch (error: any) {
@@ -522,7 +638,7 @@ async function startServer() {
   // 5. Checkout & Ticketing Orders
   app.post('/api/orders/checkout', (req: Request, res: Response) => {
     try {
-      const { customerId, customerName, customerEmail, customerPhone, eventId, categoryId, quantity, items, paymentProvider } = req.body;
+      const { customerId, customerName, customerEmail, customerPhone, eventId, categoryId, quantity, items, paymentProvider, eventSnapshot } = req.body;
       if (!customerEmail || !eventId || (!categoryId && (!Array.isArray(items) || items.length === 0))) {
         return res.status(400).json({ success: false, error: 'Données de commande incomplètes.' });
       }
@@ -537,6 +653,7 @@ async function startServer() {
         quantity: Number(quantity || 1),
         paymentProvider: paymentProvider || 'paymetrust',
         items,
+        eventSnapshot,
       });
 
       if (!result.success) {
@@ -613,6 +730,16 @@ async function startServer() {
       });
 
       return { success: true, card: issued.card, physicalOrder: issued.physicalOrder };
+    }
+
+    if (tx.kind === 'tv_pass') {
+      const sub = lumareelTvService.activateSubscriptionFromPayment(
+        tx.reference,
+        providerTxId || tx.reference
+      );
+      if (sub) {
+        return { success: true, subscription: sub };
+      }
     }
 
     return null;
@@ -719,6 +846,36 @@ async function startServer() {
           planId: plan.id,
           userId: userId || `usr_${crypto.randomBytes(6).toString('hex')}`,
           shippingAddress,
+        };
+      } else if (kind === 'tv_pass') {
+        if (!resolvedEmail) {
+          return res.status(400).json({
+            success: false,
+            error: 'Veuillez vous connecter avec votre adresse e-mail pour souscrire au LUMARÉEL TV Pass.',
+          });
+        }
+        const activeTvPlans = lumareelTvService.getActivePlans();
+        const tvPlan = planId ? lumareelTvService.getPlanById(String(planId)) : activeTvPlans[0];
+        if (!tvPlan || tvPlan.status !== 'active') {
+          return res.status(404).json({
+            success: false,
+            error: 'Formule LUMARÉEL TV Pass introuvable ou inactive.',
+          });
+        }
+        amount = tvPlan.price;
+        resolvedOrderId = `tvord_${crypto.randomBytes(6).toString('hex')}`;
+        reference = `PMT-TV-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+        description = `${tvPlan.name} (${tvPlan.durationDays} jours)`;
+        lumareelTvService.createPendingSubscription({
+          userId: userId ? String(userId) : undefined,
+          userEmail: resolvedEmail,
+          userName: resolvedName || resolvedEmail.split('@')[0],
+          planId: tvPlan.id,
+          paymentReference: reference,
+        });
+        metadata = {
+          planId: tvPlan.id,
+          userId: userId ? String(userId) : undefined,
         };
       } else {
         return res.status(400).json({ success: false, error: 'Type de transaction invalide.' });
@@ -862,6 +1019,187 @@ async function startServer() {
       return res.status(200).json({ received: true, status: normalizedStatus });
     } catch (error: any) {
       console.error('[PAYMETRUST WEBHOOK ERROR]', error);
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // LUMARÉEL TV — PLANS, CENTRALIZED ENTITLEMENTS & ADMIN MANAGEMENT
+  // ============================================================================
+
+  app.get('/api/tv/plans', (_req: Request, res: Response) => {
+    try {
+      const plans = lumareelTvService.getActivePlans();
+      const cardEligibility = lumareelTvService.getCardEligibilityConfig();
+      const paymentConfig = paymetrustService.getPublicConfig();
+      return res.json({
+        success: true,
+        plans,
+        cardEligibility,
+        paymentReady: paymentConfig.configured,
+        paymentProvider: paymentConfig.provider,
+        paymentEnvironment: paymentConfig.environment,
+        channels: paymentConfig.channels,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/tv/entitlement', async (req: Request, res: Response) => {
+    try {
+      let verifiedEmail: string | null = null;
+      const bearer = String(req.headers.authorization || '');
+      const token = bearer.startsWith('Bearer ') ? bearer.slice(7) : '';
+      const sbUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+      const sbKey =
+        process.env.VITE_SUPABASE_ANON_KEY ||
+        process.env.SUPABASE_ANON_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+        process.env.SUPABASE_PUBLISHABLE_KEY;
+
+      let isTokenVerified = false;
+      if (token && sbUrl && sbKey) {
+        const client = createClient(sbUrl, sbKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        });
+        const { data, error } = await client.auth.getUser(token);
+        if (!error && data.user?.email) {
+          verifiedEmail = data.user.email;
+          isTokenVerified = true;
+        }
+      }
+
+      const allowLocalFallback = process.env.NODE_ENV !== 'production' || !(sbUrl && sbKey);
+      if (!verifiedEmail && allowLocalFallback && typeof req.query.email === 'string' && req.query.email.trim()) {
+        verifiedEmail = req.query.email.trim().toLowerCase();
+      }
+
+      const entitlement = lumareelTvService.evaluateUserEntitlement(verifiedEmail);
+      if (!isTokenVerified && entitlement.cardAccess.cardNumber) {
+        entitlement.cardAccess.cardNumber = `****-${entitlement.cardAccess.cardNumber.slice(-4)}`;
+      }
+      return res.json({
+        success: true,
+        entitlement,
+        paymentReady: paymetrustService.isConfigured(),
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/admin/tv/overview', async (req: Request, res: Response) => {
+    if (!(await requireMemberAdmin(req, res, ['super_admin']))) return;
+    try {
+      return res.json({
+        success: true,
+        plans: lumareelTvService.getAllPlans(),
+        subscriptions: lumareelTvService.getAllSubscriptions(),
+        cardEligibility: lumareelTvService.getCardEligibilityConfig(),
+        membershipPlans: membershipService.getPlans(),
+        paymentReady: paymetrustService.isConfigured(),
+        paymentEnvironment: paymetrustService.getPublicConfig().environment,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/admin/tv/plans', async (req: Request, res: Response) => {
+    if (!(await requireMemberAdmin(req, res, ['super_admin']))) return;
+    try {
+      const body = req.body || {};
+      if (!body.name || typeof body.name !== 'string') {
+        return res.status(400).json({ success: false, error: 'Le nom de la formule est requis.' });
+      }
+      const plan = lumareelTvService.upsertPlan({
+        id: body.id ? String(body.id) : undefined,
+        name: String(body.name),
+        nameEn: body.nameEn ? String(body.nameEn) : undefined,
+        description: body.description ? String(body.description) : '',
+        descriptionEn: body.descriptionEn ? String(body.descriptionEn) : undefined,
+        price: Number(body.price) || 0,
+        currency: body.currency ? String(body.currency) : 'FCFA',
+        durationDays: Number(body.durationDays) || 30,
+        billingCycleLabel: body.billingCycleLabel ? String(body.billingCycleLabel) : undefined,
+        billingCycleLabelEn: body.billingCycleLabelEn ? String(body.billingCycleLabelEn) : undefined,
+        autoRenew: Boolean(body.autoRenew),
+        renewalPolicy: body.renewalPolicy ? String(body.renewalPolicy) : undefined,
+        conditions: body.conditions ? String(body.conditions) : undefined,
+        status: ['active', 'inactive', 'archived'].includes(body.status) ? body.status : 'active',
+      });
+      return res.json({ success: true, plan, plans: lumareelTvService.getAllPlans() });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.put('/api/admin/tv/card-eligibility', async (req: Request, res: Response) => {
+    if (!(await requireMemberAdmin(req, res, ['super_admin']))) return;
+    try {
+      const body = req.body || {};
+      const updated = lumareelTvService.updateCardEligibilityConfig({
+        cardAccessEnabled:
+          body.cardAccessEnabled !== undefined ? Boolean(body.cardAccessEnabled) : undefined,
+        blackCardIncludesVipTier:
+          body.blackCardIncludesVipTier !== undefined
+            ? Boolean(body.blackCardIncludesVipTier)
+            : undefined,
+        enabledPlanIds: Array.isArray(body.enabledPlanIds) ? body.enabledPlanIds : undefined,
+      });
+      return res.json({ success: true, cardEligibility: updated });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/admin/tv/subscriptions/grant', async (req: Request, res: Response) => {
+    if (!(await requireMemberAdmin(req, res, ['super_admin']))) return;
+    try {
+      const { userEmail, userName, planId, durationDays } = req.body || {};
+      if (!userEmail || typeof userEmail !== 'string') {
+        return res.status(400).json({ success: false, error: 'Adresse e-mail requise.' });
+      }
+      const subscription = lumareelTvService.adminGrantSubscription({
+        userEmail,
+        userName: String(userName || userEmail.split('@')[0]),
+        planId: String(planId || ''),
+        durationDays: durationDays ? Number(durationDays) : undefined,
+      });
+      return res.json({
+        success: true,
+        subscription,
+        subscriptions: lumareelTvService.getAllSubscriptions(),
+      });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.patch('/api/admin/tv/subscriptions/:id/status', async (req: Request, res: Response) => {
+    if (!(await requireMemberAdmin(req, res, ['super_admin']))) return;
+    try {
+      const { status, reason } = req.body || {};
+      const allowed = ['active', 'expired', 'revoked', 'cancelled', 'pending_payment'];
+      if (!allowed.includes(String(status))) {
+        return res.status(400).json({ success: false, error: 'Statut d’abonnement invalide.' });
+      }
+      const updated = lumareelTvService.updateSubscriptionStatus(
+        req.params.id,
+        status,
+        reason ? String(reason) : undefined
+      );
+      if (!updated) {
+        return res.status(404).json({ success: false, error: 'Abonnement introuvable.' });
+      }
+      return res.json({
+        success: true,
+        subscription: updated,
+        subscriptions: lumareelTvService.getAllSubscriptions(),
+      });
+    } catch (error: any) {
       return res.status(500).json({ success: false, error: error.message });
     }
   });
@@ -2256,6 +2594,58 @@ async function startServer() {
     }
   });
 
+  // OAuth callback bridge (Supabase Google & Apple Sign-In — works in both iframe popups and full-page redirects)
+  app.get(['/auth/callback', '/auth/callback/'], (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Connexion — LUMARÉEL</title>
+  <style>
+    body { margin: 0; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 24px; }
+    .box { max-width: 340px; }
+    .title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .sub { font-size: 12px; color: #9a9a9a; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="title">LUMARÉEL</div>
+    <div class="sub" id="status">Finalisation de la connexion en cours…</div>
+  </div>
+  <script>
+    (function () {
+      try {
+        var searchParams = new URLSearchParams(window.location.search || '');
+        var hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+        var payload = {
+          type: 'LUMAREEL_SUPABASE_OAUTH_CALLBACK',
+          code: searchParams.get('code') || '',
+          accessToken: hashParams.get('access_token') || '',
+          refreshToken: hashParams.get('refresh_token') || '',
+          error: searchParams.get('error') || hashParams.get('error') || '',
+          errorDescription: searchParams.get('error_description') || hashParams.get('error_description') || ''
+        };
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage(payload, window.location.origin);
+          setTimeout(function () { window.close(); }, 150);
+          return;
+        }
+        var target = '/' + (window.location.search || '') + (window.location.hash || '');
+        window.location.replace(target);
+      } catch (err) {
+        var el = document.getElementById('status');
+        if (el) el.textContent = 'Vous pouvez fermer cette fenêtre et revenir à LUMARÉEL.';
+      }
+    })();
+  </script>
+</body>
+</html>`);
+  });
+
   // Mount Vite or static build
   if (!isProduction) {
     const { createServer: createViteServer } = await import('vite');
@@ -2263,9 +2653,72 @@ async function startServer() {
       server: {
         middlewareMode: true,
         hmr: false,
+        ws: false,
       },
       appType: 'spa',
     });
+
+    // When HMR/WebSockets are disabled in middleware mode, Vite 8 still injects /@vite/client
+    // which attempts to open a WebSocket connection and throws "WebSocket closed without opened."
+    // Serve a lightweight no-WebSocket shim that preserves updateStyle/removeStyle/createHotContext.
+    app.get('/@vite/client', (_req: Request, res: Response) => {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.send(`
+const sheetsMap = new Map();
+
+export function updateStyle(id, content) {
+  let style = sheetsMap.get(id);
+  if (!style) {
+    style = document.createElement('style');
+    style.setAttribute('type', 'text/css');
+    style.setAttribute('data-vite-dev-id', id);
+    style.textContent = content;
+    document.head.appendChild(style);
+    sheetsMap.set(id, style);
+  } else {
+    style.textContent = content;
+  }
+}
+
+export function removeStyle(id) {
+  const style = sheetsMap.get(id);
+  if (style) {
+    document.head.removeChild(style);
+    sheetsMap.delete(id);
+  }
+}
+
+export function createHotContext() {
+  const noop = () => {};
+  return {
+    data: {},
+    accept: noop,
+    acceptExports: noop,
+    dispose: noop,
+    prune: noop,
+    decline: noop,
+    invalidate: noop,
+    on: noop,
+    off: noop,
+    send: noop,
+  };
+}
+
+export function injectQuery(url, queryToInject) {
+  if (!url || (url[0] !== '.' && url[0] !== '/')) return url;
+  const pathname = url.replace(/[?#].*$/, '');
+  const search = url.slice(pathname.length).replace(/#.*$/, '');
+  const hash = url.includes('#') ? url.slice(url.indexOf('#')) : '';
+  return pathname + (search ? search + '&' : '?') + queryToInject + hash;
+}
+
+export class ErrorOverlay {
+  constructor() {}
+}
+`.trim());
+    });
+
     app.use(vite.middlewares);
   } else {
     app.use(express.static(path.resolve(__dirname, 'dist')));

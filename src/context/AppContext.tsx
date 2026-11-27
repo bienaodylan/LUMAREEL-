@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { User, ConcertEvent, Order, Ticket, ArchiveProduction, PlatformSettings } from '../types';
-import { INITIAL_EVENTS, INITIAL_NEWS, INITIAL_ORDERS, INITIAL_ARCHIVES } from '../data/initialData';
+import { INITIAL_EVENTS, INITIAL_ORDERS, INITIAL_ARCHIVES } from '../data/initialData';
 import { convertToYouTubeEmbed } from '../utils/mediaUtils';
 import { supabase, isSupabaseConfigured, configureSupabase, testSupabaseConnection } from '../lib/supabaseClient';
 import { SupportedLanguage, getTranslation } from '../i18n/translations';
@@ -9,9 +9,7 @@ export type PageView =
   | 'splash'
   | 'home'
   | 'discover'
-  | 'concert_detail'
   | 'archive'
-  | 'news'
   | 'client_space'
   | 'profile'
   | 'organizers'
@@ -45,7 +43,6 @@ interface AppContextType {
   featuredEvent: ConcertEvent | null;
   saveEvent: (event: ConcertEvent) => Promise<void>;
   deleteEvent: (eventId: string) => Promise<void>;
-  news: any[];
   archives: ArchiveProduction[];
   saveArchive: (archive: Partial<ArchiveProduction> & { title: string; coverImage: string }) => Promise<void>;
   deleteArchive: (id: string) => Promise<void>;
@@ -332,7 +329,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const list = readLocal<ConcertEvent[]>(STORAGE_KEYS.EVENTS, INITIAL_EVENTS);
     return list.find((e) => e.isFeatured) || list[0] || null;
   });
-  const [news, setNews] = useState<any[]>(INITIAL_NEWS);
   const [archives, setArchives] = useState<ArchiveProduction[]>(() =>
     readLocal<ArchiveProduction[]>(STORAGE_KEYS.ARCHIVES, INITIAL_ARCHIVES)
   );
@@ -1262,7 +1258,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         featuredEvent,
         saveEvent,
         deleteEvent,
-        news,
         archives,
         saveArchive,
         deleteArchive,

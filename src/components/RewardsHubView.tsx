@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import {
+  COMMUNITY_MEDIA,
+  ClaimedFlashOffer,
   POINTS_RULES,
   REFERRAL_CREDIT_FCFA,
   RedeemedReward,
@@ -10,19 +12,18 @@ import {
   saveUserPointsState,
 } from '../utils/communityStorage';
 import {
-  Award,
   Check,
   CheckCircle2,
   ChevronRight,
+  Clock,
   Copy,
-  Crown,
   Gift,
   Share2,
   Ticket,
-  Users,
+  Zap,
 } from 'lucide-react';
 
-type RewardsTab = 'points' | 'exchange' | 'referral';
+export type RewardsTab = 'gifts' | 'points' | 'exchange' | 'referral';
 
 interface RewardCatalogItem {
   id: string;
@@ -35,6 +36,98 @@ interface RewardCatalogItem {
   tagFr: string;
   tagEn: string;
 }
+
+interface FlashOffer {
+  id: string;
+  titleFr: string;
+  titleEn: string;
+  descFr: string;
+  descEn: string;
+  discountLabelFr: string;
+  discountLabelEn: string;
+  originalPrice: number;
+  flashPrice: number;
+  remaining: number;
+  total: number;
+  endsInSeconds: number;
+  image: string;
+  codePrefix: string;
+}
+
+const FLASH_OFFERS: FlashOffer[] = [
+  {
+    id: 'flash_duo_vip',
+    titleFr: 'Pack Duo VIP — Vente Flash 24h',
+    titleEn: 'VIP Duo Pack — 24h Flash Sale',
+    descFr: 'Deux accès VIP avec entrée prioritaire et accès lounge pour le prochain concert LUMARÉEL.',
+    descEn: 'Two VIP passes with priority gate access and lounge entry for the next LUMARÉEL show.',
+    discountLabelFr: '-25 % Vente Flash',
+    discountLabelEn: '25% Off Flash Drop',
+    originalPrice: 60000,
+    flashPrice: 45000,
+    remaining: 9,
+    total: 30,
+    endsInSeconds: 5 * 3600 + 42 * 60,
+    image: COMMUNITY_MEDIA.flashVipDropImg,
+    codePrefix: 'FLASHVIP',
+  },
+  {
+    id: 'flash_early_fosse',
+    titleFr: 'Quota Fosse Éclair',
+    titleEn: 'Lightning Floor Quota',
+    descFr: 'Série limitée de billets standard à tarif préférentiel avant la clôture de la fenêtre flash.',
+    descEn: 'Limited drop of standard floor tickets at a reduced rate before the flash window closes.',
+    discountLabelFr: '-30 % Éclair',
+    discountLabelEn: '30% Off Drop',
+    originalPrice: 15000,
+    flashPrice: 10500,
+    remaining: 14,
+    total: 50,
+    endsInSeconds: 2 * 3600 + 18 * 60,
+    image: COMMUNITY_MEDIA.concertMemoriesCrowdImg,
+    codePrefix: 'FLASHSTD',
+  },
+  {
+    id: 'flash_partner_table',
+    titleFr: 'Avantage Partenaire — Lounge & Boisson Offerte',
+    titleEn: 'Partner Perk — Lounge & Complimentary Drink',
+    descFr: 'Bon flash valable chez nos lieux partenaires d’Abidjan avant ou après le concert.',
+    descEn: 'Flash voucher redeemable at our Abidjan partner lounges before or after the concert.',
+    discountLabelFr: 'Offre Partenaire',
+    discountLabelEn: 'Partner Offer',
+    originalPrice: 12000,
+    flashPrice: 6000,
+    remaining: 18,
+    total: 40,
+    endsInSeconds: 9 * 3600 + 10 * 60,
+    image: COMMUNITY_MEDIA.vipMezzanineImg,
+    codePrefix: 'FLASHLOUNGE',
+  },
+];
+
+const SURPRISE_POOL = [
+  {
+    points: 75,
+    titleFr: 'Bonus surprise +75 points fidélité',
+    titleEn: 'Surprise bonus +75 loyalty points',
+    detailFr: 'Crédités directement sur votre solde LUMARÉEL.',
+    detailEn: 'Credited straight to your LUMARÉEL balance.',
+  },
+  {
+    points: 100,
+    titleFr: 'Bonus surprise +100 points + Boisson partenaire',
+    titleEn: 'Surprise +100 points + Partner drink pass',
+    detailFr: 'Code valable au bar partenaire lors de votre prochain concert.',
+    detailEn: 'Code redeemable at the partner bar during your next show.',
+  },
+  {
+    points: 50,
+    titleFr: 'Code surprise -15 % billetterie + 50 points',
+    titleEn: 'Surprise 15% ticket code + 50 points',
+    detailFr: 'Utilisable sur votre prochaine commande standard ou VIP.',
+    detailEn: 'Valid on your next standard or VIP order.',
+  },
+];
 
 const REWARDS_CATALOG: RewardCatalogItem[] = [
   {
@@ -94,13 +187,41 @@ const REWARDS_CATALOG: RewardCatalogItem[] = [
   },
 ];
 
-export const RewardsHubView: React.FC = () => {
-  const { currentUser, customerOrders, setCurrentPage, setIsAuthModalOpen, showToast, language } = useApp();
+function formatTimer(totalSec: number): string {
+  const safe = Math.max(0, totalSec);
+  const h = Math.floor(safe / 3600);
+  const m = Math.floor((safe % 3600) / 60);
+  const s = safe % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialTab = 'gifts' }) => {
+  const {
+    currentUser,
+    customerOrders,
+    events,
+    setCheckoutEvent,
+    setCurrentPage,
+    setIsAuthModalOpen,
+    showToast,
+    language,
+  } = useApp();
   const isEn = language === 'en';
 
-  const [activeTab, setActiveTab] = useState<RewardsTab>('points');
+  const [activeTab, setActiveTab] = useState<RewardsTab>(initialTab);
   const [pointsState, setPointsState] = useState(() => loadUserPointsState(currentUser));
   const [copiedCode, setCopiedCode] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
+  const [revealedSurprise, setRevealedSurprise] = useState<ClaimedFlashOffer | null>(null);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  useEffect(() => {
+    const timer = setInterval(() => setElapsed((prev) => prev + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Formulaire de complétion de profil (50 pts)
   const [profileCity, setProfileCity] = useState(pointsState.profileDetails?.city || 'Abidjan');
@@ -117,16 +238,104 @@ export const RewardsHubView: React.FC = () => {
     [currentUser, customerOrders, pointsState]
   );
 
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const alreadyClaimedToday = pointsState.lastSurpriseClaimDate === todayKey;
+  const nextConcert = events.find((e) => e.status === 'published') || events[0] || null;
+
   const persist = (next: typeof pointsState) => {
     setPointsState(next);
     saveUserPointsState(currentUser, next);
+  };
+
+  const handleClaimFlash = (offer: FlashOffer) => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      showToast(
+        isEn ? 'Sign in to reserve a flash offer.' : 'Connectez-vous pour réserver une vente flash.',
+        'info'
+      );
+      return;
+    }
+    const existing = pointsState.claimedFlashOffers.find((c) => c.offerId === offer.id);
+    if (existing) {
+      showToast(
+        isEn ? `Offer already reserved (${existing.code}).` : `Offre déjà réservée (code : ${existing.code}).`,
+        'info'
+      );
+      return;
+    }
+    const code = `${offer.codePrefix}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const claimed: ClaimedFlashOffer = {
+      id: `fl_${Date.now()}`,
+      offerId: offer.id,
+      title: isEn ? offer.titleEn : offer.titleFr,
+      code,
+      claimedAt: new Date().toISOString(),
+      type: 'flash_sale',
+      detail: `${offer.flashPrice.toLocaleString('fr-FR')} F CFA`,
+    };
+    persist({
+      ...pointsState,
+      claimedFlashOffers: [claimed, ...pointsState.claimedFlashOffers],
+    });
+    showToast(
+      isEn ? `Flash deal reserved! Code: ${code}` : `Vente flash réservée ! Code : ${code}`,
+      'success'
+    );
+  };
+
+  const handleUnlockSurprise = () => {
+    if (!currentUser) {
+      setIsAuthModalOpen(true);
+      showToast(
+        isEn
+          ? 'Sign in to unlock your surprise gift.'
+          : 'Connectez-vous pour débloquer votre cadeau surprise.',
+        'info'
+      );
+      return;
+    }
+    if (alreadyClaimedToday) {
+      showToast(
+        isEn
+          ? 'You already unlocked today’s surprise gift. Come back tomorrow!'
+          : 'Vous avez déjà ouvert votre cadeau surprise aujourd’hui. Revenez demain !',
+        'info'
+      );
+      return;
+    }
+    const pick = SURPRISE_POOL[Math.floor(Math.random() * SURPRISE_POOL.length)];
+    const code = `LMR-SURP-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const entry: ClaimedFlashOffer = {
+      id: `surp_${Date.now()}`,
+      offerId: `surprise_${todayKey}`,
+      title: isEn ? pick.titleEn : pick.titleFr,
+      code,
+      claimedAt: new Date().toISOString(),
+      type: 'surprise',
+      detail: isEn ? pick.detailEn : pick.detailFr,
+    };
+    persist({
+      ...pointsState,
+      bonusSurprisePoints: pointsState.bonusSurprisePoints + pick.points,
+      lastSurpriseClaimDate: todayKey,
+      claimedFlashOffers: [entry, ...pointsState.claimedFlashOffers],
+    });
+    setRevealedSurprise(entry);
+    showToast(
+      isEn ? `Gift unlocked: ${pick.titleEn}` : `Surprise débloquée : ${pick.titleFr}`,
+      'success'
+    );
   };
 
   const handleSaveProfileBonus = (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) {
       setIsAuthModalOpen(true);
-      showToast(isEn ? 'Sign in to earn your profile points.' : 'Connectez-vous pour enregistrer vos points de profil.', 'info');
+      showToast(
+        isEn ? 'Sign in to earn your profile points.' : 'Connectez-vous pour enregistrer vos points de profil.',
+        'info'
+      );
       return;
     }
     const alreadyDone = pointsState.completedChallenges.includes('challenge_profile_full');
@@ -145,8 +354,12 @@ export const RewardsHubView: React.FC = () => {
     persist(next);
     showToast(
       alreadyDone
-        ? (isEn ? 'Member profile updated.' : 'Profil membre mis à jour.')
-        : (isEn ? '+50 points added for completing your profile.' : '+50 points crédités pour votre profil complet !'),
+        ? isEn
+          ? 'Member profile updated.'
+          : 'Profil membre mis à jour.'
+        : isEn
+        ? '+50 points added for completing your profile.'
+        : '+50 points crédités pour votre profil complet !',
       'success'
     );
   };
@@ -154,7 +367,10 @@ export const RewardsHubView: React.FC = () => {
   const handleRedeem = (item: RewardCatalogItem) => {
     if (!currentUser) {
       setIsAuthModalOpen(true);
-      showToast(isEn ? 'Sign in to redeem your points.' : 'Connectez-vous pour échanger vos points.', 'info');
+      showToast(
+        isEn ? 'Sign in to redeem your points.' : 'Connectez-vous pour échanger vos points.',
+        'info'
+      );
       return;
     }
     if (summary.availablePoints < item.pointsCost) {
@@ -188,9 +404,7 @@ export const RewardsHubView: React.FC = () => {
     };
     persist(next);
     showToast(
-      isEn
-        ? `Reward unlocked! Voucher code: ${code}`
-        : `Récompense obtenue ! Code bon : ${code}`,
+      isEn ? `Reward unlocked! Voucher code: ${code}` : `Récompense obtenue ! Code bon : ${code}`,
       'success'
     );
   };
@@ -213,7 +427,8 @@ export const RewardsHubView: React.FC = () => {
     const shareText = isEn
       ? `Join LUMARÉEL with my code ${myReferralCode} and get 500 FCFA ticketing credit on your first concert ticket.`
       : `Rejoins LUMARÉEL avec mon code ${myReferralCode} et reçois 500 F CFA de crédit billetterie dès ton premier achat !`;
-    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/?ref=${encodeURIComponent(myReferralCode)}` : '';
+    const shareUrl =
+      typeof window !== 'undefined' ? `${window.location.origin}/?ref=${encodeURIComponent(myReferralCode)}` : '';
 
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
@@ -242,20 +457,32 @@ export const RewardsHubView: React.FC = () => {
     e.preventDefault();
     if (!currentUser) {
       setIsAuthModalOpen(true);
-      showToast(isEn ? 'Create an account to claim your 500 FCFA referral credit.' : 'Créez un compte pour activer vos 500 F CFA de crédit.', 'info');
+      showToast(
+        isEn ? 'Create an account to claim your 500 FCFA referral credit.' : 'Créez un compte pour activer vos 500 F CFA de crédit.',
+        'info'
+      );
       return;
     }
     const clean = friendCodeInput.trim().toUpperCase();
     if (!clean || clean.length < 5) {
-      showToast(isEn ? 'Enter a valid referral code (e.g. LMR-KOFFI124).' : 'Saisissez un code de parrainage valide (ex : LMR-KOFFI124).', 'error');
+      showToast(
+        isEn ? 'Enter a valid referral code (e.g. LMR-KOFFI124).' : 'Saisissez un code de parrainage valide (ex : LMR-KOFFI124).',
+        'error'
+      );
       return;
     }
     if (clean === myReferralCode) {
-      showToast(isEn ? 'You cannot use your own referral code.' : 'Vous ne pouvez pas utiliser votre propre code de parrainage.', 'error');
+      showToast(
+        isEn ? 'You cannot use your own referral code.' : 'Vous ne pouvez pas utiliser votre propre code de parrainage.',
+        'error'
+      );
       return;
     }
     if (pointsState.appliedReferralCode) {
-      showToast(isEn ? 'A referral code has already been applied to your account.' : 'Un code de parrainage est déjà actif sur votre compte.', 'info');
+      showToast(
+        isEn ? 'A referral code has already been applied to your account.' : 'Un code de parrainage est déjà actif sur votre compte.',
+        'info'
+      );
       return;
     }
     const next = {
@@ -339,20 +566,20 @@ export const RewardsHubView: React.FC = () => {
   const appChallenges = [
     {
       id: 'challenge_suggestion',
-      titleFr: 'Proposer un artiste dans la Boîte à suggestions',
-      titleEn: 'Suggest an artist in the Suggestion Box',
+      titleFr: 'Proposer un artiste ou une idée dans Ta Voix',
+      titleEn: 'Suggest an artist or idea in Your Voice',
       points: POINTS_RULES.APP_CHALLENGE_SUGGESTION,
-      actionLabelFr: 'Proposer',
-      actionLabelEn: 'Suggest',
+      actionLabelFr: 'Ouvrir Ta Voix',
+      actionLabelEn: 'Open Your Voice',
       targetPage: 'suggestions' as const,
     },
     {
       id: 'challenge_memory',
-      titleFr: 'Partager une photo ou vidéo dans Souvenirs de concerts',
-      titleEn: 'Share a photo or video in Concert Memories',
+      titleFr: 'Partager une photo ou vidéo dans Mes Moments',
+      titleEn: 'Share a photo or video in My Moments',
       points: POINTS_RULES.APP_CHALLENGE_MEMORY,
-      actionLabelFr: 'Partager',
-      actionLabelEn: 'Share',
+      actionLabelFr: 'Ouvrir Mes Moments',
+      actionLabelEn: 'Open My Moments',
       targetPage: 'memories' as const,
     },
     {
@@ -371,17 +598,17 @@ export const RewardsHubView: React.FC = () => {
       {/* En-tête éditorial */}
       <header className="mb-8 pb-6 border-b border-white/10">
         <p className="text-xs tracking-[0.2em] text-[#D4AF37] uppercase mb-2">
-          {isEn ? 'LUMARÉEL Club · Loyalty & Referrals' : 'Club LUMARÉEL · Fidélité & Parrainage'}
+          {isEn ? 'LUMARÉEL Club · Gifts, Loyalty & Referrals' : 'Club LUMARÉEL · Cadeaux, Fidélité & Parrainage'}
         </p>
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="max-w-2xl">
             <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-tight text-white leading-[1.02] text-balance">
-              {isEn ? 'Points, Rewards & Referrals' : 'Points, Récompenses & Parrainage'}
+              {isEn ? 'Gifts, Points & Referrals' : 'Gifts, Points & Parrainage'}
             </h1>
             <p className="text-sm sm:text-base text-neutral-400 mt-3 leading-relaxed">
               {isEn
-                ? 'Earn points every time you book, attend a concert, invite friends, complete challenges, or hold a LUMARÉEL Black Card.'
-                : 'Cumulez des points à chaque billet acheté, concert scanné, défi relevé, ami parrainé ou abonnement LUMARÉEL Black Card.'}
+                ? 'Unlock daily surprises and flash drops, collect loyalty points on every show, and earn 500 FCFA for each friend you invite.'
+                : 'Débloquez vos surprises du jour et ventes flash, cumulez des points à chaque concert et gagnez 500 F CFA par ami parrainé.'}
             </p>
           </div>
 
@@ -392,7 +619,8 @@ export const RewardsHubView: React.FC = () => {
                 {isEn ? 'Available balance' : 'Solde disponible'}
               </div>
               <div className="text-3xl sm:text-4xl font-agrandir-extrabold text-[#D4AF37] tabular-nums leading-tight mt-0.5">
-                {summary.availablePoints.toLocaleString('fr-FR')} <span className="text-base text-neutral-300 font-agrandir-semibold">pts</span>
+                {summary.availablePoints.toLocaleString('fr-FR')}{' '}
+                <span className="text-base text-neutral-300 font-agrandir-semibold">pts</span>
               </div>
             </div>
             <div className="h-10 w-px bg-white/10 hidden sm:block" />
@@ -401,7 +629,8 @@ export const RewardsHubView: React.FC = () => {
                 {isEn ? 'Ticketing credit' : 'Crédit billetterie'}
               </div>
               <div className="text-2xl sm:text-3xl font-agrandir-extrabold text-white tabular-nums leading-tight mt-0.5">
-                {summary.ticketingCreditFcfa.toLocaleString('fr-FR')} <span className="text-sm text-neutral-400">F CFA</span>
+                {summary.ticketingCreditFcfa.toLocaleString('fr-FR')}{' '}
+                <span className="text-sm text-neutral-400">F CFA</span>
               </div>
             </div>
           </div>
@@ -411,8 +640,9 @@ export const RewardsHubView: React.FC = () => {
       {/* Navigation par onglets fonctionnels */}
       <div className="flex items-center gap-1 p-1 rounded-2xl bg-[#111111] border border-white/10 w-full sm:w-fit mb-8 overflow-x-auto">
         {[
-          { id: 'points' as const, labelFr: 'Mes points & Défis', labelEn: 'Points & Challenges' },
-          { id: 'exchange' as const, labelFr: 'Échanger mes points', labelEn: 'Redeem Rewards' },
+          { id: 'gifts' as const, labelFr: 'Gifts & Ventes Flash', labelEn: 'Gifts & Flash Sales' },
+          { id: 'points' as const, labelFr: 'Points & Défis', labelEn: 'Points & Challenges' },
+          { id: 'exchange' as const, labelFr: 'Échanger', labelEn: 'Redeem' },
           { id: 'referral' as const, labelFr: 'Parrainage · 500 F CFA', labelEn: 'Referrals · 500 FCFA' },
         ].map((tab) => {
           const active = activeTab === tab.id;
@@ -422,9 +652,7 @@ export const RewardsHubView: React.FC = () => {
               type="button"
               onClick={() => setActiveTab(tab.id)}
               className={`min-h-[44px] px-4 py-2 rounded-xl text-xs sm:text-sm font-agrandir-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                active
-                  ? 'bg-white text-black'
-                  : 'text-neutral-400 hover:text-white'
+                active ? 'bg-white text-black' : 'text-neutral-400 hover:text-white'
               }`}
             >
               {isEn ? tab.labelEn : tab.labelFr}
@@ -434,7 +662,204 @@ export const RewardsHubView: React.FC = () => {
       </div>
 
       {/* ===================================================================== */}
-      {/* ONGLET 1 : MES POINTS, BARÈME & DÉFIS                                 */}
+      {/* ONGLET 1 : GIFTS SURPRISES & VENTES FLASH                             */}
+      {/* ===================================================================== */}
+      {activeTab === 'gifts' && (
+        <div className="space-y-10">
+          {/* Bloc Cadeau Surprise du jour */}
+          <section className="rounded-3xl bg-[#0e0e0e] border border-[#D4AF37]/30 p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <div className="lg:col-span-8 space-y-2.5">
+              <div className="flex items-center gap-2 text-xs text-[#D4AF37] font-agrandir-bold uppercase tracking-wider">
+                <Gift className="w-4 h-4" />
+                <span>{isEn ? 'Member Surprise Gift' : 'Gift Surprise Membre'}</span>
+              </div>
+              <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white leading-tight">
+                {alreadyClaimedToday
+                  ? isEn
+                    ? 'Today’s surprise gift has been unlocked.'
+                    : 'Votre surprise du jour est débloquée.'
+                  : isEn
+                  ? 'Open your surprise gift right now.'
+                  : 'Débloquez votre cadeau surprise du jour.'}
+              </h2>
+              <p className="text-sm text-neutral-400 max-w-xl leading-relaxed">
+                {revealedSurprise
+                  ? `${revealedSurprise.title} — ${revealedSurprise.detail} (${revealedSurprise.code})`
+                  : isEn
+                  ? 'Bonus loyalty points, instant ticketing discounts, or partner drink vouchers — revealed in one tap.'
+                  : 'Points fidélité bonus, réductions billetterie immédiates ou invitations boisson partenaires révélés en un geste.'}
+              </p>
+            </div>
+
+            <div className="lg:col-span-4 flex lg:justify-end">
+              <button
+                type="button"
+                onClick={handleUnlockSurprise}
+                disabled={alreadyClaimedToday}
+                className={`w-full lg:w-auto min-h-[48px] px-7 rounded-2xl font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 ${
+                  alreadyClaimedToday
+                    ? 'bg-white/10 text-neutral-400 cursor-not-allowed'
+                    : 'bg-[#D4AF37] hover:bg-[#e6c252] text-black cursor-pointer'
+                }`}
+              >
+                {alreadyClaimedToday ? <CheckCircle2 className="w-4 h-4" /> : <Gift className="w-4 h-4" />}
+                <span>
+                  {alreadyClaimedToday
+                    ? isEn
+                      ? 'Unlocked today'
+                      : 'Déjà ouverte aujourd’hui'
+                    : isEn
+                    ? 'Reveal my gift'
+                    : 'Ouvrir ma surprise'}
+                </span>
+              </button>
+            </div>
+          </section>
+
+          {/* Ventes Flash en cours */}
+          <section>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-agrandir-extrabold text-xl text-white">
+                {isEn ? 'Active flash sales' : 'Ventes flash en cours'}
+              </h2>
+              <span className="text-xs text-neutral-400">
+                {isEn ? 'Limited stock' : 'Stocks limités'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {FLASH_OFFERS.map((offer) => {
+                const claimed = pointsState.claimedFlashOffers.find((c) => c.offerId === offer.id);
+                const secondsLeft = Math.max(0, offer.endsInSeconds - elapsed);
+                return (
+                  <article
+                    key={offer.id}
+                    className="rounded-3xl overflow-hidden bg-[#0e0e0e] border border-white/10 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="aspect-[4/3] relative bg-black overflow-hidden">
+                        <img
+                          src={offer.image}
+                          alt={isEn ? offer.titleEn : offer.titleFr}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                        <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-xs">
+                          <span className="font-agrandir-bold text-[#D4AF37]">
+                            {isEn ? offer.discountLabelEn : offer.discountLabelFr}
+                          </span>
+                          <span className="font-mono text-white tabular-nums flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5 text-[#D4AF37]" />
+                            {formatTimer(secondsLeft)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-5 space-y-3">
+                        <h3 className="font-agrandir-extrabold text-base text-white leading-snug">
+                          {isEn ? offer.titleEn : offer.titleFr}
+                        </h3>
+                        <p className="text-xs text-neutral-400 leading-relaxed">
+                          {isEn ? offer.descEn : offer.descFr}
+                        </p>
+                        <div className="flex items-baseline gap-2.5 pt-1">
+                          <span className="text-xl font-agrandir-extrabold text-white tabular-nums">
+                            {offer.flashPrice.toLocaleString('fr-FR')} F CFA
+                          </span>
+                          <span className="text-xs text-neutral-500 line-through tabular-nums">
+                            {offer.originalPrice.toLocaleString('fr-FR')} F CFA
+                          </span>
+                        </div>
+                        <div className="text-xs text-neutral-400 tabular-nums">
+                          {isEn
+                            ? `${offer.remaining} of ${offer.total} remaining`
+                            : `${offer.remaining} restants sur ${offer.total}`}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="px-5 pb-5 space-y-2">
+                      <button
+                        type="button"
+                        onClick={() => handleClaimFlash(offer)}
+                        className={`w-full min-h-[44px] rounded-xl text-xs font-agrandir-extrabold uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer ${
+                          claimed
+                            ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                            : 'bg-white hover:bg-neutral-200 text-black'
+                        }`}
+                      >
+                        {claimed ? <CheckCircle2 className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+                        <span>
+                          {claimed
+                            ? `${isEn ? 'Reserved' : 'Réservé'} · ${claimed.code}`
+                            : isEn
+                            ? 'Claim flash deal'
+                            : 'Profiter de la vente flash'}
+                        </span>
+                      </button>
+                      {claimed && nextConcert && (
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutEvent(nextConcert)}
+                          className="w-full min-h-[40px] rounded-xl border border-white/15 hover:border-white/30 text-xs text-neutral-300 hover:text-white flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Ticket className="w-3.5 h-3.5" />
+                          <span>{isEn ? 'Book concert now' : 'Utiliser sur un concert'}</span>
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Mes codes flash & surprises enregistrés */}
+          <section className="rounded-3xl bg-[#0e0e0e] border border-white/10 p-6 sm:p-7">
+            <h2 className="font-agrandir-extrabold text-lg text-white mb-4">
+              {isEn ? 'Your reserved gifts & flash deals' : 'Vos gifts et ventes flash réservés'}
+            </h2>
+            {pointsState.claimedFlashOffers.length === 0 ? (
+              <p className="text-sm text-neutral-400">
+                {isEn
+                  ? 'Nothing claimed yet. Unlock your daily surprise gift or reserve a flash offer above.'
+                  : 'Aucune offre réservée pour le moment. Ouvrez votre surprise du jour ou sélectionnez une vente flash ci-dessus.'}
+              </p>
+            ) : (
+              <div className="divide-y divide-white/8">
+                {pointsState.claimedFlashOffers.map((item) => (
+                  <div key={item.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-agrandir-bold text-white">{item.title}</div>
+                      <div className="text-xs text-neutral-400 mt-0.5">{item.detail}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="px-3 py-1.5 rounded-lg bg-black border border-[#D4AF37]/30 font-mono text-xs text-[#D4AF37]">
+                        {item.code}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await navigator.clipboard?.writeText(item.code).catch(() => {});
+                          showToast(isEn ? 'Code copied.' : 'Code copié.', 'success');
+                        }}
+                        className="min-h-[40px] min-w-[40px] rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white cursor-pointer"
+                        aria-label={isEn ? 'Copy code' : 'Copier le code'}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* ONGLET 2 : MES POINTS, BARÈME & DÉFIS                                 */}
       {/* ===================================================================== */}
       {activeTab === 'points' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -471,7 +896,8 @@ export const RewardsHubView: React.FC = () => {
                   {isEn ? 'In-app challenges' : 'Défis de l’application'}
                 </h2>
                 <span className="text-xs text-neutral-400 tabular-nums">
-                  {pointsState.completedChallenges.length} / {appChallenges.length + 1} {isEn ? 'completed' : 'validés'}
+                  {pointsState.completedChallenges.length} / {appChallenges.length + 1}{' '}
+                  {isEn ? 'completed' : 'validés'}
                 </span>
               </div>
 
@@ -485,7 +911,14 @@ export const RewardsHubView: React.FC = () => {
                           {isEn ? ch.titleEn : ch.titleFr}
                         </div>
                         <div className="text-xs text-neutral-400 mt-0.5 tabular-nums">
-                          +{ch.points} pts · {done ? (isEn ? 'Completed' : 'Validé') : (isEn ? 'Available now' : 'Disponible')}
+                          +{ch.points} pts ·{' '}
+                          {done
+                            ? isEn
+                              ? 'Completed'
+                              : 'Validé'
+                            : isEn
+                            ? 'Available now'
+                            : 'Disponible'}
                         </div>
                       </div>
                       {done ? (
@@ -564,8 +997,12 @@ export const RewardsHubView: React.FC = () => {
                   className="w-full min-h-[44px] rounded-xl bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   {pointsState.completedChallenges.includes('challenge_profile_full')
-                    ? (isEn ? 'Update profile' : 'Mettre à jour le profil')
-                    : (isEn ? 'Save & claim +50 pts' : 'Valider et recevoir +50 pts')}
+                    ? isEn
+                      ? 'Update profile'
+                      : 'Mettre à jour le profil'
+                    : isEn
+                    ? 'Save & claim +50 pts'
+                    : 'Valider et recevoir +50 pts'}
                 </button>
               </form>
             </section>
@@ -630,7 +1067,7 @@ export const RewardsHubView: React.FC = () => {
       )}
 
       {/* ===================================================================== */}
-      {/* ONGLET 2 : CATALOGUE D'ÉCHANGE DE POINTS                              */}
+      {/* ONGLET 3 : CATALOGUE D'ÉCHANGE DE POINTS                              */}
       {/* ===================================================================== */}
       {activeTab === 'exchange' && (
         <div className="space-y-10">
@@ -667,10 +1104,12 @@ export const RewardsHubView: React.FC = () => {
                     }`}
                   >
                     {canAfford
-                      ? (isEn ? 'Redeem now' : 'Échanger maintenant')
-                      : (isEn
-                          ? `Need ${item.pointsCost - summary.availablePoints} pts`
-                          : `Encore ${item.pointsCost - summary.availablePoints} pts`)}
+                      ? isEn
+                        ? 'Redeem now'
+                        : 'Échanger maintenant'
+                      : isEn
+                      ? `Need ${item.pointsCost - summary.availablePoints} pts`
+                      : `Encore ${item.pointsCost - summary.availablePoints} pts`}
                   </button>
                 </article>
               );
@@ -723,7 +1162,7 @@ export const RewardsHubView: React.FC = () => {
       )}
 
       {/* ===================================================================== */}
-      {/* ONGLET 3 : SYSTÈME DE PARRAINAGE (500 F CFA CHACUN + 200 PTS)          */}
+      {/* ONGLET 4 : SYSTÈME DE PARRAINAGE (500 F CFA CHACUN + 200 PTS)          */}
       {/* ===================================================================== */}
       {activeTab === 'referral' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -752,7 +1191,7 @@ export const RewardsHubView: React.FC = () => {
                     className="min-h-[40px] px-3 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-agrandir-bold text-white flex items-center gap-1.5 cursor-pointer"
                   >
                     {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedCode ? (isEn ? 'Copied' : 'Copié') : (isEn ? 'Copy' : 'Copier')}</span>
+                    <span>{copiedCode ? (isEn ? 'Copied' : 'Copié') : isEn ? 'Copy' : 'Copier'}</span>
                   </button>
                 </div>
 
@@ -845,12 +1284,20 @@ export const RewardsHubView: React.FC = () => {
                         <div className="text-sm font-agrandir-bold text-white">{ref.friendName}</div>
                         <div className="text-xs text-neutral-400">
                           {ref.status === 'purchased'
-                            ? (isEn ? 'First ticket purchased · +500 FCFA & +200 pts' : '1er achat validé · +500 F CFA & +200 pts')
-                            : (isEn ? 'Invited · Waiting for first ticket purchase' : 'Invité · En attente du premier achat')}
+                            ? isEn
+                              ? 'First ticket purchased · +500 FCFA & +200 pts'
+                              : '1er achat validé · +500 F CFA & +200 pts'
+                            : isEn
+                            ? 'Invited · Waiting for first ticket purchase'
+                            : 'Invité · En attente du premier achat'}
                         </div>
                       </div>
-                      <span className={`text-xs font-mono ${ref.status === 'purchased' ? 'text-emerald-400' : 'text-neutral-400'}`}>
-                        {ref.status === 'purchased' ? '+500 F CFA' : (isEn ? 'Pending' : 'En cours')}
+                      <span
+                        className={`text-xs font-mono ${
+                          ref.status === 'purchased' ? 'text-emerald-400' : 'text-neutral-400'
+                        }`}
+                      >
+                        {ref.status === 'purchased' ? '+500 F CFA' : isEn ? 'Pending' : 'En cours'}
                       </span>
                     </div>
                   ))}

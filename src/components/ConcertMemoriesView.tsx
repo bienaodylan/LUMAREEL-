@@ -175,7 +175,7 @@ export const ConcertMemoriesView: React.FC = () => {
             className="min-h-[44px] inline-flex items-center gap-2 text-xs sm:text-sm font-agrandir-bold text-neutral-300 hover:text-white transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>{isEn ? 'All concert memories' : 'Tous les souvenirs de concerts'}</span>
+            <span>{isEn ? 'Back to My Moments' : 'Retour à Mes Moments'}</span>
           </button>
 
           <button
@@ -500,15 +500,15 @@ export const ConcertMemoriesView: React.FC = () => {
     <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
       <header className="mb-8 pb-6 border-b border-white/10">
         <p className="text-xs tracking-[0.2em] text-[#D4AF37] uppercase mb-2">
-          {isEn ? 'After the Show · Official Albums' : 'Après le Concert · Albums Officiels'}
+          {isEn ? 'After the Show · Concert Memories' : 'Après le Concert · Souvenirs Officiels'}
         </p>
         <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-tight text-white leading-[1.02] text-balance">
-          {isEn ? 'Concert Memories' : 'Souvenirs de Concerts'}
+          {isEn ? 'My Moments' : 'Mes Moments'}
         </h1>
         <p className="text-sm sm:text-base text-neutral-400 mt-3 max-w-2xl leading-relaxed">
           {isEn
-            ? 'Every event gets its own dedicated memory page: official photos, best moments, recap videos, one-tap downloads, and fan photo/video sharing.'
-            : 'Après chaque concert, retrouvez la page dédiée de l’événement : photographies officielles, meilleurs moments, vidéos récapitulatives, téléchargement et partage entre participants.'}
+            ? 'Relive every concert with its dedicated album: official photos, best moments, recap videos, one-tap downloads, and community sharing.'
+            : 'Revivez chaque concert avec sa page dédiée : photographies officielles, meilleurs moments, vidéos récapitulatives, téléchargement et partage entre participants.'}
         </p>
       </header>
 

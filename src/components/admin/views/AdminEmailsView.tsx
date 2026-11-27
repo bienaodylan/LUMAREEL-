@@ -39,7 +39,7 @@ export const AdminEmailsView: React.FC<AdminEmailsViewProps> = ({ emails }) => {
       {/* 1. Header Toolbar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="text-[10px] font-agrandir-semibold tracking-[0.25em] text-[#d4af37] uppercase mb-1">
+          <div className="text-[10px] font-agrandir-semibold tracking-[0.25em] text-white uppercase mb-1">
             NOTIFICATIONS CLIENTS &amp; AUDIT TRANSACTIONNEL
           </div>
           <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight uppercase">
@@ -95,11 +95,11 @@ export const AdminEmailsView: React.FC<AdminEmailsViewProps> = ({ emails }) => {
                     <td className="py-4 px-4 max-w-sm">
                       <div className="font-agrandir-bold text-white truncate">{eml.subject}</div>
                       {eml.orderRef && (
-                        <div className="text-[10px] font-mono text-[#d4af37]">Réf : {eml.orderRef}</div>
+                        <div className="text-[10px] font-mono text-white">Réf : {eml.orderRef}</div>
                       )}
                     </td>
                     <td className="py-4 px-4">
-                      <span className="text-[#d4af37] text-[10px] uppercase tracking-wider font-agrandir-bold px-2 py-0.5 rounded-full bg-[#d4af37]/10 border border-[#d4af37]/20">
+                      <span className="text-white text-[10px] uppercase tracking-wider font-agrandir-bold px-2 py-0.5 rounded-full bg-white/10 border border-white/20">
                         {eml.type === 'ticket_confirmation' ? 'Confirmation Billet' : eml.type}
                       </span>
                     </td>
@@ -120,7 +120,7 @@ export const AdminEmailsView: React.FC<AdminEmailsViewProps> = ({ emails }) => {
                         }}
                         className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-white font-agrandir-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5"
                       >
-                        <Eye className="w-3 h-3 text-[#d4af37]" />
+                        <Eye className="w-3 h-3 text-white" />
                         <span>Consulter</span>
                       </button>
                     </td>
@@ -141,8 +141,8 @@ export const AdminEmailsView: React.FC<AdminEmailsViewProps> = ({ emails }) => {
             <div className="border-b border-white/10 pb-4 flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
-                  <span className="text-[10px] font-agrandir-bold tracking-widest text-[#d4af37] uppercase">
+                  <Sparkles className="w-3.5 h-3.5 text-white" />
+                  <span className="text-[10px] font-agrandir-bold tracking-widest text-white uppercase">
                     APERÇU EMAIL TRANSACTIONNEL PERSONNALISÉ
                   </span>
                 </div>
@@ -166,7 +166,7 @@ export const AdminEmailsView: React.FC<AdminEmailsViewProps> = ({ emails }) => {
               </div>
               <div>
                 <span className="text-[#666] block text-[10px] uppercase">Référence</span>
-                <span className="font-mono text-[#d4af37] font-bold">{selectedEmail.orderRef || 'N/A'}</span>
+                <span className="font-mono text-white font-bold">{selectedEmail.orderRef || 'N/A'}</span>
               </div>
               <div>
                 <span className="text-[#666] block text-[10px] uppercase">Horodatage d'envoi</span>
@@ -223,7 +223,7 @@ export const AdminEmailsView: React.FC<AdminEmailsViewProps> = ({ emails }) => {
                 type="button"
                 onClick={() => handleResend(selectedEmail)}
                 disabled={isResending}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-[#d4af37]/10 hover:bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#d4af37] font-agrandir-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/40 text-white font-agrandir-semibold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>{isResending ? 'Envoi en cours...' : 'Renvoyer l’email au client'}</span>
