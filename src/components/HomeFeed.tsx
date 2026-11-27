@@ -7,9 +7,7 @@ import {
   ChevronRight,
   Clapperboard,
   Gift,
-  Image as ImageIcon,
   Mic2,
-  Play,
   Ticket,
 } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
@@ -19,7 +17,6 @@ export const HomeFeed: React.FC = () => {
     events,
     setCurrentPage,
     setCheckoutEvent,
-    archives,
     currentUser,
     setIsAuthModalOpen,
     showToast,
@@ -364,92 +361,6 @@ export const HomeFeed: React.FC = () => {
         </div>
       </section>
 
-      {/* =========================================================================
-          3. SECTION : ARCHIVES
-         ========================================================================= */}
-      <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-14 sm:pt-20">
-        <div className="mb-6 pb-4 border-b border-white/10 flex items-center justify-between">
-          <div>
-            <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight uppercase">
-              {t('home.archives')}
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => setCurrentPage('archive')}
-            aria-label={t('home.archives')}
-            className="w-9 h-9 rounded-full border border-white/15 hover:border-white text-neutral-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer bg-white/5 shadow-sm"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 sm:gap-5 pb-5 scrollbar-none md:grid md:grid-cols-3 md:gap-6">
-          {(archives || []).slice(0, 3).map((item) => {
-            const safeCover =
-              item.coverImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg';
-            return (
-              <div
-                key={item.id}
-                onClick={() => setCurrentPage('archive')}
-                className="w-[76vw] sm:w-[320px] md:w-auto shrink-0 snap-start group cursor-pointer flex flex-col justify-between"
-              >
-                <div className="aspect-[16/9] w-full rounded-2xl sm:rounded-3xl overflow-hidden relative bg-[#111111] border border-white/15 group-hover:border-white/40 transition-all duration-300 shadow-xl group-hover:scale-[1.02]">
-                  <img
-                    src={safeCover}
-                    alt={item.title}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover object-center filter brightness-[0.88] group-hover:brightness-100 group-hover:scale-105 transition-all duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full bg-white/20 hover:bg-white text-white hover:text-black backdrop-blur-md border border-white/30 flex items-center justify-center transition-all duration-300 shadow-2xl group-hover:scale-110">
-                      <Play className="w-5 h-5 ml-0.5 fill-current" />
-                    </div>
-                  </div>
-                  <div className="absolute bottom-3 right-3">
-                    <span className="px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md text-[10px] font-mono text-white border border-white/20 uppercase font-semibold">
-                      {item.duration || t('home.liveHd')}
-                    </span>
-                  </div>
-                  <div className="absolute top-3 left-3">
-                    <span className="px-2.5 py-0.5 rounded-full bg-black/70 backdrop-blur-md text-[9px] font-agrandir-semibold text-[#d4af37] border border-white/15 uppercase tracking-wider">
-                      {t('home.videoRecap')}
-                    </span>
-                  </div>
-                </div>
-                <div className="pt-3 px-1">
-                  <div className="text-[10px] font-agrandir-regular text-[#888] uppercase tracking-wider flex items-center gap-2 mb-1">
-                    <strong className="font-agrandir-extrabold text-white">
-                      {item.date ? formatDateLong(item.date, language) : item.year}
-                    </strong>
-                    <span>·</span>
-                    <strong className="font-agrandir-extrabold text-white truncate">{item.venue}</strong>
-                  </div>
-                  <h3 className="font-agrandir-extrabold text-base text-white uppercase tracking-tight group-hover:text-white transition-colors truncate">
-                    {item.title}
-                  </h3>
-                  <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setCurrentPage('archive');
-                      }}
-                      className="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-[#d4af37] text-[10px] font-agrandir-semibold uppercase tracking-wider flex items-center gap-1.5 border border-[#d4af37]/30 transition-colors cursor-pointer"
-                    >
-                      <ImageIcon className="w-3.5 h-3.5 text-[#d4af37]" />
-                      <span>{t('home.viewImages')}</span>
-                    </button>
-                    <span className="text-[10px] text-[#777] font-agrandir-regular">
-                      {item.duration || t('home.liveHd')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
     </div>
   );
 };
