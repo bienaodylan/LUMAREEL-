@@ -27,7 +27,17 @@ const getBody = (req: VercelRequest) => typeof req.body === 'string' ? JSON.pars
 async function listSubscriptions(db: any) {
   const { data, error } = await db.from('tv_subscriptions').select('*').order('created_at', { ascending: false }).limit(500);
   if (error) throw error;
-  return (data || []).map(mapSubscription);
+  const rows = data || [];
+  const expiredIds = rows
+    .filter((row: any) => row.status === 'active' && row.expires_at && Date.parse(row.expires_at) <= Date.now())
+    .map((row: any) => row.id);
+  if (expiredIds.length) {
+    const { error: expiryError } = await db.from('tv_subscriptions')
+      .update({ status: 'expired', updated_at: new Date().toISOString() })
+      .in('id', expiredIds);
+    if (expiryError) throw expiryError;
+  }
+  return rows.map((row: any) => mapSubscription(expiredIds.includes(row.id) ? { ...row, status: 'expired' } : row));
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
