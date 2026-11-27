@@ -32,7 +32,6 @@ export const ExplorerView: React.FC = () => {
   const {
     events,
     archives,
-    news,
     currentUser,
     customerOrders,
     setCurrentPage,
