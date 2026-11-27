@@ -45,6 +45,7 @@ export const CustomerSpace: React.FC = () => {
   const isEn = language === 'en';
   const [activeTab, setActiveTab] = useState<TicketsTab>('upcoming');
   const [selectedTicketForQr, setSelectedTicketForQr] = useState<Ticket | null>(null);
+  const [isQrExpanded, setIsQrExpanded] = useState(false);
   const [qrCodeDataUrls, setQrCodeDataUrls] = useState<Record<string, string>>({});
 
   // Transfert de billet réel côté serveur (BottomSheet dédié)
@@ -599,6 +600,7 @@ export const CustomerSpace: React.FC = () => {
               doorsLine={`${selectedTicketForQr.eventTime || '19:00'} · ${isEn ? 'Gate A' : 'Entrée A'}`}
               directionsUrl={buildDirectionsUrl(selectedTicketForQr.eventVenue)}
               isEn={isEn}
+              onOpenQrFullscreen={() => setIsQrExpanded(true)}
               onTransfer={() => openTransferModal(selectedTicketForQr)}
             />
             <div className="mt-3 grid grid-cols-2 gap-2.5">
@@ -606,6 +608,21 @@ export const CustomerSpace: React.FC = () => {
               <a href={`/api/customer/tickets/${selectedTicketForQr.token}/print`} target="_blank" rel="noreferrer" className="min-h-[46px] rounded-full bg-[#D4AF6A] text-black text-[11px] font-agrandir-extrabold inline-flex items-center justify-center gap-2"><Printer className="w-4 h-4" strokeWidth={1.6} /><span>{t('orders.print')}</span></a>
             </div>
           </div>
+          {isQrExpanded && (
+            <div className="fixed inset-0 z-[110] bg-black flex flex-col items-center justify-center p-6" onClick={() => setIsQrExpanded(false)}>
+              <button type="button" onClick={() => setIsQrExpanded(false)} className="absolute top-6 right-5 w-10 h-10 rounded-full border border-white/20 text-white flex items-center justify-center" aria-label={t('nav.close')}>
+                <X className="w-5 h-5" strokeWidth={1.6} />
+              </button>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-[#D4AF6A] font-agrandir-extrabold mb-5">{isEn ? 'PRESENT AT THE ENTRANCE' : 'À PRÉSENTER À L’ENTRÉE'}</p>
+              {qrCodeDataUrls[selectedTicketForQr.id] ? (
+                <div className="w-[min(82vw,420px)] aspect-square bg-white rounded-[22px] p-4" onClick={(e) => e.stopPropagation()}>
+                  <img src={qrCodeDataUrls[selectedTicketForQr.id]} alt={`QR ${selectedTicketForQr.serialNumber}`} className="w-full h-full object-contain" />
+                </div>
+              ) : <div className="w-72 aspect-square rounded-2xl bg-white/10 animate-pulse" />}
+              <p className="mt-5 text-xs font-mono tracking-[0.16em] text-white">N° {selectedTicketForQr.serialNumber}</p>
+              <p className="mt-2 text-[11px] text-[#999] text-center">{isEn ? 'Increase your screen brightness for scanning.' : 'Augmentez la luminosité de votre écran pour le scan.'}</p>
+            </div>
+          )}
         </div>
       )}
     </div>
