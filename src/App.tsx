@@ -20,6 +20,7 @@ import { RewardsHubView } from './components/RewardsHubView';
 import { BackstageView } from './components/BackstageView';
 import { MediaDetailView } from './components/MediaDetailView';
 import { ConcertMemoriesView } from './components/ConcertMemoriesView';
+import { ArchiveView } from './components/ArchiveView';
 import { SuggestionsView } from './components/SuggestionsView';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { usePWAInstall } from './hooks/usePWAInstall';
@@ -190,6 +191,8 @@ const MainApp: React.FC = () => {
             {currentPage === 'media_detail' && <MediaDetailView />}
             {currentPage === 'flash_drops' && <RewardsHubView initialTab="gifts" />}
             {currentPage === 'memories' && <ConcertMemoriesView />}
+            {currentPage === 'archives' && <ArchiveView />}
+            {currentPage === 'news' && <div className="mx-auto flex min-h-[65vh] max-w-4xl flex-col justify-center px-6 py-16"><p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">LUMARÉEL · ACTUALITÉS</p><h1 className="mt-3 text-3xl font-agrandir-extrabold text-white">Actualités</h1><p className="mt-3 max-w-xl text-sm leading-6 text-neutral-400">Les communiqués et annonces officielles seront publiés ici.</p></div>}
             {currentPage === 'suggestions' && <SuggestionsView />}
             {currentPage === 'gate_scanner' && <ScannerView />}
             {currentPage === 'admin' && <AdminDashboard />}
