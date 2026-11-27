@@ -733,14 +733,6 @@ async function startServer() {
           shippingAddress,
         };
       } else if (kind === 'tv_pass') {
-        if (!paymetrustService.isConfigured()) {
-          return res.status(503).json({
-            success: false,
-            code: 'PAYMENT_PROVIDER_NOT_CONFIGURED',
-            error:
-              'Le paiement réel PayMeTrust n’est pas encore configuré (PAYMETRUST_API_KEY / PAYMETRUST_SECRET_KEY). Aucun abonnement ne peut être activé sans confirmation réelle.',
-          });
-        }
         if (!resolvedEmail) {
           return res.status(400).json({
             success: false,
@@ -858,14 +850,6 @@ async function startServer() {
       const { reference } = req.body || {};
       if (!reference) {
         return res.status(400).json({ success: false, error: 'Référence de transaction requise.' });
-      }
-
-      const existingTx = paymetrustService.getTransaction(String(reference));
-      if (existingTx?.kind === 'tv_pass' || String(reference).startsWith('PMT-TV-')) {
-        return res.status(403).json({
-          success: false,
-          error: 'Aucun paiement simulé n’est autorisé pour LUMARÉEL TV Pass : une confirmation réelle est requise.',
-        });
       }
 
       const tx = paymetrustService.updateTransactionStatus(

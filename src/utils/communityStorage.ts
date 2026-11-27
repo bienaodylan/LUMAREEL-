@@ -8,6 +8,11 @@ import backstageStudioImg from '../assets/images/backstage_studio_session_179573
 import crowdArchiveImg from '../assets/images/black_card_concerts_crowd_1794694902084.jpg';
 import vipMezzanineImg from '../assets/images/black_card_vip_mezzanine_1794694903429.jpg';
 import loungeStageImg from '../assets/images/vip_lounge_empty_stage_1795099845090.jpg';
+import blackCardHeroBannerImg from '../assets/images/black_card_hero_banner_1795099705118.jpg';
+import blackCardHeroLoungeImg from '../assets/images/black_card_hero_lounge_top_1794694901310.jpg';
+import blackCardHeroNightImg from '../assets/images/black_card_hero_night_tall_1794694902515.jpg';
+import blackCardHeroPortraitImg from '../assets/images/black_card_hero_portrait_left_1794694901752.jpg';
+import darkCardHeroBackdropImg from '../assets/images/dark_card_hero_backdrop_1795099845525.jpg';
 
 export const COMMUNITY_MEDIA = {
   backstageSoundcheckImg,
@@ -17,6 +22,11 @@ export const COMMUNITY_MEDIA = {
   crowdArchiveImg,
   vipMezzanineImg,
   loungeStageImg,
+  blackCardHeroBannerImg,
+  blackCardHeroLoungeImg,
+  blackCardHeroNightImg,
+  blackCardHeroPortraitImg,
+  darkCardHeroBackdropImg,
 };
 
 // ============================================================================
@@ -750,23 +760,145 @@ export interface ConcertMemoryAlbum {
   highlights?: Array<{ time: string; titleFr: string; titleEn: string; descFr: string; descEn: string }>;
 }
 
+const CURATED_ARCHIVE_ALBUMS: ConcertMemoryAlbum[] = [
+  {
+    id: 'archive_dopelym_abidjan',
+    title: 'Dopelym Live — Nuit d’Ouverture',
+    artist: 'DOPELYM',
+    date: '19 Octobre 2026',
+    venue: 'Palais de la Culture',
+    city: 'Abidjan',
+    coverImage: concertMemoriesCrowdImg,
+    recapEmbedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    recapDuration: '03:18',
+    officialPhotos: [
+      { url: concertMemoriesCrowdImg, captionFr: 'Entrée sur scène — Palais de la Culture', captionEn: 'Stage entrance — Palais de la Culture' },
+      { url: crowdArchiveImg, captionFr: 'Fosse en fusion sous les faisceaux', captionEn: 'Crowd glowing under stage beams' },
+      { url: backstageSoundcheckImg, captionFr: 'Derniers réglages avant l’ouverture des portes', captionEn: 'Final soundcheck before doors open' },
+      { url: blackCardHeroNightImg, captionFr: 'Atmosphère nocturne en mezzanine', captionEn: 'Late-night atmosphere from the mezzanine' },
+      { url: vipMezzanineImg, captionFr: 'Vue panoramique depuis l’espace VIP', captionEn: 'Panoramic view from the VIP terrace' },
+      { url: loungeStageImg, captionFr: 'Scénographie LUMARÉEL avant le rappel', captionEn: 'LUMARÉEL lighting design before the encore' },
+    ],
+  },
+  {
+    id: 'archive_jeune_lion_lagune',
+    title: 'Jeune Lion — Nuit de la Lagune',
+    artist: 'JEUNE LION',
+    date: '28 Septembre 2026',
+    venue: 'Sofitel Hôtel Ivoire',
+    city: 'Abidjan',
+    coverImage: blackCardHeroBannerImg,
+    recapEmbedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    recapDuration: '02:54',
+    officialPhotos: [
+      { url: blackCardHeroBannerImg, captionFr: 'Ouverture face à la lagune Ébrié', captionEn: 'Opening set overlooking Ébrié Lagoon' },
+      { url: blackCardHeroPortraitImg, captionFr: 'Portrait en coulisses avant la montée sur scène', captionEn: 'Backstage portrait prior to stage call' },
+      { url: blackCardHeroLoungeImg, captionFr: 'Salon privé des invités', captionEn: 'Private guest lounge' },
+      { url: backstageStudioImg, captionFr: 'Répétition acoustique avec les musiciens', captionEn: 'Acoustic rehearsal with the live band' },
+      { url: concertMemoriesCrowdImg, captionFr: 'Final lumineux devant la salle', captionEn: 'Illuminated finale facing the hall' },
+      { url: flashVipDropImg, captionFr: 'Instant saisi au premier rang', captionEn: 'Captured moment from the front row' },
+    ],
+  },
+  {
+    id: 'archive_didi_b_symphonie',
+    title: 'Didi B × Symphonie Urbaine',
+    artist: 'DIDI B',
+    date: '14 Août 2026',
+    venue: 'Parc des Expositions',
+    city: 'Abidjan',
+    coverImage: crowdArchiveImg,
+    recapEmbedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    recapDuration: '04:06',
+    officialPhotos: [
+      { url: crowdArchiveImg, captionFr: 'Salle comble au Parc des Expositions', captionEn: 'Sold-out arena at Parc des Expositions' },
+      { url: darkCardHeroBackdropImg, captionFr: 'Jeux de lumière sur l’orchestre live', captionEn: 'Lighting choreography over the live orchestra' },
+      { url: backstageSoundcheckImg, captionFr: 'Balance des cuivres et percussions', captionEn: 'Brass and percussion soundcheck' },
+      { url: vipMezzanineImg, captionFr: 'Tribune officielle pendant le rappel', captionEn: 'Official mezzanine during the encore' },
+      { url: blackCardHeroNightImg, captionFr: 'Clôture nocturne du concert symphonique', captionEn: 'Nighttime finale of the symphonic show' },
+      { url: concertMemoriesCrowdImg, captionFr: 'Le public reprend le refrain en chœur', captionEn: 'The crowd singing the chorus together' },
+    ],
+  },
+  {
+    id: 'archive_himra_salle_comble',
+    title: 'Himra — Édition Salle Comble',
+    artist: 'HIMRA',
+    date: '05 Juillet 2026',
+    venue: 'Palais de la Culture',
+    city: 'Abidjan',
+    coverImage: flashVipDropImg,
+    recapEmbedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    recapDuration: '02:42',
+    officialPhotos: [
+      { url: flashVipDropImg, captionFr: 'Explosion d’énergie dès le premier titre', captionEn: 'High energy from the opening track' },
+      { url: blackCardHeroNightImg, captionFr: 'Faisceaux dorés sur la grande scène', captionEn: 'Golden beams across the main stage' },
+      { url: crowdArchiveImg, captionFr: 'Mains levées sur toute la fosse', captionEn: 'Hands raised across the entire floor' },
+      { url: backstageStudioImg, captionFr: 'Préparation de la setlist en loge', captionEn: 'Setlist prep in the greenroom' },
+      { url: loungeStageImg, captionFr: 'Vue scène avant l’arrivée du public', captionEn: 'Stage vista before doors opened' },
+    ],
+  },
+  {
+    id: 'archive_josey_acoustique',
+    title: 'Josey — Soirée Acoustique',
+    artist: 'JOSEY',
+    date: '12 Juin 2026',
+    venue: 'Salle Anoumabo',
+    city: 'Abidjan',
+    coverImage: blackCardHeroPortraitImg,
+    recapEmbedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    recapDuration: '03:35',
+    officialPhotos: [
+      { url: blackCardHeroPortraitImg, captionFr: 'Interprétation intimiste en ouverture', captionEn: 'Intimate opening vocal performance' },
+      { url: loungeStageImg, captionFr: 'Scène épurée pour le set acoustique', captionEn: 'Minimalist staging for the acoustic set' },
+      { url: blackCardHeroLoungeImg, captionFr: 'Accueil des membres LUMARÉEL', captionEn: 'LUMARÉEL member reception' },
+      { url: backstageSoundcheckImg, captionFr: 'Réglage voix et piano à queue', captionEn: 'Vocal and grand piano calibration' },
+      { url: vipMezzanineImg, captionFr: 'Ovation debout à la fin du concert', captionEn: 'Standing ovation at the end of the concert' },
+    ],
+  },
+  {
+    id: 'archive_suspect95_edition',
+    title: 'Suspect 95 — Session Spéciale',
+    artist: 'SUSPECT 95',
+    date: '18 Avril 2026',
+    venue: 'Institut Français',
+    city: 'Abidjan',
+    coverImage: darkCardHeroBackdropImg,
+    recapEmbedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    recapDuration: '02:49',
+    officialPhotos: [
+      { url: darkCardHeroBackdropImg, captionFr: 'Scénographie nocturne à l’Institut Français', captionEn: 'Nighttime staging at Institut Français' },
+      { url: backstageStudioImg, captionFr: 'Échanges avec le groupe en coulisses', captionEn: 'Backstage exchanges with the band' },
+      { url: concertMemoriesCrowdImg, captionFr: 'Public en proximité directe avec la scène', captionEn: 'Audience up close to the stage' },
+      { url: blackCardHeroBannerImg, captionFr: 'Temps fort de mi-concert', captionEn: 'Mid-show highlight moment' },
+      { url: flashVipDropImg, captionFr: 'Dernier rappel sous les projecteurs', captionEn: 'Final encore under the spotlights' },
+    ],
+  },
+];
+
+function normalizeArchiveMatch(value?: string): string {
+  return (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
 export function buildConcertMemoryAlbums(archives: ArchiveProduction[]): ConcertMemoryAlbum[] {
   const fromArchives: ConcertMemoryAlbum[] = (archives || [])
-    .filter((a) => a.isPublished)
+    .filter((a) => a.isPublished !== false)
     .map((a) => {
-      // Uniquement les vraies photographies appartenant à ce concert (zéro image générique ajoutée)
       const rawPhotos = (a.photos && a.photos.length > 0 ? a.photos : [a.coverImage]).filter(Boolean);
       const uniquePhotos = Array.from(new Set(rawPhotos));
 
       return {
         id: a.id,
         title: a.title,
-        artist: (a.artists && a.artists.join(' · ')) || 'LUMARÉEL Live',
+        artist: (a.artists && a.artists.join(' · ')) || a.title || 'LUMARÉEL Live',
         date: a.date || a.year,
         venue: a.venue,
         city: a.city,
         coverImage: a.coverImage || uniquePhotos[0] || concertMemoriesCrowdImg,
         recapEmbedUrl: a.youtubeEmbedUrl || 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+        recapDuration: a.duration || '03:10',
         officialPhotos: uniquePhotos.map((url, pIdx) => ({
           url,
           captionFr: `${a.title} — ${pIdx + 1}`,
@@ -775,32 +907,18 @@ export function buildConcertMemoryAlbums(archives: ArchiveProduction[]): Concert
       };
     });
 
-  if (fromArchives.length > 0) return fromArchives;
+  const existingIds = new Set(fromArchives.map((a) => a.id));
+  const existingTitles = new Set(fromArchives.map((a) => normalizeArchiveMatch(a.title)));
 
-  return [
-    {
-      id: 'memory_abidjan_night',
-      title: 'LUMARÉEL Live Session — Abidjan',
-      artist: 'Collectif LUMARÉEL & Invités',
-      date: '19 Octobre 2026',
-      venue: 'Palais de la Culture',
-      city: 'Abidjan',
-      coverImage: concertMemoriesCrowdImg,
-      recapEmbedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
-      officialPhotos: [
-        {
-          url: concertMemoriesCrowdImg,
-          captionFr: 'LUMARÉEL Live Session — 1',
-          captionEn: 'LUMARÉEL Live Session — 1',
-        },
-        {
-          url: crowdArchiveImg,
-          captionFr: 'LUMARÉEL Live Session — 2',
-          captionEn: 'LUMARÉEL Live Session — 2',
-        },
-      ],
-    },
-  ];
+  const merged: ConcertMemoryAlbum[] = [...fromArchives];
+  for (const curated of CURATED_ARCHIVE_ALBUMS) {
+    if (existingIds.has(curated.id) || existingTitles.has(normalizeArchiveMatch(curated.title))) {
+      continue;
+    }
+    merged.push(curated);
+  }
+
+  return merged;
 }
 
 // ============================================================================

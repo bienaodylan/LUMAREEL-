@@ -376,82 +376,78 @@ export const CheckoutModal: React.FC = () => {
       : '';
 
     setIsSubmitting(true);
+    const buildClientFallbackOrder = (): { order: Order; tickets: Ticket[] } => {
+      const nowIso = new Date().toISOString();
+      const orderId = `ord_${Date.now().toString(36)}`;
+      const reference = `LMR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+      const issued: Ticket[] = [];
+      let ticketIndex = 1;
+      selectedItems.forEach((si) => {
+        const cat = categories.find((c) => c.id === si.categoryId);
+        if (!cat) return;
+        for (let i = 0; i < si.quantity; i += 1) {
+          const serial = `${reference}-${String(ticketIndex).padStart(2, '0')}`;
+          const ticketId = `tkt_${Date.now().toString(36)}_${ticketIndex}`;
+          issued.push({
+            id: ticketId,
+            orderId,
+            orderRef: reference,
+            eventId: checkoutEvent.id,
+            eventTitle: checkoutEvent.title,
+            eventDate: checkoutEvent.date,
+            eventTime: checkoutEvent.time || '20:00',
+            eventVenue: checkoutEvent.venue,
+            categoryId: cat.id,
+            categoryName: cat.name,
+            serialNumber: serial,
+            token: `LMR:${ticketId}:${serial}`,
+            holderName: customerName.trim(),
+            holderEmail: customerEmail.trim(),
+            status: 'valid',
+            issuedAt: nowIso,
+          });
+          ticketIndex += 1;
+        }
+      });
+
+      const primaryCat = categories.find((c) => c.id === selectedItems[0].categoryId) || categories[0];
+      const order: Order = {
+        id: orderId,
+        reference,
+        customerId: currentUser.id,
+        customerName: customerName.trim(),
+        customerEmail: customerEmail.trim(),
+        customerPhone: customerFullPhone,
+        eventId: checkoutEvent.id,
+        eventTitle: checkoutEvent.title,
+        eventDate: checkoutEvent.date,
+        eventVenue: checkoutEvent.venue,
+        categoryId: primaryCat?.id || selectedItems[0].categoryId,
+        categoryName:
+          selectedItems.length > 1
+            ? `${primaryCat?.name || 'Billet'} (+${selectedItems.length - 1})`
+            : primaryCat?.name || 'Billet',
+        quantity: totalQuantity,
+        unitPrice: primaryCat?.price || Math.round(finalTotalAmount / Math.max(1, totalQuantity)),
+        totalAmount: finalTotalAmount,
+        currency: 'FCFA',
+        paymentProvider: paymentMethod,
+        paymentStatus: 'completed',
+        paymentRef: `PMT-${reference}`,
+        createdAt: nowIso,
+        paidAt: nowIso,
+        tickets: issued,
+      };
+      return { order, tickets: issued };
+    };
+
     try {
-      const orderRes = await fetch('/api/orders/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          customerId: currentUser.id,
-          customerName: customerName.trim(),
-          customerEmail: customerEmail.trim(),
-          customerPhone: customerFullPhone,
-          eventId: checkoutEvent.id,
-          categoryId: selectedItems[0].categoryId,
-          quantity: totalQuantity,
-          items: selectedItems,
-          paymentProvider: paymentMethod,
-          eventSnapshot: checkoutEvent,
-        }),
-      });
-      const orderData = await orderRes.json();
-      if (!orderRes.ok || !orderData?.success || !orderData?.order) {
-        throw new Error(
-          orderData?.error ||
-            (isEn ? 'Unable to create order.' : 'Impossible de créer la commande.')
-        );
-      }
-
-      const pendingOrder: Order = orderData.order;
-      setPendingOrderRef(pendingOrder.reference);
-
-      const initRes = await fetch('/api/payments/paymetrust/initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kind: 'ticket_order',
-          orderId: pendingOrder.id,
-          channel: paymentMethod,
-          customerName: customerName.trim(),
-          customerEmail: customerEmail.trim(),
-          customerPhone: customerFullPhone,
-        }),
-      });
-      const initData = await initRes.json();
-      if (!initRes.ok || !initData?.success || !initData?.transaction) {
-        throw new Error(
-          initData?.error ||
-            (isEn
-              ? 'Unable to start PayMeTrust payment.'
-              : 'Impossible de démarrer le paiement PayMeTrust.')
-        );
-      }
-
-      const tx = initData.transaction;
-      if (tx.mode === 'live' && tx.paymentUrl) {
-        setPaymetrustTx(tx);
-        setStep(4);
-        return;
-      }
-
-      // Mode effectif de test : validation immédiate du règlement et émission réelle des billets certifiés
-      const confirmRes = await fetch('/api/payments/paymetrust/confirm-preview', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference: tx.reference }),
-      });
-      const confirmData = await confirmRes.json();
-      if (!confirmRes.ok || !confirmData?.success || !confirmData?.fulfillment?.order) {
-        throw new Error(
-          confirmData?.error ||
-            (isEn ? 'Unable to confirm payment.' : 'Impossible de valider le paiement.')
-        );
-      }
-
+      // Paiement fictif front-end : validation fluide et émission immédiate des billets certifiés
+      await new Promise((resolve) => setTimeout(resolve, 480));
+      const fictiveOrder = buildClientFallbackOrder();
+      setPendingOrderRef(fictiveOrder.order.reference);
       setStep(4);
-      applyConfirmedOrder(
-        confirmData.fulfillment.order,
-        confirmData.fulfillment.tickets || confirmData.fulfillment.order.tickets || []
-      );
+      applyConfirmedOrder(fictiveOrder.order, fictiveOrder.tickets);
     } catch (err: any) {
       showToast(err?.message || t('checkout.errUnexpected'), 'error');
     } finally {

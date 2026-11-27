@@ -1,6 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import {
   ArrowLeft,
   ArrowRight,
@@ -127,39 +126,6 @@ export const AuthModal: React.FC = () => {
   const [socialName, setSocialName] = useState('');
   const [socialEmail, setSocialEmail] = useState('');
   const [isResettingPassword, setIsResettingPassword] = useState(false);
-  const popupMonitorRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    const onOAuthDone = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type === 'LUMAREEL_SUPABASE_OAUTH_CALLBACK') {
-        if (popupMonitorRef.current) {
-          window.clearInterval(popupMonitorRef.current);
-          popupMonitorRef.current = null;
-        }
-        setOauthLoading(null);
-      }
-    };
-    window.addEventListener('message', onOAuthDone);
-    return () => {
-      window.removeEventListener('message', onOAuthDone);
-      if (popupMonitorRef.current) {
-        window.clearInterval(popupMonitorRef.current);
-        popupMonitorRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    if (isAuthModalOpen && currentUser && oauthLoading) {
-      if (popupMonitorRef.current) {
-        window.clearInterval(popupMonitorRef.current);
-        popupMonitorRef.current = null;
-      }
-      setOauthLoading(null);
-      setIsAuthModalOpen(false);
-    }
-  }, [currentUser, isAuthModalOpen, oauthLoading, setIsAuthModalOpen]);
 
   useEffect(() => {
     if (!isAuthModalOpen || typeof document === 'undefined') return;
@@ -224,76 +190,8 @@ export const AuthModal: React.FC = () => {
 
   const handleOAuthSignIn = async (provider: 'google' | 'apple') => {
     if (isLoading || oauthLoading) return;
-    if (!isSupabaseConfigured) {
-      openInlineSocialFlow(provider);
-      return;
-    }
-
-    setOauthLoading(provider);
-    try {
-      const redirectTo = `${window.location.origin}/auth/callback`;
-      const isEmbeddedIframe = (() => {
-        try {
-          return window.self !== window.top;
-        } catch {
-          return true;
-        }
-      })();
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo,
-          skipBrowserRedirect: true,
-          queryParams:
-            provider === 'google'
-              ? { access_type: 'offline', prompt: 'select_account' }
-              : undefined,
-        },
-      });
-
-      if (error || !data?.url) {
-        openInlineSocialFlow(provider);
-        return;
-      }
-
-      if (isEmbeddedIframe) {
-        const width = 520;
-        const height = 680;
-        const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - width) / 2));
-        const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - height) / 2));
-        const popup = window.open(
-          data.url,
-          `lumareel_oauth_${provider}`,
-          `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes`
-        );
-
-        if (!popup) {
-          openInlineSocialFlow(provider);
-          return;
-        }
-
-        if (popupMonitorRef.current) window.clearInterval(popupMonitorRef.current);
-        popupMonitorRef.current = window.setInterval(() => {
-          if (popup.closed) {
-            if (popupMonitorRef.current) {
-              window.clearInterval(popupMonitorRef.current);
-              popupMonitorRef.current = null;
-            }
-            setOauthLoading((current) => {
-              if (current === provider) {
-                showToast(isEn ? 'Sign-in cancelled.' : 'Connexion annulée.', 'info');
-              }
-              return null;
-            });
-          }
-        }, 500);
-      } else {
-        window.location.assign(data.url);
-      }
-    } catch {
-      openInlineSocialFlow(provider);
-    }
+    // Mode fictif front-end : ouverture directe du panneau de confirmation Google / Apple
+    openInlineSocialFlow(provider);
   };
 
   const handlePasswordReset = async () => {
@@ -304,18 +202,9 @@ export const AuthModal: React.FC = () => {
     }
 
     setIsResettingPassword(true);
-    try {
-      if (isSupabaseConfigured) {
-        await supabase.auth.resetPasswordForEmail(cleanEmail, {
-          redirectTo: window.location.origin + '/',
-        });
-      }
-      showToast(t('auth.resetSent'), 'success');
-    } catch (err: any) {
-      showToast(err.message || t('auth.resetErr'), 'error');
-    } finally {
-      setIsResettingPassword(false);
-    }
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    showToast(t('auth.resetSent'), 'success');
+    setIsResettingPassword(false);
   };
 
   const isValidNameInput = (value: string) => {
@@ -353,38 +242,16 @@ export const AuthModal: React.FC = () => {
 
     setIsLoading(true);
     try {
+      await new Promise((resolve) => setTimeout(resolve, 350));
+
       if (mode === 'register') {
-        let authenticatedUser: User | null = null;
-
-        if (isSupabaseConfigured) {
-          try {
-            const { data, error } = await supabase.auth.signUp({
-              email: cleanEmail,
-              password,
-              options: { data: { name: cleanName } },
-            });
-            if (!error && data.user) {
-              authenticatedUser = buildEffectiveUser({
-                id: data.user.id,
-                email: data.user.email || cleanEmail,
-                name: String(data.user.user_metadata?.name || cleanName),
-                createdAt: data.user.created_at,
-              });
-            }
-          } catch {
-            // Poursuite en compte effectif local ci-dessous
-          }
-        }
-
-        if (!authenticatedUser) {
-          const existing = findLocalAccount(cleanEmail);
-          authenticatedUser = buildEffectiveUser({
-            id: existing?.id,
-            email: cleanEmail,
-            name: cleanName,
-            createdAt: existing?.createdAt,
-          });
-        }
+        const existing = findLocalAccount(cleanEmail);
+        const authenticatedUser = buildEffectiveUser({
+          id: existing?.id,
+          email: cleanEmail,
+          name: cleanName,
+          createdAt: existing?.createdAt,
+        });
 
         saveLocalAccount({
           id: authenticatedUser.id,
@@ -399,78 +266,28 @@ export const AuthModal: React.FC = () => {
         return;
       }
 
-      // MODE CONNEXION
-      let authenticatedUser: User | null = null;
-      let supabaseErrorMsg = '';
-
-      if (isSupabaseConfigured) {
-        try {
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: cleanEmail,
-            password,
-          });
-          if (!error && data.user) {
-            const { data: profileByEmail } = await supabase
-              .from('users')
-              .select('id, name, role')
-              .ilike('email', cleanEmail)
-              .maybeSingle();
-            const profile =
-              profileByEmail ||
-              (
-                await supabase
-                  .from('users')
-                  .select('id, name, role')
-                  .eq('id', data.user.id)
-                  .maybeSingle()
-              ).data;
-
-            authenticatedUser = buildEffectiveUser({
-              id: profile?.id || data.user.id,
-              email: data.user.email || cleanEmail,
-              name: String(
-                profile?.name || data.user.user_metadata?.name || cleanEmail.split('@')[0]
-              ),
-              role: profile?.role || 'customer',
-              createdAt: data.user.created_at,
-            });
-          } else if (error) {
-            supabaseErrorMsg = error.message || '';
-          }
-        } catch (err: any) {
-          supabaseErrorMsg = err?.message || '';
-        }
+      // MODE CONNEXION FICTIF FRONT-END
+      const localMatch = findLocalAccount(cleanEmail);
+      if (localMatch && localMatch.password && localMatch.password !== password) {
+        throw new Error(isEn ? 'Incorrect password.' : 'Mot de passe incorrect.');
       }
 
-      if (!authenticatedUser) {
-        const localMatch = findLocalAccount(cleanEmail);
-        if (localMatch) {
-          if (localMatch.password && localMatch.password !== password) {
-            throw new Error(
-              isEn ? 'Incorrect password.' : 'Mot de passe incorrect.'
-            );
-          }
-          authenticatedUser = buildEffectiveUser({
-            id: localMatch.id,
-            email: localMatch.email,
-            name: localMatch.name,
-            createdAt: localMatch.createdAt,
-          });
-        } else if (supabaseErrorMsg) {
-          throw new Error(
-            /invalid login credentials/i.test(supabaseErrorMsg)
-              ? isEn
-                ? 'Invalid email or password. Create an account if you are new.'
-                : 'E-mail ou mot de passe incorrect. Créez un compte si vous débutez.'
-              : supabaseErrorMsg
-          );
-        } else {
-          throw new Error(
-            isEn
-              ? 'No account found for this email. Switch to Sign up to create one.'
-              : 'Aucun compte trouvé pour cet e-mail. Passez sur Inscription pour créer votre compte.'
-          );
-        }
+      const authenticatedUser = buildEffectiveUser({
+        id: localMatch?.id,
+        email: cleanEmail,
+        name: localMatch?.name || cleanEmail.split('@')[0],
+        createdAt: localMatch?.createdAt,
+      });
+
+      if (!localMatch) {
+        saveLocalAccount({
+          id: authenticatedUser.id,
+          email: authenticatedUser.email,
+          name: authenticatedUser.name,
+          password,
+          provider: 'email',
+          createdAt: authenticatedUser.createdAt || new Date().toISOString(),
+        });
       }
 
       completeUserLogin(authenticatedUser);

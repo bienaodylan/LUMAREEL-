@@ -11,6 +11,8 @@ import {
   subscribeMediaHub,
 } from '../utils/mediaHubStorage';
 import {
+  DEFAULT_TV_PASS_PLANS,
+  DEFAULT_TV_PAYMENT_CHANNELS,
   EMPTY_TV_ENTITLEMENT,
   TvEntitlementClient,
   TvPassPlanClient,
@@ -19,6 +21,7 @@ import {
   fetchTvPlans,
   loadTvWatchHistory,
   removeTvWatchProgress,
+  saveLocalTvSubscription,
   subscribeTvWatchHistory,
 } from '../utils/tvAccess';
 import { BottomSheet, EditorialRow, ScrollReveal, SkeletonBlock, StatusBadge } from './ui/LumareelKit';
@@ -261,11 +264,11 @@ export const LumareelTvView: React.FC = () => {
   const [mediaItems, setMediaItems] = useState<MediaHubItem[]>(() => loadMediaHubItems());
   const [entitlement, setEntitlement] = useState<TvEntitlementClient>(EMPTY_TV_ENTITLEMENT);
   const [isLoadingAccess, setIsLoadingAccess] = useState(true);
-  const [plans, setPlans] = useState<TvPassPlanClient[]>([]);
-  const [paymentReady, setPaymentReady] = useState(false);
+  const [plans, setPlans] = useState<TvPassPlanClient[]>(DEFAULT_TV_PASS_PLANS);
+  const [paymentReady, setPaymentReady] = useState(true);
   const [paymentChannels, setPaymentChannels] = useState<
     Array<{ id: string; label: string; type: string }>
-  >([]);
+  >(DEFAULT_TV_PAYMENT_CHANNELS);
   const [watchHistory, setWatchHistory] = useState<TvWatchProgressEntry[]>(() =>
     loadTvWatchHistory(currentUser?.email)
   );
@@ -411,60 +414,49 @@ export const LumareelTvView: React.FC = () => {
       setIsAuthModalOpen(true);
       return;
     }
-    if (!paymentReady) {
-      showToast(
-        isEn
-          ? 'Real payment processing (PayMeTrust) is not yet configured on the server.'
-          : 'Le paiement réel PayMeTrust n’est pas encore configuré sur le serveur. Aucun abonnement ne peut être activé sans confirmation réelle.',
-        'error'
-      );
-      return;
-    }
-    const chosenPlan = plans.find((p) => p.id === selectedPlanId) || plans[0];
+    const chosenPlan = plans.find((p) => p.id === selectedPlanId) || plans[0] || DEFAULT_TV_PASS_PLANS[0];
     if (!chosenPlan) return;
 
     setIsSubmittingSub(true);
     try {
-      const res = await fetch('/api/payments/paymetrust/initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          kind: 'tv_pass',
-          planId: chosenPlan.id,
-          channel: selectedChannel,
-          customerName: currentUser.name,
-          customerEmail: currentUser.email,
-          customerPhone: subscriberPhone.trim() || undefined,
-          userId: currentUser.id,
-        }),
-      });
-      const data = await res.json();
+      // Souscription fictive front-end : activation immédiate du TV Pass
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      const txReference = `PMT-TV-${Date.now().toString(36).toUpperCase()}`;
+      const savedSub = saveLocalTvSubscription(currentUser.email, chosenPlan, txReference);
+      const refreshed = await fetchTvEntitlement(currentUser.email);
+      setEntitlement(
+        refreshed.entitlement.hasAccess
+          ? refreshed.entitlement
+          : {
+              hasAccess: true,
+              source: 'tv_pass',
+              maxTier: 'tv_pass',
+              cardAccess: { eligible: false },
+              subscriptionAccess: {
+                active: true,
+                subscriptionId: savedSub.subscriptionId,
+                planId: savedSub.planId,
+                planName: savedSub.planName,
+                status: 'active',
+                startsAt: savedSub.startsAt,
+                expiresAt: savedSub.expiresAt,
+                autoRenew: savedSub.autoRenew,
+              },
+              checkedAt: new Date().toISOString(),
+            }
+      );
 
-      if (!res.ok || !data?.success) {
-        showToast(
-          data?.error ||
-            (isEn
-              ? 'Unable to initiate real payment.'
-              : 'Impossible d’initialiser le paiement réel.'),
-          'error'
-        );
-        return;
-      }
-
-      if (data.transaction?.paymentUrl) {
-        window.location.href = data.transaction.paymentUrl;
-      } else {
-        showToast(
-          isEn
-            ? 'Payment initiated. Waiting for real provider confirmation.'
-            : 'Paiement initialisé. En attente de confirmation réelle du prestataire.',
-          'info'
-        );
-        setIsSubscribeSheetOpen(false);
-      }
+      setIsSubscribeSheetOpen(false);
+      showToast(
+        isEn
+          ? 'LUMARÉEL TV Pass activated! Welcome to LUMARÉEL TV.'
+          : 'LUMARÉEL TV Pass activé ! Bienvenue sur LUMARÉEL TV.',
+        'success'
+      );
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {
       showToast(
-        isEn ? 'Network error while initiating payment.' : 'Erreur réseau lors du paiement.',
+        isEn ? 'Unable to activate TV Pass.' : 'Impossible d’activer le TV Pass.',
         'error'
       );
     } finally {
@@ -770,31 +762,83 @@ export const LumareelTvView: React.FC = () => {
         </div>
       )}
 
-      {/* HERO DE DÉCOUVERTE LUMARÉEL TV */}
-      <section className="relative mb-10 rounded-[16px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12]">
-        <div className="relative min-h-[340px] sm:min-h-[410px] flex items-end">
+      {/* HERO DE DÉCOUVERTE LUMARÉEL TV — ADAPTÉ MOBILE & DESKTOP */}
+      <section className="relative mb-8 sm:mb-10 rounded-[20px] overflow-hidden bg-[#0B0B0B] border border-white/[0.11]">
+        {/* Version mobile compacte et équilibrée */}
+        <div className="sm:hidden">
+          <div className="relative h-[168px] w-full overflow-hidden">
+            {featuredItem && (
+              <img
+                src={featuredItem.thumbnailUrl || featuredItem.url}
+                alt="LUMARÉEL TV"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover brightness-[0.68]"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0B] via-[#0B0B0B]/35 to-black/20" />
+            <div className="absolute left-4 bottom-2.5 inline-flex items-center gap-1.5 text-[9.5px] font-agrandir-extrabold uppercase tracking-[0.22em] text-[#D4AF6A]">
+              <Tv className="w-3 h-3" strokeWidth={1.8} />
+              <span>{isEn ? 'EXCLUSIVE PLATFORM' : 'PLATEFORME EXCLUSIVE'}</span>
+            </div>
+          </div>
+
+          <div className="px-4 pb-4 pt-1 space-y-3">
+            <h1 className="font-agrandir-extrabold text-[24px] text-white tracking-tight leading-none">
+              LUMARÉEL TV
+            </h1>
+
+            <p className="text-[12.5px] text-[#BDBDBD] leading-[1.48]">
+              {isEn
+                ? 'Originals, filmed concerts, backstage sessions & interviews. Included with LUMARÉEL Card or via TV Pass.'
+                : 'Originals, concerts filmés, coulisses et interviews exclusives. Inclus avec la LUMARÉEL Card ou via le TV Pass.'}
+            </p>
+
+            <div className="pt-0.5 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => openSubscribeFlow(plans[0]?.id)}
+                className="w-full min-h-[42px] px-4 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer lum-press"
+              >
+                <Tv className="w-3.5 h-3.5" strokeWidth={1.9} />
+                <span>{isEn ? 'Subscribe to LUMARÉEL TV' : 'S’abonner à LUMARÉEL TV'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentPage('member_card')}
+                className="w-full min-h-[38px] px-4 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white text-[11.5px] font-agrandir-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <CreditCard className="w-3.5 h-3.5 text-[#D4AF6A]" strokeWidth={1.6} />
+                <span>{isEn ? 'Discover LUMARÉEL Card' : 'Découvrir la LUMARÉEL Card'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Version tablette / desktop cinématique */}
+        <div className="hidden sm:flex relative min-h-[360px] lg:min-h-[400px] items-end">
           {featuredItem && (
             <img
               src={featuredItem.thumbnailUrl || featuredItem.url}
               alt="LUMARÉEL TV"
               referrerPolicy="no-referrer"
-              className="absolute inset-0 w-full h-full object-cover brightness-[0.45]"
+              className="absolute inset-0 w-full h-full object-cover brightness-[0.48]"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/65 to-black/30" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/25" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/45 to-transparent" />
 
-          <div className="relative z-10 p-6 sm:p-10 max-w-2xl space-y-4">
+          <div className="relative z-10 p-8 lg:p-10 max-w-2xl space-y-4">
             <div className="inline-flex items-center gap-2 text-[10px] font-agrandir-extrabold uppercase tracking-[0.24em] text-[#D4AF6A]">
               <Tv className="w-3.5 h-3.5" strokeWidth={1.7} />
               <span>{isEn ? 'EXCLUSIVE STREAMING PLATFORM' : 'PLATEFORME EXCLUSIVE'}</span>
             </div>
 
-            <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl text-white tracking-tight leading-[1.02]">
+            <h1 className="font-agrandir-extrabold text-4xl lg:text-5xl text-white tracking-tight leading-[1.02]">
               LUMARÉEL TV
             </h1>
 
-            <p className="text-sm sm:text-base text-[#D0D0D0] leading-relaxed max-w-xl">
+            <p className="text-sm lg:text-base text-[#D0D0D0] leading-relaxed max-w-xl">
               {isEn
                 ? 'Original films, filmed concerts, backstage sessions, artist interviews, and curated retrospectives. Included with an eligible LUMARÉEL Card or available independently with the TV Pass.'
                 : 'Originals, concerts filmés, coulisses, interviews d’artistes et rétrospectives exclusives. Inclus avec une LUMARÉEL Card éligible ou accessible indépendamment avec le LUMARÉEL TV Pass.'}
@@ -803,14 +847,8 @@ export const LumareelTvView: React.FC = () => {
             <div className="pt-1 flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => {
-                  if (plans.length > 0) {
-                    plansSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-                  } else {
-                    openSubscribeFlow();
-                  }
-                }}
-                className="min-h-[44px] px-6 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs sm:text-sm font-agrandir-extrabold inline-flex items-center gap-2 transition-colors cursor-pointer lum-press"
+                onClick={() => openSubscribeFlow(plans[0]?.id)}
+                className="min-h-[44px] px-6 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-sm font-agrandir-extrabold inline-flex items-center gap-2 transition-colors cursor-pointer lum-press"
               >
                 <Tv className="w-4 h-4" strokeWidth={1.8} />
                 <span>{isEn ? 'Subscribe to TV Pass' : 'S’abonner à LUMARÉEL TV'}</span>
@@ -819,7 +857,7 @@ export const LumareelTvView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCurrentPage('member_card')}
-                className="min-h-[44px] px-5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.18] text-white text-xs sm:text-sm font-agrandir-semibold inline-flex items-center gap-2 transition-colors cursor-pointer"
+                className="min-h-[44px] px-5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.18] text-white text-sm font-agrandir-semibold inline-flex items-center gap-2 transition-colors cursor-pointer"
               >
                 <CreditCard className="w-4 h-4 text-[#D4AF6A]" strokeWidth={1.6} />
                 <span>{isEn ? 'Discover LUMARÉEL Card' : 'Découvrir la LUMARÉEL Card'}</span>
@@ -829,7 +867,7 @@ export const LumareelTvView: React.FC = () => {
         </div>
       </section>
 
-      <div className="space-y-12">
+      <div className="space-y-9 sm:space-y-12">
         {/* APERÇUS DU CATALOGUE (GRATUITS + VERROUILLÉS VISUELLEMENT) */}
         {publishedItems.length > 0 && (
           <ScrollReveal>
@@ -916,17 +954,6 @@ export const LumareelTvView: React.FC = () => {
                   {isEn ? 'Choose your pass' : 'Choisir votre abonnement'}
                 </h2>
               </div>
-
-              {!paymentReady && (
-                <span className="text-[11px] text-[#9A9A9A] inline-flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#D4AF6A]" />
-                  <span>
-                    {isEn
-                      ? 'Online payment activation pending provider keys'
-                      : 'Paiement en ligne en attente de configuration PayMeTrust'}
-                  </span>
-                </span>
-              )}
             </div>
 
             {plans.length > 0 ? (
@@ -1039,92 +1066,56 @@ export const LumareelTvView: React.FC = () => {
             </div>
           )}
 
-          {!paymentReady ? (
-            <div className="rounded-[12px] bg-[#161108] border border-[#D4AF6A]/35 p-4 space-y-2">
-              <div className="flex items-center gap-2 text-[#D4AF6A] text-xs font-agrandir-extrabold">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>
-                  {isEn
-                    ? 'Real payment confirmation required'
-                    : 'Activation en ligne non disponible (paiement réel requis)'}
-                </span>
-              </div>
-              <p className="text-xs text-[#D0D0D0] leading-relaxed">
-                {isEn
-                  ? 'PayMeTrust API credentials are not yet configured on this server. Subscriptions are never simulated or activated without confirmed payment. You can also access LUMARÉEL TV automatically with an eligible LUMARÉEL Card.'
-                  : 'Les clés API PayMeTrust ne sont pas encore configurées sur ce serveur. Aucun paiement n’est simulé et aucun abonnement n’est activé sans confirmation réelle. Vous pouvez également accéder à LUMARÉEL TV avec une LUMARÉEL Card éligible.'}
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSubscribeSheetOpen(false);
-                  setCurrentPage('member_card');
-                }}
-                className="mt-2 min-h-[38px] px-4 rounded-full bg-white text-black text-xs font-agrandir-extrabold cursor-pointer"
-              >
-                {isEn ? 'Discover LUMARÉEL Card' : 'Découvrir la LUMARÉEL Card'}
-              </button>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-agrandir-semibold uppercase tracking-[0.14em] text-[#9A9A9A]">
+              {isEn ? 'Payment method' : 'Moyen de paiement'}
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {(paymentChannels.length > 0 ? paymentChannels : DEFAULT_TV_PAYMENT_CHANNELS).map(
+                (ch) => (
+                  <button
+                    key={ch.id}
+                    type="button"
+                    onClick={() => setSelectedChannel(ch.id)}
+                    className={`min-h-[38px] px-3 rounded-[10px] border text-xs font-agrandir-semibold transition-colors cursor-pointer ${
+                      selectedChannel === ch.id
+                        ? 'bg-[#D4AF6A] text-black border-[#D4AF6A] font-agrandir-extrabold'
+                        : 'bg-[#121212] text-[#D0D0D0] border-white/[0.12]'
+                    }`}
+                  >
+                    {ch.label}
+                  </button>
+                )
+              )}
             </div>
-          ) : (
-            <>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-agrandir-semibold uppercase tracking-[0.14em] text-[#9A9A9A]">
-                  {isEn ? 'Payment method (PayMeTrust)' : 'Moyen de paiement (PayMeTrust)'}
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {(paymentChannels.length > 0
-                    ? paymentChannels
-                    : [
-                        { id: 'wave', label: 'Wave', type: 'mobile_money' },
-                        { id: 'orange_money', label: 'Orange Money', type: 'mobile_money' },
-                        { id: 'mtn_momo', label: 'MTN MoMo', type: 'mobile_money' },
-                        { id: 'card', label: 'Visa / Mastercard', type: 'card' },
-                      ]
-                  ).map((ch) => (
-                    <button
-                      key={ch.id}
-                      type="button"
-                      onClick={() => setSelectedChannel(ch.id)}
-                      className={`min-h-[38px] px-3 rounded-[10px] border text-xs font-agrandir-semibold transition-colors cursor-pointer ${
-                        selectedChannel === ch.id
-                          ? 'bg-[#D4AF6A] text-black border-[#D4AF6A] font-agrandir-extrabold'
-                          : 'bg-[#121212] text-[#D0D0D0] border-white/[0.12]'
-                      }`}
-                    >
-                      {ch.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+          </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-agrandir-semibold uppercase tracking-[0.14em] text-[#9A9A9A]">
-                  {isEn ? 'Phone number (optional)' : 'Téléphone Mobile Money (facultatif)'}
-                </label>
-                <input
-                  type="tel"
-                  value={subscriberPhone}
-                  onChange={(e) => setSubscriberPhone(e.target.value)}
-                  placeholder="+225 07 00 00 00 00"
-                  className="w-full min-h-[42px] px-3.5 rounded-[10px] bg-[#121212] border border-white/[0.14] text-sm text-white placeholder-[#666] focus:outline-none focus:border-[#D4AF6A]"
-                />
-              </div>
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-agrandir-semibold uppercase tracking-[0.14em] text-[#9A9A9A]">
+              {isEn ? 'Phone number (optional)' : 'Téléphone Mobile Money (facultatif)'}
+            </label>
+            <input
+              type="tel"
+              value={subscriberPhone}
+              onChange={(e) => setSubscriberPhone(e.target.value)}
+              placeholder="+225 07 00 00 00 00"
+              className="w-full min-h-[42px] px-3.5 rounded-[10px] bg-[#121212] border border-white/[0.14] text-sm text-white placeholder-[#666] focus:outline-none focus:border-[#D4AF6A]"
+            />
+          </div>
 
-              <button
-                type="submit"
-                disabled={isSubmittingSub}
-                className="w-full min-h-[44px] px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] disabled:opacity-50 text-black text-xs sm:text-sm font-agrandir-extrabold transition-colors cursor-pointer"
-              >
-                {isSubmittingSub
-                  ? isEn
-                    ? 'Redirecting to PayMeTrust…'
-                    : 'Redirection vers PayMeTrust…'
-                  : isEn
-                  ? 'Continue to secure payment'
-                  : 'Procéder au paiement sécurisé'}
-              </button>
-            </>
-          )}
+          <button
+            type="submit"
+            disabled={isSubmittingSub}
+            className="w-full min-h-[44px] px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] disabled:opacity-50 text-black text-xs sm:text-sm font-agrandir-extrabold transition-colors cursor-pointer"
+          >
+            {isSubmittingSub
+              ? isEn
+                ? 'Activating your TV Pass…'
+                : 'Activation du TV Pass…'
+              : isEn
+              ? 'Confirm & activate TV Pass'
+              : 'Confirmer et activer le TV Pass'}
+          </button>
         </form>
       </BottomSheet>
     </div>

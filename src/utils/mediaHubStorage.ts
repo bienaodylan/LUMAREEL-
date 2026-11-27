@@ -479,6 +479,271 @@ export const INITIAL_MEDIA_HUB_ITEMS: MediaHubItem[] = [
     submittedByRole: 'photographer',
     createdAt: '2026-10-20T22:30:00Z',
   },
+  {
+    id: 'media_tv_orig_2',
+    title: 'Abidjan la Nuit — Film Original LUMARÉEL',
+    titleEn: 'Abidjan by Night — A LUMARÉEL Original Film',
+    description:
+      'Immersion cinématographique de 24 heures au cœur de la nouvelle scène live abidjanaise, entre studio, répétitions et grande scène.',
+    descriptionEn:
+      'A 24-hour cinematic immersion into Abidjan’s new live scene, from late-night studios to the main stage.',
+    mediaType: 'video',
+    url: COMMUNITY_MEDIA.blackCardHeroBannerImg,
+    thumbnailUrl: COMMUNITY_MEDIA.blackCardHeroBannerImg,
+    embedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    duration: '24:10',
+    tag: 'Original',
+    placement: 'lumareel_tv',
+    tvCategory: 'originals',
+    privacyLevel: 'private',
+    tvAccessTier: 'tv_pass',
+    isFeaturedOnTv: true,
+    publishedAt: '2026-11-22',
+    date: 'Nov 2026',
+    status: 'published',
+    downloadable: false,
+    membersOnly: true,
+    accessLevel: 'members',
+    visualContextRole: 'editorial',
+    submittedByName: 'Direction LUMARÉEL',
+    submittedByRole: 'super_admin',
+    notes: [
+      'Filmé en 4K anamorphique sur trois nuits à Abidjan.',
+      'Bande originale inédite enregistrée en prise directe.',
+    ],
+    createdAt: '2026-11-22T20:00:00Z',
+  },
+  {
+    id: 'media_tv_orig_3',
+    title: 'Hors Champ — Portraits de créateurs de scène',
+    titleEn: 'Off Frame — Portraits of stage creators',
+    description:
+      'Directeurs artistiques, ingénieurs son et créateurs lumière racontent la fabrication d’une nuit LUMARÉEL.',
+    descriptionEn:
+      'Art directors, sound engineers, and lighting designers share how a LUMARÉEL night is crafted.',
+    mediaType: 'video',
+    url: COMMUNITY_MEDIA.darkCardHeroBackdropImg,
+    thumbnailUrl: COMMUNITY_MEDIA.darkCardHeroBackdropImg,
+    embedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    duration: '16:40',
+    tag: 'Documentaire',
+    placement: 'lumareel_tv',
+    tvCategory: 'originals',
+    privacyLevel: 'private',
+    tvAccessTier: 'tv_pass',
+    publishedAt: '2026-11-16',
+    date: 'Nov 2026',
+    status: 'published',
+    downloadable: false,
+    membersOnly: true,
+    accessLevel: 'members',
+    visualContextRole: 'none',
+    submittedByName: 'Direction LUMARÉEL',
+    submittedByRole: 'super_admin',
+    notes: [
+      'Tournage exclusif dans les coulisses techniques.',
+      'Entretiens sans filtre avec l’équipe de production.',
+    ],
+    createdAt: '2026-11-16T19:00:00Z',
+  },
+  {
+    id: 'media_tv_live_1',
+    title: 'Dopelym Live — Captation intégrale Palais de la Culture',
+    titleEn: 'Dopelym Live — Full Concert Film at Palais de la Culture',
+    description:
+      'Le concert complet multi-caméras avec mixage audio haute fidélité capté au Palais de la Culture d’Abidjan.',
+    descriptionEn:
+      'The complete multi-camera concert film with high-fidelity audio captured live at Palais de la Culture.',
+    mediaType: 'video',
+    url: COMMUNITY_MEDIA.concertMemoriesCrowdImg,
+    thumbnailUrl: COMMUNITY_MEDIA.concertMemoriesCrowdImg,
+    embedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    duration: '48:15',
+    tag: 'Concert Intégral',
+    placement: 'lumareel_tv',
+    tvCategory: 'concerts_live',
+    privacyLevel: 'private',
+    tvAccessTier: 'tv_pass',
+    artistName: 'DOPELYM',
+    publishedAt: '2026-11-20',
+    date: 'Nov 2026',
+    status: 'published',
+    downloadable: false,
+    membersOnly: true,
+    accessLevel: 'members',
+    visualContextRole: 'concert',
+    submittedByName: 'Direction LUMARÉEL',
+    submittedByRole: 'super_admin',
+    notes: [
+      'Captation 6 caméras cinéma et prise de son multipiste.',
+      'Inclut les rappels inédits et les apparitions surprises.',
+    ],
+    createdAt: '2026-11-20T21:00:00Z',
+  },
+  {
+    id: 'media_tv_live_2',
+    title: 'Jeune Lion — Session Live face à la Lagune',
+    titleEn: 'Jeune Lion — Live Lagoon Session',
+    description:
+      'Performance intimiste enregistrée au coucher du soleil au Sofitel Hôtel Ivoire avec section rythmique live.',
+    descriptionEn:
+      'Intimate sunset performance recorded at Sofitel Hôtel Ivoire with a full live rhythm section.',
+    mediaType: 'video',
+    url: COMMUNITY_MEDIA.blackCardHeroNightImg,
+    thumbnailUrl: COMMUNITY_MEDIA.blackCardHeroNightImg,
+    embedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    duration: '31:20',
+    tag: 'Concert Live',
+    placement: 'lumareel_tv',
+    tvCategory: 'concerts_live',
+    privacyLevel: 'private',
+    tvAccessTier: 'tv_pass',
+    artistName: 'JEUNE LION',
+    publishedAt: '2026-11-14',
+    date: 'Nov 2026',
+    status: 'published',
+    downloadable: false,
+    membersOnly: true,
+    accessLevel: 'members',
+    visualContextRole: 'concert',
+    submittedByName: 'Direction LUMARÉEL',
+    submittedByRole: 'super_admin',
+    notes: [
+      'Version live réarrangée exclusivement pour LUMARÉEL TV.',
+    ],
+    createdAt: '2026-11-14T20:15:00Z',
+  },
+  {
+    id: 'media_tv_live_3',
+    title: 'Didi B × Symphonie Urbaine — Extraits choisis',
+    titleEn: 'Didi B × Urban Symphony — Selected Live Cuts',
+    description:
+      'Les plus grands moments du concert symphonique au Parc des Expositions, filmés au plus près de l’orchestre.',
+    descriptionEn:
+      'Peak moments from the symphonic concert at Parc des Expositions, filmed right beside the orchestra.',
+    mediaType: 'video',
+    url: COMMUNITY_MEDIA.crowdArchiveImg,
+    thumbnailUrl: COMMUNITY_MEDIA.crowdArchiveImg,
+    embedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    duration: '19:45',
+    tag: 'Live Symphonique',
+    placement: 'lumareel_tv',
+    tvCategory: 'concerts_live',
+    privacyLevel: 'private',
+    tvAccessTier: 'tv_pass',
+    artistName: 'DIDI B',
+    publishedAt: '2026-11-05',
+    date: 'Nov 2026',
+    status: 'published',
+    downloadable: false,
+    membersOnly: true,
+    accessLevel: 'members',
+    visualContextRole: 'concert',
+    submittedByName: 'Direction LUMARÉEL',
+    submittedByRole: 'super_admin',
+    notes: [
+      'Mixage spatialisé entre rap live et 18 musiciens classiques.',
+    ],
+    createdAt: '2026-11-05T19:30:00Z',
+  },
+  {
+    id: 'media_tv_int_2',
+    title: 'Face Caméra : Josey sur la scène acoustique',
+    titleEn: 'On Camera: Josey on acoustic live craft',
+    description:
+      'Entretien long format tourné en loge après sa soirée acoustique à la Salle Anoumabo.',
+    descriptionEn:
+      'Long-form conversation filmed in the greenroom following her acoustic night at Salle Anoumabo.',
+    mediaType: 'video',
+    url: COMMUNITY_MEDIA.blackCardHeroPortraitImg,
+    thumbnailUrl: COMMUNITY_MEDIA.blackCardHeroPortraitImg,
+    embedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    duration: '12:30',
+    tag: 'Interview',
+    placement: 'lumareel_tv',
+    tvCategory: 'interviews',
+    privacyLevel: 'private',
+    tvAccessTier: 'tv_pass',
+    artistName: 'JOSEY',
+    publishedAt: '2026-11-08',
+    date: 'Nov 2026',
+    status: 'published',
+    downloadable: false,
+    membersOnly: true,
+    accessLevel: 'members',
+    visualContextRole: 'artist',
+    submittedByName: 'Direction LUMARÉEL',
+    submittedByRole: 'super_admin',
+    notes: [
+      'Discussion sur la voix, la mise en scène épurée et le rapport au public.',
+    ],
+    createdAt: '2026-11-08T18:10:00Z',
+  },
+  {
+    id: 'media_tv_bs_5',
+    title: 'Dans les coulisses de Himra — 60 minutes avant scène',
+    titleEn: 'Backstage with Himra — 60 minutes to showtime',
+    description:
+      'Caméra embarquée au cœur du couloir des loges, du warm-up vocal jusqu’au premier faisceau.',
+    descriptionEn:
+      'Handheld camera following every step from greenroom warm-up to the first stage spotlight.',
+    mediaType: 'video',
+    url: COMMUNITY_MEDIA.flashVipDropImg,
+    thumbnailUrl: COMMUNITY_MEDIA.flashVipDropImg,
+    embedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    duration: '09:55',
+    tag: 'Backstage',
+    placement: 'lumareel_tv',
+    tvCategory: 'backstage',
+    privacyLevel: 'private',
+    tvAccessTier: 'tv_pass',
+    artistName: 'HIMRA',
+    publishedAt: '2026-11-03',
+    date: 'Nov 2026',
+    status: 'published',
+    downloadable: false,
+    membersOnly: true,
+    accessLevel: 'members',
+    visualContextRole: 'none',
+    submittedByName: 'Direction LUMARÉEL',
+    submittedByRole: 'super_admin',
+    notes: [
+      'Montage nerveux sans voix off, 100% ambiance réelle.',
+    ],
+    createdAt: '2026-11-03T21:40:00Z',
+  },
+  {
+    id: 'media_tv_retro_1',
+    title: 'Saison 2026 — Rétrospective officielle LUMARÉEL',
+    titleEn: 'Season 2026 — Official LUMARÉEL Retrospective',
+    description:
+      'Les six nuits qui ont marqué la saison LUMARÉEL à Abidjan réunies dans un film récapitulatif inédit.',
+    descriptionEn:
+      'The six nights that defined the LUMARÉEL season in Abidjan gathered in one unreleased recap film.',
+    mediaType: 'video',
+    url: COMMUNITY_MEDIA.blackCardHeroLoungeImg,
+    thumbnailUrl: COMMUNITY_MEDIA.blackCardHeroLoungeImg,
+    embedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
+    duration: '15:12',
+    tag: 'Rétrospective',
+    placement: 'lumareel_tv',
+    tvCategory: 'retrospectives',
+    privacyLevel: 'private',
+    tvAccessTier: 'tv_pass',
+    publishedAt: '2026-11-24',
+    date: 'Nov 2026',
+    status: 'published',
+    downloadable: false,
+    membersOnly: true,
+    accessLevel: 'members',
+    visualContextRole: 'editorial',
+    submittedByName: 'Direction LUMARÉEL',
+    submittedByRole: 'super_admin',
+    notes: [
+      'Séquences inédites des coulisses, du public et des rappels de la saison.',
+    ],
+    createdAt: '2026-11-24T17:00:00Z',
+  },
 ];
 
 function normalizeMediaHubItem(raw: MediaHubItem): MediaHubItem {
@@ -520,17 +785,21 @@ export function subscribeMediaHub(listener: () => void): () => void {
 }
 
 export function loadMediaHubItems(): MediaHubItem[] {
-  if (typeof window === 'undefined') return INITIAL_MEDIA_HUB_ITEMS.map(normalizeMediaHubItem);
+  const seedNormalized = INITIAL_MEDIA_HUB_ITEMS.map(normalizeMediaHubItem);
+  if (typeof window === 'undefined') return seedNormalized;
   try {
     const raw = localStorage.getItem(MEDIA_ITEMS_KEY);
-    if (!raw) return INITIAL_MEDIA_HUB_ITEMS.map(normalizeMediaHubItem);
+    if (!raw) return seedNormalized;
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed) || parsed.length === 0) {
-      return INITIAL_MEDIA_HUB_ITEMS.map(normalizeMediaHubItem);
+      return seedNormalized;
     }
-    return parsed.map((item: MediaHubItem) => normalizeMediaHubItem(item));
+    const storedNormalized = parsed.map((item: MediaHubItem) => normalizeMediaHubItem(item));
+    const existingIds = new Set(storedNormalized.map((item) => item.id));
+    const missingSeed = seedNormalized.filter((seedItem) => !existingIds.has(seedItem.id));
+    return [...storedNormalized, ...missingSeed];
   } catch {
-    return INITIAL_MEDIA_HUB_ITEMS.map(normalizeMediaHubItem);
+    return seedNormalized;
   }
 }
 

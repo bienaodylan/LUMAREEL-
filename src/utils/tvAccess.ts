@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { loadStoredMemberCard } from './memberCardStorage';
 
 export type TvAccessTier = 'free' | 'tv_pass' | 'card' | 'vip';
 export type TvAccessSource = 'none' | 'tv_pass' | 'lumareel_card' | 'both';
@@ -78,75 +79,216 @@ export const EMPTY_TV_ENTITLEMENT: TvEntitlementClient = {
   checkedAt: '',
 };
 
-async function getSupabaseAccessToken(): Promise<string | null> {
+export const DEFAULT_TV_PASS_PLANS: TvPassPlanClient[] = [
+  {
+    id: 'tv_pass_monthly',
+    name: 'LUMARÉEL TV Pass Mensuel',
+    nameEn: 'LUMARÉEL TV Monthly Pass',
+    description:
+      'Accès illimité aux Originals, concerts filmés, backstage, interviews et rétrospectives LUMARÉEL TV.',
+    descriptionEn:
+      'Unlimited access to LUMARÉEL TV Originals, filmed concerts, backstage sessions, interviews, and retrospectives.',
+    price: 3500,
+    currency: 'FCFA',
+    durationDays: 30,
+    billingCycleLabel: 'Mensuel · 30 jours',
+    billingCycleLabelEn: 'Monthly · 30 days',
+    autoRenew: false,
+    renewalPolicy: 'Sans engagement — renouvellement manuel à l’échéance.',
+    conditions: 'Accès personnel multi-écrans sur votre compte LUMARÉEL.',
+    status: 'active',
+  },
+  {
+    id: 'tv_pass_annual',
+    name: 'LUMARÉEL TV Pass Annuel',
+    nameEn: 'LUMARÉEL TV Annual Pass',
+    description:
+      '12 mois d’accès complet à l’ensemble du catalogue LUMARÉEL TV avec 2 mois offerts.',
+    descriptionEn:
+      '12 months of full access to the entire LUMARÉEL TV catalog with 2 months included.',
+    price: 35000,
+    currency: 'FCFA',
+    durationDays: 365,
+    billingCycleLabel: 'Annuel · 365 jours',
+    billingCycleLabelEn: 'Annual · 365 days',
+    autoRenew: false,
+    renewalPolicy: 'Valable 12 mois — rappel avant renouvellement.',
+    conditions: 'Accès complet à toutes les sorties de la saison.',
+    status: 'active',
+  },
+];
+
+export const DEFAULT_TV_PAYMENT_CHANNELS: Array<{ id: string; label: string; type: string }> = [
+  { id: 'wave', label: 'Wave', type: 'mobile_money' },
+  { id: 'orange_money', label: 'Orange Money', type: 'mobile_money' },
+  { id: 'mtn_momo', label: 'MTN MoMo', type: 'mobile_money' },
+  { id: 'moov_money', label: 'Moov Money', type: 'mobile_money' },
+  { id: 'card', label: 'Visa / Mastercard', type: 'card' },
+];
+
+export interface LocalTvSubscriptionRecord {
+  subscriptionId: string;
+  planId: string;
+  planName: string;
+  status: TvSubscriptionStatus;
+  startsAt: string;
+  expiresAt: string;
+  autoRenew: boolean;
+  paymentReference?: string;
+}
+
+const LOCAL_TV_SUB_PREFIX = 'lumareel_effective_tv_sub_v1_';
+const TV_ENTITLEMENT_EVENT = 'lumareel-tv-entitlement-updated';
+
+function getLocalTvSubKey(email: string): string {
+  return `${LOCAL_TV_SUB_PREFIX}${email.trim().toLowerCase()}`;
+}
+
+export function loadLocalTvSubscription(email?: string | null): LocalTvSubscriptionRecord | null {
+  if (typeof window === 'undefined' || !email) return null;
   try {
-    if (!isSupabaseConfigured) return null;
-    const { data } = await supabase.auth.getSession();
-    return data?.session?.access_token || null;
+    const raw = window.localStorage.getItem(getLocalTvSubKey(email));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as LocalTvSubscriptionRecord;
+    if (!parsed || !parsed.subscriptionId || !parsed.expiresAt) return null;
+    return parsed;
   } catch {
     return null;
   }
 }
 
-export async function fetchTvPlans(): Promise<TvPlansResponse | null> {
-  try {
-    const res = await fetch('/api/tv/plans');
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (!data?.success) return null;
-    return {
-      plans: Array.isArray(data.plans) ? data.plans : [],
-      cardEligibility: data.cardEligibility || {
-        enabledPlanIds: [],
-        blackCardIncludesVipTier: true,
-        cardAccessEnabled: true,
-      },
-      paymentReady: Boolean(data.paymentReady),
-      paymentProvider: data.paymentProvider || 'paymetrust',
-      paymentEnvironment: data.paymentEnvironment || 'sandbox',
-      channels: Array.isArray(data.channels) ? data.channels : [],
-    };
-  } catch {
-    return null;
+export function saveLocalTvSubscription(
+  email: string,
+  plan: TvPassPlanClient,
+  paymentReference?: string
+): LocalTvSubscriptionRecord {
+  const now = new Date();
+  const expires = new Date(now.getTime() + Math.max(1, plan.durationDays || 30) * 24 * 60 * 60 * 1000);
+  const record: LocalTvSubscriptionRecord = {
+    subscriptionId: `tvsub_${Date.now().toString(36)}`,
+    planId: plan.id,
+    planName: plan.name,
+    status: 'active',
+    startsAt: now.toISOString(),
+    expiresAt: expires.toISOString(),
+    autoRenew: Boolean(plan.autoRenew),
+    paymentReference,
+  };
+  if (typeof window !== 'undefined' && email) {
+    try {
+      window.localStorage.setItem(getLocalTvSubKey(email), JSON.stringify(record));
+      window.dispatchEvent(new CustomEvent(TV_ENTITLEMENT_EVENT));
+    } catch {
+      // ignore storage quota
+    }
   }
+  return record;
+}
+
+function buildLocalFallbackEntitlement(cleanEmail: string): TvEntitlementClient {
+  const checkedAt = new Date().toISOString();
+  if (!cleanEmail) {
+    return { ...EMPTY_TV_ENTITLEMENT, checkedAt };
+  }
+
+  const storedCard = loadStoredMemberCard(cleanEmail);
+  const hasCard = Boolean(
+    storedCard &&
+      storedCard.cardStatus === 'active' &&
+      (!storedCard.expiresAt || Date.parse(storedCard.expiresAt) > Date.now())
+  );
+
+  const localSub = loadLocalTvSubscription(cleanEmail);
+  const hasSub = Boolean(
+    localSub &&
+      localSub.status === 'active' &&
+      Date.parse(localSub.expiresAt) > Date.now()
+  );
+
+  if (!hasCard && !hasSub) {
+    return { ...EMPTY_TV_ENTITLEMENT, checkedAt };
+  }
+
+  const source: TvAccessSource =
+    hasCard && hasSub ? 'both' : hasCard ? 'lumareel_card' : 'tv_pass';
+
+  return {
+    hasAccess: true,
+    source,
+    maxTier: hasCard ? 'vip' : 'tv_pass',
+    cardAccess: hasCard && storedCard
+      ? {
+          eligible: true,
+          cardNumber: storedCard.cardNumber,
+          cardStatus: storedCard.cardStatus,
+          planId: storedCard.planId,
+          expiresAt: storedCard.expiresAt,
+        }
+      : { eligible: false },
+    subscriptionAccess: hasSub && localSub
+      ? {
+          active: true,
+          subscriptionId: localSub.subscriptionId,
+          planId: localSub.planId,
+          planName: localSub.planName,
+          status: 'active',
+          startsAt: localSub.startsAt,
+          expiresAt: localSub.expiresAt,
+          autoRenew: localSub.autoRenew,
+        }
+      : { active: false },
+    checkedAt,
+  };
+}
+
+function mergeTvEntitlements(
+  serverEnt: TvEntitlementClient | null,
+  localEnt: TvEntitlementClient
+): TvEntitlementClient {
+  if (!serverEnt) return localEnt;
+  const hasCard = Boolean(serverEnt.cardAccess?.eligible || localEnt.cardAccess?.eligible);
+  const hasSub = Boolean(serverEnt.subscriptionAccess?.active || localEnt.subscriptionAccess?.active);
+  const hasAccess = hasCard || hasSub;
+  const source: TvAccessSource =
+    hasCard && hasSub ? 'both' : hasCard ? 'lumareel_card' : hasSub ? 'tv_pass' : 'none';
+
+  return {
+    hasAccess,
+    source,
+    maxTier: hasCard ? 'vip' : hasSub ? 'tv_pass' : 'free',
+    cardAccess: serverEnt.cardAccess?.eligible ? serverEnt.cardAccess : localEnt.cardAccess,
+    subscriptionAccess: serverEnt.subscriptionAccess?.active
+      ? serverEnt.subscriptionAccess
+      : localEnt.subscriptionAccess,
+    checkedAt: serverEnt.checkedAt || localEnt.checkedAt,
+  };
+}
+
+export async function fetchTvPlans(): Promise<TvPlansResponse> {
+  return {
+    plans: DEFAULT_TV_PASS_PLANS,
+    cardEligibility: {
+      enabledPlanIds: ['plan_founders_annual', 'plan_black_card_2026'],
+      blackCardIncludesVipTier: true,
+      cardAccessEnabled: true,
+    },
+    paymentReady: true,
+    paymentProvider: 'paymetrust',
+    paymentEnvironment: 'sandbox',
+    channels: DEFAULT_TV_PAYMENT_CHANNELS,
+  };
 }
 
 /**
- * Queries the real server-side LUMARÉEL TV entitlement engine.
- * Never grants access locally without server confirmation of an active Card or active TV Pass.
+ * Resolves LUMARÉEL TV entitlement directly from front-end fictif state
+ * (active local TV Pass subscription or stored Black Card).
  */
 export async function fetchTvEntitlement(
   userEmail?: string | null
 ): Promise<{ entitlement: TvEntitlementClient; paymentReady: boolean }> {
   const cleanEmail = (userEmail || '').trim().toLowerCase();
-  const token = await getSupabaseAccessToken();
-
-  if (!cleanEmail && !token) {
-    return { entitlement: { ...EMPTY_TV_ENTITLEMENT, checkedAt: new Date().toISOString() }, paymentReady: false };
-  }
-
-  try {
-    const headers: Record<string, string> = {};
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-    const qs = cleanEmail ? `?email=${encodeURIComponent(cleanEmail)}` : '';
-    const res = await fetch(`/api/tv/entitlement${qs}`, { headers });
-    if (!res.ok) {
-      return { entitlement: { ...EMPTY_TV_ENTITLEMENT, checkedAt: new Date().toISOString() }, paymentReady: false };
-    }
-    const data = await res.json();
-    if (data?.success && data.entitlement) {
-      return {
-        entitlement: data.entitlement as TvEntitlementClient,
-        paymentReady: Boolean(data.paymentReady),
-      };
-    }
-  } catch {
-    // Fall back safely to no access rather than granting fake access
-  }
-
-  return { entitlement: { ...EMPTY_TV_ENTITLEMENT, checkedAt: new Date().toISOString() }, paymentReady: false };
+  const localEntitlement = buildLocalFallbackEntitlement(cleanEmail);
+  return { entitlement: localEntitlement, paymentReady: true };
 }
 
 // ============================================================================

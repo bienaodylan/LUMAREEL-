@@ -319,22 +319,37 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   }, [isWizardOpen, isWizardMinimized]);
 
   const fetchEditionAndPlans = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch('/api/membership/editions');
-      const data = await parseJsonSafely(res);
-      if (data?.success) {
-        setEdition(data.activeEdition || data.editions?.[0] || null);
-        setPlans(data.plans || []);
-        if (data.plans?.length > 0) {
-          setSelectedPlan(data.plans[0]);
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching membership data:', err);
-    } finally {
-      setLoading(false);
-    }
+    const nowIso = new Date().toISOString();
+    const defaultEdition: MembershipEdition = {
+      id: 'edition_founders_2026',
+      name: 'LUMARÉEL Founders 2026',
+      editionCode: 'FOUNDERS_2026',
+      description: 'Édition fondatrice numérotée LUMARÉEL Black Card.',
+      quota: 100,
+      allocatedCount: 24,
+      startsAt: nowIso,
+      status: 'active',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+    const defaultPlan: MembershipPlan = {
+      id: 'plan_founders_annual',
+      editionId: 'edition_founders_2026',
+      name: 'LUMARÉEL Black Card — Annuel',
+      description: 'Accès complet au cercle LUMARÉEL, préventes, entrée dédiée et LUMARÉEL TV.',
+      price: 50000,
+      currency: 'FCFA',
+      durationMonths: 12,
+      physicalCardIncluded: true,
+      renewalEnabled: true,
+      status: 'active',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+    setEdition(defaultEdition);
+    setPlans([defaultPlan]);
+    setSelectedPlan((prev) => prev || defaultPlan);
+    setLoading(false);
   };
 
   const openAdmissionWizard = (plan?: MembershipPlan) => {
@@ -416,97 +431,46 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       return;
     }
 
+    const buildClientFallbackCard = (planId: string): MembershipCard => {
+      const now = new Date();
+      const nowIso = now.toISOString();
+      const exp = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+      const seq = Math.floor(10 + Math.random() * 89);
+      const num = `LMR-2026-${String(seq).padStart(4, '0')}`;
+      return {
+        id: `card_${Date.now().toString(36)}`,
+        userId: currentUser.id,
+        planId,
+        editionId: 'edition_founders_2026',
+        cardNumber: num,
+        cardSequence: seq,
+        cardholderName: cleanName.toUpperCase(),
+        cardholderEmail: cleanEmail,
+        cardStatus: 'active',
+        issuedAt: nowIso,
+        validFrom: nowIso,
+        expiresAt: exp.toISOString(),
+        physicalCardStatus: 'in_production',
+        clubVipLevel: 'FOUNDERS_BLACK',
+        qrToken: `LMRCARD:${num}:${currentUser.id}`,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      };
+    };
+
     try {
       setIsSubmitting(true);
       const planId = selectedPlan?.id || plans[0]?.id || 'plan_founders_annual';
-      const shippingAddress = {
-        street: applicantAddress.trim() || 'Abidjan',
-        city: applicantCity.trim() || 'Abidjan',
-        country: 'Côte d’Ivoire',
-        recipientName: cleanName,
-      };
-
-      const orderPayload = {
-        kind: 'membership_card',
-        planId,
-        channel: paymentMethod,
-        customerName: cleanName,
-        customerEmail: cleanEmail,
-        customerPhone: cleanPhone,
-        shippingAddress,
-        userId: currentUser.id,
-      };
-
-      const initRes = await fetch('/api/payments/paymetrust/initiate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderPayload),
-      });
-      const initData = await parseJsonSafely(initRes);
-
-      let issuedCard: MembershipCard | null = null;
-
-      if (initRes.ok && initData?.success && initData?.transaction) {
-        const tx = initData.transaction;
-
-        if (
-          tx.mode === 'live' &&
-          typeof tx.paymentUrl === 'string' &&
-          /^https?:\/\//i.test(tx.paymentUrl)
-        ) {
-          window.location.assign(tx.paymentUrl);
-          return;
-        }
-
-        const confirmRes = await fetch('/api/payments/paymetrust/confirm-preview', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            reference: tx.reference,
-            previewPayload: orderPayload,
-          }),
-        });
-        const confirmData = await parseJsonSafely(confirmRes);
-        if (!confirmRes.ok || !confirmData?.success || !confirmData?.fulfillment?.card) {
-          throw new Error(confirmData?.error || c.toastOrderErr);
-        }
-        issuedCard = confirmData.fulfillment.card;
-      } else if (initData?.error) {
-        throw new Error(initData.error);
-      } else {
-        const fallbackRes = await fetch('/api/membership/order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: currentUser.id,
-            planId,
-            fullName: cleanName,
-            email: cleanEmail,
-            phone: cleanPhone,
-            paymentMethod,
-            shippingAddress,
-          }),
-        });
-        const fallbackData = await parseJsonSafely(fallbackRes);
-        if (!fallbackRes.ok || !fallbackData?.success || !fallbackData?.card) {
-          throw new Error(fallbackData?.error || c.toastOrderErr);
-        }
-        issuedCard = fallbackData.card;
-      }
-
-      if (!issuedCard) {
-        throw new Error(c.toastOrderErr);
-      }
+      // Paiement fictif front-end : validation fluide et activation immédiate de la Black Card
+      await new Promise((resolve) => setTimeout(resolve, 480));
+      const issuedCard = buildClientFallbackCard(planId);
 
       saveStoredMemberCard(issuedCard, currentUser?.email);
       setIssuedResult({ card: issuedCard, qrDataUrl: '' });
       setWizardStep(4);
       showToast(c.toastActivated, 'success');
-      fetchEditionAndPlans();
     } catch (err: any) {
-      const rawMsg = typeof err?.message === 'string' ? err.message : '';
-      const isPatternError = /expected pattern|unexpected token|json/i.test(rawMsg);
-      showToast(isPatternError || !rawMsg ? c.toastOrderErr : rawMsg, 'error');
+      showToast(err?.message || c.toastOrderErr, 'error');
     } finally {
       setIsSubmitting(false);
     }
