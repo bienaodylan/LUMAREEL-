@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ClubExplorer } from './ClubExplorer';
+import { BackstageView } from './BackstageView';
+import { ConcertMemoriesView } from './ConcertMemoriesView';
+import { SuggestionsView } from './SuggestionsView';
 import {
   COMMUNITY_MEDIA,
   ClaimedFlashOffer,
@@ -197,7 +200,7 @@ function formatTimer(totalSec: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialTab = 'gifts' }) => {
+export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boolean }> = ({ initialTab = 'gifts', unified = false }) => {
   const {
     currentUser,
     customerOrders,
@@ -597,14 +600,31 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
 
   return (
     <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-8 text-white font-agrandir-regular">
-      <ClubExplorer
-        isEn={isEn}
-        points={summary.availablePoints}
-        creditFcfa={summary.ticketingCreditFcfa}
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
-        onOpenPage={(page) => setCurrentPage(page)}
-      />
+      {unified ? (
+        <ClubExplorer
+          isEn={isEn}
+          points={summary.availablePoints}
+          creditFcfa={summary.ticketingCreditFcfa}
+          activeTab={activeTab}
+          onSelectTab={setActiveTab}
+          onOpenPage={(page) => {
+            const target = page === 'backstage'
+              ? 'club-section-backstage'
+              : page === 'memories'
+              ? 'club-section-memories'
+              : 'club-section-voice';
+            document.getElementById(target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+        />
+      ) : (
+        <header className="mb-8 border-b border-white/15 pb-6">
+          <p className="text-[10px] uppercase tracking-[0.24em] text-neutral-500">LUMARÉEL CLUB</p>
+          <h1 className="mt-2 text-3xl font-agrandir-extrabold tracking-tight sm:text-5xl">GIFT</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-neutral-400">
+            {isEn ? 'Member rewards, limited opportunities and benefits.' : 'Récompenses membres, opportunités limitées et avantages.'}
+          </p>
+        </header>
+      )}
 
       <AnimatePresence mode="wait">
       <motion.div
@@ -1329,6 +1349,37 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
       )}
       </motion.div>
       </AnimatePresence>
+
+      {unified && (
+        <div className="mt-16 space-y-16 sm:mt-20 sm:space-y-20">
+          <section id="club-section-backstage" className="scroll-mt-8 border-t border-white/15 pt-8">
+            <div className="mb-6">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">UNIVERS 01</p>
+              <h2 className="mt-2 text-2xl font-agrandir-extrabold sm:text-3xl">BACKSTAGE</h2>
+              <p className="mt-2 max-w-2xl text-sm text-neutral-400">{isEn ? 'Exclusive content, preparations and moments from behind the scenes.' : 'Contenus exclusifs, préparatifs et instants dans les coulisses.'}</p>
+            </div>
+            <BackstageView embedded />
+          </section>
+
+          <section id="club-section-memories" className="scroll-mt-8 border-t border-white/15 pt-8">
+            <div className="mb-6">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">UNIVERS 02</p>
+              <h2 className="mt-2 text-2xl font-agrandir-extrabold sm:text-3xl">{isEn ? 'MY MOMENTS' : 'MES MOMENTS'}</h2>
+              <p className="mt-2 max-w-2xl text-sm text-neutral-400">{isEn ? 'Your personal collection of concert memories and experiences.' : 'Votre collection personnelle de souvenirs et d’expériences vécues.'}</p>
+            </div>
+            <ConcertMemoriesView embedded />
+          </section>
+
+          <section id="club-section-voice" className="scroll-mt-8 border-t border-white/15 pt-8">
+            <div className="mb-6">
+              <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">UNIVERS 03</p>
+              <h2 className="mt-2 text-2xl font-agrandir-extrabold sm:text-3xl">TA VOIX</h2>
+              <p className="mt-2 max-w-2xl text-sm text-neutral-400">{isEn ? 'Suggest the artists you would like to see on the LUMARÉEL stage.' : 'Proposez les artistes que vous aimeriez voir sur la scène LUMARÉEL.'}</p>
+            </div>
+            <SuggestionsView embedded />
+          </section>
+        </div>
+      )}
     </div>
   );
 };
