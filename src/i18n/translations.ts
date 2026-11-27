@@ -6,7 +6,6 @@ export const translations = {
     'nav.home': 'Accueil',
     'nav.orders': 'Mes commandes',
     'nav.archives': 'Archives',
-    'nav.news': 'Actualités',
     'nav.profile': 'Profil',
     'nav.admin': 'Administrateur',
     'nav.account': 'Mon compte',
@@ -34,7 +33,6 @@ export const translations = {
     'home.quickNav': 'NAVIGATION RAPIDE',
     'home.bookingsCatalog': 'Mes commandes',
     'home.archives': 'Archives',
-    'home.newsEditions': 'Actualités',
     'home.profileSettings': 'Mon Profil & Paramètres',
     'home.viewImages': 'Voir les images',
     'home.readRelease': 'LIRE LE COMMUNIQUÉ',
@@ -116,14 +114,6 @@ export const translations = {
     'archive.of': 'sur',
 
     // News View
-    'news.title': 'ACTUALITÉS & COMMUNIQUÉS',
-    'news.backHome': 'RETOUR À LA PAGE PRÉCÉDENTE',
-    'news.readTime': 'min de lecture',
-    'news.officialRelease': 'COMMUNIQUÉ OFFICIEL',
-    'news.share': 'Partager',
-    'news.close': 'Fermer',
-    'news.readNote': 'Lire la note',
-    'news.writtenBy': 'Rédigé par',
 
     // Customer Space
     'orders.headerTitle': 'MES COMMANDES',
@@ -370,7 +360,6 @@ export const translations = {
     'nav.home': 'Home',
     'nav.orders': 'My Orders',
     'nav.archives': 'Archives',
-    'nav.news': 'News',
     'nav.profile': 'Profile',
     'nav.admin': 'Admin',
     'nav.account': 'My Account',
@@ -398,7 +387,6 @@ export const translations = {
     'home.quickNav': 'QUICK NAVIGATION',
     'home.bookingsCatalog': 'My orders',
     'home.archives': 'Archives',
-    'home.newsEditions': 'News',
     'home.profileSettings': 'My Profile & Settings',
     'home.viewImages': 'View images',
     'home.readRelease': 'READ PRESS RELEASE',
@@ -480,14 +468,6 @@ export const translations = {
     'archive.of': 'of',
 
     // News View
-    'news.title': 'NEWS & PRESS RELEASES',
-    'news.backHome': 'BACK TO PREVIOUS PAGE',
-    'news.readTime': 'min read',
-    'news.officialRelease': 'OFFICIAL RELEASE',
-    'news.share': 'Share',
-    'news.close': 'Close',
-    'news.readNote': 'Read note',
-    'news.writtenBy': 'Written by',
 
     // Customer Space
     'orders.headerTitle': 'MY ORDERS',
