@@ -205,3 +205,53 @@
     scroll-behavior: auto !important;
   }
 }
+
+
+/* Homepage editorial system — monochrome, sharp edges, isolated horizontal rails */
+.home-editorial {
+  --home-black: #050505;
+  --home-deep: #111111;
+  --home-gray: #777777;
+  --home-light: #E8E8E8;
+  background: var(--home-black);
+  color: #FFFFFF;
+}
+.home-editorial .home-hero-frame,
+.home-editorial .home-quick-tile,
+.home-editorial .home-club > div,
+.home-editorial .home-events article > div:first-child,
+.home-editorial button {
+  border-radius: 0 !important;
+}
+.home-editorial .home-quick-track {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.home-editorial .home-quick-track::-webkit-scrollbar,
+.home-editorial .home-events > div::-webkit-scrollbar {
+  display: none;
+}
+.home-editorial #home-upcoming-events {
+  scroll-margin-top: 1rem;
+}
+.home-editorial button:focus-visible {
+  outline: 2px solid #FFFFFF;
+  outline-offset: 3px;
+}
+@media (max-width: 640px) {
+  .home-editorial .home-hero-frame {
+    min-height: 310px;
+    height: min(48svh, 430px);
+  }
+  .home-editorial .home-quick-tile {
+    min-height: 205px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-editorial .home-quick-tile,
+  .home-editorial .home-quick-tile img {
+    transition: none !important;
+  }
+}
