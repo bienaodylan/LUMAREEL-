@@ -66,6 +66,7 @@ export const HomeFeed: React.FC = () => {
       .sort((a, b) => getEventTimestamp(a) - getEventTimestamp(b)),
     [events]
   );
+  // Event navigation is intentionally user-controlled; no autoplay timer is registered.
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const featuredRowRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
