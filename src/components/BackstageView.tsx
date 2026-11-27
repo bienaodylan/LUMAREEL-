@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { ConcertEvent } from '../types';
 import {
-  COMMUNITY_MEDIA,
   buildConcertMemoryAlbums,
   markChallengeCompleted,
 } from '../utils/communityStorage';
@@ -26,10 +24,8 @@ type BackstageSection = 'coulisses' | 'memories' | 'archives';
 export const BackstageView: React.FC = () => {
   const {
     currentUser,
-    events,
     archives,
     setCurrentPage,
-    setCheckoutEvent,
     setSelectedMediaId,
     showToast,
     language,
@@ -52,11 +48,6 @@ export const BackstageView: React.FC = () => {
   const backstageItems = useMemo(
     () => publishedMedia.filter((item) => item.placement === 'backstage'),
     [publishedMedia]
-  );
-
-  const publishedEvents = useMemo(
-    () => (events || []).filter((e) => e.status !== 'draft'),
-    [events]
   );
 
   const memoryAlbums = useMemo(() => buildConcertMemoryAlbums(archives), [archives]);
@@ -88,10 +79,6 @@ export const BackstageView: React.FC = () => {
     }
     setSelectedMediaId(item.id);
     setCurrentPage('media_detail');
-  };
-
-  const handleGoToConcert = (ev: ConcertEvent) => {
-    setCheckoutEvent(ev);
   };
 
   const leadItem = backstageItems[0];
@@ -420,49 +407,6 @@ export const BackstageView: React.FC = () => {
             </section>
           )}
 
-          {/* Liaison directe vers les concerts associés */}
-          {publishedEvents.length > 0 && (
-            <section className="pt-4 border-t border-white/[0.08]">
-              <div className="flex items-baseline justify-between mb-4">
-                <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white">
-                  {isEn ? 'Linked concerts' : 'Concerts associés'}
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setSection('archives')}
-                  className="text-xs font-agrandir-semibold text-neutral-400 hover:text-white inline-flex items-center gap-1 transition-colors cursor-pointer"
-                >
-                  <span>{isEn ? 'Archives' : 'Archives'}</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <div className="flex overflow-x-auto snap-x gap-3 pb-1 scrollbar-hide">
-                {publishedEvents.slice(0, 4).map((ev) => (
-                  <button
-                    key={ev.id}
-                    type="button"
-                    onClick={() => handleGoToConcert(ev)}
-                    className="group shrink-0 snap-start flex items-center gap-3 bg-[#0E0E0E] border border-white/[0.12] hover:border-[#D4AF6A]/60 p-2.5 pr-4 transition-colors cursor-pointer max-w-[280px]"
-                  >
-                    <img
-                      src={ev.officialPoster || ev.bannerImage || COMMUNITY_MEDIA.crowdArchiveImg}
-                      alt={ev.title}
-                      referrerPolicy="no-referrer"
-                      className="w-11 h-14 object-cover shrink-0"
-                    />
-                    <span className="min-w-0 text-left">
-                      <span className="block text-[10px] text-neutral-400 font-agrandir-semibold truncate">
-                        {ev.city || 'Abidjan'}
-                      </span>
-                      <span className="block text-xs font-agrandir-extrabold text-white truncate group-hover:text-neutral-300 transition-colors">
-                        {ev.title}
-                      </span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
         </div>
       )}
 
