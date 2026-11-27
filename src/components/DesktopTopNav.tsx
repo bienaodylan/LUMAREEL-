@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useApp, PageView } from '../context/AppContext';
 import { User, LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 /**
  * Navigation desktop horizontale en haut de page LUMARÉEL :
- * Logo à gauche · 5 entrées centrées (soulignement or #D4AF6A actif) · langue & compte à droite.
+ * Logo officiel à gauche · 5 entrées centrées (soulignement or #D4AF6A actif) · langue & compte à droite.
+ * Se masque automatiquement au scroll vers le bas et réapparaît dès que l'utilisateur remonte.
  */
 export const DesktopTopNav: React.FC = () => {
   const {
@@ -16,6 +17,34 @@ export const DesktopTopNav: React.FC = () => {
     language,
     setLanguage,
   } = useApp();
+
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
+
+  useEffect(() => {
+    setIsVisible(true);
+    lastScrollYRef.current = typeof window !== 'undefined' ? window.scrollY : 0;
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleScroll = () => {
+      const currentY = Math.max(0, window.scrollY);
+      const delta = currentY - lastScrollYRef.current;
+
+      if (currentY <= 24) {
+        setIsVisible(true);
+      } else if (delta > 6 && currentY > 72) {
+        setIsVisible(false);
+      } else if (delta < -6) {
+        setIsVisible(true);
+      }
+      lastScrollYRef.current = currentY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   if (['splash', 'gate_scanner', 'admin'].includes(currentPage)) {
     return null;
@@ -79,17 +108,27 @@ export const DesktopTopNav: React.FC = () => {
   ];
 
   return (
-    <header className="hidden md:flex fixed top-0 inset-x-0 z-50 h-[72px] bg-black/94 backdrop-blur-xl border-b border-white/[0.12]">
+    <header
+      className={`hidden md:flex fixed top-0 inset-x-0 z-50 h-[72px] bg-black/94 backdrop-blur-xl border-b border-white/[0.12] transition-transform duration-300 ease-out will-change-transform ${
+        isVisible ? 'translate-y-0' : '-translate-y-full'
+      }`}
+    >
       <div className="w-full max-w-[1380px] mx-auto px-8 lg:px-10 flex items-center justify-between gap-6">
-        {/* Gauche : Logo LUMARÉEL */}
+        {/* Gauche : Logo officiel LUMARÉEL */}
         <button
           type="button"
-          onClick={() => setCurrentPage('home')}
-          className="text-left cursor-pointer shrink-0 whitespace-nowrap group"
+          onClick={() => {
+            setCurrentPage('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          aria-label="LUMARÉEL — Accueil"
+          className="text-left cursor-pointer shrink-0 flex items-center group"
         >
-          <span className="font-agrandir-extrabold text-base tracking-[0.22em] text-white group-hover:text-[#D4AF6A] transition-colors">
-            LUMARÉEL
-          </span>
+          <img
+            src="/assets/logo-lumareel.png"
+            alt="LUMARÉEL"
+            className="h-6 lg:h-7 w-auto object-contain group-hover:opacity-80 transition-opacity"
+          />
         </button>
 
         {/* Centre : 5 destinations exactes avec indicateur doré */}

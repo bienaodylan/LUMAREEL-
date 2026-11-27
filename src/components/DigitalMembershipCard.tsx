@@ -52,17 +52,6 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
       })
     : '—';
 
-  const deliveryLabel = (() => {
-    switch (card.physicalCardStatus) {
-      case 'delivered':
-        return isEn ? 'Delivered' : 'Livrée';
-      case 'shipped':
-        return isEn ? 'Out for delivery' : 'En cours de livraison';
-      default:
-        return isEn ? 'Delivery < 24h' : 'Livraison < 24h';
-    }
-  })();
-
   return (
     <div className="flex flex-col items-center w-full select-none">
       {/* Scène ouverte façon application bancaire — aucune boîte autour de la carte */}
@@ -143,8 +132,6 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
             <span className="font-mono tabular-nums">
               {isEn ? 'Exp.' : 'Exp.'} {expiryFormatted}
             </span>
-            <span aria-hidden="true" className="text-white/25">·</span>
-            <span>{deliveryLabel}</span>
           </div>
         </div>
 
@@ -233,10 +220,6 @@ export const DigitalMembershipCard: React.FC<DigitalMembershipCardProps> = ({
                 <div className="py-3 flex items-center justify-between gap-4">
                   <dt className="text-neutral-400">{isEn ? 'Valid until' : 'Valable jusqu’en'}</dt>
                   <dd className="text-white font-mono tabular-nums">{expiryFormatted}</dd>
-                </div>
-                <div className="py-3 flex items-center justify-between gap-4">
-                  <dt className="text-neutral-400">{isEn ? 'Physical card' : 'Carte physique'}</dt>
-                  <dd className="text-white font-agrandir-semibold">{deliveryLabel}</dd>
                 </div>
               </dl>
             </motion.div>

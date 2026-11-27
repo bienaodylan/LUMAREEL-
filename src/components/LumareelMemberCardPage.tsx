@@ -157,8 +157,8 @@ export const LumareelMemberCardPage: React.FC = () => {
           <LumareelWalletView embedded initialCard={ownedCard} />
         ) : (
           <div className="w-full max-w-xl mx-auto px-5 sm:px-8 pt-10 pb-16 text-center space-y-6">
-            {/* Aperçu carte physique NFC (arrondi léger 12px) */}
-            <div className="w-full max-w-[360px] mx-auto aspect-[1.586/1] rounded-[12px] border border-[#D4AF6A]/45 bg-gradient-to-br from-[#16120B] via-[#0B0B0B] to-[#060606] p-6 flex flex-col justify-between text-left relative overflow-hidden">
+            {/* Aperçu carte membre */}
+            <div className="w-full max-w-[360px] mx-auto aspect-[1.586/1] rounded-[20px] border border-[#D4AF6A]/45 bg-gradient-to-br from-[#16120B] via-[#0B0B0B] to-[#060606] p-6 flex flex-col justify-between text-left relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <span className="font-agrandir-extrabold text-xs uppercase tracking-[0.26em] text-white">
                   LUMARÉEL
@@ -205,7 +205,7 @@ export const LumareelMemberCardPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('discover')}
-              className="min-h-[48px] px-7 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer lum-press"
+              className="min-h-[48px] px-7 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer lum-press"
             >
               {isEn ? 'Become a member' : 'Devenir membre'}
             </button>
