@@ -207,7 +207,7 @@
 }
 
 
-/* Homepage editorial system — monochrome, sharp edges, isolated horizontal rails */
+/* Homepage editorial system — mobile-first, monochrome, sharp edges, isolated horizontal rails */
 .home-editorial {
   --home-black: #050505;
   --home-deep: #111111;
