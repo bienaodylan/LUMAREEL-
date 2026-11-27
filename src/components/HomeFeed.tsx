@@ -256,7 +256,7 @@ export const HomeFeed: React.FC = () => {
                   cardRefs.current[idx] = el;
                 }}
                 onClick={() => handleSelectArtistSlide(idx)}
-                className="w-[calc(100vw-2rem)] sm:w-[390px] md:w-[420px] shrink-0 cursor-pointer group snap-center transition-all duration-300 select-none"
+                className="w-[calc(100vw-3.5rem)] max-w-[calc(100vw-3.5rem)] sm:w-[390px] sm:max-w-none md:w-[420px] shrink-0 cursor-pointer group snap-start transition-all duration-300 select-none"
               >
                 {/* Image 16:9 avec bordure or sur le concert actif */}
                 <div
