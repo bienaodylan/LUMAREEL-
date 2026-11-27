@@ -79,7 +79,7 @@ function mergePublicArchives(
   const albumById = new Map(albums.map((album) => [album.id, album]));
 
   for (const item of archives) {
-    if (item.isPublished === false) continue;
+    if (item.isPublished === false && !item.isDemo) continue;
     const rawPhotos =
       Array.isArray(item.photos) && item.photos.length > 0 ? item.photos : [item.coverImage];
     const photos = Array.from(new Set(rawPhotos.filter(Boolean)));
