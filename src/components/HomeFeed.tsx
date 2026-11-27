@@ -212,6 +212,17 @@ const EventCardCountdown: React.FC<{
 
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-clip bg-transparent text-[#FFFFFF] pb-16 select-none">
+      {/* Découvrir — page d'accueil éditoriale, sans toucher à la section Événements à venir */}
+      <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] md:pt-12 pb-2">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[9px] font-agrandir-bold uppercase tracking-[.22em] text-[#D4AF37] mb-2">LUMARÉEL</p>
+            <h1 className="text-2xl sm:text-3xl font-agrandir-extrabold tracking-tight text-white">{language === 'en' ? 'Discover' : 'Découvrir'}</h1>
+            <p className="mt-2 text-xs sm:text-sm text-neutral-400 max-w-xl">{language === 'en' ? 'Concerts, stories and experiences to discover.' : 'Concerts, actualités et expériences à découvrir.'}</p>
+          </div>
+          <button type="button" onClick={() => setCurrentPage('explore')} className="shrink-0 mb-1 text-[10px] sm:text-xs font-agrandir-bold uppercase tracking-wider text-neutral-400 hover:text-[#D4AF37] transition-colors">{language === 'en' ? 'Explore' : 'Explorer'} ↗</button>
+        </div>
+      </section>
       
       {/* =========================================================================
           1. SECTION PRINCIPALE : PROGRAMMATION OFFICIELLE
@@ -333,30 +344,6 @@ const EventCardCountdown: React.FC<{
               </div>
             );
           })}
-        </div>
-      </section>
-
-      {/* =========================================================================
-          2. NAVIGATION RAPIDE — accès visuels aux services LUMARÉEL
-         ========================================================================= */}
-      <section className="w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-7 sm:pt-10 relative z-20">
-        <div className="mb-4 flex items-end justify-between gap-3">
-          <div><p className="mb-1 text-[9px] font-agrandir-bold uppercase tracking-[.2em] text-[#D4AF37]">LUMARÉEL</p><h2 className="text-lg sm:text-xl font-agrandir-extrabold uppercase tracking-tight text-white">{language === 'en' ? 'Quick access' : 'Accès rapide'}</h2></div>
-          <button type="button" onClick={() => setCurrentPage('explore')} className="text-[10px] sm:text-xs font-agrandir-bold uppercase tracking-wider text-neutral-400 hover:text-[#D4AF37]">{language === 'en' ? 'Explore all' : 'Tout explorer'} <span aria-hidden="true">↗</span></button>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <button type="button" onClick={() => setCurrentPage('member_card')} className="group relative min-h-[142px] sm:min-h-[175px] overflow-hidden border border-[#D4AF37]/25 bg-gradient-to-br from-[#3b2e17] via-[#17130b] to-[#090909] p-4 sm:p-5 text-left transition-all hover:border-[#D4AF37]/60"><Crown className="mb-5 h-6 w-6 text-[#D4AF37]"/><span className="block text-sm sm:text-base font-agrandir-extrabold uppercase text-white">{t('home.cardTitle')}</span><span className="mt-1 block text-[10px] text-white/50">{language === 'en' ? 'Your exclusive membership' : 'Votre accès privilégié'}</span><span className="absolute bottom-4 right-4 text-[#D4AF37]">↗</span></button>
-          <button type="button" onClick={() => setCurrentPage('backstage')} className="group relative min-h-[142px] sm:min-h-[175px] overflow-hidden border border-white/10 bg-gradient-to-br from-[#29231d] via-[#15120f] to-[#090909] p-4 sm:p-5 text-left transition-all hover:border-white/30"><Clapperboard className="mb-5 h-6 w-6 text-[#D4AF37]"/><span className="block text-sm sm:text-base font-agrandir-extrabold uppercase text-white">BACKSTAGE</span><span className="mt-1 block text-[10px] text-white/50">{language === 'en' ? 'Inside the show' : 'Dans les coulisses'}</span><span className="absolute bottom-4 right-4 text-white/50">↗</span></button>
-          <button type="button" onClick={() => setCurrentPage('flash_drops')} className="group relative min-h-[142px] sm:min-h-[175px] overflow-hidden border border-white/10 bg-gradient-to-br from-[#392b16] via-[#17130c] to-[#090909] p-4 sm:p-5 text-left transition-all hover:border-[#D4AF37]/50"><Zap className="mb-5 h-6 w-6 text-[#D4AF37]"/><span className="block text-sm sm:text-base font-agrandir-extrabold uppercase text-white">FLASH DROPS</span><span className="mt-1 block text-[10px] text-white/50">{language === 'en' ? 'Limited offers & surprises' : 'Offres limitées & surprises'}</span><span className="absolute bottom-4 right-4 text-white/50">↗</span></button>
-          <button type="button" onClick={() => setCurrentPage('memories')} className="group relative min-h-[142px] sm:min-h-[175px] overflow-hidden border border-white/10 bg-gradient-to-br from-[#203038] via-[#11191d] to-[#090909] p-4 sm:p-5 text-left transition-all hover:border-white/30"><Camera className="mb-5 h-6 w-6 text-[#a9d5e5]"/><span className="block text-sm sm:text-base font-agrandir-extrabold text-white">{language === 'en' ? 'MEMORIES' : 'SOUVENIRS'}</span><span className="mt-1 block text-[10px] text-white/50">{language === 'en' ? 'Relive the highlights' : 'Revivez les meilleurs moments'}</span><span className="absolute bottom-4 right-4 text-white/50">↗</span></button>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-white/10 pb-5">
-          <button type="button" onClick={() => setCurrentPage('rewards')} className="text-[10px] sm:text-xs text-neutral-400 hover:text-white">{language === 'en' ? 'Points & referrals' : 'Points & parrainage'} ↗</button>
-          <button type="button" onClick={() => setCurrentPage('suggestions')} className="text-[10px] sm:text-xs text-neutral-400 hover:text-white">{language === 'en' ? 'Share an idea' : 'Proposer une idée'} ↗</button>
-          <button type="button" onClick={() => setCurrentPage('archive')} className="text-[10px] sm:text-xs text-neutral-400 hover:text-white">{t('home.archives')} ↗</button>
-          <button type="button" onClick={() => setCurrentPage('news')} className="text-[10px] sm:text-xs text-neutral-400 hover:text-white">{t('home.newsEditions')} ↗</button>
-          <button type="button" onClick={() => setCurrentPage('client_space')} className="text-[10px] sm:text-xs text-neutral-400 hover:text-white">{t('home.bookingsCatalog')} ↗</button>
-          <button type="button" onClick={() => setCurrentPage('profile')} className="text-[10px] sm:text-xs text-neutral-400 hover:text-white">{t('home.profileSettings')} ↗</button>
         </div>
       </section>
 
