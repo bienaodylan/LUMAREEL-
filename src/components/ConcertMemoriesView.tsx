@@ -22,7 +22,7 @@ import {
   X,
 } from 'lucide-react';
 
-export const ConcertMemoriesView: React.FC = () => {
+export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { archives, currentUser, showToast, language } = useApp();
   const isEn = language === 'en';
 
@@ -163,7 +163,7 @@ export const ConcertMemoriesView: React.FC = () => {
   // =========================================================================
   if (selectedAlbum) {
     return (
-      <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
+      <div className={`w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 ${embedded ? "pt-0 pb-8" : "min-h-screen pt-4 sm:pt-10 pb-20"} text-white font-agrandir-regular`}>
         {/* Retour vers la liste des concerts */}
         <div className="mb-6 flex items-center justify-between gap-3">
           <button
@@ -498,6 +498,7 @@ export const ConcertMemoriesView: React.FC = () => {
   // =========================================================================
   return (
     <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
+      {!embedded && (
       <header className="mb-8 pb-6 border-b border-white/10">
         <p className="text-xs tracking-[0.2em] text-[#FFFFFF] uppercase mb-2">
           {isEn ? 'After the Show · Concert Memories' : 'Après le Concert · Souvenirs Officiels'}
@@ -511,6 +512,7 @@ export const ConcertMemoriesView: React.FC = () => {
             : 'Revivez chaque concert avec sa page dédiée : photographies officielles, meilleurs moments, vidéos récapitulatives, téléchargement et partage entre participants.'}
         </p>
       </header>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {albums.map((album) => (
