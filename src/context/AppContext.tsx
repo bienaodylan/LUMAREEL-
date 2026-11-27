@@ -26,7 +26,9 @@ export type PageView =
   | 'suggestions'
   | 'contact'
   | 'about'
-  | 'partners';
+  | 'partners'
+  | 'archives'
+  | 'news';
 
 interface AppContextType {
   currentPage: PageView;
