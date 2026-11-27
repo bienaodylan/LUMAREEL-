@@ -121,7 +121,7 @@ export const SuggestionsView: React.FC = () => {
   return (
     <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
       <header className="mb-8 pb-6 border-b border-white/10">
-        <p className="text-xs tracking-[0.2em] text-[#D4AF37] uppercase mb-2">
+        <p className="text-xs tracking-[0.2em] text-[#FFFFFF] uppercase mb-2">
           {isEn ? 'LUMARÉEL Club · Lineup & Ideas' : 'Club LUMARÉEL · Programmation & Idées'}
         </p>
         <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-tight text-white leading-[1.02] text-balance">
@@ -172,7 +172,7 @@ export const SuggestionsView: React.FC = () => {
                     value={artistName}
                     onChange={(e) => setArtistName(e.target.value)}
                     placeholder={isEn ? 'e.g. Burna Boy, Didi B, Himra...' : 'Ex : Burna Boy, Didi B, Himra...'}
-                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
                   />
                 </div>
                 <div>
@@ -184,7 +184,7 @@ export const SuggestionsView: React.FC = () => {
                     value={cityOrVenue}
                     onChange={(e) => setCityOrVenue(e.target.value)}
                     placeholder={isEn ? 'e.g. Abidjan · Palais de la Culture' : 'Ex : Abidjan · Palais de la Culture'}
-                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
                   />
                 </div>
               </>
@@ -199,7 +199,7 @@ export const SuggestionsView: React.FC = () => {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder={isEn ? 'e.g. Rooftop Sunset Acoustic Session' : 'Ex : Soirée Acoustique Coucher de Soleil'}
-                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
                   />
                 </div>
                 <div>
@@ -211,7 +211,7 @@ export const SuggestionsView: React.FC = () => {
                     value={cityOrVenue}
                     onChange={(e) => setCityOrVenue(e.target.value)}
                     placeholder={isEn ? 'e.g. Abidjan, Assinie, Dakar...' : 'Ex : Abidjan, Assinie, Dakar...'}
-                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                    className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
                   />
                 </div>
               </>
@@ -230,7 +230,7 @@ export const SuggestionsView: React.FC = () => {
                     ? 'Tell us what would make this night unforgettable...'
                     : 'Décrivez ce qui rendrait cet événement mémorable...'
                 }
-                className="w-full p-3.5 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#D4AF37] focus:outline-none resize-none"
+                className="w-full p-3.5 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none resize-none"
               />
             </div>
 
@@ -273,7 +273,7 @@ export const SuggestionsView: React.FC = () => {
                 type="button"
                 onClick={() => setSortMode('popular')}
                 className={`min-h-[38px] px-3 rounded-lg text-xs cursor-pointer ${
-                  sortMode === 'popular' ? 'text-[#D4AF37] font-agrandir-bold' : 'text-neutral-400 hover:text-white'
+                  sortMode === 'popular' ? 'text-[#FFFFFF] font-agrandir-bold' : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 {isEn ? 'Top voted' : 'Plus votés'}
@@ -283,7 +283,7 @@ export const SuggestionsView: React.FC = () => {
                 type="button"
                 onClick={() => setSortMode('recent')}
                 className={`min-h-[38px] px-3 rounded-lg text-xs cursor-pointer ${
-                  sortMode === 'recent' ? 'text-[#D4AF37] font-agrandir-bold' : 'text-neutral-400 hover:text-white'
+                  sortMode === 'recent' ? 'text-[#FFFFFF] font-agrandir-bold' : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 {isEn ? 'Newest' : 'Récents'}
@@ -301,7 +301,7 @@ export const SuggestionsView: React.FC = () => {
                 >
                   <div className="space-y-2 min-w-0 flex-1">
                     <div className="text-xs text-neutral-400 flex flex-wrap items-center gap-2">
-                      <span className="text-[#D4AF37] font-agrandir-bold">
+                      <span className="text-[#FFFFFF] font-agrandir-bold">
                         {item.type === 'artist_venue'
                           ? (isEn ? 'Artist & Venue' : 'Artiste & Lieu')
                           : (isEn ? 'Event Concept' : 'Idée d’événement')}
@@ -332,7 +332,7 @@ export const SuggestionsView: React.FC = () => {
                     aria-pressed={hasVoted}
                     className={`min-w-[60px] min-h-[60px] px-3 rounded-2xl border flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer shrink-0 ${
                       hasVoted
-                        ? 'bg-[#D4AF37]/15 border-[#D4AF37] text-[#D4AF37]'
+                        ? 'bg-[#FFFFFF]/15 border-[#FFFFFF] text-[#FFFFFF]'
                         : 'bg-black border-white/15 text-neutral-300 hover:border-white/35 hover:text-white'
                     }`}
                   >
