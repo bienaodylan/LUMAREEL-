@@ -596,7 +596,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab }> = ({ initialT
   ];
 
   return (
-    <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
+    <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-8 text-white font-agrandir-regular">
       <ClubExplorer
         isEn={isEn}
         points={summary.availablePoints}
