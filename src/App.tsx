@@ -4,6 +4,7 @@ import { Navbar } from './components/Navbar';
 import { FloatingAppNavbar } from './components/FloatingAppNavbar';
 import { DesktopSidebar } from './components/DesktopSidebar';
 import { HomeFeed } from './components/HomeFeed';
+import { DiscoverView } from './components/DiscoverView';
 import { ConcertDetailView } from './components/ConcertDetailView';
 import { OrganizersView } from './components/OrganizersView';
 import { CustomerSpace } from './components/CustomerSpace';
@@ -173,7 +174,7 @@ const MainApp: React.FC = () => {
           >
             {currentPage === 'splash' && <HomeFeed />}
             {currentPage === 'home' && <HomeFeed />}
-            {currentPage === 'discover' && <HomeFeed />}
+            {currentPage === 'discover' && <DiscoverView />}
             {currentPage === 'event_detail' && <ConcertDetailView />}
             {currentPage === 'organizers' && <OrganizersView />}
             {currentPage === 'client_space' && <CustomerSpace />}
