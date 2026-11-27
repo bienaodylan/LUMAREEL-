@@ -53,7 +53,6 @@ export const DesktopSidebar: React.FC = () => {
         'flash_drops',
         'suggestions',
         'organizers',
-        'news',
       ].includes(currentPage),
     },
     {
