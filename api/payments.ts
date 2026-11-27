@@ -18,14 +18,6 @@ import {
   sendTicketTransferEmail,
 } from './_lib/emailService';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  applyCors(req, res, 'GET, POST, PUT, PATCH, OPTIONS');
-  const db = serviceDb();
-  return res.status(200).json({
-    success: true,
-    publicConfigured: isSupabasePublicConfigured(),
-    serviceConfigured: isSupabaseServiceConfigured(),
-    databaseAvailable: Boolean(db),
-    resendConfigured: isResendConfigured(),
-  });
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  return res.status(200).json({ success: true, message: 'All payment module imports loaded.' });
 }
