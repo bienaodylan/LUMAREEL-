@@ -463,9 +463,9 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
                 onClick={handleUnlockSurprise}
                 disabled={alreadyClaimedToday || SURPRISE_POOL.length === 0}
                 className={`w-full lg:w-auto min-h-[48px] px-7 rounded-2xl font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 ${
-                  alreadyClaimedToday
-                    ? 'bg-white/10 text-neutral-400 cursor-not-allowed'
-                    : 'bg-[#FFFFFF] hover:bg-[#e6c252] text-black cursor-pointer'
+                  alreadyClaimedToday || SURPRISE_POOL.length === 0
+                    ? 'bg-white/10 text-neutral-500 cursor-not-allowed'
+                    : 'bg-white hover:bg-neutral-200 text-black cursor-pointer'
                 }`}
               >
                 {alreadyClaimedToday ? <CheckCircle2 className="w-4 h-4" /> : <Gift className="w-4 h-4" />}
