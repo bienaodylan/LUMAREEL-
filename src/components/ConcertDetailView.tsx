@@ -39,7 +39,9 @@ export const ConcertDetailView: React.FC = () => {
     setCheckoutEvent(event);
   };
 
-  const availableCategories = (event.categories || []).filter((category) => category.quota - category.sold > 0);
+  const availableCategories = ['sold_out', 'cancelled', 'completed'].includes(event.status)
+    ? []
+    : (event.categories || []).filter((category) => category.quota - category.sold > 0);
   const lowestPrice = availableCategories.length
     ? Math.min(...availableCategories.map((category) => category.price))
     : null;
@@ -104,7 +106,7 @@ export const ConcertDetailView: React.FC = () => {
           <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">{isEn ? 'Ticketing' : 'Billetterie'}</p>
           <p className="mt-3 text-2xl font-agrandir-extrabold">{lowestPrice !== null ? `Dès ${lowestPrice.toLocaleString('fr-FR')} F CFA` : (isEn ? 'Unavailable' : 'Indisponible')}</p>
           <p className="mt-2 text-xs leading-5 text-neutral-500">{availableCategories.length ? (isEn ? 'Availability depends on ticket category.' : 'La disponibilité dépend de la catégorie choisie.') : (isEn ? 'No ticket category is currently available.' : 'Aucune catégorie de billet n’est actuellement disponible.')}</p>
-          <button type="button" onClick={handleBook} disabled={!availableCategories.length || event.status === 'cancelled'} className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 bg-white px-4 text-xs font-agrandir-extrabold uppercase tracking-wider text-black transition-colors hover:bg-neutral-200 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-400">
+          <button type="button" onClick={handleBook} disabled={!availableCategories.length} className="mt-6 flex min-h-12 w-full items-center justify-center gap-2 bg-white px-4 text-xs font-agrandir-extrabold uppercase tracking-wider text-black transition-colors hover:bg-neutral-200 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-neutral-400">
             <Ticket className="h-4 w-4" /> {isEn ? 'Buy a ticket' : 'Acheter un ticket'}
           </button>
           {event.status === 'sold_out' && <p className="mt-3 text-center text-[11px] text-neutral-500">{isEn ? 'Public sale sold out' : 'Vente publique épuisée'}</p>}
