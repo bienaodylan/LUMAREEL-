@@ -116,7 +116,7 @@ insert into public.archives (
   'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
   '18:42',
   array['/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__2__4a5b834d.jpeg','/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__3__e428cb5c.jpeg'],
-  true, 1, true
+  false, 1, true
 ),
 (
   'arch_tiakola_2026',
@@ -130,7 +130,7 @@ insert into public.archives (
   'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0',
   '24:10',
   array['/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31_ef0db41e.jpeg','/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__2__2459f9b9.jpeg'],
-  true, 2, true
+  false, 2, true
 ),
 (
   'arch_wantche_2026',
@@ -144,7 +144,7 @@ insert into public.archives (
   'https://www.youtube-nocookie.com/embed/kJQP7kiw5Fk?rel=0',
   '15:35',
   array['/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.30_0f827a3a.jpeg','/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36__1__5dc7b4f5.jpeg'],
-  true, 3, true
+  false, 3, true
 ),
 (
   'arch_jamsco_2026',
@@ -158,7 +158,7 @@ insert into public.archives (
   'https://www.youtube-nocookie.com/embed/fJ9rUzIMcZQ?rel=0',
   '19:08',
   array['/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.31__1__b3fd3b01.jpeg','/assets/aistudio/WhatsApp_Image_2026-10-28_at_15.46.36_70028046.jpeg'],
-  true, 4, true
+  false, 4, true
 )
 on conflict (id) do nothing;
 
