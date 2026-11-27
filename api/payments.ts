@@ -465,7 +465,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  const route = String(Array.isArray(req.query.route) ? req.query.route[0] : req.query.route || '').trim();
+  const query = req.query || {};
+  const route = String(Array.isArray(query.route) ? query.route[0] : query.route || '').trim();
   const envName = (process.env.PAYMETRUST_ENV || 'sandbox').toLowerCase() === 'production' ? 'production' : 'sandbox';
   const apiKey = (process.env.PAYMETRUST_API_KEY || '').trim();
   const secretKey = (process.env.PAYMETRUST_SECRET_KEY || '').trim();
@@ -869,7 +870,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const admin = await requireRole(req, ['super_admin']);
     if (!admin.ok) return res.status(admin.status).json({ success: false, error: admin.error });
     if (!db) return res.status(503).json({ success: false, error: 'Service Supabase indisponible.' });
-    const pathValue = Array.isArray(req.query.path) ? req.query.path.join('/') : String(req.query.path || '');
+    const pathValue = Array.isArray(query.path) ? query.path.join('/') : String(query.path || '');
     const parts = pathValue.split('/').filter(Boolean);
     const resource = parts[0] || '';
     try {
@@ -1349,7 +1350,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ==========================================================================
   if (route === 'verify') {
     const refParam = String(
-      Array.isArray(req.query.reference) ? req.query.reference[0] : req.query.reference || ''
+      Array.isArray(query.reference) ? query.reference[0] : query.reference || ''
     ).trim();
 
     if (!PMT_REF_REGEX.test(refParam)) {
