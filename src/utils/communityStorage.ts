@@ -234,296 +234,73 @@ function isVipCategory(categoryName: string, unitPrice: number): boolean {
 export function computeUserPointsSummary(
   user: User | null,
   orders: Order[],
-  state: UserPointsState
+  _state: UserPointsState
 ): ComputedPointsSummary {
   const breakdown: PointsBreakdownItem[] = [];
   let totalEarned = 0;
-
-  // 1. Compte créé & profil complété (50 pts)
-  const hasAccountAndProfile = Boolean(user) && (state.profileCompleted || Boolean(user?.name && user?.email));
-  if (hasAccountAndProfile) {
-    totalEarned += POINTS_RULES.COMPLETE_PROFILE;
-    breakdown.push({
-      id: 'account_profile',
-      labelFr: 'Compte créé & profil complété',
-      labelEn: 'Account created & profile completed',
-      points: POINTS_RULES.COMPLETE_PROFILE,
-      date: user?.createdAt,
-    });
-  }
-
-  // 2. Billets achetés (Standard = 100 pts, VIP = 250 pts) + Présence vérifiée par scan QR (150 pts)
   let standardTicketsCount = 0;
   let vipTicketsCount = 0;
   let attendedConcertsCount = 0;
 
   const userEmail = user?.email?.toLowerCase().trim();
-  const userOrders = (orders || []).filter((o) => {
-    if (o.paymentStatus !== 'completed') return false;
-    if (!userEmail) return false;
-    return !o.customerEmail || o.customerEmail.toLowerCase().trim() === userEmail;
-  });
+  const userOrders = userEmail
+    ? (orders || []).filter(
+        (order) =>
+          order.paymentStatus === 'completed' &&
+          Boolean(order.customerEmail) &&
+          order.customerEmail.toLowerCase().trim() === userEmail
+      )
+    : [];
 
   for (const order of userOrders) {
     const qty = Math.max(1, Number(order.quantity) || 1);
     const vip = isVipCategory(order.categoryName, Number(order.unitPrice) || 0);
-    if (vip) {
-      vipTicketsCount += qty;
-      const pts = qty * POINTS_RULES.VIP_TICKET;
-      totalEarned += pts;
-      breakdown.push({
-        id: `order_${order.id}`,
-        labelFr: `Billet VIP (${qty}×) · ${order.eventTitle}`,
-        labelEn: `VIP Ticket (${qty}×) · ${order.eventTitle}`,
-        points: pts,
-        date: order.paidAt || order.createdAt,
-      });
-    } else {
-      standardTicketsCount += qty;
-      const pts = qty * POINTS_RULES.STANDARD_TICKET;
-      totalEarned += pts;
-      breakdown.push({
-        id: `order_${order.id}`,
-        labelFr: `Billet standard (${qty}×) · ${order.eventTitle}`,
-        labelEn: `Standard ticket (${qty}×) · ${order.eventTitle}`,
-        points: pts,
-        date: order.paidAt || order.createdAt,
-      });
-    }
+    const points = qty * (vip ? POINTS_RULES.VIP_TICKET : POINTS_RULES.STANDARD_TICKET);
+    totalEarned += points;
+    if (vip) vipTicketsCount += qty;
+    else standardTicketsCount += qty;
 
-    const usedTickets = (order.tickets || []).filter((t) => t.status === 'used');
+    breakdown.push({
+      id: `order_${order.id}`,
+      labelFr: `${vip ? 'Billet VIP' : 'Billet standard'} (${qty}×) · ${order.eventTitle}`,
+      labelEn: `${vip ? 'VIP ticket' : 'Standard ticket'} (${qty}×) · ${order.eventTitle}`,
+      points,
+      date: order.paidAt || order.createdAt,
+    });
+
+    const usedTickets = (order.tickets || []).filter((ticket) => ticket.status === 'used');
     if (usedTickets.length > 0) {
       attendedConcertsCount += usedTickets.length;
-      const pts = usedTickets.length * POINTS_RULES.CONCERT_ATTENDANCE_QR;
-      totalEarned += pts;
+      const attendancePoints = usedTickets.length * POINTS_RULES.CONCERT_ATTENDANCE_QR;
+      totalEarned += attendancePoints;
       breakdown.push({
         id: `qr_${order.id}`,
         labelFr: `Présence vérifiée par scan QR (${usedTickets.length}×) · ${order.eventTitle}`,
         labelEn: `QR-verified concert attendance (${usedTickets.length}×) · ${order.eventTitle}`,
-        points: pts,
+        points: attendancePoints,
         date: usedTickets[0]?.checkedInAt || order.eventDate,
       });
     }
   }
 
-  // 3. Abonnement LUMARÉEL Black Card
+  // Les défis, parrainages, crédits et échanges ne sont pas crédités depuis le navigateur.
   const storedCard = loadStoredMemberCard(user?.email);
   const hasActiveBlackCard = Boolean(storedCard && storedCard.cardStatus === 'active');
-  if (hasActiveBlackCard) {
-    totalEarned += POINTS_RULES.BLACK_CARD_SUBSCRIPTION;
-    breakdown.push({
-      id: 'black_card_sub',
-      labelFr: 'Abonnement LUMARÉEL Black Card actif',
-      labelEn: 'Active LUMARÉEL Black Card membership',
-      points: POINTS_RULES.BLACK_CARD_SUBSCRIPTION,
-      date: storedCard?.issuedAt,
-    });
-  }
-
-  // 4. Parrainages ayant effectué un premier achat (200 pts + 500 FCFA chacun)
-  const confirmedReferrals = state.referrals.filter((r) => r.status === 'purchased');
-  if (confirmedReferrals.length > 0) {
-    const pts = confirmedReferrals.length * POINTS_RULES.REFERRAL_PURCHASE;
-    totalEarned += pts;
-    breakdown.push({
-      id: 'referrals_confirmed',
-      labelFr: `Parrainage validé (${confirmedReferrals.length} ami${confirmedReferrals.length > 1 ? 's' : ''})`,
-      labelEn: `Verified referrals (${confirmedReferrals.length} friend${confirmedReferrals.length > 1 ? 's' : ''})`,
-      points: pts,
-      date: confirmedReferrals[0]?.createdAt,
-    });
-  }
-
-  // 5. Défis de l'application
-  const challengePointsMap: Record<string, { pts: number; fr: string; en: string }> = {
-    challenge_suggestion: {
-      pts: POINTS_RULES.APP_CHALLENGE_SUGGESTION,
-      fr: 'Défi · Suggestion publiée dans la Boîte à idées',
-      en: 'Challenge · Suggestion posted in Suggestion Box',
-    },
-    challenge_memory: {
-      pts: POINTS_RULES.APP_CHALLENGE_MEMORY,
-      fr: 'Défi · Souvenir partagé après un concert',
-      en: 'Challenge · Concert memory shared',
-    },
-    challenge_backstage: {
-      pts: POINTS_RULES.APP_CHALLENGE_BACKSTAGE,
-      fr: 'Défi · Découverte exclusive Backstage',
-      en: 'Challenge · Backstage exclusive explored',
-    },
-    challenge_profile_full: {
-      pts: 50,
-      fr: 'Défi · Profil musical complété à 100 %',
-      en: 'Challenge · 100% member profile completed',
-    },
-  };
-
-  for (const cid of state.completedChallenges) {
-    const meta = challengePointsMap[cid];
-    if (meta) {
-      totalEarned += meta.pts;
-      breakdown.push({
-        id: cid,
-        labelFr: meta.fr,
-        labelEn: meta.en,
-        points: meta.pts,
-      });
-    }
-  }
-
-  // 6. Points bonus surprises
-  if (state.bonusSurprisePoints > 0) {
-    totalEarned += state.bonusSurprisePoints;
-    breakdown.push({
-      id: 'surprise_bonus',
-      labelFr: 'Récompenses surprises débloquées',
-      labelEn: 'Surprise rewards unlocked',
-      points: state.bonusSurprisePoints,
-      date: state.lastSurpriseClaimDate,
-    });
-  }
-
-  const totalSpent = state.redeemedRewards.reduce((acc, r) => acc + r.pointsCost, 0);
-  const availablePoints = Math.max(0, totalEarned - totalSpent);
-  const referralCreditFromFriends = confirmedReferrals.reduce((acc, r) => acc + r.creditFcfa, 0);
-  const ticketingCreditFcfa = referralCreditFromFriends + (state.welcomeReferralCreditFcfa || 0);
 
   return {
     totalEarned,
-    totalSpent,
-    availablePoints,
-    ticketingCreditFcfa,
+    totalSpent: 0,
+    availablePoints: totalEarned,
+    ticketingCreditFcfa: 0,
     hasActiveBlackCard,
     standardTicketsCount,
     vipTicketsCount,
     attendedConcertsCount,
-    confirmedReferralsCount: confirmedReferrals.length,
+    confirmedReferralsCount: 0,
     breakdown,
   };
 }
 
-// ============================================================================
-// SOUVENIRS DE CONCERTS PARTAGÉS PAR LES PARTICIPANTS & FENÊTRE 7 JOURS
-// ============================================================================
-
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-
-const MONTH_INDEX_MAP: Record<string, number> = {
-  jan: 0,
-  janv: 0,
-  janvier: 0,
-  january: 0,
-  feb: 1,
-  fev: 1,
-  fevr: 1,
-  fevrier: 1,
-  february: 1,
-  mar: 2,
-  mars: 2,
-  march: 2,
-  apr: 3,
-  avr: 3,
-  avril: 3,
-  april: 3,
-  may: 4,
-  mai: 4,
-  jun: 5,
-  juin: 5,
-  june: 5,
-  jul: 6,
-  juil: 6,
-  juillet: 6,
-  july: 6,
-  aug: 7,
-  aou: 7,
-  aout: 7,
-  august: 7,
-  sep: 8,
-  sept: 8,
-  septembre: 8,
-  september: 8,
-  oct: 9,
-  octobre: 9,
-  october: 9,
-  nov: 10,
-  novembre: 10,
-  november: 10,
-  dec: 11,
-  decembre: 11,
-  december: 11,
-};
-
-function parseConcertDateToDayEndMs(dateStr?: string): number | null {
-  if (!dateStr) return null;
-  const trimmed = dateStr.trim();
-  if (!trimmed) return null;
-
-  // Format ISO / YYYY-MM-DD
-  const isoMatch = trimmed.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if (isoMatch) {
-    const year = Number(isoMatch[1]);
-    const month = Number(isoMatch[2]) - 1;
-    const day = Number(isoMatch[3]);
-    const d = new Date(year, month, day, 23, 59, 59, 999);
-    return Number.isNaN(d.getTime()) ? null : d.getTime();
-  }
-
-  // Format DD/MM/YYYY ou DD-MM-YYYY
-  const dmyMatch = trimmed.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
-  if (dmyMatch) {
-    const day = Number(dmyMatch[1]);
-    const month = Number(dmyMatch[2]) - 1;
-    const year = Number(dmyMatch[3]);
-    const d = new Date(year, month, day, 23, 59, 59, 999);
-    return Number.isNaN(d.getTime()) ? null : d.getTime();
-  }
-
-  // Normalisation accents pour dates FR/EN : "19 Décembre 2026", "1er Octobre 2026", "Oct 2026"
-  const normalized = trimmed
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-
-  // "19 decembre 2026" ou "1er decembre 2026"
-  const frMatch = normalized.match(/^(\d{1,2})(?:er|e|st|nd|rd|th)?\s+([a-z]+)\.?\s+(\d{4})$/);
-  if (frMatch) {
-    const day = Number(frMatch[1]);
-    const monthIdx = MONTH_INDEX_MAP[frMatch[2]];
-    const year = Number(frMatch[3]);
-    if (monthIdx !== undefined) {
-      const d = new Date(year, monthIdx, day, 23, 59, 59, 999);
-      return Number.isNaN(d.getTime()) ? null : d.getTime();
-    }
-  }
-
-  // "Oct 2026" -> fin du mois concerné
-  const monthYearMatch = normalized.match(/^([a-z]+)\.?\s+(\d{4})$/);
-  if (monthYearMatch) {
-    const monthIdx = MONTH_INDEX_MAP[monthYearMatch[1]];
-    const year = Number(monthYearMatch[2]);
-    if (monthIdx !== undefined) {
-      const d = new Date(year, monthIdx + 1, 0, 23, 59, 59, 999);
-      return Number.isNaN(d.getTime()) ? null : d.getTime();
-    }
-  }
-
-  // Année seule "2024", "2025" -> considérée comme archive clôturée si antérieure à l'année en cours
-  const yearOnlyMatch = normalized.match(/^(\d{4})$/);
-  if (yearOnlyMatch) {
-    const year = Number(yearOnlyMatch[1]);
-    const d = new Date(year, 11, 31, 23, 59, 59, 999);
-    return Number.isNaN(d.getTime()) ? null : d.getTime();
-  }
-
-  const parsed = Date.parse(trimmed);
-  return Number.isNaN(parsed) ? null : parsed;
-}
-
-/**
- * Fenêtre silencieuse de 7 jours après la date du concert pour publier,
- * télécharger ou partager les souvenirs. Une fois la semaine écoulée,
- * retourne `false` sans aucun message affiché à l'utilisateur.
- */
 export function isMemorySharingWindowOpen(dateStr?: string): boolean {
   const concertDayEndMs = parseConcertDateToDayEndMs(dateStr);
   if (concertDayEndMs === null) return false;
