@@ -55,6 +55,7 @@ export const HomeFeed: React.FC = () => {
     setCurrentPage,
     setSelectedEventSlug,
     language,
+    setCheckoutEvent,
   } = useApp();
   const isEn = language === 'en';
 
@@ -67,7 +68,7 @@ export const HomeFeed: React.FC = () => {
   );
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const featuredRowRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const isProgrammaticScroll = useRef(false);
   const scrollRafRef = useRef<number | null>(null);
 
@@ -103,20 +104,17 @@ export const HomeFeed: React.FC = () => {
     });
   };
 
-  useEffect(() => {
-    if (activeSlides.length <= 1) return;
-    const interval = window.setInterval(() => {
-      if (!isProgrammaticScroll.current) {
-        setCurrentSlideIndex((previous) => {
-          const next = (previous + 1) % activeSlides.length;
-          scrollToSlide(next);
-          return next;
-        });
-      }
-    }, 7000);
-    return () => window.clearInterval(interval);
-  }, [activeSlides.length]);
-
+  const heroEvent = activeSlides.find((event) => event.isFeatured) || activeSlides[0] || null;
+  const formatEventDate = (date: string) => {
+    const parsed = new Date(`${String(date || '').slice(0, 10)}T12:00:00`);
+    if (Number.isNaN(parsed.getTime())) return date;
+    return parsed.toLocaleDateString(isEn ? 'en-GB' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+  const handleBuyTickets = (event: ConcertEvent) => {
+    // The existing checkout flow is opened directly, without changing the event record.
+    const buyEvent = event;
+    setCheckoutEvent(buyEvent);
+  };
   const handleViewAll = () => setCurrentPage('discover');
   const handleViewDetails = (event: ConcertEvent) => {
     setSelectedEventSlug(event.slug || event.id);
@@ -134,19 +132,46 @@ export const HomeFeed: React.FC = () => {
   return (
     <div className="home-editorial w-full min-h-screen max-w-full overflow-x-clip bg-[#050505] pb-0 text-white">
       <section className="home-hero relative isolate w-full overflow-hidden pt-[calc(4.5rem+env(safe-area-inset-top,0px))] md:pt-0">
-        <div className="home-hero-frame relative h-[54svh] min-h-[340px] max-h-[720px] w-full overflow-hidden bg-[#111] sm:h-[62svh]">
-          <img src={memoriesImage} alt={isEn ? 'Live concert atmosphere' : 'Ambiance de concert'} className="absolute inset-0 h-full w-full object-cover object-center" fetchPriority="high" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/15 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
-          <div className="absolute bottom-7 left-5 right-5 sm:bottom-12 sm:left-10 lg:bottom-16 lg:left-16">
-            <h1 className="max-w-4xl text-[clamp(2.4rem,7.5vw,7rem)] font-agrandir-extrabold uppercase leading-[0.9] tracking-[-0.055em]">
-              {isEn ? 'Live beyond the stage.' : 'Vivez au-delà de la scène.'}
-            </h1>
-            <button type="button" onClick={() => document.getElementById('home-upcoming-events')?.scrollIntoView({ behavior: 'smooth' })} className="mt-5 inline-flex min-h-10 items-center gap-4 border border-white bg-white px-4 text-[10px] font-agrandir-extrabold uppercase tracking-[0.13em] text-black transition-colors hover:bg-transparent hover:text-white">
-              {isEn ? 'Explore events' : 'Découvrir les événements'} <ArrowUpRight className="h-4 w-4" />
-            </button>
+        {heroEvent ? (
+          <div className="home-hero-frame relative h-[66svh] min-h-[470px] max-h-[820px] w-full overflow-hidden bg-[#111] sm:h-[72svh]">
+            <img
+              src={heroEvent.artistPortrait || heroEvent.bannerImage || heroEvent.officialPoster}
+              alt={heroEvent.artist}
+              className="absolute inset-0 h-full w-full object-cover object-center"
+              fetchPriority="high"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/10" />
+            <div className="absolute bottom-8 left-5 right-5 max-w-3xl sm:bottom-12 sm:left-10 lg:bottom-16 lg:left-16">
+              <div className="mb-3 inline-flex items-center gap-2 text-[10px] font-agrandir-extrabold uppercase tracking-[0.25em] text-white/80">
+                <span className="h-px w-7 bg-white/70" /> {isEn ? 'Featured event' : 'À l’affiche'}
+              </div>
+              <h1 className="text-[clamp(2.5rem,7vw,6.5rem)] font-agrandir-extrabold uppercase leading-[0.88] tracking-[-0.055em]">
+                {heroEvent.artist}
+              </h1>
+              <p className="mt-3 text-xs font-agrandir-extrabold uppercase tracking-[0.3em] text-white sm:text-sm">EN CONCERT</p>
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-agrandir-semibold text-white/85 sm:text-sm">
+                <span>{heroEvent.venue}{heroEvent.city ? `, ${heroEvent.city}` : ''}</span>
+                <span className="text-white/45">·</span>
+                <span>{formatEventDate(heroEvent.date)}{heroEvent.time ? ` · ${heroEvent.time}` : ''}</span>
+              </div>
+              <div className="mt-5 flex flex-wrap items-center gap-4">
+                <div className="border border-white/35 bg-black/40 px-3 py-2 backdrop-blur-sm">
+                  <div className="mb-1 text-[8px] font-agrandir-semibold uppercase tracking-[0.2em] text-white/60">{isEn ? 'Countdown' : 'Compte à rebours'}</div>
+                  <EventCountdown event={heroEvent} />
+                </div>
+                <button type="button" onClick={() => handleViewDetails(heroEvent)} className="inline-flex min-h-11 items-center gap-3 bg-white px-5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white/80">
+                  {isEn ? 'Discover' : 'Découvrir'} <ArrowUpRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="flex min-h-[55svh] items-end bg-[#111] px-5 pb-12 sm:px-10">
+            <h1 className="text-5xl font-agrandir-extrabold uppercase">{isEn ? 'Live beyond the stage.' : 'Vivez au-delà de la scène.'}</h1>
+          </div>
+        )}
       </section>
 
       <section id="home-upcoming-events" className="home-events w-full pt-5 sm:pt-7">
@@ -163,25 +188,31 @@ export const HomeFeed: React.FC = () => {
               <button type="button" onClick={() => scrollToSlide((currentSlideIndex - 1 + activeSlides.length) % activeSlides.length)} aria-label="Événement précédent" className="flex h-9 w-9 items-center justify-center border border-white/25 text-white hover:bg-white hover:text-black"><ChevronLeft className="h-4 w-4" /></button>
               <button type="button" onClick={() => scrollToSlide((currentSlideIndex + 1) % activeSlides.length)} aria-label="Événement suivant" className="flex h-9 w-9 items-center justify-center border border-white/25 text-white hover:bg-white hover:text-black"><ChevronRight className="h-4 w-4" /></button>
             </div>
-            <div ref={featuredRowRef} onScroll={handleContainerScroll} className="home-events-track flex snap-x snap-mandatory items-stretch gap-2.5 overflow-x-auto px-0 pb-2 pt-1 sm:gap-4 lg:gap-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div ref={featuredRowRef} onScroll={handleContainerScroll} className="home-events-track flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-4 pb-3 pt-1 sm:gap-4 sm:px-7 lg:gap-5 lg:px-10" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {activeSlides.map((event, index) => (
-                <button
+                <div
                   key={event.id}
                   ref={(element) => { cardRefs.current[index] = element; }}
-                  type="button"
-                  onClick={() => handleViewDetails(event)}
-                  className={`home-event-poster group relative block aspect-[4/5] w-[84vw] max-w-[440px] shrink-0 snap-start overflow-hidden bg-[#111] text-left sm:w-[48vw] lg:w-[32vw] ${index === currentSlideIndex ? 'opacity-100' : 'opacity-90'}`}
-                  aria-label={`${event.artist} EN CONCERT — Découvrir`}
+                  className="home-event-card w-[78vw] max-w-[390px] shrink-0 snap-start bg-transparent text-left sm:w-[42vw] lg:w-[30vw]"
                 >
-                  <img src={event.officialPoster || event.bannerImage} alt={event.title || event.artist} referrerPolicy="no-referrer" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.025]" />
-                  <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/10" />
-                  <EventCountdown event={event} />
-                  <span className="absolute bottom-5 left-4 right-4 sm:bottom-7 sm:left-6">
-                    <span className="block text-[clamp(1.2rem,3vw,2rem)] font-agrandir-extrabold uppercase leading-[0.95] tracking-[-0.025em] text-white">{event.artist}</span>
-                    <span className="mt-1.5 block text-[9px] font-agrandir-semibold uppercase tracking-[0.22em] text-white/80">EN CONCERT</span>
-                    <span className="mt-4 inline-flex items-center gap-2 border-b border-white pb-1 text-[9px] font-agrandir-extrabold uppercase tracking-[0.16em] text-white">DÉCOUVRIR <ArrowUpRight className="h-3.5 w-3.5" /></span>
-                  </span>
-                </button>
+                  <button type="button" onClick={() => handleViewDetails(event)} className="group block w-full overflow-hidden bg-[#111] text-left" aria-label={`${event.artist} — ${isEn ? 'Event details' : 'Détails du concert'}`}>
+                    <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#111]">
+                      <img src={event.officialPoster || event.bannerImage} alt={event.title || event.artist} referrerPolicy="no-referrer" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+                    </div>
+                  </button>
+                  <div className="pt-3">
+                    <h3 className="truncate text-base font-agrandir-extrabold uppercase leading-tight tracking-[-0.02em] text-white sm:text-xl">{event.artist} EN CONCERT</h3>
+                    <p className="mt-1 truncate text-[11px] font-agrandir-semibold text-white/65 sm:text-xs">{event.venue}{event.city ? ` · ${event.city}` : ''} · {formatEventDate(event.date)}</p>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => handleBuyTickets(event)} className="inline-flex min-h-11 items-center justify-center gap-2 bg-white px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.08em] text-black transition-colors hover:bg-white/85 sm:text-[10px]">
+                        <span aria-hidden="true">▣</span> {isEn ? 'Buy tickets' : 'Acheter tickets'}
+                      </button>
+                      <button type="button" onClick={() => handleViewDetails(event)} className="inline-flex min-h-11 items-center justify-center border border-white/35 px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.06em] text-white transition-colors hover:bg-white hover:text-black sm:text-[10px]">
+                        {isEn ? 'Concert details' : 'Détails du concert'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </>
