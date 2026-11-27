@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp, PageView } from '../context/AppContext';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import {
@@ -7,6 +7,14 @@ import {
   Home,
   Ticket,
   User,
+  X,
+  Award,
+  Zap,
+  Camera,
+  Lightbulb,
+  Film,
+  Newspaper,
+  ChevronRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -16,6 +24,7 @@ import { motion } from 'framer-motion';
  */
 export const FloatingAppNavbar: React.FC = () => {
   const { currentPage, setCurrentPage, language, t } = useApp();
+  const [clubOpen, setClubOpen] = useState(false);
   const { isStandalone } = usePWAInstall();
   // Sur navigateur mobile web, le tiroir en haut à gauche gère la navigation.
   if (!isStandalone) return null;
@@ -73,7 +82,7 @@ export const FloatingAppNavbar: React.FC = () => {
       isActive: isClubActive,
       icon: Compass,
       onClick: () => {
-        setCurrentPage('rewards');
+        setClubOpen(true);
       },
     },
     {
@@ -105,8 +114,34 @@ export const FloatingAppNavbar: React.FC = () => {
   return (
     <>
       {/* Barre de navigation flottante façon Instagram : icônes épurées + pilule uniquement derrière l'élément actif */}
-      <motion.nav
-        initial={{ y: 24, opacity: 0 }}
+      {clubOpen && (
+        <div className="fixed inset-0 z-[80] flex items-end justify-center md:items-center" role="dialog" aria-modal="true" aria-label="Club et expériences LUMARÉEL">
+          <button type="button" className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => setClubOpen(false)} aria-label="Fermer le Club" />
+          <motion.section initial={{ y: 36, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 36, opacity: 0 }} className="relative z-10 mb-[calc(5.6rem+env(safe-area-inset-bottom,0px))] max-h-[78svh] w-[calc(100%-2rem)] max-w-[520px] overflow-y-auto rounded-[28px] border border-white/15 bg-[#101010] px-5 pb-5 pt-5 shadow-2xl md:mb-0">
+            <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-4">
+              <h2 className="text-[13px] font-agrandir-extrabold uppercase tracking-[0.16em] text-white">Club & expériences LUMARÉEL</h2>
+              <button type="button" onClick={() => setClubOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#242424] text-white" aria-label="Fermer"><X className="h-5 w-5" /></button>
+            </div>
+            {[
+              { title: "Points & Parrainage", subtitle: "Points fidélité · 500 F CFA par ami", icon: Award, page: "rewards" as PageView },
+              { title: "BACKSTAGE", subtitle: "Balances & contenus exclusifs", icon: Clapperboard, page: "backstage" as PageView },
+              { title: "Ventes Flash & Surprises", subtitle: "Offres éclair & récompenses surprises", icon: Zap, page: "flash_drops" as PageView },
+              { title: "Souvenirs de concerts", subtitle: "Photos officielles, récaps & partages", icon: Camera, page: "memories" as PageView },
+              { title: "Boîte à suggestions", subtitle: "Proposez des artistes, lieux & idées", icon: Lightbulb, page: "suggestions" as PageView },
+              { title: "Archives", subtitle: "Productions scéniques passées", icon: Film, page: "archives" as PageView },
+              { title: "Actualités", subtitle: "Communiqués et annonces officielles", icon: Newspaper, page: "news" as PageView },
+            ].map((item) => {
+              const Icon = item.icon;
+              return <button key={item.title} type="button" onClick={() => { setClubOpen(false); setCurrentPage(item.page); }} className="flex min-h-[82px] w-full items-center gap-4 border-b border-white/[0.07] py-3 text-left last:border-0">
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#202020]"><Icon className="h-6 w-6 text-neutral-200" strokeWidth={1.8} /></span>
+                <span className="min-w-0 flex-1"><span className="block text-sm font-agrandir-extrabold text-white">{item.title}</span><span className="mt-0.5 block text-xs text-neutral-400">{item.subtitle}</span></span>
+                <ChevronRight className="h-5 w-5 shrink-0 text-neutral-500" />
+              </button>;
+            })}
+          </motion.section>
+        </div>
+      )}
+      <motion.nav        initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 400, damping: 32 }}
         aria-label={t('nav.mainNav')}
