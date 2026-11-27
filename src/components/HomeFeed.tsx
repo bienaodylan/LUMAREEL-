@@ -219,13 +219,27 @@ export const HomeFeed: React.FC = () => {
         )}
       </section>
 
-      <section className="home-quick-access mt-4 w-full overflow-hidden">
-        <div className="home-quick-track flex w-full snap-x snap-mandatory items-stretch overflow-x-auto px-0 pb-1" aria-label={isEn ? 'Quick access' : 'Accès rapide'}>
-          {quickAccessItems.map((item, index) => (
-            <button key={item.id} type="button" onClick={() => setCurrentPage(item.page)} className={`home-quick-tile group relative h-[190px] w-[62vw] min-w-[210px] max-w-[330px] shrink-0 snap-start overflow-hidden border border-white/20 text-left sm:h-[230px] sm:w-[25vw] lg:h-[270px] lg:w-[20vw] ${index ? '-ml-3 sm:-ml-4' : ''}`} style={{ zIndex: index + 1 }} aria-label={item.title}>
-              <img src={item.image} alt="" className={`absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 ${item.position || ''}`} />
-              <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/5" />
-              <span className="absolute bottom-4 left-4 right-3 text-[11px] font-agrandir-extrabold uppercase tracking-[0.12em] text-white sm:bottom-5 sm:left-5 sm:text-xs">{item.title}</span>
+      <section className="home-quick-access mt-4 w-full overflow-hidden" aria-label={isEn ? 'Quick access' : 'Accès rapide'}>
+        <div className="home-quick-track flex w-full flex-col gap-1.5 px-0 pb-1">
+          {quickAccessItems.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setCurrentPage(item.page)}
+              className="home-quick-tile group relative flex h-14 min-h-14 w-full items-center overflow-hidden border-y border-white/20 text-left sm:h-16 sm:min-h-16"
+              aria-label={item.title}
+            >
+              <img
+                src={item.image}
+                alt=""
+                className={`absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03] ${item.position || ''}`}
+              />
+              <span className="absolute inset-0 bg-black/55 transition-colors duration-300 group-hover:bg-black/40" />
+              <span className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-black/10" />
+              <span className="relative z-10 px-4 text-[10px] font-agrandir-extrabold uppercase tracking-[0.16em] text-white sm:px-6 sm:text-xs">
+                {item.title}
+              </span>
+              <ArrowUpRight className="relative z-10 ml-auto mr-4 h-4 w-4 text-white/85 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1 sm:mr-6" />
             </button>
           ))}
         </div>
