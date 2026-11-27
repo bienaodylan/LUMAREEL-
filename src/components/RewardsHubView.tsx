@@ -641,12 +641,17 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
                   {isEn ? 'How you earn points' : 'Barème officiel des points'}
                 </h2>
                 <span className="text-xs text-neutral-400 font-mono">
-                  {isEn ? 'Automatic tracking' : 'Crédit automatique'}
+                  {isEn ? 'Verified activity only' : 'Activités vérifiées uniquement'}
                 </span>
               </div>
 
+              <p className="mb-4 border border-white/10 bg-black/40 p-4 text-xs leading-5 text-neutral-400">
+                {isEn
+                  ? 'Currently credited: confirmed paid tickets and QR-verified attendance. Profile, referral, surprise and redemption bonuses remain inactive until server-side validation is connected.'
+                  : 'Crédités actuellement : billets payés confirmés et présences vérifiées par QR. Les bonus de profil, parrainage, surprise et échange restent désactivés jusqu’à la mise en place de la validation serveur.'}
+              </p>
               <div className="divide-y divide-white/8">
-                {pointsScaleRows.map((row, idx) => (
+                {pointsScaleRows.filter((row) => !/profil|profile|parrain|referral/i.test(row.activityFr + ' ' + row.activityEn)).map((row, idx) => (
                   <div key={idx} className="py-3.5 flex items-center justify-between gap-4">
                     <span className="text-sm text-neutral-200 leading-snug">
                       {isEn ? row.activityEn : row.activityFr}
