@@ -84,7 +84,7 @@ export const HomeFeed: React.FC = () => {
   };
 
   const quickAccessItems = [
-    { id: 'black-card', title: 'BLACK CARD', subtitle: 'Votre accès privilégié à LUMARÉEL', page: 'member_card' as const, icon: CreditCard },
+    { id: 'black-card', title: 'LUMARÉEL BLACK CARD', subtitle: 'Votre accès privilégié à LUMARÉEL', page: 'member_card' as const, icon: CreditCard },
     { id: 'gift', title: 'GIFTS, POINTS & PARRAINAGE', subtitle: 'Surprises, ventes flash, points & 500 F CFA par ami', page: 'flash_drops' as const, icon: Gift },
     { id: 'backstage', title: 'BACKSTAGE', subtitle: 'Balances, sessions studio & contenus exclusifs', page: 'backstage' as const, icon: Clapperboard },
     { id: 'memories', title: 'MES MOMENTS', subtitle: 'Photos officielles, récaps & souvenirs partagés', page: 'memories' as const, icon: Camera },
@@ -140,20 +140,20 @@ export const HomeFeed: React.FC = () => {
         )}
       </section>
 
-      <section className="home-quick-access mx-auto mt-7 w-full max-w-6xl px-4 sm:px-7 lg:px-10" aria-label={isEn ? "Quick access" : "Accès rapide"}>
-        <div className="overflow-hidden rounded-[28px] border border-white/15 bg-[#0b0b0b] px-5 sm:px-8">
+      <section className="home-quick-access mx-auto mt-6 w-full px-4 sm:px-7 lg:px-10" aria-label={isEn ? "Quick access" : "Accès rapide"}>
+        <div className="overflow-hidden rounded-[26px] border border-white/15 bg-[#0b0b0b] px-4 sm:px-6">
           {quickAccessItems.map((item, index) => {
             const Icon = item.icon;
             return (
-              <button key={item.id} type="button" onClick={() => setCurrentPage(item.page)} className="group flex min-h-[104px] w-full items-center gap-4 border-b border-white/10 py-4 text-left last:border-b-0 sm:min-h-[132px] sm:gap-6 sm:py-5">
-                <span className={"flex h-[62px] w-[62px] shrink-0 items-center justify-center rounded-[20px] border " + (index === 0 ? "border-white/25 bg-white/[0.09]" : "border-white/10 bg-[#171717]") + " sm:h-[76px] sm:w-[76px]"}>
-                  <Icon className="h-7 w-7 text-white/85 sm:h-8 sm:w-8" strokeWidth={1.8} />
+              <button key={item.id} type="button" onClick={() => setCurrentPage(item.page)} className="group flex min-h-[82px] w-full items-center gap-3 border-b border-white/10 py-3 text-left last:border-b-0 sm:min-h-[94px] sm:gap-4 sm:py-3.5">
+                <span className={"flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-[16px] border " + (index === 0 ? "border-white/25 bg-white/[0.09]" : "border-white/10 bg-[#171717]") + " sm:h-[54px] sm:w-[54px]"}>
+                  <Icon className="h-5 w-5 text-white/85 sm:h-[22px] sm:w-[22px]" strokeWidth={1.8} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[13px] font-agrandir-extrabold uppercase tracking-[0.09em] text-white sm:text-xl">{item.title}</span>
-                  <span className="mt-1 block text-[11px] leading-snug text-neutral-400 sm:text-base">{item.subtitle}</span>
+                  <span className="block text-[11px] font-agrandir-extrabold uppercase tracking-[0.08em] text-white sm:text-sm">{item.title}</span>
+                  <span className="mt-0.5 block text-[10px] leading-snug text-neutral-400 sm:text-xs">{item.subtitle}</span>
                 </span>
-                <ChevronRight className="h-6 w-6 shrink-0 text-neutral-500 transition-transform group-hover:translate-x-1 group-hover:text-white" />
+                <ChevronRight className="h-5 w-5 shrink-0 text-neutral-500 transition-transform group-hover:translate-x-1 group-hover:text-white" />
               </button>
             );
           })}
