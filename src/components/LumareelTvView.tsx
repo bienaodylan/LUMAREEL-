@@ -148,7 +148,7 @@ const TvHorizontalShelf: React.FC<HorizontalShelfProps> = ({
           return (
             <div
               key={item.id}
-              className="group relative shrink-0 snap-start w-[262px] sm:w-[308px]"
+              className="group relative shrink-0 snap-start w-[min(78vw,262px)] sm:w-[308px]"
             >
               <button
                 type="button"
@@ -772,7 +772,7 @@ export const LumareelTvView: React.FC = () => {
 
       {/* HERO DE DÉCOUVERTE LUMARÉEL TV */}
       <section className="relative mb-10 rounded-[16px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12]">
-        <div className="relative min-h-[340px] sm:min-h-[410px] flex items-end">
+        <div className="relative min-h-[280px] sm:min-h-[410px] flex items-end">
           {featuredItem && (
             <img
               src={featuredItem.thumbnailUrl || featuredItem.url}
@@ -784,23 +784,23 @@ export const LumareelTvView: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/65 to-black/30" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/50 to-transparent" />
 
-          <div className="relative z-10 p-6 sm:p-10 max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 text-[10px] font-agrandir-extrabold uppercase tracking-[0.24em] text-[#D4AF6A]">
+          <div className="relative z-10 w-full max-w-2xl p-4 sm:p-10 space-y-3 sm:space-y-4">
+            <div className="inline-flex items-center gap-2 text-[9px] sm:text-[10px] font-agrandir-extrabold uppercase tracking-[0.18em] sm:tracking-[0.24em] text-[#D4AF6A]">
               <Tv className="w-3.5 h-3.5" strokeWidth={1.7} />
               <span>{isEn ? 'EXCLUSIVE STREAMING PLATFORM' : 'PLATEFORME EXCLUSIVE'}</span>
             </div>
 
-            <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl text-white tracking-tight leading-[1.02]">
+            <h1 className="font-agrandir-extrabold text-2xl sm:text-5xl text-white tracking-tight leading-[1.02]">
               LUMARÉEL TV
             </h1>
 
-            <p className="text-sm sm:text-base text-[#D0D0D0] leading-relaxed max-w-xl">
+            <p className="text-xs sm:text-base text-[#D0D0D0] leading-relaxed max-w-xl">
               {isEn
                 ? 'Original films, filmed concerts, backstage sessions, artist interviews, and curated retrospectives. Included with an eligible LUMARÉEL Card or available independently with the TV Pass.'
                 : 'Originals, concerts filmés, coulisses, interviews d’artistes et rétrospectives exclusives. Inclus avec une LUMARÉEL Card éligible ou accessible indépendamment avec le LUMARÉEL TV Pass.'}
             </p>
 
-            <div className="pt-1 flex flex-wrap items-center gap-3">
+            <div className="pt-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -810,7 +810,7 @@ export const LumareelTvView: React.FC = () => {
                     openSubscribeFlow();
                   }
                 }}
-                className="min-h-[44px] px-6 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs sm:text-sm font-agrandir-extrabold inline-flex items-center gap-2 transition-colors cursor-pointer lum-press"
+                className="min-h-[40px] sm:min-h-[44px] w-full sm:w-auto justify-center px-4 sm:px-6 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-[11px] sm:text-sm font-agrandir-extrabold inline-flex items-center gap-2 transition-colors cursor-pointer lum-press"
               >
                 <Tv className="w-4 h-4" strokeWidth={1.8} />
                 <span>{isEn ? 'Subscribe to TV Pass' : 'S’abonner à LUMARÉEL TV'}</span>
@@ -819,7 +819,7 @@ export const LumareelTvView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCurrentPage('member_card')}
-                className="min-h-[44px] px-5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.18] text-white text-xs sm:text-sm font-agrandir-semibold inline-flex items-center gap-2 transition-colors cursor-pointer"
+                className="min-h-[40px] sm:min-h-[44px] w-full sm:w-auto justify-center px-4 sm:px-5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.18] text-white text-[11px] sm:text-sm font-agrandir-semibold inline-flex items-center gap-2 transition-colors cursor-pointer"
               >
                 <CreditCard className="w-4 h-4 text-[#D4AF6A]" strokeWidth={1.6} />
                 <span>{isEn ? 'Discover LUMARÉEL Card' : 'Découvrir la LUMARÉEL Card'}</span>
@@ -913,7 +913,7 @@ export const LumareelTvView: React.FC = () => {
                   LUMARÉEL TV PASS
                 </p>
                 <h2 className="mt-0.5 font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight">
-                  {isEn ? 'Choose your pass' : 'Choisir votre abonnement'}
+                  {isEn ? 'Choose your monthly pass' : 'Choisir votre pass mensuel'}
                 </h2>
               </div>
 
@@ -928,6 +928,8 @@ export const LumareelTvView: React.FC = () => {
                 </span>
               )}
             </div>
+
+            <p className="text-[11px] text-[#9A9A9A]">{isEn ? '30 days of access · Manual renewal only · No automatic charge.' : '30 jours d’accès · Renouvellement manuel uniquement · Aucun prélèvement automatique.'}</p>
 
             {plans.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
