@@ -60,7 +60,7 @@ export const FloatingAppNavbar: React.FC = () => {
       page: 'client_space',
       label: isEn ? 'Tickets' : 'Billets',
       ariaLabel: isEn ? 'My Tickets' : 'Mes billets',
-      isActive: !clubSheetOpen && currentPage === 'client_space',
+      isActive: currentPage === 'client_space',
       icon: Ticket,
       onClick: () => {
         setCurrentPage('client_space');
@@ -81,7 +81,7 @@ export const FloatingAppNavbar: React.FC = () => {
       page: 'member_card',
       label: isEn ? 'Card' : 'Carte',
       ariaLabel: 'LUMARÉEL Black Card',
-      isActive: !clubSheetOpen && (currentPage === 'member_card' || currentPage === 'card'),
+      isActive: (currentPage === 'member_card' || currentPage === 'card'),
       icon: CreditCard,
       onClick: () => {
         setCurrentPage('member_card');
@@ -92,7 +92,7 @@ export const FloatingAppNavbar: React.FC = () => {
       page: 'profile',
       label: isEn ? 'Account' : 'Compte',
       ariaLabel: isEn ? 'My Account' : 'Mon compte',
-      isActive: !clubSheetOpen && currentPage === 'profile',
+      isActive: currentPage === 'profile',
       icon: User,
       onClick: () => {
         setCurrentPage('profile');
