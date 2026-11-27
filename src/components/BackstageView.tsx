@@ -4,8 +4,6 @@ import { COMMUNITY_MEDIA, markChallengeCompleted } from '../utils/communityStora
 import { loadStoredMemberCard } from '../utils/memberCardStorage';
 import { Crown, Lock, Play, X } from 'lucide-react';
 
-type BackstageFilter = 'all' | 'soundcheck' | 'studio' | 'scenography' | 'black_card';
-
 interface BackstageDrop {
   id: string;
   category: Exclude<BackstageFilter, 'all'>;
@@ -123,14 +121,11 @@ const BACKSTAGE_DROPS: BackstageDrop[] = [
 export const BackstageView: React.FC = () => {
   const { currentUser, setCurrentPage, showToast, language } = useApp();
   const isEn = language === 'en';
-  const [filter, setFilter] = useState<BackstageFilter>('all');
   const [activeDrop, setActiveDrop] = useState<BackstageDrop | null>(null);
 
   const hasBlackCard = Boolean(loadStoredMemberCard(currentUser?.email));
 
-  const visibleDrops = filter === 'all'
-    ? BACKSTAGE_DROPS
-    : BACKSTAGE_DROPS.filter((d) => d.category === filter);
+  const visibleDrops = BACKSTAGE_DROPS;
 
   const handleOpenDrop = (drop: BackstageDrop) => {
     if (drop.membersOnly && !hasBlackCard) {
@@ -164,37 +159,10 @@ export const BackstageView: React.FC = () => {
         </h1>
         <p className="text-sm sm:text-base text-neutral-400 mt-3 max-w-2xl leading-relaxed">
           {isEn
-            ? 'Separate from Archives, Backstage brings you soundchecks, midnight studio sessions, lighting design, and private artist diaries.'
-            : 'Indépendant des Archives, l’espace Backstage rassemble nos balances, sessions studio inédites, carnets de scénographie et coulisses d’artistes.'}
+            ? 'Discover exclusive videos, intimate moments and stories from behind each production.'
+            : 'Des vidéos exclusives, des moments privilégiés et des histoires captées dans les coulisses de chaque production.'}
         </p>
       </header>
-
-      {/* Filtres */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-8">
-        {[
-          { id: 'all' as const, fr: 'Tout', en: 'All' },
-          { id: 'soundcheck' as const, fr: 'Soundcheck', en: 'Soundcheck' },
-          { id: 'studio' as const, fr: 'Studio & Interviews', en: 'Studio & Interviews' },
-          { id: 'scenography' as const, fr: 'Scénographie', en: 'Scenography' },
-          { id: 'black_card' as const, fr: 'Black Card', en: 'Black Card' },
-        ].map((tab) => {
-          const active = filter === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setFilter(tab.id)}
-              className={`min-h-[42px] px-4 py-2 rounded-xl text-xs font-agrandir-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                active
-                  ? 'bg-white text-black'
-                  : 'bg-[#111111] border border-white/10 text-neutral-400 hover:text-white'
-              }`}
-            >
-              {isEn ? tab.en : tab.fr}
-            </button>
-          );
-        })}
-      </div>
 
       {/* Contenu vedette en grand format */}
       {visibleDrops.length > 0 && (
@@ -228,10 +196,6 @@ export const BackstageView: React.FC = () => {
             <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between gap-6">
               <div className="space-y-3">
                 <div className="text-xs text-neutral-400 flex items-center gap-2">
-                  <span className="text-[#D4AF37] font-agrandir-bold">
-                    {isEn ? visibleDrops[0].categoryLabelEn : visibleDrops[0].categoryLabelFr}
-                  </span>
-                  <span aria-hidden="true">·</span>
                   <span className="font-mono">{visibleDrops[0].duration}</span>
                   <span aria-hidden="true">·</span>
                   <span>{visibleDrops[0].date}</span>
@@ -285,11 +249,7 @@ export const BackstageView: React.FC = () => {
                 </div>
                 <div className="p-5 flex-1 flex flex-col justify-between gap-4">
                   <div className="space-y-2">
-                    <div className="text-xs text-neutral-400">
-                      <span className="text-[#D4AF37]">{isEn ? drop.categoryLabelEn : drop.categoryLabelFr}</span>
-                      <span aria-hidden="true"> · </span>
-                      <span>{drop.date}</span>
-                    </div>
+                    <div className="text-xs text-neutral-500">{drop.date}</div>
                     <h3 className="font-agrandir-extrabold text-base text-white leading-snug">
                       {isEn ? drop.titleEn : drop.titleFr}
                     </h3>
