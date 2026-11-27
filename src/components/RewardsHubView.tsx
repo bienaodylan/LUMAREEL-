@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   COMMUNITY_MEDIA,
@@ -12,10 +12,10 @@ import {
 } from '../utils/communityStorage';
 import {
   BottomSheet,
-  EditorialRow,
   ScrollReveal,
   Tabs,
 } from './ui/LumareelKit';
+import { Icons } from './ui/Icons';
 import {
   Check,
   CheckCircle2,
@@ -54,15 +54,23 @@ export const RewardsHubView: React.FC = () => {
     customerOrders,
     events,
     setCurrentPage,
+    rewardsInitialMode,
+    setRewardsInitialMode,
     setIsAuthModalOpen,
     showToast,
     language,
   } = useApp();
   const isEn = language === 'en';
 
-  const [viewMode, setViewMode] = useState<RewardsViewMode>('points');
+  const [viewMode, setViewMode] = useState<RewardsViewMode>(rewardsInitialMode || 'points');
   const [storeTab, setStoreTab] = useState<StoreCategoryTab>('billets');
   const [pointsState, setPointsState] = useState(() => loadUserPointsState(currentUser));
+
+  useEffect(() => {
+    if (rewardsInitialMode) {
+      setViewMode(rewardsInitialMode);
+    }
+  }, [rewardsInitialMode]);
   const [copiedCode, setCopiedCode] = useState(false);
 
   // Modales BottomSheet
@@ -169,8 +177,8 @@ export const RewardsHubView: React.FC = () => {
         pointsCost: 900,
         badgeFr: 'DISPONIBLE',
         badgeEn: 'AVAILABLE',
-        titleFr: 'Accès Backstage & balances',
-        titleEn: 'Backstage & soundcheck access',
+        titleFr: 'Accès Lounge & balances',
+        titleEn: 'Lounge & soundcheck access',
         descFr: 'Les minutes avant la scène avec l’équipe.',
         descEn: 'Pre-show moments with the crew.',
         conditionsFr:
@@ -449,15 +457,20 @@ export const RewardsHubView: React.FC = () => {
         </div>
 
         {/* En-tête */}
-        <header className="mb-6">
-          <h1 className="font-agrandir-extrabold text-[2.25rem] sm:text-5xl text-white tracking-tight leading-none">
-            Rewards Store
-          </h1>
-          <p className="mt-2 text-sm text-[#9A9A9A]">
-            {isEn
-              ? 'Turn your points into real experiences.'
-              : 'Transformez vos points en expériences réelles.'}
-          </p>
+        <header className="mb-6 flex items-center justify-between gap-4">
+          <div>
+            <h1 className="font-agrandir-extrabold text-[2.25rem] sm:text-5xl text-white tracking-tight leading-none">
+              Rewards Store
+            </h1>
+            <p className="mt-2 text-sm text-[#9A9A9A]">
+              {isEn
+                ? 'Turn your points into real experiences.'
+                : 'Transformez vos points en expériences réelles.'}
+            </p>
+          </div>
+          <div className="hidden sm:flex w-14 h-14 rounded-2xl bg-[#0E0E0E] border border-white/[0.12] items-center justify-center shrink-0">
+            <Icons.Catalog size="md" accent="mono" />
+          </div>
         </header>
 
         {/* 4 onglets soulignés : Billets | Expériences | Surprises | Avantages */}
@@ -474,9 +487,9 @@ export const RewardsHubView: React.FC = () => {
         />
 
         <div className="space-y-6">
-          {/* Carte vedette À LA UNE — 0px */}
+          {/* Carte vedette À LA UNE — arrondi 22px */}
           {storeTab === 'billets' && featuredItem && (
-            <article className="relative overflow-hidden bg-[#12100C] border border-white/[0.12] min-h-[340px] sm:min-h-[380px] flex flex-col justify-between p-5 sm:p-7">
+            <article className="relative rounded-[22px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] min-h-[340px] sm:min-h-[380px] flex flex-col justify-between p-5 sm:p-7">
               {featuredItem.imageUrl && (
                 <img
                   src={featuredItem.imageUrl}
@@ -488,7 +501,7 @@ export const RewardsHubView: React.FC = () => {
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/30" />
 
               <div className="relative z-10 flex items-center justify-between gap-2">
-                <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
+                <span className="px-2.5 py-1 rounded-full bg-black/70 border border-white/[0.12] text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
                   {isEn ? featuredItem.badgeEn : featuredItem.badgeFr}
                 </span>
                 <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#9A9A9A]">
@@ -513,7 +526,7 @@ export const RewardsHubView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => openRedeemSheet(featuredItem)}
-                    className="min-h-[42px] px-6 rounded-[4px] bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs sm:text-sm transition-colors cursor-pointer lum-press"
+                    className="min-h-[42px] px-6 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs sm:text-sm transition-colors cursor-pointer lum-press"
                   >
                     {isEn ? 'Redeem' : 'Échanger'}
                   </button>
@@ -522,7 +535,7 @@ export const RewardsHubView: React.FC = () => {
             </article>
           )}
 
-          {/* Grille 2 colonnes (3–4 desktop) de récompenses — 0px */}
+          {/* Grille 2 colonnes (3–4 desktop) de récompenses — arrondi 18px */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-5">
             {gridItems.map((item) => (
               <article key={item.id} className="group flex flex-col justify-between space-y-2.5">
@@ -530,7 +543,7 @@ export const RewardsHubView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => openRedeemSheet(item)}
-                    className="relative aspect-[4/5] w-full overflow-hidden bg-[#0E0E0E] border border-white/[0.12] block text-left cursor-pointer lum-press"
+                    className="relative aspect-[4/5] w-full rounded-[18px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 block text-left cursor-pointer lum-press transition-colors"
                   >
                     {item.imageUrl && (
                       <img
@@ -541,7 +554,7 @@ export const RewardsHubView: React.FC = () => {
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-black/35" />
-                    <span className="absolute top-3 left-3 px-2 py-0.5 bg-black/80 text-[9px] font-agrandir-extrabold uppercase tracking-[0.14em] text-[#D4AF6A]">
+                    <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-black/80 text-[9px] font-agrandir-extrabold uppercase tracking-[0.14em] text-[#D4AF6A]">
                       {isEn ? item.badgeEn : item.badgeFr}
                     </span>
                   </button>
@@ -593,7 +606,7 @@ export const RewardsHubView: React.FC = () => {
                         await navigator.clipboard?.writeText(rw.voucherCode).catch(() => {});
                         showToast(isEn ? 'Code copied.' : 'Code copié.', 'success');
                       }}
-                      className="px-3 py-1.5 rounded-[4px] bg-[#0E0E0E] border border-white/[0.16] font-mono text-xs text-[#D4AF6A] flex items-center gap-1.5 cursor-pointer shrink-0"
+                      className="px-3.5 py-1.5 rounded-full bg-[#0E0E0E] border border-white/[0.16] font-mono text-xs text-[#D4AF6A] flex items-center gap-1.5 cursor-pointer shrink-0"
                     >
                       <span>{rw.voucherCode}</span>
                       <Copy className="w-3 h-3" strokeWidth={1.6} />
@@ -627,7 +640,7 @@ export const RewardsHubView: React.FC = () => {
         >
           {confirmedVoucher ? (
             <div className="space-y-5">
-              <div className="p-4 bg-[#0F2A1A] border border-[#7FE0A6]/30 flex items-center gap-3 text-[#7FE0A6]">
+              <div className="p-4 rounded-[16px] bg-[#0F2A1A] border border-[#7FE0A6]/30 flex items-center gap-3 text-[#7FE0A6]">
                 <CheckCircle2 className="w-5 h-5 shrink-0" strokeWidth={1.6} />
                 <p className="text-xs sm:text-sm font-agrandir-semibold">
                   {isEn
@@ -636,7 +649,7 @@ export const RewardsHubView: React.FC = () => {
                 </p>
               </div>
 
-              <div className="p-5 bg-black border border-white/[0.14] text-center space-y-2">
+              <div className="p-5 rounded-[18px] bg-black border border-white/[0.14] text-center space-y-2">
                 <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#9A9A9A]">
                   {isEn ? 'VOUCHER CODE' : 'CODE DU BON'}
                 </p>
@@ -653,7 +666,7 @@ export const RewardsHubView: React.FC = () => {
                     await navigator.clipboard?.writeText(confirmedVoucher.voucherCode).catch(() => {});
                     showToast(isEn ? 'Code copied.' : 'Code copié.', 'success');
                   }}
-                  className="min-h-[46px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs inline-flex items-center justify-center gap-2 cursor-pointer lum-press"
+                  className="min-h-[46px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs inline-flex items-center justify-center gap-2 cursor-pointer lum-press"
                 >
                   <Copy className="w-4 h-4" strokeWidth={1.6} />
                   <span>{isEn ? 'Copy code' : 'Copier le code'}</span>
@@ -664,7 +677,7 @@ export const RewardsHubView: React.FC = () => {
                     setSelectedReward(null);
                     setConfirmedVoucher(null);
                   }}
-                  className="min-h-[46px] rounded-[4px] border border-white/25 hover:border-white text-white font-agrandir-extrabold text-xs cursor-pointer"
+                  className="min-h-[46px] rounded-full border border-white/25 hover:border-white text-white font-agrandir-extrabold text-xs cursor-pointer"
                 >
                   {isEn ? 'Done' : 'Fermer'}
                 </button>
@@ -714,7 +727,7 @@ export const RewardsHubView: React.FC = () => {
                   type="button"
                   disabled={Boolean(currentUser) && remainingAfterRedeem < 0}
                   onClick={handleConfirmRedeem}
-                  className="w-full min-h-[48px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed lum-press"
+                  className="w-full min-h-[48px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed lum-press"
                 >
                   {!currentUser
                     ? isEn
@@ -807,11 +820,14 @@ export const RewardsHubView: React.FC = () => {
               </p>
             </header>
 
-            {/* Carte VOTRE CODE — 0px, Copier pilule, CTA 4px */}
-            <section className="bg-[#0E0E0E] border border-white/[0.12] p-5 space-y-4">
-              <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#9A9A9A]">
-                {isEn ? 'YOUR CODE' : 'VOTRE CODE'}
-              </p>
+            {/* Carte VOTRE CODE — arrondi 20px */}
+            <section className="rounded-[20px] bg-[#0E0E0E] border border-white/[0.12] p-5 sm:p-6 space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#9A9A9A]">
+                  {isEn ? 'YOUR CODE' : 'VOTRE CODE'}
+                </p>
+                <Icons.Referral size="xs" accent="mono" />
+              </div>
 
               <div className="flex items-center justify-between gap-3">
                 <span className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-[0.16em] text-white truncate">
@@ -838,7 +854,7 @@ export const RewardsHubView: React.FC = () => {
               <button
                 type="button"
                 onClick={handleShareReferral}
-                className="w-full min-h-[48px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer lum-press"
+                className="w-full min-h-[48px] rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer lum-press"
               >
                 <Upload className="w-4 h-4" strokeWidth={1.6} />
                 <span>{isEn ? 'Share my link' : 'Partager mon lien'}</span>
@@ -874,59 +890,54 @@ export const RewardsHubView: React.FC = () => {
             </div>
           </div>
 
-          {/* Colonne droite : Comment ça marche + Mes invitations */}
+          {/* Colonne droite : Comment ça marche (catalogue 3 icônes) + Mes invitations */}
           <div className="lg:col-span-6 space-y-8">
             <section className="space-y-4">
               <h2 className="font-agrandir-extrabold text-xl text-white">
                 {isEn ? 'How it works' : 'Comment ça marche'}
               </h2>
 
-              <ol className="space-y-4">
+              <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5">
                 {[
                   {
-                    n: 1,
-                    solid: false,
-                    title: isEn ? 'Share your code' : 'Partagez votre code',
-                    desc: isEn
-                      ? 'By message, story, or in person.'
-                      : 'Par message, en story ou de vive voix.',
+                    n: '01',
+                    Icon: Icons.StepShare,
+                    title: isEn ? 'Share' : 'Partagez',
+                    desc: isEn ? 'Your code' : 'Votre code',
                   },
                   {
-                    n: 2,
-                    solid: false,
-                    title: isEn ? 'Your friend signs up' : "Votre proche s'inscrit",
-                    desc: isEn
-                      ? 'Using your code or invite link.'
-                      : 'Avec votre code ou votre lien.',
+                    n: '02',
+                    Icon: Icons.StepJoin,
+                    title: isEn ? 'Sign up' : 'Inscription',
+                    desc: isEn ? 'Your friend' : 'Votre proche',
                   },
                   {
-                    n: 3,
-                    solid: true,
-                    title: isEn ? 'First eligible purchase' : 'Premier achat éligible',
-                    desc: isEn
-                      ? 'Referral is validated and points are credited.'
-                      : 'Le parrainage est validé, vos points sont crédités.',
+                    n: '03',
+                    Icon: Icons.StepReward,
+                    title: isEn ? 'Earn' : 'Crédités',
+                    desc: `+${POINTS_RULES.REFERRAL_PURCHASE} pts`,
                   },
-                ].map((step) => (
-                  <li key={step.n} className="flex items-start gap-4">
-                    <span
-                      className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-agrandir-extrabold shrink-0 ${
-                        step.solid
-                          ? 'bg-[#D4AF6A] text-black'
-                          : 'border border-[#D4AF6A]/65 text-[#D4AF6A]'
-                      }`}
+                ].map((step) => {
+                  const Icon = step.Icon;
+                  return (
+                    <div
+                      key={step.n}
+                      className="p-3.5 sm:p-4 rounded-[18px] bg-[#0E0E0E] border border-white/[0.12] flex flex-col justify-between gap-3"
                     >
-                      {step.n}
-                    </span>
-                    <div className="min-w-0 pt-0.5">
-                      <p className="font-agrandir-extrabold text-sm sm:text-base text-white leading-snug">
-                        {step.title}
-                      </p>
-                      <p className="text-xs text-[#9A9A9A] mt-0.5">{step.desc}</p>
+                      <div className="flex items-start justify-between">
+                        <Icon size="md" accent="mono" className="w-8 h-8 sm:w-9 sm:h-9" />
+                        <span className="text-[10px] font-mono text-[#9A9A9A]">{step.n}</span>
+                      </div>
+                      <div>
+                        <p className="font-agrandir-extrabold text-xs sm:text-sm text-white leading-tight">
+                          {step.title}
+                        </p>
+                        <p className="text-[11px] text-[#9A9A9A] mt-0.5 truncate">{step.desc}</p>
+                      </div>
                     </div>
-                  </li>
-                ))}
-              </ol>
+                  );
+                })}
+              </div>
             </section>
 
             {/* Mes invitations */}
@@ -953,11 +964,11 @@ export const RewardsHubView: React.FC = () => {
                     value={friendCodeInput}
                     onChange={(e) => setFriendCodeInput(e.target.value.toUpperCase())}
                     placeholder="LMR-XXXXX"
-                    className="flex-1 min-h-[44px] px-3.5 rounded-[4px] bg-[#0E0E0E] border border-white/[0.16] font-mono text-xs uppercase text-white outline-none focus:border-[#D4AF6A]"
+                    className="flex-1 min-h-[44px] px-4 rounded-xl bg-[#0E0E0E] border border-white/[0.16] font-mono text-xs uppercase text-white outline-none focus:border-[#D4AF6A]"
                   />
                   <button
                     type="submit"
-                    className="px-4 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs cursor-pointer"
+                    className="px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs cursor-pointer"
                   >
                     {isEn ? 'Apply' : 'Valider'}
                   </button>
@@ -965,7 +976,7 @@ export const RewardsHubView: React.FC = () => {
               )}
 
               {pointsState.appliedReferralCode && (
-                <div className="p-3.5 bg-[#0E0E0E] border border-[#7FE0A6]/35 flex items-center justify-between gap-2 text-xs">
+                <div className="p-3.5 rounded-[16px] bg-[#0E0E0E] border border-[#7FE0A6]/35 flex items-center justify-between gap-2 text-xs">
                   <span className="flex items-center gap-2 text-[#7FE0A6] font-agrandir-semibold">
                     <CheckCircle2 className="w-4 h-4" strokeWidth={1.6} />
                     <span>Code parrain {pointsState.appliedReferralCode} actif</span>
@@ -1086,9 +1097,9 @@ export const RewardsHubView: React.FC = () => {
       </header>
 
       <div className="space-y-10 max-w-4xl">
-        {/* 1. CARTE SOLDE DISPONIBLE — 0px */}
+        {/* 1. CARTE SOLDE DISPONIBLE — arrondi 22px */}
         <section className="space-y-3">
-          <div className="bg-gradient-to-br from-[#231D12] via-[#13110C] to-[#0E0E0E] border border-[#D4AF6A]/25 p-5 sm:p-6 space-y-5">
+          <div className="rounded-[22px] bg-gradient-to-br from-[#161513] via-[#0F0F0F] to-[#0A0A0A] border border-white/[0.14] p-5 sm:p-6 space-y-5">
             <div>
               <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A]">
                 {isEn ? 'AVAILABLE BALANCE' : 'SOLDE DISPONIBLE'}
@@ -1124,15 +1135,17 @@ export const RewardsHubView: React.FC = () => {
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="text-[#C8C8C8]">
                   {isEn ? 'Next reward:' : 'Prochaine récompense :'}{' '}
-                  <strong className="font-agrandir-extrabold text-white">Accès Backstage</strong>
+                  <strong className="font-agrandir-extrabold text-white">
+                    {isEn ? 'VIP Lounge Access' : 'Accès Lounge VIP'}
+                  </strong>
                 </span>
                 <span className="text-[#9A9A9A] tabular-nums shrink-0">
                   {nextRewardTarget} pts
                 </span>
               </div>
-              <div className="h-1.5 w-full bg-white/[0.1] overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-white/[0.1] overflow-hidden">
                 <div
-                  className="h-full bg-[#D4AF6A] transition-all duration-500"
+                  className="h-full rounded-full bg-[#D4AF6A] transition-all duration-500"
                   style={{ width: `${Math.max(8, progressPct)}%` }}
                 />
               </div>
@@ -1146,7 +1159,7 @@ export const RewardsHubView: React.FC = () => {
           </p>
         </section>
 
-        {/* 2. À VOTRE PORTÉE -> Rewards Store — 0px */}
+        {/* 2. À VOTRE PORTÉE -> Rewards Store — arrondi moyen 10px */}
         <ScrollReveal>
           <section className="space-y-4">
             <div className="flex items-baseline justify-between gap-3">
@@ -1171,7 +1184,7 @@ export const RewardsHubView: React.FC = () => {
                 }}
                 className="group text-left cursor-pointer block lum-press"
               >
-                <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#14120E] border border-white/[0.12]">
+                <div className="relative aspect-[4/5] w-full rounded-[18px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
                   <img
                     src={
                       firstEvent?.officialPoster ||
@@ -1207,7 +1220,7 @@ export const RewardsHubView: React.FC = () => {
                 }}
                 className="group text-left cursor-pointer block lum-press"
               >
-                <div className="relative aspect-[4/5] w-full overflow-hidden bg-[#0E0E0E] border border-white/[0.12]">
+                <div className="relative aspect-[4/5] w-full rounded-[18px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
                   <img
                     src={COMMUNITY_MEDIA.concertMemoriesCrowdImg}
                     alt="Cadeau Mystère"
@@ -1234,85 +1247,133 @@ export const RewardsHubView: React.FC = () => {
           </section>
         </ScrollReveal>
 
-        {/* 3. L'UNIVERS REWARDS — INDEX 01 À 05 */}
+        {/* 3. CATALOGUE VISUEL — COLLECTION REWARDS (ICÔNES CENTRALISÉES B&W, ARRONDI 18px) */}
         <ScrollReveal>
-          <section className="space-y-3">
-            <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white">
-              {isEn ? 'Rewards Universe' : "L'univers Rewards"}
-            </h2>
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white">
+                {isEn ? 'Rewards Collection' : 'Collection Rewards'}
+              </h2>
+              <Icons.Catalog size="sm" accent="mono" />
+            </div>
 
-            <div className="border-y border-white/[0.12] divide-y divide-white/[0.12]">
-              <EditorialRow
-                index="01"
-                title="Rewards Store"
-                subtitle={isEn ? 'Redeem your points' : 'Échangez vos points'}
-                onClick={() => setViewMode('store')}
-              />
-              <EditorialRow
-                index="02"
-                title={isEn ? 'Priority Access' : 'Accès privilégié'}
-                subtitle={isEn ? 'Even when sold out' : "Même quand c'est complet"}
-                onClick={() => setCurrentPage('privileged_access')}
-              />
-              <EditorialRow
-                index="03"
-                title="Surprise Drops & Flash Sales"
-                subtitle={isEn ? 'Time is ticking' : 'Le temps est compté'}
-                accentDot
-                onClick={() => setCurrentPage('flash_drops')}
-              />
-              <EditorialRow
-                index="04"
-                title={isEn ? 'Referral' : 'Parrainage'}
-                subtitle={isEn ? 'Invite and earn together' : 'Invitez, gagnez ensemble'}
-                onClick={() => setViewMode('referral')}
-              />
-              <EditorialRow
-                index="05"
-                title={isEn ? 'Suggestion Box' : 'Boîte à suggestions'}
-                subtitle={isEn ? 'Vote for upcoming artists' : 'Votez pour les prochains artistes'}
-                onClick={() => setCurrentPage('suggestions')}
-              />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              {[
+                {
+                  id: 'store',
+                  Icon: Icons.RewardsStore,
+                  title: 'Rewards Store',
+                  tag: isEn ? 'Redeem' : 'Échanger',
+                  onClick: () => setViewMode('store'),
+                },
+                {
+                  id: 'privileged',
+                  Icon: Icons.PriorityAccess,
+                  title: isEn ? 'Priority Access' : 'Accès privilégié',
+                  tag: isEn ? 'Quotas' : 'Quotas VIP',
+                  onClick: () => setCurrentPage('privileged_access'),
+                },
+                {
+                  id: 'drops',
+                  Icon: Icons.FlashDrops,
+                  title: 'Flash Drops',
+                  tag: isEn ? 'Limited' : 'Éphémère',
+                  dot: true,
+                  onClick: () => setCurrentPage('flash_drops'),
+                },
+                {
+                  id: 'referral',
+                  Icon: Icons.Referral,
+                  title: isEn ? 'Referral' : 'Parrainage',
+                  tag: '+200 pts',
+                  onClick: () => {
+                    setRewardsInitialMode('referral');
+                    setViewMode('referral');
+                  },
+                },
+                {
+                  id: 'suggestions',
+                  Icon: Icons.Suggestions,
+                  title: isEn ? 'Suggestions' : 'Suggestions',
+                  tag: isEn ? 'Vote' : 'Voter',
+                  onClick: () => setCurrentPage('suggestions'),
+                },
+              ].map((tile) => {
+                const Icon = tile.Icon;
+                return (
+                  <button
+                    key={tile.id}
+                    type="button"
+                    onClick={tile.onClick}
+                    className="group p-4 rounded-[18px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] hover:border-white/30 text-left flex flex-col justify-between min-h-[136px] transition-colors cursor-pointer lum-press"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <Icon size="md" accent="mono" className="w-10 h-10" />
+                      {tile.dot && (
+                        <span className="w-2 h-2 rounded-full bg-[#D4AF6A] mt-1 shrink-0" />
+                      )}
+                    </div>
+                    <div className="pt-3">
+                      <p className="font-agrandir-extrabold text-sm text-white group-hover:text-[#D4AF6A] transition-colors leading-tight">
+                        {tile.title}
+                      </p>
+                      <p className="text-[11px] text-[#9A9A9A] mt-0.5 truncate">{tile.tag}</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </section>
         </ScrollReveal>
 
-        {/* 4. GAGNER DES POINTS */}
+        {/* 4. GAGNER DES POINTS — GRILLE D'ICÔNES COMPACTE */}
         <ScrollReveal>
-          <section className="space-y-3">
+          <section className="space-y-4">
             <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white">
               {isEn ? 'Earn points' : 'Gagner des points'}
             </h2>
 
-            <div className="border-y border-white/[0.12] divide-y divide-white/[0.12]">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {[
                 {
-                  label: isEn ? 'Buy a concert ticket' : 'Acheter un billet',
+                  Icon: Icons.EarnTicket,
+                  label: isEn ? 'Ticket order' : 'Achat billet',
                   pts: POINTS_RULES.STANDARD_TICKET,
                 },
                 {
-                  label: isEn ? 'Validated referral' : 'Parrainage validé',
+                  Icon: Icons.EarnReferral,
+                  label: isEn ? 'Referral' : 'Parrainage',
                   pts: POINTS_RULES.REFERRAL_PURCHASE,
                 },
                 {
-                  label: isEn ? 'Event attendance' : 'Présence à un événement',
+                  Icon: Icons.EarnAttendance,
+                  label: isEn ? 'Attendance' : 'Présence live',
                   pts: POINTS_RULES.CONCERT_ATTENDANCE_QR,
                 },
                 {
-                  label: isEn ? 'Selected suggestion' : 'Suggestion retenue',
+                  Icon: Icons.EarnIdea,
+                  label: isEn ? 'Suggestion' : 'Idée retenue',
                   pts: POINTS_RULES.APP_CHALLENGE_SUGGESTION,
                 },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="py-4 flex items-center justify-between gap-4 text-sm"
-                >
-                  <span className="text-[#C8C8C8]">{item.label}</span>
-                  <span className="font-agrandir-extrabold text-[#D4AF6A] tabular-nums shrink-0">
-                    +{item.pts} pts
-                  </span>
-                </div>
-              ))}
+              ].map((item) => {
+                const Icon = item.Icon;
+                return (
+                  <div
+                    key={item.label}
+                    className="p-4 rounded-[18px] bg-[#0E0E0E] border border-white/[0.12] flex flex-col justify-between gap-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <Icon size="sm" accent="mono" className="w-8 h-8" />
+                      <span className="font-agrandir-extrabold text-xs text-[#D4AF6A] tabular-nums shrink-0">
+                        +{item.pts}
+                      </span>
+                    </div>
+                    <p className="font-agrandir-extrabold text-xs sm:text-sm text-white leading-tight">
+                      {item.label}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           </section>
         </ScrollReveal>

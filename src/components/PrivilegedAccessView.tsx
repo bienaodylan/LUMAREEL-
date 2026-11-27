@@ -10,15 +10,12 @@ import {
 import { loadStoredMemberCard } from '../utils/memberCardStorage';
 import { formatDateLong } from '../utils/dateUtils';
 import { BottomSheet, ScrollReveal, StatusBadge } from './ui/LumareelKit';
+import { Icons } from './ui/Icons';
 import {
-  Award,
   CheckCircle2,
   ChevronLeft,
   Copy,
-  CreditCard,
-  Lock,
   Sparkles,
-  Ticket,
 } from 'lucide-react';
 
 interface QuotaOption {
@@ -284,9 +281,9 @@ export const PrivilegedAccessView: React.FC = () => {
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Colonne gauche : Carte événement ciblé (0px) + 2 badges COMPLET vs QUOTA RÉSERVÉ */}
+        {/* Colonne gauche : Carte événement ciblé (arrondi 20px) + 2 badges COMPLET vs QUOTA RÉSERVÉ */}
         <div className="lg:col-span-5 space-y-4">
-          <article className="bg-[#0E0E0E] border border-white/[0.12] overflow-hidden">
+          <article className="rounded-[20px] bg-[#0E0E0E] border border-white/[0.12] overflow-hidden">
             <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#141414]">
               <img
                 src={
@@ -354,7 +351,7 @@ export const PrivilegedAccessView: React.FC = () => {
                     type="button"
                     disabled={isExhausted}
                     onClick={() => handleSelectOption(opt)}
-                    className={`w-full text-left p-4 sm:p-5 bg-[#0E0E0E] border transition-colors block ${
+                    className={`w-full text-left p-4 sm:p-5 rounded-[18px] bg-[#0E0E0E] border transition-colors block ${
                       isExhausted
                         ? 'border-white/[0.08] opacity-45 cursor-not-allowed'
                         : 'border-white/[0.12] hover:border-[#D4AF6A]/65 cursor-pointer lum-press'
@@ -362,15 +359,15 @@ export const PrivilegedAccessView: React.FC = () => {
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3.5 min-w-0">
-                        <span className="w-9 h-9 bg-[#141414] border border-white/[0.12] flex items-center justify-center shrink-0 mt-0.5">
+                        <span className="w-10 h-10 rounded-[12px] bg-[#141414] border border-white/[0.12] flex items-center justify-center shrink-0 mt-0.5">
                           {opt.mode === 'points' ? (
-                            <Award className="w-4 h-4 text-[#D4AF6A]" strokeWidth={1.6} />
+                            <Icons.RewardsStore size="xs" accent="mono" />
                           ) : opt.mode === 'fcfa' ? (
-                            <Ticket className="w-4 h-4 text-white" strokeWidth={1.6} />
+                            <Icons.EarnTicket size="xs" accent="mono" />
                           ) : opt.mode === 'black_card' ? (
-                            <CreditCard className="w-4 h-4 text-[#D4AF6A]" strokeWidth={1.6} />
+                            <Icons.BlackCard size="xs" accent="mono" />
                           ) : (
-                            <Lock className="w-4 h-4 text-[#9A9A9A]" strokeWidth={1.6} />
+                            <Icons.QuotaLock size="xs" accent="mono" />
                           )}
                         </span>
                         <div className="min-w-0">
@@ -412,11 +409,11 @@ export const PrivilegedAccessView: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Barre de quota restant (0px) */}
+                    {/* Barre de quota restant arrondie */}
                     <div className="mt-4 pt-3 border-t border-white/[0.08] flex items-center justify-between gap-4">
-                      <div className="flex-1 h-1 bg-white/[0.1] overflow-hidden">
+                      <div className="flex-1 h-1.5 rounded-full bg-white/[0.1] overflow-hidden">
                         <div
-                          className={`h-full transition-all duration-300 ${
+                          className={`h-full rounded-full transition-all duration-300 ${
                             isExhausted ? 'bg-neutral-600' : 'bg-[#D4AF6A]'
                           }`}
                           style={{ width: `${fillPct}%` }}
@@ -466,7 +463,7 @@ export const PrivilegedAccessView: React.FC = () => {
       >
         {confirmedCode ? (
           <div className="space-y-5">
-            <div className="p-4 bg-[#0F2A1A] border border-[#7FE0A6]/30 flex items-center gap-3 text-[#7FE0A6]">
+            <div className="p-4 rounded-[16px] bg-[#0F2A1A] border border-[#7FE0A6]/30 flex items-center gap-3 text-[#7FE0A6]">
               <CheckCircle2 className="w-5 h-5 shrink-0" strokeWidth={1.6} />
               <p className="text-xs sm:text-sm font-agrandir-semibold">
                 {isEn
@@ -475,7 +472,7 @@ export const PrivilegedAccessView: React.FC = () => {
               </p>
             </div>
 
-            <div className="p-5 bg-black border border-white/[0.14] text-center space-y-2">
+            <div className="p-5 rounded-[18px] bg-black border border-white/[0.14] text-center space-y-2">
               <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#9A9A9A]">
                 {isEn ? 'ACCESS CODE' : "CODE D'ACCÈS"}
               </p>
@@ -494,7 +491,7 @@ export const PrivilegedAccessView: React.FC = () => {
                   await navigator.clipboard?.writeText(confirmedCode).catch(() => {});
                   showToast(isEn ? 'Code copied.' : 'Code copié.', 'success');
                 }}
-                className="min-h-[46px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs inline-flex items-center justify-center gap-2 cursor-pointer"
+                className="min-h-[46px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs inline-flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Copy className="w-4 h-4" strokeWidth={1.6} />
                 <span>{isEn ? 'Copy code' : 'Copier'}</span>
@@ -505,7 +502,7 @@ export const PrivilegedAccessView: React.FC = () => {
                   setSelectedOption(null);
                   setConfirmedCode(null);
                 }}
-                className="min-h-[46px] rounded-[4px] border border-white/25 hover:border-white text-white font-agrandir-extrabold text-xs cursor-pointer"
+                className="min-h-[46px] rounded-full border border-white/25 hover:border-white text-white font-agrandir-extrabold text-xs cursor-pointer"
               >
                 {isEn ? 'Close' : 'Fermer'}
               </button>
@@ -520,7 +517,7 @@ export const PrivilegedAccessView: React.FC = () => {
 
               {selectedOption.mode === 'black_card' && !activeBlackCard ? (
                 <div className="space-y-4">
-                  <div className="p-4 bg-[#141414] border border-[#D4AF6A]/35 flex items-start gap-3">
+                  <div className="p-4 rounded-[16px] bg-[#141414] border border-[#D4AF6A]/35 flex items-start gap-3">
                     <Sparkles className="w-5 h-5 text-[#D4AF6A] shrink-0 mt-0.5" strokeWidth={1.6} />
                     <p className="text-xs text-[#C8C8C8] leading-relaxed">
                       {isEn
@@ -534,7 +531,7 @@ export const PrivilegedAccessView: React.FC = () => {
                       setSelectedOption(null);
                       setCurrentPage('member_card');
                     }}
-                    className="w-full min-h-[48px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm cursor-pointer"
+                    className="w-full min-h-[48px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm cursor-pointer"
                   >
                     {isEn ? 'Discover Black Card' : 'Découvrir la Black Card'}
                   </button>
@@ -572,7 +569,7 @@ export const PrivilegedAccessView: React.FC = () => {
                       summary.availablePoints < (selectedOption.pointsCost || 800)
                     }
                     onClick={handleConfirmAccess}
-                    className="w-full min-h-[48px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed lum-press"
+                    className="w-full min-h-[48px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed lum-press"
                   >
                     {!currentUser
                       ? isEn

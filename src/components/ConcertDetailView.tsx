@@ -6,9 +6,7 @@ import {
   Calendar,
   Camera,
   Check,
-  Clapperboard,
   MapPin,
-  Play,
   Ticket,
   X,
 } from 'lucide-react';
@@ -70,20 +68,6 @@ export const ConcertDetailView: React.FC = () => {
   }, [event?.id]);
 
   const publishedMedia = useMemo(() => getPublishedMediaItems(mediaItems), [mediaItems]);
-
-  const concertBackstageItems = useMemo(() => {
-    if (!event) return [];
-    const matched = publishedMedia.filter(
-      (m) =>
-        m.placement === 'backstage' &&
-        (m.eventId === event.id ||
-          (m.artistName &&
-            m.artistName.toLowerCase().trim() === event.artist.toLowerCase().trim()))
-    );
-    return matched.length > 0
-      ? matched.slice(0, 3)
-      : publishedMedia.filter((m) => m.placement === 'backstage').slice(0, 3);
-  }, [publishedMedia, event]);
 
   const concertMemoriesItems = useMemo(() => {
     if (!event) return [];
@@ -158,7 +142,7 @@ export const ConcertDetailView: React.FC = () => {
         {/* Colonne gauche (5 cols) : Visuel principal sélectionné contextuellement */}
         <div className="lg:col-span-5">
           <div className="sticky top-24 space-y-4">
-            <div className="aspect-[3/4] bg-[#0E0E0E] border border-white/[0.12] overflow-hidden relative">
+            <div className="aspect-[3/4] rounded-[22px] bg-[#0E0E0E] border border-white/[0.12] overflow-hidden relative">
               <img
                 src={primaryVisual.url}
                 alt={`${event.artist} — ${event.title}`}
@@ -244,7 +228,7 @@ export const ConcertDetailView: React.FC = () => {
                     <div
                       key={cat.id}
                       onClick={() => !isSoldOut && setSelectedCategoryId(cat.id)}
-                      className={`p-5 border transition-all duration-200 cursor-pointer ${
+                      className={`p-5 rounded-[18px] border transition-all duration-200 cursor-pointer ${
                         isSelected
                           ? 'border-[#D4AF6A] bg-[#141414]'
                           : isSoldOut
@@ -290,7 +274,7 @@ export const ConcertDetailView: React.FC = () => {
             </div>
 
             {/* ÉTAPE 2 : QUANTITÉ & PAIEMENT */}
-            <div className="p-6 sm:p-7 bg-[#0E0E0E] border border-white/[0.12] space-y-6">
+            <div className="p-6 sm:p-7 rounded-[22px] bg-[#0E0E0E] border border-white/[0.12] space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <div className="text-xs font-agrandir-semibold tracking-wider text-white uppercase mb-1">
@@ -298,7 +282,7 @@ export const ConcertDetailView: React.FC = () => {
                   </div>
                   <div className="text-[11px] text-[#9A9A9A]">{t('detail.selectQty')}</div>
                 </div>
-                <div className="flex items-center border border-white/20 bg-[#141414] rounded-[4px] overflow-hidden w-fit">
+                <div className="flex items-center border border-white/20 bg-[#141414] rounded-full overflow-hidden w-fit">
                   <button
                     type="button"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -341,7 +325,7 @@ export const ConcertDetailView: React.FC = () => {
                 type="button"
                 onClick={handleProceedToPurchase}
                 disabled={remaining <= 0 || event.status !== 'published'}
-                className="w-full min-h-[48px] py-3.5 text-xs font-agrandir-extrabold tracking-[0.18em] uppercase text-black bg-[#D4AF6A] hover:bg-[#DFBE7D] rounded-[4px] disabled:bg-neutral-800 disabled:text-neutral-500 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 cursor-pointer lum-press"
+                className="w-full min-h-[50px] py-3.5 text-xs font-agrandir-extrabold tracking-[0.18em] uppercase text-black bg-[#D4AF6A] hover:bg-[#DFBE7D] rounded-full disabled:bg-neutral-800 disabled:text-neutral-500 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 cursor-pointer lum-press"
               >
                 <Ticket className="w-4 h-4" strokeWidth={1.6} />
                 <span>
@@ -359,105 +343,46 @@ export const ConcertDetailView: React.FC = () => {
         </div>
       </div>
 
-      {/* SECTION CONNECTÉE : COULISSES & SOUVENIRS DE L'UNIVERS DU CONCERT */}
-      {(concertBackstageItems.length > 0 || concertMemoriesItems.length > 0) && (
-        <section className="pt-14 space-y-12">
-          {concertBackstageItems.length > 0 && (
-            <div>
-              <div className="flex items-baseline justify-between mb-5">
-                <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white inline-flex items-center gap-2.5">
-                  <Clapperboard className="w-4 h-4 text-neutral-400" />
-                  <span>{isEn ? 'Backstage & Preparation' : 'Dans les coulisses'}</span>
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage('backstage')}
-                  className="text-xs font-agrandir-semibold text-neutral-400 hover:text-white inline-flex items-center gap-1 transition-colors cursor-pointer"
-                >
-                  <span>{isEn ? 'All Backstage' : 'Tout voir'}</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
-                {concertBackstageItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedMediaId(item.id);
-                      setCurrentPage('media_detail');
-                    }}
-                    className="group text-left cursor-pointer"
-                  >
-                    <div className="relative aspect-[16/10] overflow-hidden bg-[#0E0E0E] border border-white/[0.12]">
-                      <img
-                        src={item.thumbnailUrl || item.url}
-                        alt={item.title}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover brightness-[0.86] group-hover:scale-[1.04] group-hover:brightness-100 transition-all duration-500"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
-                      <span className="absolute bottom-3 left-3 inline-flex items-center gap-2 text-xs text-white">
-                        <span className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-md flex items-center justify-center">
-                          <Play className="w-3 h-3 ml-0.5 fill-current" />
-                        </span>
-                        {item.duration && (
-                          <span className="font-mono text-[11px] tabular-nums">{item.duration}</span>
-                        )}
-                      </span>
-                    </div>
-                    <p className="mt-2.5 text-[11px] text-neutral-500">
-                      {item.tag || 'Backstage'} · {item.date}
-                    </p>
-                    <h3 className="mt-0.5 font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-neutral-300 transition-colors line-clamp-1">
-                      {isEn && item.titleEn ? item.titleEn : item.title}
-                    </h3>
-                  </button>
-                ))}
-              </div>
+      {/* SECTION CONNECTÉE : SOUVENIRS DU CONCERT */}
+      {concertMemoriesItems.length > 0 && (
+        <section className="pt-14 space-y-6">
+          <div>
+            <div className="flex items-baseline justify-between mb-5">
+              <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white inline-flex items-center gap-2.5">
+                <Camera className="w-4 h-4 text-neutral-400" />
+                <span>{isEn ? 'Photos & Memories' : 'Photos & Souvenirs'}</span>
+              </h2>
+              <button
+                type="button"
+                onClick={() => setCurrentPage('memories')}
+                className="text-xs font-agrandir-semibold text-neutral-400 hover:text-white inline-flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <span>{isEn ? 'Open Memories' : 'Voir les souvenirs'}</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
             </div>
-          )}
 
-          {concertMemoriesItems.length > 0 && (
-            <div>
-              <div className="flex items-baseline justify-between mb-5">
-                <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white inline-flex items-center gap-2.5">
-                  <Camera className="w-4 h-4 text-neutral-400" />
-                  <span>{isEn ? 'Photos & Memories' : 'Photos & Souvenirs'}</span>
-                </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              {concertMemoriesItems.map((photo) => (
                 <button
+                  key={photo.id}
                   type="button"
-                  onClick={() => setCurrentPage('memories')}
-                  className="text-xs font-agrandir-semibold text-neutral-400 hover:text-white inline-flex items-center gap-1 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setSelectedMediaId(photo.id);
+                    setCurrentPage('media_detail');
+                  }}
+                  className="group relative aspect-[4/3] rounded-[16px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] hover:border-white/30 cursor-pointer transition-colors"
                 >
-                  <span>{isEn ? 'Open Memories' : 'Ouvrir Memories'}</span>
-                  <ArrowUpRight className="w-3.5 h-3.5" />
+                  <img
+                    src={photo.url}
+                    alt={photo.title}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover brightness-[0.88] group-hover:scale-[1.04] transition-transform duration-500"
+                  />
                 </button>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                {concertMemoriesItems.map((photo) => (
-                  <button
-                    key={photo.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedMediaId(photo.id);
-                      setCurrentPage('media_detail');
-                    }}
-                    className="group relative aspect-[4/3] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] cursor-pointer"
-                  >
-                    <img
-                      src={photo.url}
-                      alt={photo.title}
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full object-cover brightness-[0.88] group-hover:scale-[1.04] transition-transform duration-500"
-                    />
-                  </button>
-                ))}
-              </div>
+              ))}
             </div>
-          )}
+          </div>
         </section>
       )}
     </div>

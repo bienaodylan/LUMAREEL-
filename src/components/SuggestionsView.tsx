@@ -9,6 +9,7 @@ import {
   saveSuggestions,
 } from '../utils/communityStorage';
 import { LumareelStatusVariant, StatusBadge, Tabs } from './ui/LumareelKit';
+import { Icons } from './ui/Icons';
 import {
   CheckCircle2,
   ChevronLeft,
@@ -310,32 +311,37 @@ export const SuggestionsView: React.FC = () => {
         <span>{isEn ? 'My points' : 'Mes points'}</span>
       </button>
 
-      {/* En-tête éditorial fidèle à la maquette 13 */}
-      <header className="mb-6 space-y-2">
-        <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-          {isEn ? 'SUGGESTION BOX' : 'BOÎTE À SUGGESTIONS'}
-        </p>
-        <h1 className="font-agrandir-extrabold text-[2.2rem] sm:text-5xl text-white leading-[0.98] tracking-tight max-w-xl">
-          {isEn ? (
-            <>
-              The next stage
-              <br />
-              is shaped
-              <br />
-              by you.
-            </>
-          ) : (
-            <>
-              La prochaine
-              <br />
-              scène,
-              <br />
-              c&apos;est vous qui la
-              <br />
-              dessinez.
-            </>
-          )}
-        </h1>
+      {/* En-tête éditorial */}
+      <header className="mb-6 flex items-end justify-between gap-4">
+        <div className="space-y-2">
+          <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
+            {isEn ? 'SUGGESTION BOX' : 'BOÎTE À SUGGESTIONS'}
+          </p>
+          <h1 className="font-agrandir-extrabold text-[2.2rem] sm:text-5xl text-white leading-[0.98] tracking-tight max-w-xl">
+            {isEn ? (
+              <>
+                The next stage
+                <br />
+                is shaped
+                <br />
+                by you.
+              </>
+            ) : (
+              <>
+                La prochaine
+                <br />
+                scène,
+                <br />
+                c&apos;est vous qui la
+                <br />
+                dessinez.
+              </>
+            )}
+          </h1>
+        </div>
+        <div className="hidden sm:flex w-14 h-14 rounded-2xl bg-[#0E0E0E] border border-white/[0.12] items-center justify-center shrink-0">
+          <Icons.Suggestions size="md" accent="mono" />
+        </div>
       </header>
 
       {/* 3 onglets soulignés : Tendances | Proposer | Mes idées */}
@@ -384,12 +390,15 @@ export const SuggestionsView: React.FC = () => {
             })}
           </div>
 
-          {/* Bloc sondage "Qui voulez-vous voir ?" — Barres 0px */}
+          {/* Bloc sondage "Qui voulez-vous voir ?" — Barres arrondies */}
           <section className="space-y-3 max-w-2xl">
-            <div className="flex items-baseline justify-between gap-2">
-              <h2 className="font-agrandir-extrabold text-lg sm:text-xl text-white">
-                {isEn ? 'Who do you want to see?' : 'Qui voulez-vous voir ?'}
-              </h2>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <Icons.ArtistVote size="xs" accent="mono" />
+                <h2 className="font-agrandir-extrabold text-lg sm:text-xl text-white">
+                  {isEn ? 'Who do you want to see?' : 'Qui voulez-vous voir ?'}
+                </h2>
+              </div>
               <span className="text-xs text-[#9A9A9A]">
                 {isEn ? 'Artist vote' : 'Vote artiste'}
               </span>
@@ -404,7 +413,7 @@ export const SuggestionsView: React.FC = () => {
                     key={opt.id}
                     type="button"
                     onClick={() => handleToggleArtistPoll(opt.id)}
-                    className={`relative w-full min-h-[52px] overflow-hidden bg-[#0E0E0E] border transition-colors px-4 flex items-center justify-between gap-3 text-left cursor-pointer ${
+                    className={`relative w-full min-h-[52px] rounded-[14px] overflow-hidden bg-[#0E0E0E] border transition-colors px-4 flex items-center justify-between gap-3 text-left cursor-pointer ${
                       hasVoted ? 'border-[#D4AF6A]' : 'border-white/[0.12] hover:border-white/25'
                     }`}
                   >
@@ -471,7 +480,7 @@ export const SuggestionsView: React.FC = () => {
                       type="button"
                       onClick={() => handleToggleVote(item.id)}
                       aria-pressed={hasVoted}
-                      className={`w-14 min-h-[54px] border flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer shrink-0 ${
+                      className={`w-14 min-h-[54px] rounded-[14px] border flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer shrink-0 ${
                         hasVoted
                           ? 'bg-[#D4AF6A]/15 border-[#D4AF6A] text-[#D4AF6A]'
                           : 'bg-[#0E0E0E] border-white/[0.14] text-white hover:border-white/35'
@@ -496,9 +505,9 @@ export const SuggestionsView: React.FC = () => {
         </div>
       )}
 
-      {/* ONGLET 2 : PROPOSER (0px conteneur, 4px inputs, image optionnelle + écran Confirmation) */}
+      {/* ONGLET 2 : PROPOSER (conteneur 20px, inputs 12px, boutons pilule) */}
       {activeTab === 'propose' && (
-        <section className="max-w-xl bg-[#0E0E0E] border border-white/[0.12] p-5 sm:p-6 space-y-5">
+        <section className="max-w-xl rounded-[20px] bg-[#0E0E0E] border border-white/[0.12] p-5 sm:p-6 space-y-5">
           {submittedIdea ? (
             <div className="py-4 space-y-5 text-center">
               <CheckCircle2 className="w-10 h-10 text-[#7FE0A6] mx-auto" strokeWidth={1.6} />
@@ -522,7 +531,7 @@ export const SuggestionsView: React.FC = () => {
                     setSubmittedIdea(null);
                     setActiveTab('mine');
                   }}
-                  className="min-h-[46px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs cursor-pointer lum-press"
+                  className="min-h-[46px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs cursor-pointer lum-press"
                 >
                   {isEn ? 'Track in My ideas' : 'Suivre dans Mes idées'}
                 </button>
@@ -532,7 +541,7 @@ export const SuggestionsView: React.FC = () => {
                     setSubmittedIdea(null);
                     setActiveTab('trending');
                   }}
-                  className="min-h-[46px] rounded-[4px] border border-white/25 hover:border-white text-white font-agrandir-extrabold text-xs cursor-pointer"
+                  className="min-h-[46px] rounded-full border border-white/25 hover:border-white text-white font-agrandir-extrabold text-xs cursor-pointer"
                 >
                   {isEn ? 'Back to Trending' : 'Retour aux tendances'}
                 </button>
@@ -579,7 +588,7 @@ export const SuggestionsView: React.FC = () => {
                         value={artistName}
                         onChange={(e) => setArtistName(e.target.value)}
                         placeholder="Ex : Burna Boy, Didi B, Himra..."
-                        className="w-full min-h-[46px] px-4 rounded-[4px] bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
+                        className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
                       />
                     </div>
                     <div>
@@ -591,7 +600,7 @@ export const SuggestionsView: React.FC = () => {
                         value={cityOrVenue}
                         onChange={(e) => setCityOrVenue(e.target.value)}
                         placeholder="Ex : Abidjan · Palais de la Culture"
-                        className="w-full min-h-[46px] px-4 rounded-[4px] bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
+                        className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
                       />
                     </div>
                   </>
@@ -606,7 +615,7 @@ export const SuggestionsView: React.FC = () => {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="Ex : Soirée rooftop au coucher du soleil"
-                        className="w-full min-h-[46px] px-4 rounded-[4px] bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
+                        className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
                       />
                     </div>
                     <div>
@@ -618,7 +627,7 @@ export const SuggestionsView: React.FC = () => {
                         value={cityOrVenue}
                         onChange={(e) => setCityOrVenue(e.target.value)}
                         placeholder="Ex : Abidjan, Assinie..."
-                        className="w-full min-h-[46px] px-4 rounded-[4px] bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
+                        className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
                       />
                     </div>
                   </>
@@ -637,7 +646,7 @@ export const SuggestionsView: React.FC = () => {
                         ? 'Describe the atmosphere or format...'
                         : "Décrivez l'ambiance ou le format souhaité..."
                     }
-                    className="w-full p-3.5 rounded-[4px] bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none resize-none"
+                    className="w-full p-3.5 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none resize-none"
                   />
                 </div>
 
@@ -654,11 +663,11 @@ export const SuggestionsView: React.FC = () => {
                     className="hidden"
                   />
                   {attachedImage ? (
-                    <div className="relative border border-white/[0.14] bg-black p-2">
+                    <div className="relative rounded-[14px] overflow-hidden border border-white/[0.14] bg-black p-2">
                       <img
                         src={attachedImage}
                         alt="Reference"
-                        className="w-full max-h-40 object-cover"
+                        className="w-full max-h-40 rounded-lg object-cover"
                       />
                       <button
                         type="button"
@@ -672,7 +681,7 @@ export const SuggestionsView: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => imageInputRef.current?.click()}
-                      className="w-full min-h-[44px] px-4 rounded-[4px] border border-dashed border-white/25 hover:border-[#D4AF6A] text-xs text-[#C8C8C8] flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                      className="w-full min-h-[44px] px-4 rounded-xl border border-dashed border-white/25 hover:border-[#D4AF6A] text-xs text-[#C8C8C8] flex items-center justify-center gap-2 transition-colors cursor-pointer"
                     >
                       <ImagePlus className="w-4 h-4 text-[#D4AF6A]" strokeWidth={1.6} />
                       <span>{isEn ? 'Attach an image' : 'Joindre une image'}</span>
@@ -682,7 +691,7 @@ export const SuggestionsView: React.FC = () => {
 
                 <button
                   type="submit"
-                  className="w-full min-h-[48px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer lum-press"
+                  className="w-full min-h-[48px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer lum-press"
                 >
                   <Send className="w-4 h-4" strokeWidth={1.6} />
                   <span>{isEn ? 'Submit my idea' : 'Envoyer ma suggestion'}</span>
@@ -706,7 +715,7 @@ export const SuggestionsView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab('propose')}
-                className="min-h-[42px] px-5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs cursor-pointer lum-press"
+                className="min-h-[42px] px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs cursor-pointer lum-press"
               >
                 {isEn ? 'Propose an idea' : 'Proposer une idée'}
               </button>
@@ -720,7 +729,7 @@ export const SuggestionsView: React.FC = () => {
                 return (
                   <article
                     key={item.id}
-                    className="bg-[#0E0E0E] border border-white/[0.12] p-4 sm:p-5 space-y-4"
+                    className="rounded-[20px] bg-[#0E0E0E] border border-white/[0.12] p-4 sm:p-5 space-y-4"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0 space-y-1.5">
@@ -736,7 +745,7 @@ export const SuggestionsView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleToggleVote(item.id)}
-                        className={`w-14 min-h-[50px] border flex flex-col items-center justify-center gap-0.5 cursor-pointer shrink-0 ${
+                        className={`w-14 min-h-[50px] rounded-[14px] border flex flex-col items-center justify-center gap-0.5 cursor-pointer shrink-0 ${
                           hasVoted
                             ? 'bg-[#D4AF6A]/15 border-[#D4AF6A] text-[#D4AF6A]'
                             : 'bg-black border-white/[0.14] text-white'
@@ -752,13 +761,13 @@ export const SuggestionsView: React.FC = () => {
                     {/* Barre de progression 5 étapes (Nouvelle → Étude → Retenue → Préparation → Réalisée) */}
                     {status.stepIndex >= 0 && (
                       <div className="space-y-2 pt-1">
-                        <div className="grid grid-cols-5 gap-1">
+                        <div className="grid grid-cols-5 gap-1.5">
                           {progressSteps.map((stepLabel, sIdx) => {
                             const reached = sIdx <= status.stepIndex;
                             return (
                               <div key={stepLabel} className="space-y-1">
                                 <div
-                                  className={`h-1 w-full ${
+                                  className={`h-1.5 w-full rounded-full ${
                                     reached ? 'bg-[#D4AF6A]' : 'bg-white/[0.12]'
                                   }`}
                                 />
@@ -779,7 +788,7 @@ export const SuggestionsView: React.FC = () => {
                     )}
 
                     {/* Réponse officielle de l'équipe LUMARÉEL */}
-                    <div className="p-3 bg-black border-l-2 border-[#D4AF6A] space-y-1">
+                    <div className="p-3.5 rounded-[14px] bg-black border border-white/[0.12] space-y-1">
                       <p className="text-[10px] font-agrandir-extrabold uppercase tracking-[0.16em] text-[#D4AF6A]">
                         {isEn ? 'LUMARÉEL TEAM RESPONSE' : "RÉPONSE DE L'ÉQUIPE LUMARÉEL"}
                       </p>

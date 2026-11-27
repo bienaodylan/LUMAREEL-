@@ -121,11 +121,11 @@ export const DesktopTopNav: React.FC = () => {
 
         {/* Droite : Langue + Compte */}
         <div className="flex items-center gap-3 shrink-0">
-          <div className="flex items-center border border-white/[0.12] bg-[#0E0E0E] p-0.5 text-[10px]">
+          <div className="flex items-center rounded-full border border-white/[0.12] bg-[#0E0E0E] p-0.5 text-[10px]">
             <button
               type="button"
               onClick={() => setLanguage('fr')}
-              className={`min-h-[28px] px-2 rounded-[4px] transition-colors cursor-pointer ${
+              className={`min-h-[28px] px-2.5 rounded-full transition-colors cursor-pointer ${
                 language === 'fr'
                   ? 'bg-[#D4AF6A] text-black font-agrandir-extrabold'
                   : 'text-[#9A9A9A] hover:text-white'
@@ -136,7 +136,7 @@ export const DesktopTopNav: React.FC = () => {
             <button
               type="button"
               onClick={() => setLanguage('en')}
-              className={`min-h-[28px] px-2 rounded-[4px] transition-colors cursor-pointer ${
+              className={`min-h-[28px] px-2.5 rounded-full transition-colors cursor-pointer ${
                 language === 'en'
                   ? 'bg-[#D4AF6A] text-black font-agrandir-extrabold'
                   : 'text-[#9A9A9A] hover:text-white'
@@ -150,7 +150,7 @@ export const DesktopTopNav: React.FC = () => {
             <button
               type="button"
               onClick={() => setCurrentPage('profile')}
-              className="min-h-[36px] px-3 rounded-[4px] border border-white/[0.12] bg-[#0E0E0E] hover:border-white/30 inline-flex items-center gap-2 text-xs text-white transition-colors cursor-pointer whitespace-nowrap lum-press"
+              className="min-h-[36px] px-3.5 rounded-full border border-white/[0.12] bg-[#0E0E0E] hover:border-white/30 inline-flex items-center gap-2 text-xs text-white transition-colors cursor-pointer whitespace-nowrap lum-press"
             >
               <User className="w-3.5 h-3.5 text-[#D4AF6A]" strokeWidth={1.6} />
               <span className="max-w-[110px] truncate font-agrandir-semibold">
@@ -161,7 +161,7 @@ export const DesktopTopNav: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsAuthModalOpen(true)}
-              className="min-h-[36px] px-3.5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black inline-flex items-center gap-1.5 text-xs font-agrandir-extrabold transition-colors cursor-pointer whitespace-nowrap lum-press"
+              className="min-h-[36px] px-4 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black inline-flex items-center gap-1.5 text-xs font-agrandir-extrabold transition-colors cursor-pointer whitespace-nowrap lum-press"
             >
               <LogIn className="w-3.5 h-3.5" strokeWidth={1.6} />
               <span>{isEn ? 'Sign in' : 'Connexion'}</span>

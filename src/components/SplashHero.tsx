@@ -21,7 +21,7 @@ export const SplashHero: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const handleNavigate = (page: 'home' | 'discover' | 'archive' | 'organizers' | 'news' | 'client_space') => {
+  const handleNavigate = (page: 'home' | 'memories' | 'organizers' | 'client_space') => {
     enterPlatform();
     setCurrentPage(page);
   };
@@ -86,20 +86,20 @@ export const SplashHero: React.FC = () => {
       <div className="relative z-20 w-full flex flex-col items-center justify-center pb-8 sm:pb-10 text-center">
         <nav aria-label="Menu Principal" className="flex flex-col items-center space-y-3.5 sm:space-y-4">
           
-          {/* 1. DÉCOUVRIR */}
+          {/* 1. ACCUEIL */}
           <button
-            onClick={() => handleNavigate('discover')}
+            onClick={() => handleNavigate('home')}
             className="text-xs sm:text-sm font-agrandir-regular hover:font-agrandir-semibold text-[#888] hover:text-white tracking-[0.25em] uppercase transition-all cursor-pointer py-1"
           >
-            DÉCOUVRIR
+            ACCUEIL
           </button>
 
-          {/* 2. ARCHIVE */}
+          {/* 2. SOUVENIRS */}
           <button
-            onClick={() => handleNavigate('archive')}
+            onClick={() => handleNavigate('memories')}
             className="text-xs sm:text-sm font-agrandir-regular hover:font-agrandir-semibold text-[#888] hover:text-white tracking-[0.25em] uppercase transition-all cursor-pointer py-1"
           >
-            ARCHIVES
+            SOUVENIRS
           </button>
 
           {/* 3. PARTENAIRES */}
@@ -146,7 +146,7 @@ export const SplashHero: React.FC = () => {
       {/* MODAL : PARTENAIRES */}
       {showPartnersModal && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0a0a0a] border border-[#222] p-8 sm:p-10 max-w-xl w-full text-left space-y-6">
+          <div className="rounded-[24px] bg-[#0a0a0a] border border-[#222] p-8 sm:p-10 max-w-xl w-full text-left space-y-6">
             <div className="flex items-center justify-between border-b border-[#222] pb-4">
               <span className="text-xs font-agrandir-regular text-[#888] uppercase tracking-[0.25em] flex items-center gap-2">
                 <Handshake className="w-3.5 h-3.5 text-white" />
@@ -170,7 +170,7 @@ export const SplashHero: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-agrandir-regular border-t border-[#1a1a1a] pt-4">
-              <div className="p-3 bg-[#111] border border-[#222]">
+              <div className="p-3.5 rounded-[14px] bg-[#111] border border-[#222]">
                 <span className="text-white font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
                   LIEUX PARTENAIRES
                 </span>
@@ -178,7 +178,7 @@ export const SplashHero: React.FC = () => {
                 <p className="text-[#777] text-[11px]">Palais des Congrès &amp; Scène Piscine</p>
               </div>
 
-              <div className="p-3 bg-[#111] border border-[#222]">
+              <div className="p-3.5 rounded-[14px] bg-[#111] border border-[#222]">
                 <span className="text-white font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
                   SCÈNE XXL
                 </span>
@@ -186,7 +186,7 @@ export const SplashHero: React.FC = () => {
                 <p className="text-[#777] text-[11px]">Hall 1 — 10 000+ places debout</p>
               </div>
 
-              <div className="p-3 bg-[#111] border border-[#222]">
+              <div className="p-3.5 rounded-[14px] bg-[#111] border border-[#222]">
                 <span className="text-white font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
                   COLLECTIFS ASSOCIÉS
                 </span>
@@ -194,7 +194,7 @@ export const SplashHero: React.FC = () => {
                 <p className="text-[#777] text-[11px]">Co-productions urbaines &amp; électro</p>
               </div>
 
-              <div className="p-3 bg-[#111] border border-[#222]">
+              <div className="p-3.5 rounded-[14px] bg-[#111] border border-[#222]">
                 <span className="text-white font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
                   TRANSACTIONS SÉCURISÉES
                 </span>
@@ -209,7 +209,7 @@ export const SplashHero: React.FC = () => {
                   setShowPartnersModal(false);
                   handleNavigate('organizers');
                 }}
-                className="w-full py-3.5 bg-white text-black font-agrandir-semibold text-xs uppercase tracking-[0.25em] hover:bg-[#eaeaea] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3.5 rounded-full bg-white text-black font-agrandir-semibold text-xs uppercase tracking-[0.25em] hover:bg-[#eaeaea] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span>PROPOSER UN PARTENARIAT OU UN ÉVÉNEMENT</span>
                 <ArrowUpRight className="w-4 h-4" />
@@ -222,7 +222,7 @@ export const SplashHero: React.FC = () => {
       {/* MODAL : À PROPOS */}
       {showAboutModal && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0a0a0a] border border-[#222] p-8 sm:p-10 max-w-xl w-full text-left space-y-6">
+          <div className="rounded-[24px] bg-[#0a0a0a] border border-[#222] p-8 sm:p-10 max-w-xl w-full text-left space-y-6">
             <div className="flex items-center justify-between border-b border-[#222] pb-4">
               <span className="text-xs font-agrandir-regular text-[#888] uppercase tracking-[0.25em] flex items-center gap-2">
                 <Info className="w-3.5 h-3.5 text-white" />
@@ -268,9 +268,9 @@ export const SplashHero: React.FC = () => {
                 setShowAboutModal(false);
                 handleNavigate('home');
               }}
-              className="w-full py-3.5 bg-white text-black font-agrandir-semibold text-xs uppercase tracking-[0.25em] hover:bg-[#eaeaea] transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3.5 rounded-full bg-white text-black font-agrandir-semibold text-xs uppercase tracking-[0.25em] hover:bg-[#eaeaea] transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>EXPLORER LA BILLETTERIE OFFICIELLE</span>
+              <span>ACCÉDER À LA BILLETTERIE OFFICIELLE</span>
               <ArrowUpRight className="w-4 h-4" />
             </button>
           </div>
@@ -280,7 +280,7 @@ export const SplashHero: React.FC = () => {
       {/* MODAL : CONTACT */}
       {showContactModal && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0c0c0c] border border-[#222] p-8 sm:p-10 max-w-lg w-full text-left space-y-6">
+          <div className="rounded-[24px] bg-[#0c0c0c] border border-[#222] p-8 sm:p-10 max-w-lg w-full text-left space-y-6">
             <div className="flex items-center justify-between border-b border-[#222] pb-4">
               <span className="text-xs font-agrandir-regular text-[#888] uppercase tracking-[0.25em]">
                 CONTACT &amp; RELATIONS
@@ -324,11 +324,11 @@ export const SplashHero: React.FC = () => {
             <button
               onClick={() => {
                 setShowContactModal(false);
-                handleNavigate('home');
+                handleNavigate('memories');
               }}
-              className="w-full py-3.5 bg-white text-black font-agrandir-semibold text-xs uppercase tracking-[0.25em] hover:bg-[#eaeaea] transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3.5 rounded-full bg-white text-black font-agrandir-semibold text-xs uppercase tracking-[0.25em] hover:bg-[#eaeaea] transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
-              <span>DÉCOUVRIR LES CONCERTS</span>
+              <span>VOIR LES SOUVENIRS</span>
               <ArrowUpRight className="w-4 h-4" />
             </button>
           </div>

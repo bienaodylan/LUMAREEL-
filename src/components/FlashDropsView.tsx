@@ -12,7 +12,8 @@ import {
 } from '../utils/communityStorage';
 import { formatDateLong } from '../utils/dateUtils';
 import { CountdownTimer, StatusBadge } from './ui/LumareelKit';
-import { Bell, BellRing, ChevronLeft, Copy, Gift, Ticket } from 'lucide-react';
+import { Icons } from './ui/Icons';
+import { Bell, BellRing, ChevronLeft, Copy, Ticket } from 'lucide-react';
 
 const SURPRISE_POOL = [
   {
@@ -238,8 +239,8 @@ export const FlashDropsView: React.FC = () => {
         <span>{isEn ? 'My points' : 'Mes points'}</span>
       </button>
 
-      {/* Titre massif 2 lignes fidèle à la maquette 12 */}
-      <header className="mb-6">
+      {/* Titre massif 2 lignes */}
+      <header className="mb-6 flex items-end justify-between gap-4">
         <h1 className="font-agrandir-extrabold text-[2.45rem] sm:text-5xl text-white leading-[0.98] tracking-tight">
           {isEn ? (
             <>
@@ -255,6 +256,9 @@ export const FlashDropsView: React.FC = () => {
             </>
           )}
         </h1>
+        <div className="hidden sm:flex w-14 h-14 rounded-2xl bg-[#0E0E0E] border border-white/[0.12] items-center justify-center shrink-0">
+          <Icons.FlashDrops size="md" accent="mono" />
+        </div>
       </header>
 
       {/* Sélecteur pilule plein-largeur : Surprise Drops | Flash Sales */}
@@ -291,8 +295,8 @@ export const FlashDropsView: React.FC = () => {
               : "Des récompenses inattendues, publiées sans prévenir pour la communauté. Certaines s'échangent contre des points, d'autres sont offertes."}
           </p>
 
-          {/* Carte Mystery Drop avec bordure dorée — 0px + animation de révélation */}
-          <section className="bg-gradient-to-b from-[#17120A] via-[#0E0D0A] to-[#0A0A0A] border border-[#D4AF6A]/45 p-5 sm:p-7 space-y-6 max-w-xl">
+          {/* Carte Mystery Drop avec bordure dorée — arrondi 22px + animation de révélation */}
+          <section className="rounded-[22px] bg-gradient-to-b from-[#17120A] via-[#0E0D0A] to-[#0A0A0A] border border-[#D4AF6A]/45 p-5 sm:p-7 space-y-6 max-w-xl">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
                 DROP #04
@@ -311,7 +315,7 @@ export const FlashDropsView: React.FC = () => {
                 transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                 className="py-3 text-center space-y-3"
               >
-                <Gift className="w-11 h-11 text-[#D4AF6A] mx-auto" strokeWidth={1.6} />
+                <Icons.SurpriseGift size="xl" accent="mono" className="w-14 h-14 mx-auto" />
                 <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white leading-tight">
                   {revealedSurprise ? (
                     revealedSurprise.title
@@ -354,7 +358,7 @@ export const FlashDropsView: React.FC = () => {
               type="button"
               onClick={handleUnlockSurprise}
               disabled={alreadyClaimedToday}
-              className={`w-full min-h-[50px] rounded-[4px] font-agrandir-extrabold text-sm transition-colors ${
+              className={`w-full min-h-[50px] rounded-full font-agrandir-extrabold text-sm transition-colors ${
                 alreadyClaimedToday
                   ? 'bg-white/10 text-[#9A9A9A] cursor-not-allowed'
                   : 'bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black cursor-pointer lum-press'
@@ -370,7 +374,7 @@ export const FlashDropsView: React.FC = () => {
             </button>
           </section>
 
-          {/* Autres drops — miniatures 0px + Me prévenir */}
+          {/* Autres drops — miniatures 14px + Me prévenir */}
           <section className="space-y-3 max-w-2xl">
             <h2 className="font-agrandir-extrabold text-xl text-white">
               {isEn ? 'Other drops' : 'Autres drops'}
@@ -383,16 +387,16 @@ export const FlashDropsView: React.FC = () => {
                   onClick={() => setCurrentPage('rewards')}
                   className="flex items-center gap-3.5 min-w-0 flex-1 text-left group cursor-pointer"
                 >
-                  <div className="w-14 h-14 overflow-hidden bg-[#16130D] border border-white/[0.12] shrink-0">
+                  <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#16130D] border border-white/[0.12] shrink-0">
                     <img
                       src={COMMUNITY_MEDIA.backstageSoundcheckImg}
-                      alt="Expérience Backstage"
+                      alt="Expérience Lounge VIP"
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="min-w-0">
                     <p className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors truncate">
-                      Expérience Backstage
+                      {isEn ? 'VIP Lounge Experience' : 'Expérience Lounge VIP'}
                     </p>
                     <p className="text-xs text-[#9A9A9A] truncate">
                       {isEn
@@ -414,7 +418,7 @@ export const FlashDropsView: React.FC = () => {
                   }
                   className="flex items-center gap-3.5 min-w-0 flex-1 text-left group cursor-pointer"
                 >
-                  <div className="w-14 h-14 overflow-hidden bg-[#141414] border border-white/[0.12] shrink-0">
+                  <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#141414] border border-white/[0.12] shrink-0">
                     <img
                       src={
                         primaryEvent?.officialPoster ||
@@ -439,7 +443,7 @@ export const FlashDropsView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => toggleAlert('drop_upcoming_1')}
-                    className={`min-h-[34px] px-3 rounded-[4px] border text-[11px] font-agrandir-extrabold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    className={`min-h-[34px] px-3.5 rounded-full border text-[11px] font-agrandir-extrabold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
                       alertSubscribedIds.includes('drop_upcoming_1')
                         ? 'border-[#D4AF6A] text-[#D4AF6A] bg-[#D4AF6A]/10'
                         : 'border-white/20 text-[#C8C8C8] hover:border-white'
@@ -458,7 +462,7 @@ export const FlashDropsView: React.FC = () => {
               {secondaryEvent && (
                 <div className="py-4 flex items-center justify-between gap-4 opacity-50">
                   <div className="flex items-center gap-3.5 min-w-0">
-                    <div className="w-14 h-14 overflow-hidden bg-[#111111] border border-white/[0.08] shrink-0">
+                    <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#111111] border border-white/[0.08] shrink-0">
                       <img
                         src={secondaryEvent.officialPoster || secondaryEvent.bannerImage}
                         alt={secondaryEvent.title}
@@ -500,7 +504,7 @@ export const FlashDropsView: React.FC = () => {
                         await navigator.clipboard?.writeText(item.code).catch(() => {});
                         showToast(isEn ? 'Code copied.' : 'Code copié.', 'success');
                       }}
-                      className="px-3 py-1.5 rounded-[4px] bg-[#0E0E0E] border border-white/[0.16] font-mono text-xs text-[#D4AF6A] inline-flex items-center gap-1.5 cursor-pointer shrink-0"
+                      className="px-3.5 py-1.5 rounded-full bg-[#0E0E0E] border border-white/[0.16] font-mono text-xs text-[#D4AF6A] inline-flex items-center gap-1.5 cursor-pointer shrink-0"
                     >
                       <span>{item.code}</span>
                       <Copy className="w-3 h-3" strokeWidth={1.6} />
@@ -515,7 +519,7 @@ export const FlashDropsView: React.FC = () => {
         /* ONGLET FLASH SALES : OFFRES PAYANT (FCFA) & POINTS AVEC COMPTE À REBOURS + BARRE QUANTITÉ */
         <div className="space-y-5 max-w-3xl">
           {/* Offre Flash POINTS dédiée */}
-          <article className="bg-[#0E0E0E] border border-[#D4AF6A]/40 p-5 space-y-4">
+          <article className="rounded-[20px] bg-[#0E0E0E] border border-[#D4AF6A]/40 p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <StatusBadge variant="points" label="POINTS" />
               <div className="flex items-center gap-2 text-xs text-[#C8C8C8]">
@@ -526,7 +530,7 @@ export const FlashDropsView: React.FC = () => {
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3.5 min-w-0">
-                <div className="w-16 h-16 overflow-hidden bg-[#141414] border border-white/[0.12] shrink-0">
+                <div className="w-16 h-16 rounded-[14px] overflow-hidden bg-[#141414] border border-white/[0.12] shrink-0">
                   <img
                     src={COMMUNITY_MEDIA.backstageSoundcheckImg}
                     alt="Pass Balances Flash"
@@ -549,15 +553,15 @@ export const FlashDropsView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleRedeemPointsFlash('Pass Flash — Balances & Lounge', 650)}
-                className="min-h-[42px] px-5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs whitespace-nowrap cursor-pointer shrink-0 lum-press"
+                className="min-h-[42px] px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs whitespace-nowrap cursor-pointer shrink-0 lum-press"
               >
                 {isEn ? 'Redeem 650 pts' : 'Échanger · 650 pts'}
               </button>
             </div>
 
             <div className="space-y-1.5 pt-1">
-              <div className="h-1 w-full bg-white/[0.1] overflow-hidden">
-                <div className="h-full bg-[#D4AF6A]" style={{ width: '35%' }} />
+              <div className="h-1.5 w-full rounded-full bg-white/[0.1] overflow-hidden">
+                <div className="h-full rounded-full bg-[#D4AF6A]" style={{ width: '35%' }} />
               </div>
               <div className="flex items-center justify-between text-[11px] text-[#9A9A9A]">
                 <span>{isEn ? 'Valid while stock lasts' : 'Valable dans la limite des places'}</span>
@@ -581,7 +585,7 @@ export const FlashDropsView: React.FC = () => {
                 return (
                   <article
                     key={event.id}
-                    className="bg-[#0E0E0E] border border-white/[0.12] p-5 space-y-4"
+                    className="rounded-[20px] bg-[#0E0E0E] border border-white/[0.12] p-5 space-y-4"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <StatusBadge variant="paid" label={isEn ? 'PAID' : 'PAYANT'} />
@@ -603,7 +607,7 @@ export const FlashDropsView: React.FC = () => {
                         }}
                         className="flex items-center gap-3.5 text-left min-w-0 flex-1 cursor-pointer group"
                       >
-                        <div className="w-16 h-16 overflow-hidden bg-[#141414] border border-white/[0.12] shrink-0">
+                        <div className="w-16 h-16 rounded-[14px] overflow-hidden bg-[#141414] border border-white/[0.12] shrink-0">
                           <img
                             src={event.officialPoster || event.bannerImage}
                             alt={event.title}
@@ -626,15 +630,15 @@ export const FlashDropsView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleBookEvent(event)}
-                        className="min-h-[42px] px-5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs whitespace-nowrap cursor-pointer shrink-0 lum-press"
+                        className="min-h-[42px] px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs whitespace-nowrap cursor-pointer shrink-0 lum-press"
                       >
                         {isEn ? 'Book now' : 'Réserver'}
                       </button>
                     </div>
 
                     <div className="space-y-1.5 pt-1">
-                      <div className="h-1 w-full bg-white/[0.1] overflow-hidden">
-                        <div className="h-full bg-white" style={{ width: `${remainPct}%` }} />
+                      <div className="h-1.5 w-full rounded-full bg-white/[0.1] overflow-hidden">
+                        <div className="h-full rounded-full bg-white" style={{ width: `${remainPct}%` }} />
                       </div>
                       <div className="flex items-center justify-between text-[11px] text-[#9A9A9A]">
                         <span>

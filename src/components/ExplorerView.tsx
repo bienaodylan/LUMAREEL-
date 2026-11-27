@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   COMMUNITY_MEDIA,
@@ -6,27 +6,24 @@ import {
   computeUserPointsSummary,
   loadUserPointsState,
 } from '../utils/communityStorage';
-import {
-  MediaHubItem,
-  getPublishedMediaItems,
-  subscribeMediaHub,
-} from '../utils/mediaHubStorage';
-import {
-  CountdownTimer,
-  ScrollReveal,
-  SectionHeader,
-  Tabs,
-} from './ui/LumareelKit';
-import { ArrowRight, ChevronRight, Lightbulb, Play, Star } from 'lucide-react';
+import { ScrollReveal } from './ui/LumareelKit';
+import { Icons } from './ui/Icons';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-type ExplorerSectionTab = 'experiences' | 'communaute' | 'plus';
-type ArchiveYearFilter = 'all' | '2026' | '2025' | 'concerts';
+interface SouvenirPosterCard {
+  id: string;
+  albumId: string;
+  artist: string;
+  date: string;
+  venue: string;
+  image: string;
+}
 
 /**
- * 02 — Explorer (page complète dédiée, 0px sur les cartes/visuels).
- * A Expériences (Backstage, Souvenirs, Flash Drops),
- * B Communauté (Points & Parrainage, Boîte à suggestions),
- * C Pour aller plus loin (Archives filtrables).
+ * Explorer — Page complète épurée (Noir & Blanc dominant, arrondis modernes 18px).
+ * - Zéro bloc Backstage ni Archives : tout l'univers concert vit dans Souvenirs
+ * - Rail horizontal scrollable d'affiches concerts/artistes (Souvenirs -> Écran 07 direct)
+ * - Catalogue visuel standardisé via la bibliothèque centralisée `Icons` (Noir & Blanc)
  */
 export const ExplorerView: React.FC = () => {
   const {
@@ -35,23 +32,13 @@ export const ExplorerView: React.FC = () => {
     currentUser,
     customerOrders,
     setCurrentPage,
-    setSelectedEventSlug,
-    setSelectedMediaId,
+    setSelectedMemoryAlbumId,
+    setRewardsInitialMode,
     language,
   } = useApp();
 
   const isEn = language === 'en';
-  const [activeTab, setActiveTab] = useState<ExplorerSectionTab>('experiences');
-  const [archiveFilter, setArchiveFilter] = useState<ArchiveYearFilter>('all');
-  const [publishedMedia, setPublishedMedia] = useState<MediaHubItem[]>(() =>
-    getPublishedMediaItems()
-  );
-
-  useEffect(() => {
-    const sync = () => setPublishedMedia(getPublishedMediaItems());
-    sync();
-    return subscribeMediaHub(sync);
-  }, []);
+  const souvenirsRailRef = useRef<HTMLDivElement>(null);
 
   const publishedEvents = useMemo(
     () => (events || []).filter((e) => e.status !== 'draft'),
@@ -68,378 +55,296 @@ export const ExplorerView: React.FC = () => {
     [publishedArchives]
   );
 
-  const featuredBackstage = useMemo(
-    () => publishedMedia.find((m) => m.placement === 'backstage') || null,
-    [publishedMedia]
-  );
+  // Rail horizontal des concerts / artistes pour Souvenirs (chaque clic ouvre directement l'Écran 07)
+  const souvenirPosters = useMemo<SouvenirPosterCard[]>(() => {
+    const items: SouvenirPosterCard[] = memoryAlbums.map((album) => ({
+      id: `album_${album.id}`,
+      albumId: album.id,
+      artist: album.artist || album.title,
+      date: album.date,
+      venue: album.venue,
+      image: album.coverImage || COMMUNITY_MEDIA.concertMemoriesCrowdImg,
+    }));
 
-  const souvenirStripImages = useMemo(() => {
-    const urls: string[] = [];
-    for (const album of memoryAlbums) {
-      if (album.coverImage && !urls.includes(album.coverImage)) {
-        urls.push(album.coverImage);
-      }
-      if (urls.length >= 3) break;
+    const fallbackAlbumId = memoryAlbums[0]?.id || 'dopelym';
+    const existingKeys = new Set(items.map((it) => it.artist.trim().toLowerCase()));
+
+    for (const ev of publishedEvents) {
+      const artistKey = (ev.artist || ev.title || '').trim().toLowerCase();
+      if (!artistKey || existingKeys.has(artistKey)) continue;
+      const matchedAlbum = memoryAlbums.find((a) => {
+        const hay = `${a.artist} ${a.title}`.toLowerCase();
+        return hay.includes(artistKey) || artistKey.includes((a.artist || '').toLowerCase());
+      });
+      const img = ev.officialPoster || ev.artistPortrait || ev.bannerImage || ev.coverImage;
+      if (!img) continue;
+      existingKeys.add(artistKey);
+      items.push({
+        id: `event_${ev.id}`,
+        albumId: matchedAlbum?.id || fallbackAlbumId,
+        artist: ev.artist || ev.title,
+        date: ev.date,
+        venue: ev.venue,
+        image: img,
+      });
     }
-    while (urls.length < 3) {
-      urls.push(
-        [
-          COMMUNITY_MEDIA.concertMemoriesCrowdImg,
-          COMMUNITY_MEDIA.crowdArchiveImg,
-          COMMUNITY_MEDIA.vipMezzanineImg,
-        ][urls.length]
-      );
-    }
-    return urls.slice(0, 3);
-  }, [memoryAlbums]);
+
+    return items;
+  }, [memoryAlbums, publishedEvents]);
 
   const pointsSummary = useMemo(() => {
     const state = loadUserPointsState(currentUser);
     return computeUserPointsSummary(currentUser, customerOrders || [], state);
   }, [currentUser, customerOrders]);
 
-  const filteredArchives = useMemo(() => {
-    if (archiveFilter === 'all' || archiveFilter === 'concerts') return publishedArchives;
-    return publishedArchives.filter(
-      (a) => String(a.year) === archiveFilter || (a.date || '').includes(archiveFilter)
-    );
-  }, [publishedArchives, archiveFilter]);
-
-  const scrollToAnchor = (tab: ExplorerSectionTab) => {
-    setActiveTab(tab);
-    const el = document.getElementById(`explorer-section-${tab}`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+  const scrollRail = (direction: 'left' | 'right') => {
+    const el = souvenirsRailRef.current;
+    if (!el) return;
+    const delta = Math.round(el.clientWidth * 0.72);
+    el.scrollBy({
+      left: direction === 'right' ? delta : -delta,
+      behavior: 'smooth',
+    });
   };
 
-  const primaryEvent = publishedEvents[0];
-  const secondaryEvent = publishedEvents[1] || publishedEvents[0];
+  const openConcertSouvenir = (albumId: string) => {
+    setSelectedMemoryAlbumId(albumId);
+    setCurrentPage('memories');
+  };
 
   return (
     <div
-      className="min-h-screen w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pb-16 bg-black text-white font-agrandir-regular"
+      className="min-h-screen w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pb-20 bg-black text-white font-agrandir-regular"
       style={{ paddingTop: 'max(1.75rem, env(safe-area-inset-top, 0px))' }}
     >
-      {/* En-tête Explorer */}
+      {/* En-tête Explorer épuré */}
       <header className="mb-8">
-        <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#D4AF6A] mb-1.5">
+        <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.26em] text-[#9A9A9A] mb-1.5">
           {isEn ? 'THE LUMARÉEL UNIVERSE' : 'L’UNIVERS LUMARÉEL'}
         </p>
         <h1 className="font-agrandir-extrabold text-4xl sm:text-5xl text-white tracking-tight leading-none">
           {isEn ? 'Explore' : 'Explorer'}
         </h1>
-
-        <Tabs
-          className="mt-6"
-          activeId={activeTab}
-          onChange={scrollToAnchor}
-          items={[
-            { id: 'experiences', label: isEn ? 'Experiences' : 'Expériences' },
-            { id: 'communaute', label: isEn ? 'Community' : 'Communauté' },
-            { id: 'plus', label: isEn ? 'Go further' : 'Aller plus loin' },
-          ]}
-        />
       </header>
 
-      <div className="space-y-14">
+      <div className="space-y-12">
         {/* ===================================================================
-            A · EXPÉRIENCES (BACKSTAGE + SOUVENIRS + FLASH DROPS)
+            1. SOUVENIRS DE CONCERT — RAIL HORIZONTAL D'AFFICHES CONCERT / ARTISTE
+               (Scroll de droite à gauche · Clic direct vers l'Écran 07 du concert)
            =================================================================== */}
         <ScrollReveal>
-          <section id="explorer-section-experiences" className="scroll-mt-24 space-y-8">
-            <SectionHeader letter="A" kicker={isEn ? 'EXPERIENCES' : 'EXPÉRIENCES'} />
+          <section className="space-y-4">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight leading-none">
+                  {isEn ? 'Memories' : 'Souvenirs'}
+                </h2>
+                <p className="text-xs text-[#9A9A9A] mt-1.5">
+                  {isEn
+                    ? 'Tap a concert to open its official gallery.'
+                    : 'Touchez un concert pour ouvrir sa page souvenir.'}
+                </p>
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 items-start">
-              {/* Carte héroïque BACKSTAGE (0px corners) */}
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="hidden sm:flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => scrollRail('left')}
+                    aria-label={isEn ? 'Scroll left' : 'Défiler à gauche'}
+                    className="w-9 h-9 rounded-full bg-[#0E0E0E] border border-white/[0.14] hover:border-white/40 text-white flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollRail('right')}
+                    aria-label={isEn ? 'Scroll right' : 'Défiler à droite'}
+                    className="w-9 h-9 rounded-full bg-[#0E0E0E] border border-white/[0.14] hover:border-white/40 text-white flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedMemoryAlbumId(null);
+                    setCurrentPage('memories');
+                  }}
+                  className="text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white transition-colors cursor-pointer pl-2"
+                >
+                  {isEn ? 'All' : 'Tout voir'}
+                </button>
+              </div>
+            </div>
+
+            {/* Rail scrollable horizontalement (droite -> gauche) */}
+            <div
+              ref={souvenirsRailRef}
+              className="flex gap-3.5 sm:gap-5 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-2 -mx-5 px-5 sm:mx-0 sm:px-0"
+            >
+              {souvenirPosters.map((poster) => (
+                <button
+                  key={poster.id}
+                  type="button"
+                  onClick={() => openConcertSouvenir(poster.albumId)}
+                  className="group shrink-0 snap-start w-[44vw] sm:w-[215px] lg:w-[235px] text-left cursor-pointer block lum-press"
+                >
+                  <div className="relative aspect-[3/4] w-full rounded-[18px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/35 transition-colors">
+                    <img
+                      src={poster.image}
+                      alt={poster.artist}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-85" />
+                    <div className="absolute inset-x-3.5 bottom-3.5">
+                      <p className="font-agrandir-extrabold text-sm sm:text-base uppercase tracking-tight text-white leading-tight truncate group-hover:text-[#D4AF6A] transition-colors">
+                        {poster.artist}
+                      </p>
+                      <p className="text-[11px] text-[#C8C8C8] truncate mt-0.5">
+                        {poster.date}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        </ScrollReveal>
+
+        {/* ===================================================================
+            2. CATALOGUE VISUEL COMMUNAUTÉ & AVANTAGES (CENTRALIZED `Icons` B&W)
+           =================================================================== */}
+        <ScrollReveal>
+          <section className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <Icons.Community size="sm" accent="mono" />
+                <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight leading-none">
+                  {isEn ? 'Community & Perks' : 'Communauté & Avantages'}
+                </h2>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+              {/* 01 · Mes points & Rewards Store */}
               <button
                 type="button"
                 onClick={() => {
-                  if (featuredBackstage) {
-                    setSelectedMediaId(featuredBackstage.id);
-                    setCurrentPage('media_detail');
-                  } else {
-                    setCurrentPage('backstage');
-                  }
+                  setRewardsInitialMode('points');
+                  setCurrentPage('rewards');
                 }}
-                className="lg:col-span-7 group relative w-full aspect-[4/5] sm:aspect-[16/10] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] text-left cursor-pointer block lum-press"
+                className="group p-4 sm:p-5 rounded-[18px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] hover:border-white/30 text-left flex flex-col justify-between min-h-[152px] transition-colors cursor-pointer lum-press"
               >
-                <img
-                  src={
-                    featuredBackstage?.thumbnailUrl ||
-                    featuredBackstage?.url ||
-                    COMMUNITY_MEDIA.backstageSoundcheckImg
-                  }
-                  alt="BACKSTAGE LUMARÉEL"
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-black/35" />
-
-                {/* Top row : EXCLUSIF + VIDÉO · COULISSES */}
-                <div className="absolute top-4 inset-x-4 flex items-center justify-between gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-black/80 text-[10px] font-agrandir-extrabold uppercase tracking-[0.16em] text-white">
-                    <Play className="w-2.5 h-2.5 fill-current" />
-                    <span>{isEn ? 'EXCLUSIVE' : 'EXCLUSIF'}</span>
-                  </span>
-                  <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.18em] text-[#C8C8C8]">
-                    {isEn ? 'VIDEO · BACKSTAGE' : 'VIDÉO · COULISSES'}
+                <div className="flex items-start justify-between gap-2">
+                  <Icons.RewardsStore size="lg" accent="mono" />
+                  <span className="text-[11px] font-mono font-bold text-white tabular-nums">
+                    {pointsSummary.availablePoints.toLocaleString('fr-FR')} pts
                   </span>
                 </div>
-
-                {/* Bottom text */}
-                <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7 space-y-2">
-                  <h2 className="font-agrandir-extrabold text-3xl sm:text-4xl uppercase tracking-tight text-white leading-none">
-                    BACKSTAGE
-                  </h2>
-                  <p className="text-xs sm:text-sm text-[#C8C8C8] leading-relaxed max-w-md">
-                    {isEn
-                      ? 'Behind the curtain: soundchecks, dressing rooms, the minutes before stage.'
-                      : 'L’envers du décor : préparatifs, loges, les minutes avant la scène.'}
+                <div className="pt-4">
+                  <h3 className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors leading-tight">
+                    {isEn ? 'My Points' : 'Mes points'}
+                  </h3>
+                  <p className="text-[11px] text-[#9A9A9A] mt-0.5 truncate">
+                    Rewards Store
                   </p>
                 </div>
               </button>
 
-              {/* Colonne droite Desktop / Suite Mobile : Souvenirs 3-bandes + Flash Drops */}
-              <div className="lg:col-span-5 space-y-8">
-                {/* Aperçu Souvenirs 3 colonnes (0px corners) */}
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage('memories')}
-                  className="group w-full text-left cursor-pointer block space-y-3 lum-press"
-                >
-                  <div className="grid grid-cols-3 gap-1.5 overflow-hidden">
-                    {souvenirStripImages.map((src, i) => (
-                      <div
-                        key={i}
-                        className="aspect-[3/4] bg-[#0E0E0E] border border-white/[0.12] overflow-hidden"
-                      >
-                        <img
-                          src={src}
-                          alt={`Souvenir ${i + 1}`}
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex items-center justify-between gap-3 pt-1">
-                    <div>
-                      <h3 className="font-agrandir-extrabold text-2xl text-white tracking-tight group-hover:text-[#D4AF6A] transition-colors">
-                        {isEn ? 'Memories' : 'Souvenirs'}
-                      </h3>
-                      <p className="text-xs text-[#9A9A9A] mt-0.5">
-                        {isEn
-                          ? 'Relive every edition in pictures.'
-                          : 'Revivre chaque édition, en images.'}
-                      </p>
-                    </div>
-                    <ArrowRight
-                      className="w-5 h-5 text-white group-hover:text-[#D4AF6A] transition-colors shrink-0"
-                      strokeWidth={1.6}
-                    />
-                  </div>
-                </button>
-
-                {/* Flash Drops */}
-                <div className="pt-4 border-t border-[#D4AF6A]/55 space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-agrandir-extrabold text-xl text-white tracking-tight">
-                      Flash Drops
-                    </h3>
-                    <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#D4AF6A]">
-                      ● 2 {isEn ? 'ACTIVE' : 'ACTIFS'}
-                    </span>
-                  </div>
-
-                  <div className="divide-y divide-white/[0.12]">
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPage('flash_drops')}
-                      className="w-full py-3.5 flex items-center justify-between gap-4 text-left group cursor-pointer"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-agrandir-extrabold text-sm text-white group-hover:text-[#D4AF6A] transition-colors truncate">
-                          {primaryEvent
-                            ? `${isEn ? 'Presale' : 'Prévente'} ${primaryEvent.artist} — Carré Or`
-                            : 'Prévente membres — Carré Or'}
-                        </p>
-                        <p className="text-xs text-[#9A9A9A] mt-0.5 truncate">
-                          {isEn
-                            ? 'Black Card exclusive · limited quota'
-                            : 'Réservé Black Card · quantité limitée'}
-                        </p>
-                      </div>
-                      <CountdownTimer className="text-xs font-bold text-[#D4AF6A] shrink-0" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPage('flash_drops')}
-                      className="w-full py-3.5 flex items-center justify-between gap-4 text-left group cursor-pointer"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-agrandir-extrabold text-sm text-white group-hover:text-[#D4AF6A] transition-colors truncate">
-                          {secondaryEvent
-                            ? `${isEn ? 'Ticket opening' : 'Ouverture des ventes'} — ${secondaryEvent.artist}`
-                            : 'Ouverture des ventes — Prochaine édition'}
-                        </p>
-                        <p className="text-xs text-[#9A9A9A] mt-0.5 truncate">
-                          {isEn ? 'Early access · 48h' : 'Accès anticipé · 48 h'}
-                        </p>
-                      </div>
-                      <span className="text-xs font-agrandir-extrabold text-white shrink-0">
-                        {isEn ? 'Soon' : 'Bientôt'}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ===================================================================
-            B · COMMUNAUTÉ (POINTS & PARRAINAGE + BOÎTE À SUGGESTIONS)
-           =================================================================== */}
-        <ScrollReveal>
-          <section id="explorer-section-communaute" className="scroll-mt-24 space-y-3">
-            <SectionHeader letter="B" kicker={isEn ? 'COMMUNITY' : 'COMMUNAUTÉ'} />
-
-            <div className="border-y border-white/[0.12] divide-y divide-white/[0.12]">
+              {/* 02 · Parrainage */}
               <button
                 type="button"
-                onClick={() => setCurrentPage('rewards')}
-                className="w-full py-4 sm:py-5 flex items-center justify-between gap-4 text-left group cursor-pointer"
+                onClick={() => {
+                  setRewardsInitialMode('referral');
+                  setCurrentPage('rewards');
+                }}
+                className="group p-4 sm:p-5 rounded-[18px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] hover:border-white/30 text-left flex flex-col justify-between min-h-[152px] transition-colors cursor-pointer lum-press"
               >
-                <div className="flex items-center gap-4 min-w-0">
-                  <Star className="w-5 h-5 text-[#D4AF6A] shrink-0" strokeWidth={1.6} />
-                  <div className="min-w-0">
-                    <p className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors">
-                      {isEn ? 'Points & Referrals' : 'Points & Parrainage'}
-                    </p>
-                    <p className="text-xs text-[#9A9A9A] mt-0.5 truncate">
-                      {isEn
-                        ? 'Balance, rewards, referral code'
-                        : 'Solde, récompenses, code de parrainage'}
-                    </p>
-                  </div>
+                <div className="flex items-start justify-between gap-2">
+                  <Icons.Referral size="lg" accent="mono" />
+                  <span className="text-[11px] font-mono font-bold text-white tabular-nums">
+                    +200 pts
+                  </span>
                 </div>
-                <span className="font-agrandir-extrabold text-sm text-white tabular-nums shrink-0">
-                  {pointsSummary.availablePoints.toLocaleString('fr-FR')} pts
-                </span>
+                <div className="pt-4">
+                  <h3 className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors leading-tight">
+                    {isEn ? 'Referral' : 'Parrainage'}
+                  </h3>
+                  <p className="text-[11px] text-[#9A9A9A] mt-0.5 truncate">
+                    {isEn ? 'Invite & earn' : 'Inviter un proche'}
+                  </p>
+                </div>
               </button>
 
+              {/* 03 · Flash Drops */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage('flash_drops')}
+                className="group p-4 sm:p-5 rounded-[18px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] hover:border-white/30 text-left flex flex-col justify-between min-h-[152px] transition-colors cursor-pointer lum-press"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <Icons.FlashDrops size="lg" accent="mono" />
+                  <span className="text-[10px] font-mono uppercase text-[#9A9A9A]">
+                    DROP
+                  </span>
+                </div>
+                <div className="pt-4">
+                  <h3 className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors leading-tight">
+                    Flash Drops
+                  </h3>
+                  <p className="text-[11px] text-[#9A9A9A] mt-0.5 truncate">
+                    {isEn ? 'Limited drops' : 'Ventes éclair'}
+                  </p>
+                </div>
+              </button>
+
+              {/* 04 · Accès privilégié */}
+              <button
+                type="button"
+                onClick={() => setCurrentPage('privileged_access')}
+                className="group p-4 sm:p-5 rounded-[18px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] hover:border-white/30 text-left flex flex-col justify-between min-h-[152px] transition-colors cursor-pointer lum-press"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <Icons.PriorityAccess size="lg" accent="mono" />
+                  <span className="text-[10px] font-mono uppercase text-[#9A9A9A]">
+                    VIP
+                  </span>
+                </div>
+                <div className="pt-4">
+                  <h3 className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors leading-tight">
+                    {isEn ? 'Priority Access' : 'Accès privilégié'}
+                  </h3>
+                  <p className="text-[11px] text-[#9A9A9A] mt-0.5 truncate">
+                    {isEn ? 'Reserved quotas' : 'Quotas dédiés'}
+                  </p>
+                </div>
+              </button>
+
+              {/* 05 · Boîte à suggestions */}
               <button
                 type="button"
                 onClick={() => setCurrentPage('suggestions')}
-                className="w-full py-4 sm:py-5 flex items-center justify-between gap-4 text-left group cursor-pointer"
+                className="col-span-2 sm:col-span-1 group p-4 sm:p-5 rounded-[18px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] hover:border-white/30 text-left flex flex-col justify-between min-h-[132px] sm:min-h-[152px] transition-colors cursor-pointer lum-press"
               >
-                <div className="flex items-center gap-4 min-w-0">
-                  <Lightbulb className="w-5 h-5 text-[#D4AF6A] shrink-0" strokeWidth={1.6} />
-                  <div className="min-w-0">
-                    <p className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors">
-                      {isEn ? 'Suggestion Box' : 'Boîte à suggestions'}
-                    </p>
-                    <p className="text-xs text-[#9A9A9A] mt-0.5 truncate">
-                      {isEn
-                        ? 'An idea for LUMARÉEL? Tell us.'
-                        : 'Une idée pour LUMARÉEL ? Dites-le.'}
-                    </p>
-                  </div>
+                <div className="flex items-start justify-between gap-2">
+                  <Icons.Suggestions size="lg" accent="mono" />
+                  <ChevronRight
+                    className="w-4 h-4 text-[#9A9A9A] group-hover:text-white transition-colors"
+                    strokeWidth={1.6}
+                  />
                 </div>
-                <ChevronRight
-                  className="w-4 h-4 text-[#9A9A9A] group-hover:text-white shrink-0 transition-colors"
-                  strokeWidth={1.6}
-                />
+                <div className="pt-4">
+                  <h3 className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors leading-tight">
+                    {isEn ? 'Suggestions' : 'Suggestions'}
+                  </h3>
+                  <p className="text-[11px] text-[#9A9A9A] mt-0.5 truncate">
+                    {isEn ? 'Vote for artists' : 'Voter & proposer'}
+                  </p>
+                </div>
               </button>
-            </div>
-          </section>
-        </ScrollReveal>
-
-        {/* ===================================================================
-            C · POUR ALLER PLUS LOIN (ARCHIVES FILTRABLES)
-           =================================================================== */}
-        <ScrollReveal>
-          <section id="explorer-section-plus" className="scroll-mt-24 space-y-8">
-            <SectionHeader letter="C" kicker={isEn ? 'GO FURTHER' : 'POUR ALLER PLUS LOIN'} />
-
-            {/* Archives */}
-            <div className="space-y-4">
-              <div className="flex items-baseline justify-between gap-4">
-                <h2 className="font-agrandir-extrabold text-2xl text-white tracking-tight">
-                  Archives
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage('archive')}
-                  className="text-xs sm:text-sm font-agrandir-semibold text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
-                >
-                  {isEn ? 'See all' : 'Tout voir'}
-                </button>
-              </div>
-
-              {/* Filtres pillules (Toutes · 2026 · 2025 · Concerts) */}
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
-                {[
-                  { id: 'all' as const, label: isEn ? 'All' : 'Toutes' },
-                  { id: '2026' as const, label: '2026' },
-                  { id: '2025' as const, label: '2025' },
-                  { id: 'concerts' as const, label: 'Concerts' },
-                ].map((pill) => {
-                  const active = archiveFilter === pill.id;
-                  return (
-                    <button
-                      key={pill.id}
-                      type="button"
-                      onClick={() => setArchiveFilter(pill.id)}
-                      className={`min-h-[36px] px-4 rounded-full text-xs whitespace-nowrap shrink-0 transition-colors cursor-pointer lum-press ${
-                        active
-                          ? 'bg-white text-black font-agrandir-extrabold'
-                          : 'border border-white/[0.16] text-[#C8C8C8] hover:border-white/50 hover:text-white'
-                      }`}
-                    >
-                      {pill.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {filteredArchives.length > 0 ? (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {filteredArchives.slice(0, 4).map((arch) => (
-                    <button
-                      key={arch.id}
-                      type="button"
-                      onClick={() => setCurrentPage('memories')}
-                      className="group text-left cursor-pointer block lum-press"
-                    >
-                      <div className="aspect-[4/3] w-full overflow-hidden bg-[#0E0E0E] border border-white/[0.12]">
-                        <img
-                          src={arch.coverImage || COMMUNITY_MEDIA.crowdArchiveImg}
-                          alt={arch.title}
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                        />
-                      </div>
-                      <div className="pt-2.5">
-                        <h3 className="font-agrandir-extrabold text-sm uppercase text-white truncate group-hover:text-[#D4AF6A] transition-colors">
-                          {(arch.artists && arch.artists[0]) || arch.title}
-                        </h3>
-                        <p className="text-xs text-[#9A9A9A] mt-0.5 truncate">
-                          {isEn ? 'Edition' : 'Édition'} {arch.year}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-[#9A9A9A] py-4">
-                  {isEn
-                    ? 'No archived edition for this filter.'
-                    : 'Aucune édition archivée pour ce filtre.'}
-                </p>
-              )}
             </div>
           </section>
         </ScrollReveal>

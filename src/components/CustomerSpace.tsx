@@ -350,7 +350,7 @@ export const CustomerSpace: React.FC = () => {
                               className="w-full py-4 flex items-center justify-between gap-3.5 text-left hover:bg-white/[0.02] transition-colors cursor-pointer group"
                             >
                               <div className="flex items-center gap-3.5 min-w-0">
-                                <div className="w-14 h-14 overflow-hidden bg-[#0E0E0E] border border-white/[0.12] shrink-0">
+                                <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] shrink-0">
                                   <img
                                     src={resolvePoster(primaryTicket)}
                                     alt={primaryTicket.eventTitle}
@@ -384,7 +384,7 @@ export const CustomerSpace: React.FC = () => {
                           <a
                             href={qrCodeDataUrls[featuredTicket.id]}
                             download={`QR_${featuredTicket.serialNumber}.png`}
-                            className="min-h-[42px] px-4 rounded-[4px] border border-white/[0.16] hover:border-white/40 bg-[#0E0E0E] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white inline-flex items-center gap-2 transition-colors lum-press"
+                            className="min-h-[42px] px-4 rounded-full border border-white/[0.16] hover:border-white/40 bg-[#0E0E0E] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white inline-flex items-center gap-2 transition-colors lum-press"
                           >
                             <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
                             <span>{t('orders.saveQr')}</span>
@@ -394,7 +394,7 @@ export const CustomerSpace: React.FC = () => {
                           href={`/api/customer/tickets/${featuredTicket.token}/print`}
                           target="_blank"
                           rel="noreferrer"
-                          className="min-h-[42px] px-4 rounded-[4px] border border-white/[0.16] hover:border-white/40 bg-[#0E0E0E] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white inline-flex items-center gap-2 transition-colors lum-press"
+                          className="min-h-[42px] px-4 rounded-full border border-white/[0.16] hover:border-white/40 bg-[#0E0E0E] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white inline-flex items-center gap-2 transition-colors lum-press"
                         >
                           <Printer className="w-3.5 h-3.5" strokeWidth={1.6} />
                           <span>{t('orders.print')}</span>
@@ -431,7 +431,7 @@ export const CustomerSpace: React.FC = () => {
                         {usedTickets.map((ticket) => (
                           <div key={ticket.id} className="py-4 flex items-center justify-between gap-4">
                             <div className="flex items-center gap-3.5 min-w-0">
-                              <div className="w-12 h-12 overflow-hidden bg-[#0E0E0E] border border-white/[0.12] shrink-0">
+                              <div className="w-12 h-12 rounded-[12px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] shrink-0">
                                 <img
                                   src={resolvePoster(ticket)}
                                   alt={ticket.eventTitle}
@@ -508,7 +508,7 @@ export const CustomerSpace: React.FC = () => {
           {activeTab === 'transferred' && (
             <div className="space-y-6">
               {activeTickets.length > 0 && (
-                <div className="border border-white/[0.12] bg-[#0E0E0E] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="rounded-[20px] border border-white/[0.12] bg-[#0E0E0E] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="space-y-1">
                     <h2 className="font-agrandir-extrabold text-base text-white">
                       {isEn ? 'Send a ticket to a friend' : 'Transférer un billet actif'}
@@ -520,7 +520,7 @@ export const CustomerSpace: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => openTransferModal(activeTickets[0])}
-                    className="min-h-[44px] px-5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs whitespace-nowrap inline-flex items-center justify-center gap-2 transition-colors cursor-pointer shrink-0 lum-press"
+                    className="min-h-[44px] px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs whitespace-nowrap inline-flex items-center justify-center gap-2 transition-colors cursor-pointer shrink-0 lum-press"
                   >
                     <Send className="w-3.5 h-3.5" strokeWidth={1.6} />
                     <span>{isEn ? 'Transfer a ticket' : 'Transférer un billet'}</span>
@@ -543,7 +543,7 @@ export const CustomerSpace: React.FC = () => {
                   {transferredTickets.map((ticket) => (
                     <div key={ticket.id} className="py-4 flex items-center justify-between gap-4 opacity-80">
                       <div className="flex items-center gap-3.5 min-w-0">
-                        <div className="w-12 h-12 overflow-hidden bg-[#0E0E0E] border border-white/[0.12] shrink-0">
+                        <div className="w-12 h-12 rounded-[12px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] shrink-0">
                           <img
                             src={resolvePoster(ticket)}
                             alt={ticket.eventTitle}
@@ -577,7 +577,7 @@ export const CustomerSpace: React.FC = () => {
         title={t('orders.transferTitle')}
       >
         {transferSuccessToken ? (
-          <div className="border border-[#7FE0A6]/30 bg-[#0F2A1A]/40 p-5 space-y-4">
+          <div className="rounded-[18px] border border-[#7FE0A6]/30 bg-[#0F2A1A]/40 p-5 space-y-4">
             <div className="flex items-start gap-3">
               <CheckCircle2 className="w-5 h-5 text-[#7FE0A6] shrink-0 mt-0.5" strokeWidth={1.6} />
               <div className="space-y-1">
@@ -597,7 +597,7 @@ export const CustomerSpace: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-black border border-white/[0.14] px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs font-mono text-white">
+            <div className="rounded-xl bg-black border border-white/[0.14] px-3.5 py-2.5 flex items-center justify-between gap-2 text-xs font-mono text-white">
               <span className="truncate">
                 {t('orders.transferToken')} {transferSuccessToken}
               </span>
@@ -625,7 +625,7 @@ export const CustomerSpace: React.FC = () => {
                 setIsTransferModalOpen(false);
                 setActiveTab('transferred');
               }}
-              className="w-full min-h-[46px] rounded-[4px] bg-[#D4AF6A] text-black font-agrandir-extrabold text-xs hover:bg-[#DFBE7D] transition-colors cursor-pointer lum-press"
+              className="w-full min-h-[46px] rounded-full bg-[#D4AF6A] text-black font-agrandir-extrabold text-xs hover:bg-[#DFBE7D] transition-colors cursor-pointer lum-press"
             >
               {isEn ? 'Done' : 'Terminer'}
             </button>
@@ -639,7 +639,7 @@ export const CustomerSpace: React.FC = () => {
               <select
                 value={transferTicketId}
                 onChange={(e) => setTransferTicketId(e.target.value)}
-                className="w-full min-h-[44px] bg-[#141414] border border-white/[0.16] rounded-[4px] px-3.5 text-xs sm:text-sm text-white outline-none focus:border-[#D4AF6A]"
+                className="w-full min-h-[44px] bg-[#141414] border border-white/[0.16] rounded-xl px-3.5 text-xs sm:text-sm text-white outline-none focus:border-[#D4AF6A]"
                 required
                 disabled={isTransferring}
               >
@@ -662,7 +662,7 @@ export const CustomerSpace: React.FC = () => {
                   value={recipientName}
                   onChange={(e) => setRecipientName(e.target.value)}
                   placeholder={t('orders.recipientName')}
-                  className="w-full min-h-[44px] bg-[#141414] border border-white/[0.16] rounded-[4px] px-3.5 text-xs sm:text-sm text-white outline-none focus:border-[#D4AF6A]"
+                  className="w-full min-h-[44px] bg-[#141414] border border-white/[0.16] rounded-xl px-3.5 text-xs sm:text-sm text-white outline-none focus:border-[#D4AF6A]"
                   required
                   disabled={isTransferring}
                 />
@@ -676,14 +676,14 @@ export const CustomerSpace: React.FC = () => {
                   value={recipientContact}
                   onChange={(e) => setRecipientContact(e.target.value)}
                   placeholder="ami@exemple.com"
-                  className="w-full min-h-[44px] bg-[#141414] border border-white/[0.16] rounded-[4px] px-3.5 text-xs sm:text-sm text-white outline-none focus:border-[#D4AF6A]"
+                  className="w-full min-h-[44px] bg-[#141414] border border-white/[0.16] rounded-xl px-3.5 text-xs sm:text-sm text-white outline-none focus:border-[#D4AF6A]"
                   required
                   disabled={isTransferring}
                 />
               </div>
             </div>
 
-            <div className="bg-[#141414] border border-white/[0.12] p-3.5 text-xs text-[#9A9A9A] flex items-start gap-2.5">
+            <div className="rounded-[14px] bg-[#141414] border border-white/[0.12] p-3.5 text-xs text-[#9A9A9A] flex items-start gap-2.5">
               <ShieldCheck className="w-4 h-4 text-[#D4AF6A] shrink-0 mt-0.5" strokeWidth={1.6} />
               <span>{t('orders.transferNotice')}</span>
             </div>
@@ -691,7 +691,7 @@ export const CustomerSpace: React.FC = () => {
             <button
               type="submit"
               disabled={isTransferring}
-              className="w-full min-h-[48px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 lum-press"
+              className="w-full min-h-[48px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs sm:text-sm transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 lum-press"
             >
               {isTransferring ? (
                 <>
@@ -706,7 +706,7 @@ export const CustomerSpace: React.FC = () => {
         )}
       </BottomSheet>
 
-      {/* MODALE QR PLEIN ÉCRAN — 0PX HAUT CONTRASTE FOND BLANC PUR */}
+      {/* MODALE QR PLEIN ÉCRAN — ARRONDI 24PX HAUT CONTRASTE FOND BLANC PUR */}
       {selectedTicketForQr && (
         <div
           className="fixed inset-0 z-[95] flex items-center justify-center p-4 bg-black/94 backdrop-blur-md"
@@ -714,7 +714,7 @@ export const CustomerSpace: React.FC = () => {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-sm bg-white text-black p-6 sm:p-7 text-center shadow-2xl"
+            className="relative w-full max-w-sm rounded-[24px] bg-white text-black p-6 sm:p-7 text-center shadow-2xl"
           >
             <button
               type="button"
@@ -736,7 +736,7 @@ export const CustomerSpace: React.FC = () => {
             </p>
 
             {modalQrCodeUrl ? (
-              <div className="p-3 border border-neutral-200 bg-white mb-4">
+              <div className="p-3 rounded-[16px] border border-neutral-200 bg-white mb-4">
                 <img
                   src={modalQrCodeUrl}
                   alt={`QR ${selectedTicketForQr.serialNumber}`}
@@ -744,7 +744,7 @@ export const CustomerSpace: React.FC = () => {
                 />
               </div>
             ) : (
-              <div className="w-60 h-60 mx-auto bg-neutral-100 flex items-center justify-center text-xs text-neutral-500 mb-4">
+              <div className="w-60 h-60 mx-auto rounded-[16px] bg-neutral-100 flex items-center justify-center text-xs text-neutral-500 mb-4">
                 {t('orders.loading')}
               </div>
             )}
@@ -760,7 +760,7 @@ export const CustomerSpace: React.FC = () => {
               <a
                 href={modalQrCodeUrl}
                 download={`QR_${selectedTicketForQr.serialNumber}.png`}
-                className="min-h-[42px] px-3 rounded-[4px] border border-neutral-300 text-xs font-agrandir-extrabold text-black hover:bg-neutral-100 inline-flex items-center justify-center gap-1.5 transition-colors"
+                className="min-h-[42px] px-3 rounded-full border border-neutral-300 text-xs font-agrandir-extrabold text-black hover:bg-neutral-100 inline-flex items-center justify-center gap-1.5 transition-colors"
               >
                 <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
                 <span>{t('orders.saveQr')}</span>
@@ -769,7 +769,7 @@ export const CustomerSpace: React.FC = () => {
                 href={`/api/customer/tickets/${selectedTicketForQr.token}/print`}
                 target="_blank"
                 rel="noreferrer"
-                className="min-h-[42px] px-3 rounded-[4px] bg-black text-white text-xs font-agrandir-extrabold hover:bg-neutral-800 inline-flex items-center justify-center gap-1.5 transition-colors"
+                className="min-h-[42px] px-3 rounded-full bg-black text-white text-xs font-agrandir-extrabold hover:bg-neutral-800 inline-flex items-center justify-center gap-1.5 transition-colors"
               >
                 <Printer className="w-3.5 h-3.5" strokeWidth={1.6} />
                 <span>{t('orders.print')}</span>

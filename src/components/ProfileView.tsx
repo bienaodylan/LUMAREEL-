@@ -256,7 +256,7 @@ export const ProfileView: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsAuthModalOpen(true)}
-              className="min-h-[42px] px-5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold transition-colors cursor-pointer lum-press"
+              className="min-h-[42px] px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold transition-colors cursor-pointer lum-press"
             >
               {isEn ? 'Sign in' : 'Se connecter'}
             </button>
@@ -265,7 +265,7 @@ export const ProfileView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCurrentPage('admin')}
-                className="min-h-[40px] px-4 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 transition-colors cursor-pointer lum-press"
+                className="min-h-[40px] px-4 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 transition-colors cursor-pointer lum-press"
               >
                 <Shield className="w-3.5 h-3.5" strokeWidth={1.6} />
                 <span>{t('nav.admin')}</span>
@@ -589,7 +589,7 @@ export const ProfileView: React.FC = () => {
                   type="text"
                   value={displayName}
                   disabled
-                  className="w-full min-h-[44px] px-3.5 rounded-[4px] bg-black/60 border border-white/[0.12] text-sm text-[#9A9A9A]"
+                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black/60 border border-white/[0.12] text-sm text-[#9A9A9A]"
                 />
               </div>
               <div>
@@ -600,7 +600,7 @@ export const ProfileView: React.FC = () => {
                   type="text"
                   value={cityInput}
                   onChange={(e) => setCityInput(e.target.value)}
-                  className="w-full min-h-[44px] px-3.5 rounded-[4px] bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
+                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
                 />
               </div>
             </>
@@ -614,7 +614,7 @@ export const ProfileView: React.FC = () => {
                   type="email"
                   value={currentUser?.email || ''}
                   disabled
-                  className="w-full min-h-[44px] px-3.5 rounded-[4px] bg-black/60 border border-white/[0.12] text-sm text-[#9A9A9A]"
+                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black/60 border border-white/[0.12] text-sm text-[#9A9A9A]"
                 />
               </div>
               <div>
@@ -626,7 +626,7 @@ export const ProfileView: React.FC = () => {
                   value={phoneInput}
                   onChange={(e) => setPhoneInput(e.target.value)}
                   placeholder="+225 07 00 00 00 00"
-                  className="w-full min-h-[44px] px-3.5 rounded-[4px] bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
+                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
                 />
               </div>
             </>
@@ -642,14 +642,14 @@ export const ProfileView: React.FC = () => {
                 value={favoriteGenre}
                 onChange={(e) => setFavoriteGenre(e.target.value)}
                 placeholder="Afrobeats, Rap Ivoire, Acoustique..."
-                className="w-full min-h-[44px] px-3.5 rounded-[4px] bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
+                className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
               />
             </div>
           )}
 
           <button
             type="submit"
-            className="w-full min-h-[46px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs cursor-pointer lum-press"
+            className="w-full min-h-[46px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs cursor-pointer lum-press"
           >
             {isEn ? 'Save' : 'Enregistrer'}
           </button>
@@ -663,7 +663,7 @@ export const ProfileView: React.FC = () => {
         title={isEn ? 'Security & access' : 'Sécurité & connexion'}
       >
         <div className="space-y-4 text-xs sm:text-sm text-[#C8C8C8] leading-relaxed">
-          <div className="p-4 bg-black border border-white/[0.12] space-y-1">
+          <div className="p-4 rounded-[16px] bg-black border border-white/[0.12] space-y-1">
             <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A]">
               {isEn ? 'ACTIVE SESSION' : 'SESSION ACTIVE'}
             </p>
@@ -719,7 +719,7 @@ export const ProfileView: React.FC = () => {
       >
         <div className="space-y-4">
           <div className="flex items-center gap-3 text-[#F29AA4]">
-            <div className="w-10 h-10 bg-[#2A1417] border border-[#F29AA4]/30 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#2A1417] border border-[#F29AA4]/30 flex items-center justify-center shrink-0">
               <AlertTriangle className="w-5 h-5" strokeWidth={1.6} />
             </div>
             <p className="text-xs font-mono truncate">{currentUser?.email}</p>
@@ -734,7 +734,7 @@ export const ProfileView: React.FC = () => {
               type="button"
               onClick={() => setShowDeleteConfirm(false)}
               disabled={isDeletingAccount}
-              className="min-h-[42px] px-4 rounded-[4px] border border-white/[0.16] hover:border-white text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white transition-colors cursor-pointer"
+              className="min-h-[42px] px-4 rounded-full border border-white/[0.16] hover:border-white text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white transition-colors cursor-pointer"
             >
               {t('profile.cancel')}
             </button>
@@ -742,7 +742,7 @@ export const ProfileView: React.FC = () => {
               type="button"
               onClick={handleDeleteAccount}
               disabled={isDeletingAccount}
-              className="min-h-[42px] px-4 rounded-[4px] bg-[#B3122B] hover:bg-rose-700 text-white font-agrandir-extrabold text-xs transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
+              className="min-h-[42px] px-4 rounded-full bg-[#B3122B] hover:bg-rose-700 text-white font-agrandir-extrabold text-xs transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
             >
               <Trash2 className="w-3.5 h-3.5" strokeWidth={1.6} />
               <span>{isDeletingAccount ? t('profile.deleting') : t('profile.confirmDelete')}</span>

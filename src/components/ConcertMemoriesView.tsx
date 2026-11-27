@@ -119,9 +119,13 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
     events,
     customerOrders,
     currentUser,
+    previousPage,
+    goBack,
     setCurrentPage,
     setSelectedEventSlug,
     setSelectedMediaId,
+    selectedMemoryAlbumId,
+    setSelectedMemoryAlbumId,
     setHideBottomNav,
     showToast,
     language,
@@ -147,8 +151,28 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
     return subscribeMediaHub(sync);
   }, []);
 
-  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(() => {
+    if (!selectedMemoryAlbumId) return null;
+    const match = albums.find((a) => a.id === selectedMemoryAlbumId);
+    return match ? match.id : albums[0]?.id || null;
+  });
   const [albumTab, setAlbumTab] = useState<AlbumTab>('official');
+
+  // Ouvre directement l'Écran 07 lorsqu'un poster concert est cliqué depuis Explorer
+  useEffect(() => {
+    if (selectedMemoryAlbumId) {
+      const match = albums.find((a) => a.id === selectedMemoryAlbumId);
+      setSelectedAlbumId(match ? match.id : albums[0]?.id || null);
+      setAlbumTab('official');
+      setIsVideoPlaying(false);
+      setIsChapterVideoPlaying(false);
+      setIsSelectingPhotos(false);
+      setSelectedPhotoUrls([]);
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
+  }, [selectedMemoryAlbumId, albums]);
   const [isSelectingPhotos, setIsSelectingPhotos] = useState(false);
   const [selectedPhotoUrls, setSelectedPhotoUrls] = useState<string[]>([]);
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
@@ -472,8 +496,8 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
         }
       >
         <div className={embedded ? '' : 'max-w-[1280px] mx-auto'}>
-          {/* 1. HERO PHOTO PLEINE LARGEUR — 0px */}
-          <div className="relative w-full aspect-[4/3] sm:aspect-[21/9] bg-[#0E0E0E] overflow-hidden">
+          {/* 1. HERO PHOTO PLEINE LARGEUR — arrondi 24px */}
+          <div className="relative w-full aspect-[4/3] sm:aspect-[21/9] rounded-b-[24px] sm:rounded-[24px] bg-[#0E0E0E] overflow-hidden">
             <img
               src={selectedAlbum.coverImage}
               alt={selectedAlbum.title}
@@ -487,6 +511,8 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
               <button
                 type="button"
                 onClick={() => {
+                  const cameFromExplorer = Boolean(selectedMemoryAlbumId) && previousPage === 'explore';
+                  setSelectedMemoryAlbumId(null);
                   setSelectedAlbumId(null);
                   setAlbumTab('official');
                   setIsVideoPlaying(false);
@@ -495,6 +521,9 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                   setSelectedPhotoUrls([]);
                   setIsAddSheetOpen(false);
                   setIsDownloadSheetOpen(false);
+                  if (cameFromExplorer) {
+                    goBack();
+                  }
                 }}
                 aria-label={isEn ? 'Back to memories' : 'Retour aux souvenirs'}
                 className="w-10 h-10 rounded-full bg-black/75 hover:bg-black border border-white/[0.18] backdrop-blur-md flex items-center justify-center text-white transition-colors cursor-pointer"
@@ -537,7 +566,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
 
                 <div className="flex items-center gap-2">
                   {(attended || currentUser) && (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-[2px] border border-[#D4AF6A]/65 bg-black/80 text-[#D4AF6A] text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em]">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#D4AF6A]/65 bg-black/80 text-[#D4AF6A] text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em]">
                       <Check className="w-3 h-3" strokeWidth={1.8} />
                       <span>{isEn ? 'YOU WERE THERE' : 'VOUS Y ÉTIEZ'}</span>
                     </span>
@@ -549,7 +578,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                         setSelectedEventSlug(linkedEvent.slug);
                         setCurrentPage('concert_detail');
                       }}
-                      className="px-3 py-1 rounded-[4px] border border-white/25 hover:border-white text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em] text-white cursor-pointer transition-colors"
+                      className="px-3.5 py-1 rounded-full border border-white/25 hover:border-white text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em] text-white cursor-pointer transition-colors"
                     >
                       {isEn ? 'Concert' : 'Voir le concert'}
                     </button>
@@ -558,13 +587,13 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
               </div>
             </header>
 
-            {/* 3. BARRE DES 3 TUILES D'ACTION (4px — MAQUETTE 07, MASQUÉE APRÈS 7 JOURS) */}
+            {/* 3. BARRE DES 3 TUILES D'ACTION (arrondi 16px — MASQUÉE APRÈS 7 JOURS) */}
             {canShareAndDownload && (
               <div className="grid grid-cols-3 gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsDownloadSheetOpen(true)}
-                  className="min-h-[72px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer lum-press"
+                  className="min-h-[72px] rounded-[16px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer lum-press"
                 >
                   <Download className="w-4 h-4" strokeWidth={1.6} />
                   <span className="text-xs font-agrandir-extrabold">
@@ -575,7 +604,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => handleShareAlbum(selectedAlbum)}
-                  className="min-h-[72px] rounded-[4px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] text-white flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer lum-press"
+                  className="min-h-[72px] rounded-[16px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] text-white flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer lum-press"
                 >
                   <Share2 className="w-4 h-4 text-[#C8C8C8]" strokeWidth={1.6} />
                   <span className="text-xs font-agrandir-extrabold">
@@ -586,7 +615,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setIsAddSheetOpen((prev) => !prev)}
-                  className="min-h-[72px] rounded-[4px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] text-white flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer lum-press"
+                  className="min-h-[72px] rounded-[16px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] text-white flex flex-col items-center justify-center gap-1.5 transition-colors cursor-pointer lum-press"
                 >
                   <Plus className="w-4 h-4 text-[#C8C8C8]" strokeWidth={1.6} />
                   <span className="text-xs font-agrandir-extrabold">
@@ -596,11 +625,11 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
               </div>
             )}
 
-            {/* Formulaire d'ajout de souvenir (0px container, 4px inputs/buttons) */}
+            {/* Formulaire d'ajout de souvenir (arrondi 20px) */}
             {canShareAndDownload && isAddSheetOpen && (
               <form
                 onSubmit={handlePublishMemory}
-                className="bg-[#0E0E0E] border border-white/[0.12] p-4 sm:p-5 space-y-3.5"
+                className="rounded-[20px] bg-[#0E0E0E] border border-white/[0.12] p-4 sm:p-5 space-y-3.5"
               >
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-agrandir-extrabold text-sm text-white">
@@ -627,7 +656,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isPreparingFile}
-                  className="w-full min-h-[112px] rounded-[4px] border border-dashed border-white/25 hover:border-[#D4AF6A] bg-black flex flex-col items-center justify-center gap-2 p-3 text-center transition-colors cursor-pointer disabled:opacity-60"
+                  className="w-full min-h-[112px] rounded-[14px] border border-dashed border-white/25 hover:border-[#D4AF6A] bg-black flex flex-col items-center justify-center gap-2 p-3 text-center transition-colors cursor-pointer disabled:opacity-60"
                 >
                   {isPreparingFile ? (
                     <Loader2 className="w-5 h-5 text-[#D4AF6A] animate-spin" />
@@ -635,7 +664,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                     uploadMediaType === 'video' ? (
                       <video
                         src={uploadPreviewUrl}
-                        className="max-h-36"
+                        className="max-h-36 rounded-lg"
                         controls
                         onClick={(e) => e.stopPropagation()}
                       />
@@ -643,7 +672,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                       <img
                         src={uploadPreviewUrl}
                         alt="Preview"
-                        className="max-h-36 object-contain"
+                        className="max-h-36 rounded-lg object-contain"
                       />
                     )
                   ) : (
@@ -661,13 +690,13 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                   value={uploadCaption}
                   onChange={(e) => setUploadCaption(e.target.value)}
                   placeholder={isEn ? 'Caption (optional)' : 'Légende (optionnel)'}
-                  className="w-full min-h-[44px] px-3.5 rounded-[4px] bg-black border border-white/[0.16] text-sm text-white placeholder:text-[#9A9A9A] focus:border-[#D4AF6A] focus:outline-none"
+                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/[0.16] text-sm text-white placeholder:text-[#9A9A9A] focus:border-[#D4AF6A] focus:outline-none"
                 />
 
                 <button
                   type="submit"
                   disabled={isUploading || isPreparingFile || !uploadPreviewUrl}
-                  className="w-full min-h-[46px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs transition-colors cursor-pointer disabled:opacity-40 lum-press"
+                  className="w-full min-h-[46px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs transition-colors cursor-pointer disabled:opacity-40 lum-press"
                 >
                   {isUploading
                     ? isEn
@@ -680,14 +709,14 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
               </form>
             )}
 
-            {/* 4. AFTERMOVIE OFFICIEL — 0px, miniature dégagée sans texte/durée */}
+            {/* 4. AFTERMOVIE OFFICIEL — arrondi 18px, miniature dégagée */}
             {albumTab !== 'highlights' && (
               <section className="space-y-3 pt-1">
                 <h2 className="font-agrandir-extrabold text-lg sm:text-xl text-white">
                   {isEn ? 'Official Aftermovie' : 'Aftermovie officiel'}
                 </h2>
 
-                <div className="aspect-[16/9] w-full overflow-hidden bg-[#0E0E0E] border border-white/[0.12] relative">
+                <div className="aspect-[16/9] w-full rounded-[18px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] relative">
                   {isVideoPlaying ? (
                     <iframe
                       src={embedSrc}
@@ -772,7 +801,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                 </div>
 
                 {albumOfficialPhotos.length > 0 ? (
-                  <div className="grid grid-cols-3 md:grid-cols-4 gap-1 sm:gap-2">
+                  <div className="grid grid-cols-3 md:grid-cols-4 gap-2 sm:gap-2.5">
                     {albumOfficialPhotos.map((photo, idx) => {
                       const caption = isEn ? photo.captionEn : photo.captionFr;
                       const filename = `lumareel-${selectedAlbum.id}-photo-${idx + 1}.jpg`;
@@ -789,7 +818,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                               setLightboxPhoto({ url: photo.url, caption, filename });
                             }
                           }}
-                          className={`group relative aspect-square overflow-hidden bg-[#0E0E0E] cursor-pointer block ${
+                          className={`group relative aspect-square rounded-[12px] overflow-hidden bg-[#0E0E0E] cursor-pointer block ${
                             isSelected ? 'ring-2 ring-inset ring-[#D4AF6A]' : ''
                           }`}
                         >
@@ -861,7 +890,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                     </div>
 
                     {chapter1Photos.length > 0 && (
-                      <div className="grid grid-cols-12 gap-1.5 sm:gap-2">
+                      <div className="grid grid-cols-12 gap-2 sm:gap-2.5">
                         <button
                           type="button"
                           onClick={() =>
@@ -873,7 +902,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                               filename: `lumareel-${selectedAlbum.id}-ch1-1.jpg`,
                             })
                           }
-                          className="col-span-7 aspect-[3/4] overflow-hidden bg-[#0E0E0E] cursor-pointer block"
+                          className="col-span-7 aspect-[3/4] rounded-[16px] overflow-hidden bg-[#0E0E0E] cursor-pointer block"
                         >
                           <img
                             src={chapter1Photos[0].url}
@@ -883,7 +912,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                           />
                         </button>
 
-                        <div className="col-span-5 grid grid-rows-2 gap-1.5 sm:gap-2">
+                        <div className="col-span-5 grid grid-rows-2 gap-2 sm:gap-2.5">
                           {[1, 2].map((slotIdx) => {
                             const p = chapter1Photos[slotIdx] || chapter1Photos[0];
                             return (
@@ -897,7 +926,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                                     filename: `lumareel-${selectedAlbum.id}-ch1-${slotIdx + 1}.jpg`,
                                   })
                                 }
-                                className="w-full h-full overflow-hidden bg-[#0E0E0E] cursor-pointer block"
+                                className="w-full h-full rounded-[14px] overflow-hidden bg-[#0E0E0E] cursor-pointer block"
                               >
                                 <img
                                   src={p.url}
@@ -935,7 +964,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                       </h2>
                     </div>
 
-                    <div className="aspect-[16/9] w-full overflow-hidden bg-[#0E0E0E] border border-white/[0.12] relative">
+                    <div className="aspect-[16/9] w-full rounded-[18px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] relative">
                       {isChapterVideoPlaying ? (
                         <iframe
                           src={embedSrc}
@@ -995,7 +1024,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                                   filename: `lumareel-${selectedAlbum.id}-best-${idx + 1}.jpg`,
                                 })
                               }
-                              className="aspect-[4/3] overflow-hidden bg-[#0E0E0E] cursor-pointer block group"
+                              className="aspect-[4/3] rounded-[14px] overflow-hidden bg-[#0E0E0E] cursor-pointer block group"
                             >
                               <img
                                 src={photo.url}
@@ -1011,7 +1040,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                   </ScrollReveal>
                 )}
 
-                {/* PIED DU RÉCIT ÉDITORIAL (MAQUETTE 03) : CTA Photos/Vidéos + Souvenir suivant → */}
+                {/* PIED DU RÉCIT ÉDITORIAL : CTA Photos/Vidéos + Souvenir suivant → */}
                 <div className="pt-6 border-t border-white/[0.12] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <button
                     type="button"
@@ -1021,7 +1050,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }
                     }}
-                    className="min-h-[48px] px-6 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs sm:text-sm transition-colors cursor-pointer lum-press"
+                    className="min-h-[48px] px-6 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs sm:text-sm transition-colors cursor-pointer lum-press"
                   >
                     {isEn ? 'Photos, videos & downloads' : 'Photos, vidéos & téléchargements'}
                   </button>
@@ -1057,7 +1086,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {albumSharedVideos.map((vid) => (
                       <article key={vid.id} className="space-y-2">
-                        <div className="aspect-[16/9] overflow-hidden bg-black border border-white/[0.12]">
+                        <div className="aspect-[16/9] rounded-[16px] overflow-hidden bg-black border border-white/[0.12]">
                           <video
                             src={vid.mediaUrl}
                             controls
@@ -1094,7 +1123,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
             {/* ONGLET D : PARTICIPANTS (STRICTEMENT LIÉS À CE CONCERT + NOTE MODÉRATION) */}
             {albumTab === 'participants' && (
               <section className="space-y-5">
-                <p className="text-xs text-[#9A9A9A] border-l-2 border-[#D4AF6A] pl-3 py-0.5">
+                <p className="text-xs text-[#9A9A9A] rounded-[14px] bg-[#0E0E0E] border border-white/[0.1] px-4 py-2.5">
                   {isEn
                     ? 'Attendee photos and clips are published after moderation.'
                     : 'Les photos des participants sont publiées après modération.'}
@@ -1111,7 +1140,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
 
                       return (
                         <article key={item.id} className="space-y-2">
-                          <div className="aspect-square bg-[#0E0E0E] border border-white/[0.12] overflow-hidden">
+                          <div className="aspect-square rounded-[14px] bg-[#0E0E0E] border border-white/[0.12] overflow-hidden">
                             {item.mediaType === 'video' ? (
                               <video
                                 src={item.mediaUrl}
@@ -1178,7 +1207,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                     })}
                   </div>
                 ) : (
-                  <div className="py-10 text-center space-y-3 border border-white/[0.12] bg-[#0E0E0E] p-6">
+                  <div className="py-10 text-center space-y-3 rounded-[20px] border border-white/[0.12] bg-[#0E0E0E] p-6">
                     <p className="text-xs sm:text-sm text-[#9A9A9A]">
                       {isEn
                         ? 'No attendee memories shared for this concert yet.'
@@ -1188,7 +1217,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                       <button
                         type="button"
                         onClick={() => setIsAddSheetOpen(true)}
-                        className="min-h-[42px] px-5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs cursor-pointer lum-press"
+                        className="min-h-[42px] px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs cursor-pointer lum-press"
                       >
                         {isEn ? 'Share the first memory' : 'Partager le premier souvenir'}
                       </button>
@@ -1203,7 +1232,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
         {/* BARRE FLOTTANTE MODE SÉLECTIONNER (remplace la barre de navigation en bas) */}
         {isSelectingPhotos && canShareAndDownload && (
           <div
-            className="fixed left-4 right-4 z-[85] max-w-md mx-auto bg-[#0E0E0E] border border-white/[0.16] px-4 py-3 flex items-center justify-between gap-3 shadow-2xl"
+            className="fixed left-4 right-4 z-[85] max-w-md mx-auto rounded-[20px] bg-[#0E0E0E] border border-white/[0.16] px-4 py-3 flex items-center justify-between gap-3 shadow-2xl"
             style={{ bottom: 'max(24px, env(safe-area-inset-bottom, 0px))' }}
           >
             <div className="min-w-0">
@@ -1234,7 +1263,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                 type="button"
                 disabled={selectedPhotoUrls.length === 0}
                 onClick={handleShareSelected}
-                className="min-h-[40px] px-3.5 rounded-[4px] border border-white/25 hover:border-white text-white text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+                className="min-h-[40px] px-4 rounded-full border border-white/25 hover:border-white text-white text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
               >
                 <Share2 className="w-3.5 h-3.5" strokeWidth={1.6} />
                 <span>{isEn ? 'Share' : 'Partager'}</span>
@@ -1243,7 +1272,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                 type="button"
                 disabled={selectedPhotoUrls.length === 0}
                 onClick={() => handleBatchDownload()}
-                className="min-h-[40px] px-4 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-40 lum-press"
+                className="min-h-[40px] px-4 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-40 lum-press"
               >
                 <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
                 <span>{isEn ? 'Download' : 'Télécharger'}</span>
@@ -1388,7 +1417,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                             filename: lightboxPhoto.filename,
                           })
                         }
-                        className="min-h-[38px] px-3.5 rounded-[4px] border border-white/25 hover:border-white text-white text-xs font-agrandir-semibold flex items-center gap-1.5 cursor-pointer"
+                        className="min-h-[38px] px-4 rounded-full border border-white/25 hover:border-white text-white text-xs font-agrandir-semibold flex items-center gap-1.5 cursor-pointer"
                       >
                         <Share2 className="w-3.5 h-3.5" strokeWidth={1.6} />
                         <span>{isEn ? 'Share' : 'Partager'}</span>
@@ -1398,7 +1427,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                         onClick={() =>
                           handleDownload(lightboxPhoto.url, lightboxPhoto.filename)
                         }
-                        className="min-h-[38px] px-3.5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold flex items-center gap-1.5 cursor-pointer"
+                        className="min-h-[38px] px-4 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold flex items-center gap-1.5 cursor-pointer"
                       >
                         <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
                         <span>{isEn ? 'Download' : 'Télécharger'}</span>
@@ -1419,7 +1448,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                 src={lightboxPhoto.url}
                 alt={lightboxPhoto.caption}
                 referrerPolicy="no-referrer"
-                className="w-full max-h-[78vh] object-contain"
+                className="w-full max-h-[78vh] rounded-[18px] object-contain"
               />
             </div>
           </div>
@@ -1466,7 +1495,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                 }}
                 className="group text-left cursor-pointer block lum-press"
               >
-                <div className="aspect-[16/10] w-full overflow-hidden bg-[#0E0E0E] border border-white/[0.12]">
+                <div className="aspect-[3/4] sm:aspect-[16/10] w-full rounded-[18px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
                   <img
                     src={album.coverImage}
                     alt={album.title}
@@ -1508,7 +1537,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                           setSelectedMediaId(item.id);
                           setCurrentPage('media_detail');
                         }}
-                        className="block w-full aspect-[4/3] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] cursor-pointer"
+                        className="block w-full aspect-[4/3] rounded-[16px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] cursor-pointer"
                       >
                         <img
                           src={item.thumbnailUrl || item.url}

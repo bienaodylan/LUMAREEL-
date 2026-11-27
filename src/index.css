@@ -52,9 +52,11 @@
     --scan-invalid: #B3122B;
     --scan-error: #262626;
 
-    /* Rayons stricts */
-    --radius-card: 0px;
-    --radius-control: 4px;
+    /* Rayons arrondis modernes LUMARÉEL */
+    --radius-hero: 24px;
+    --radius-card: 18px;
+    --radius-media: 14px;
+    --radius-control: 12px;
     --radius-pill: 9999px;
 
     /* Typographie Agrandir Grand + Archivo étendu 125% en repli */

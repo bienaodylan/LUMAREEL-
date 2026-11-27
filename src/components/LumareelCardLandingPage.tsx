@@ -40,7 +40,7 @@ const CARD_COPY = {
       },
       {
         num: '03',
-        title: 'Backstage & invitations',
+        title: 'Souvenirs VIP & invitations',
         desc: 'Contenus exclusifs, rencontres, soirées privées.',
       },
     ],
@@ -126,7 +126,7 @@ const CARD_COPY = {
       },
       {
         num: '03',
-        title: 'Backstage & invitations',
+        title: 'VIP Memories & invitations',
         desc: 'Exclusive content, artist meetings, private nights.',
       },
     ],
@@ -200,7 +200,8 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   hasActiveCard = false,
 }) => {
   const { currentUser, setCurrentPage, showToast, language, setIsAuthModalOpen } = useApp();
-  const c = CARD_COPY[language === 'en' ? 'en' : 'fr'];
+  const isEn = language === 'en';
+  const c = CARD_COPY[isEn ? 'en' : 'fr'];
 
   // Données réelles d'édition et de tarifs depuis /api/membership/editions
   const [, setEdition] = useState<MembershipEdition | null>(null);
@@ -535,7 +536,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 aria-hidden="true"
                 className="pointer-events-none absolute -inset-4 bg-[#D4AF6A]/[0.06] blur-2xl"
               />
-              <div className="relative aspect-[1.586/1] w-full rounded-[12px] border border-[#D4AF6A]/45 bg-gradient-to-br from-[#16120B] via-[#0B0B0B] to-[#070707] p-6 sm:p-7 flex flex-col justify-between overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.85)]">
+              <div className="relative aspect-[1.586/1] w-full rounded-[20px] border border-[#D4AF6A]/45 bg-gradient-to-br from-[#16120B] via-[#0B0B0B] to-[#070707] p-6 sm:p-7 flex flex-col justify-between overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.85)]">
                 <div
                   aria-hidden="true"
                   className="pointer-events-none absolute -top-12 -right-8 w-44 h-44 rounded-full bg-[#D4AF6A]/12 blur-3xl"
@@ -644,7 +645,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
             {/* Sélecteur de formule si plusieurs plans backend existent */}
             {plans.length > 1 && (
-              <div className="inline-flex flex-wrap items-center gap-1.5 p-1 bg-[#0E0E0E] border border-white/[0.12]">
+              <div className="inline-flex flex-wrap items-center gap-1.5 p-1 rounded-full bg-[#0E0E0E] border border-white/[0.12]">
                 {plans.map((plan) => {
                   const isActive = activePlan?.id === plan.id;
                   return (
@@ -652,7 +653,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                       key={plan.id}
                       type="button"
                       onClick={() => setSelectedPlan(plan)}
-                      className={`min-h-[38px] px-3.5 rounded-[4px] text-xs transition-colors cursor-pointer ${
+                      className={`min-h-[38px] px-4 rounded-full text-xs transition-colors cursor-pointer ${
                         isActive
                           ? 'bg-white text-black font-agrandir-extrabold'
                           : 'text-[#9A9A9A] hover:text-white font-agrandir-semibold'
@@ -665,8 +666,8 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
               </div>
             )}
 
-            {/* Séparateur doré + Prix réel + CTA plein-largeur doré (4px) */}
-            <section className="pt-5 border-t border-[#D4AF6A]/45 space-y-4">
+            {/* Séparateur doré + Prix réel + CTA plein-largeur */}
+            <section className="pt-5 border-t border-white/[0.14] space-y-4">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-sm text-[#C8C8C8]">{c.annualLabel}</span>
                 <span className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tabular-nums tracking-tight">
@@ -678,7 +679,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 <button
                   type="button"
                   onClick={() => onGoToWallet?.()}
-                  className="w-full min-h-[52px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm sm:text-base transition-colors cursor-pointer lum-press"
+                  className="w-full min-h-[52px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm sm:text-base transition-colors cursor-pointer lum-press"
                 >
                   {c.ctaViewMyCard}
                 </button>
@@ -686,7 +687,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 <button
                   type="button"
                   onClick={() => openAdmissionWizard(activePlan || undefined)}
-                  className="w-full min-h-[52px] rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm sm:text-base transition-colors cursor-pointer lum-press"
+                  className="w-full min-h-[52px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm sm:text-base transition-colors cursor-pointer lum-press"
                 >
                   {c.ctaBecomeMember}
                 </button>
@@ -701,7 +702,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       </div>
 
       {/* =================================================================== */}
-      {/* TUNNEL D'ADHÉSION EN 4 ÉTAPES (PAYMETRUST / API RÉELLE CONSERVÉE)   */}
+      {/* TUNNEL SIGNATURE BLACK CARD EN 4 ÉTAPES (PAYMETRUST / API RÉELLE)   */}
       {/* =================================================================== */}
       {typeof document !== 'undefined' &&
         createPortal(
@@ -731,23 +732,23 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 role="dialog"
                 aria-modal="true"
                 aria-label={c.wizTitle}
-                className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center sm:p-4 bg-black/85 backdrop-blur-md touch-none overscroll-none"
+                className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center sm:p-4 bg-black/90 backdrop-blur-md touch-none overscroll-none"
               >
                 <motion.div
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 24 }}
                   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  className="relative w-full max-w-xl max-h-[86dvh] sm:max-h-[84vh] flex flex-col overflow-hidden bg-[#0E0E0E] border-t sm:border border-[#D4AF6A]/40 shadow-[0_24px_80px_rgba(0,0,0,0.95)] text-left touch-auto"
+                  className="relative w-full max-w-xl max-h-[90dvh] sm:max-h-[86vh] flex flex-col overflow-hidden bg-[#090909] rounded-t-[16px] sm:rounded-[12px] border-t sm:border border-white/[0.14] shadow-[0_24px_80px_rgba(0,0,0,0.95)] text-left touch-auto"
                 >
-                  {/* En-tête fixe */}
-                  <div className="shrink-0 px-5 sm:px-7 pt-3.5 sm:pt-6 pb-4 border-b border-white/[0.12] bg-[#0E0E0E]">
+                  {/* En-tête fixe signature */}
+                  <div className="shrink-0 px-5 sm:px-6 pt-3 sm:pt-5 pb-4 border-b border-white/[0.1] bg-[#090909]">
                     <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-3 sm:hidden" />
 
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3 mb-4">
                       <div className="min-w-0">
-                        <span className="text-[10px] font-mono uppercase tracking-widest text-[#D4AF6A] block">
-                          {c.wizHeader(wizardStep)}
+                        <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#D4AF6A] block">
+                          BLACK CARD · 0{wizardStep}/04
                         </span>
                         <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white uppercase mt-0.5 truncate">
                           {c.wizTitle}
@@ -758,7 +759,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         <button
                           type="button"
                           onClick={() => setIsWizardMinimized(true)}
-                          className="w-10 h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                          className="w-9 h-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] flex items-center justify-center text-[#C8C8C8] hover:text-white transition-colors cursor-pointer"
                           aria-label={c.wizMinimize}
                         >
                           <Minus className="w-4 h-4" strokeWidth={1.6} />
@@ -766,7 +767,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         <button
                           type="button"
                           onClick={closeAdmissionWizard}
-                          className="w-10 h-10 rounded-full bg-white/[0.06] hover:bg-white/[0.12] flex items-center justify-center text-neutral-300 hover:text-white transition-colors cursor-pointer"
+                          className="w-9 h-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] flex items-center justify-center text-[#C8C8C8] hover:text-white transition-colors cursor-pointer"
                           aria-label={c.wizCancel}
                         >
                           <X className="w-4 h-4" strokeWidth={1.6} />
@@ -774,31 +775,88 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-4 gap-2 mt-4">
-                      {[1, 2, 3, 4].map((s) => (
-                        <div
-                          key={s}
-                          className={`h-1 transition-all duration-300 ${
-                            wizardStep >= s ? 'bg-[#D4AF6A]' : 'bg-white/10'
-                          }`}
-                        />
-                      ))}
+                    {/* Rail 4 étapes aligné avec le tunnel billetterie */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { num: 1, label: isEn ? 'Identity' : 'Titulaire' },
+                        { num: 2, label: isEn ? 'NFC Box' : 'Remise NFC' },
+                        { num: 3, label: isEn ? 'Payment' : 'Règlement' },
+                        { num: 4, label: isEn ? 'Circle' : 'Cercle' },
+                      ].map((s) => {
+                        const isActive = wizardStep === s.num;
+                        const isDone = wizardStep > s.num;
+                        return (
+                          <div key={s.num} className="space-y-1.5">
+                            <div className="flex items-center justify-between text-[10px] font-agrandir-semibold uppercase tracking-[0.12em]">
+                              <span
+                                className={`font-mono ${
+                                  isActive
+                                    ? 'text-[#D4AF6A]'
+                                    : isDone
+                                    ? 'text-white'
+                                    : 'text-[#666]'
+                                }`}
+                              >
+                                0{s.num}
+                              </span>
+                              <span
+                                className={`hidden sm:inline truncate ${
+                                  isActive
+                                    ? 'text-white'
+                                    : isDone
+                                    ? 'text-[#C8C8C8]'
+                                    : 'text-[#666]'
+                                }`}
+                              >
+                                {s.label}
+                              </span>
+                            </div>
+                            <div
+                              className={`h-[2px] w-full rounded-full transition-colors duration-300 ${
+                                isActive
+                                  ? 'bg-[#D4AF6A]'
+                                  : isDone
+                                  ? 'bg-white'
+                                  : 'bg-white/[0.12]'
+                              }`}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
                   {/* Corps scrollable */}
-                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-7 py-5">
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5">
                     {wizardStep === 1 && (
                       <div className="space-y-5">
-                        <div>
-                          <h4 className="text-base font-agrandir-bold text-white uppercase">
-                            {c.wiz1Title}
-                          </h4>
-                          <p className="text-xs text-neutral-400 mt-1">{c.wiz1Sub}</p>
+                        {/* Aperçu gravure NFC en temps réel (zéro QR code, statut non bancaire) */}
+                        <div className="relative rounded-[12px] aspect-[1.85/1] bg-gradient-to-br from-[#1B1A17] via-[#0F0F0F] to-[#060606] border border-white/[0.16] p-5 flex flex-col justify-between overflow-hidden">
+                          <div className="flex items-center justify-between">
+                            <span className="font-agrandir-extrabold text-xs tracking-[0.22em] text-white uppercase">
+                              LUMARÉEL
+                            </span>
+                            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#D4AF6A]">
+                              NFC · MEMBRE
+                            </span>
+                          </div>
+                          <div className="flex items-end justify-between gap-4">
+                            <div className="min-w-0">
+                              <span className="block text-[9px] font-mono uppercase tracking-[0.22em] text-[#9A9A9A]">
+                                BLACK CARD
+                              </span>
+                              <span className="mt-1 block font-agrandir-extrabold text-sm sm:text-base uppercase tracking-[0.08em] text-white truncate">
+                                {applicantName.trim() || (isEn ? 'YOUR FULL NAME' : 'VOTRE NOM COMPLET')}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-mono text-[#9A9A9A] shrink-0">
+                              {new Date().getFullYear()}
+                            </span>
+                          </div>
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-[11px] font-mono uppercase tracking-wider text-neutral-300 block">
+                          <label className="text-[10px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
                             {c.wiz1Label}
                           </label>
                           <input
@@ -813,19 +871,19 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                             }}
                             placeholder="VOTRE NOM COMPLET"
                             required
-                            className="w-full min-h-[48px] px-4 py-3 rounded-[4px] bg-black border border-white/20 focus:border-[#D4AF6A] text-white font-mono text-sm uppercase tracking-wider outline-none"
+                            className="w-full min-h-[48px] px-4 py-3 rounded-[8px] bg-black border border-white/[0.16] focus:border-[#D4AF6A] text-white font-mono text-sm uppercase tracking-wider outline-none transition-colors"
                           />
                         </div>
 
-                        <div className="py-3.5 border-y border-white/[0.12] flex items-center justify-between gap-4">
+                        <div className="p-4 rounded-[10px] bg-[#0E0E0E] border border-white/[0.12] flex items-center justify-between gap-4">
                           <div className="min-w-0">
-                            <span className="text-[10px] font-agrandir-bold text-[#D4AF6A] uppercase tracking-wider block">
+                            <span className="text-[10px] font-mono text-[#D4AF6A] uppercase tracking-wider block">
                               {c.wiz1Plan}
                             </span>
-                            <strong className="text-sm font-agrandir-bold text-white uppercase">
+                            <strong className="text-sm font-agrandir-extrabold text-white uppercase">
                               {activePlan?.name || c.wiz1PlanFallback}
                             </strong>
-                            <p className="text-xs text-[#9A9A9A]">{c.wiz1PlanDesc}</p>
+                            <p className="text-xs text-[#9A9A9A] mt-0.5">{c.wiz1PlanDesc}</p>
                           </div>
                           <div className="text-right shrink-0">
                             <div className="text-base sm:text-lg font-agrandir-extrabold text-white font-mono tabular-nums">
@@ -842,15 +900,15 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     {wizardStep === 2 && (
                       <div className="space-y-5">
                         <div>
-                          <h4 className="text-base font-agrandir-bold text-white uppercase">
+                          <h4 className="text-base font-agrandir-extrabold text-white uppercase">
                             {c.wiz2Title}
                           </h4>
                           <p className="text-xs text-[#9A9A9A] mt-1">{c.wiz2Sub}</p>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                           <div className="space-y-1.5">
-                            <label className="text-[11px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
+                            <label className="text-[10px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
                               {c.wiz2Email}
                             </label>
                             <input
@@ -859,12 +917,12 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                               onChange={(e) => setApplicantEmail(e.target.value)}
                               placeholder="email@domain.com"
                               required
-                              className="w-full min-h-[46px] px-4 py-2.5 rounded-[4px] bg-black border border-white/20 focus:border-[#D4AF6A] text-white text-sm outline-none"
+                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[8px] bg-black border border-white/[0.16] focus:border-[#D4AF6A] text-white text-sm outline-none transition-colors"
                             />
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-[11px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
+                            <label className="text-[10px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
                               {c.wiz2Phone}
                             </label>
                             <input
@@ -873,14 +931,14 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                               onChange={(e) => setApplicantPhone(e.target.value)}
                               placeholder="+225 07 00 00 00 00"
                               required
-                              className="w-full min-h-[46px] px-4 py-2.5 rounded-[4px] bg-black border border-white/20 focus:border-[#D4AF6A] text-white text-sm outline-none"
+                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[8px] bg-black border border-white/[0.16] focus:border-[#D4AF6A] text-white text-sm outline-none transition-colors"
                             />
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                           <div className="space-y-1.5">
-                            <label className="text-[11px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
+                            <label className="text-[10px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
                               {c.wiz2City}
                             </label>
                             <input
@@ -888,12 +946,12 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                               value={applicantCity}
                               onChange={(e) => setApplicantCity(e.target.value)}
                               placeholder="Abidjan"
-                              className="w-full min-h-[46px] px-4 py-2.5 rounded-[4px] bg-black border border-white/20 focus:border-[#D4AF6A] text-white text-sm outline-none"
+                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[8px] bg-black border border-white/[0.16] focus:border-[#D4AF6A] text-white text-sm outline-none transition-colors"
                             />
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-[11px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
+                            <label className="text-[10px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
                               {c.wiz2Address}
                             </label>
                             <input
@@ -901,10 +959,16 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                               value={applicantAddress}
                               onChange={(e) => setApplicantAddress(e.target.value)}
                               placeholder="Cocody, Zone 4..."
-                              className="w-full min-h-[46px] px-4 py-2.5 rounded-[4px] bg-black border border-white/20 focus:border-[#D4AF6A] text-white text-sm outline-none"
+                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[8px] bg-black border border-white/[0.16] focus:border-[#D4AF6A] text-white text-sm outline-none transition-colors"
                             />
                           </div>
                         </div>
+
+                        <p className="text-[11px] text-[#9A9A9A] p-3 rounded-[8px] bg-[#0E0E0E] border border-white/[0.08] leading-relaxed">
+                          {isEn
+                            ? 'Membership card only (NFC) — not a bank or reloadable payment card.'
+                            : "Carte de statut membre NFC uniquement — il ne s'agit ni d'une carte bancaire ni d'une carte rechargeable."}
+                        </p>
                       </div>
                     )}
 
@@ -916,116 +980,120 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         className="space-y-5"
                       >
                         <div>
-                          <h4 className="text-base font-agrandir-bold text-white uppercase">
+                          <h4 className="text-base font-agrandir-extrabold text-white uppercase">
                             {c.wiz3Title}
                           </h4>
                           <p className="text-xs text-[#9A9A9A] mt-1">{c.wiz3Sub}</p>
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                          {c.wiz3Methods.map((m) => (
-                            <button
-                              key={m.id}
-                              type="button"
-                              onClick={() => setPaymentMethod(m.id as any)}
-                              className={`min-h-[76px] p-3 border text-left transition-colors cursor-pointer ${
-                                paymentMethod === m.id
-                                  ? 'bg-[#D4AF6A]/15 border-[#D4AF6A] text-white'
-                                  : 'bg-[#141414] border-white/[0.12] text-[#9A9A9A] hover:border-white/25'
-                              }`}
-                            >
-                              <div className="h-7 flex items-center justify-start gap-1.5 mb-1.5">
-                                {m.id === 'wave' && (
-                                  <img
-                                    src="https://arcencielconsultingpro.com/gallery/upscalemedia-transformed%202.jpg"
-                                    alt="Wave"
-                                    className="h-6 w-auto max-w-[76px] object-contain"
-                                    loading="eager"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
+                          {c.wiz3Methods.map((m) => {
+                            const isSelected = paymentMethod === m.id;
+                            return (
+                              <button
+                                key={m.id}
+                                type="button"
+                                onClick={() => setPaymentMethod(m.id as any)}
+                                className={`relative min-h-[80px] p-3 rounded-[10px] border text-left transition-colors cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-[#15130E] border-[#D4AF6A] text-white'
+                                    : 'bg-[#0E0E0E] border-white/[0.12] text-[#9A9A9A] hover:border-white/25'
+                                }`}
+                              >
+                                {isSelected && (
+                                  <span className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-[#D4AF6A] text-black flex items-center justify-center">
+                                    <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
+                                  </span>
                                 )}
-                                {m.id === 'orange_money' && (
-                                  <img
-                                    src="https://cdn.simpleicons.org/orange/FF7900"
-                                    alt="Orange Money"
-                                    className="h-6 w-auto max-w-[76px] object-contain"
-                                    loading="eager"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                )}
-                                {m.id === 'mtn_momo' && (
-                                  <img
-                                    src="https://cdn.simpleicons.org/mtn/FFCC00"
-                                    alt="MTN MoMo"
-                                    className="h-6 w-auto max-w-[76px] object-contain"
-                                    loading="eager"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                )}
-                                {m.id === 'moov_money' && (
-                                  <img
-                                    src="https://cdn.simpleicons.org/moov/0065B3"
-                                    alt="Moov Money"
-                                    className="h-6 w-auto max-w-[76px] object-contain"
-                                    loading="eager"
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                )}
-                                {m.id === 'card' && (
-                                  <>
+                                <div className="h-7 flex items-center justify-start gap-1.5 mb-1.5">
+                                  {m.id === 'wave' && (
                                     <img
-                                      src="https://cdn.simpleicons.org/visa/1A1F71"
-                                      alt="Visa"
-                                      className="h-5 w-auto max-w-[42px] object-contain"
+                                      src="https://arcencielconsultingpro.com/gallery/upscalemedia-transformed%202.jpg"
+                                      alt="Wave"
+                                      className="h-6 w-auto max-w-[76px] object-contain rounded-[4px]"
                                       loading="eager"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                      }}
                                     />
+                                  )}
+                                  {m.id === 'orange_money' && (
                                     <img
-                                      src="https://cdn.simpleicons.org/mastercard/EB001B"
-                                      alt="Mastercard"
-                                      className="h-5 w-auto max-w-[34px] object-contain"
+                                      src="https://cdn.simpleicons.org/orange/FF7900"
+                                      alt="Orange Money"
+                                      className="h-6 w-auto max-w-[76px] object-contain"
                                       loading="eager"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                      }}
                                     />
-                                  </>
-                                )}
-                              </div>
-                              <div className="font-agrandir-bold text-xs text-white uppercase truncate">
-                                {m.label}
-                              </div>
-                              <div className="text-[10px] text-neutral-400 font-mono">
-                                {m.desc}
-                              </div>
-                            </button>
-                          ))}
+                                  )}
+                                  {m.id === 'mtn_momo' && (
+                                    <img
+                                      src="https://cdn.simpleicons.org/mtn/FFCC00"
+                                      alt="MTN MoMo"
+                                      className="h-6 w-auto max-w-[76px] object-contain"
+                                      loading="eager"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                      }}
+                                    />
+                                  )}
+                                  {m.id === 'moov_money' && (
+                                    <img
+                                      src="https://cdn.simpleicons.org/moov/0065B3"
+                                      alt="Moov Money"
+                                      className="h-6 w-auto max-w-[76px] object-contain"
+                                      loading="eager"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                      }}
+                                    />
+                                  )}
+                                  {m.id === 'card' && (
+                                    <>
+                                      <img
+                                        src="https://cdn.simpleicons.org/visa/1A1F71"
+                                        alt="Visa"
+                                        className="h-5 w-auto max-w-[42px] object-contain"
+                                        loading="eager"
+                                      />
+                                      <img
+                                        src="https://cdn.simpleicons.org/mastercard/EB001B"
+                                        alt="Mastercard"
+                                        className="h-5 w-auto max-w-[34px] object-contain"
+                                        loading="eager"
+                                      />
+                                    </>
+                                  )}
+                                </div>
+                                <div className="font-agrandir-extrabold text-xs text-white truncate">
+                                  {m.label}
+                                </div>
+                                <div className="text-[10px] text-[#9A9A9A] font-mono">{m.desc}</div>
+                              </button>
+                            );
+                          })}
                         </div>
 
-                        <div className="py-3 border-y border-white/10 space-y-2 text-xs">
-                          <div className="flex justify-between gap-2 text-neutral-400">
+                        <div className="p-4 rounded-[10px] bg-[#0E0E0E] border border-white/[0.12] space-y-2.5 text-xs">
+                          <div className="flex justify-between gap-2 text-[#9A9A9A]">
                             <span>{c.wiz3Membership}</span>
                             <span className="font-mono text-white tabular-nums shrink-0">
                               {formattedPrice}
                             </span>
                           </div>
-                          <div className="flex justify-between gap-2 text-neutral-400">
+                          <div className="flex justify-between gap-2 text-[#9A9A9A]">
                             <span>{c.wiz3CardDelivery}</span>
-                            <span className="text-[#4ADE80] font-mono shrink-0">
+                            <span className="text-[#7FE0A6] font-mono shrink-0">
                               {c.wiz3Included}
                             </span>
                           </div>
-                          <div className="flex justify-between gap-2 text-neutral-400">
+                          <div className="flex justify-between gap-2 text-[#9A9A9A]">
                             <span>{c.wiz3Bonus}</span>
-                            <span className="text-neutral-300 font-mono shrink-0">
-                              {c.wiz3BonusVal}
-                            </span>
+                            <span className="text-white font-mono shrink-0">{c.wiz3BonusVal}</span>
                           </div>
-                          <div className="border-t border-white/[0.12] pt-2 flex justify-between gap-2 font-agrandir-extrabold text-sm text-white">
+                          <div className="border-t border-dashed border-white/[0.16] pt-2.5 flex justify-between gap-2 font-agrandir-extrabold text-sm text-white">
                             <span>{c.wiz3Total}</span>
                             <span className="text-[#D4AF6A] font-mono tabular-nums shrink-0">
                               {formattedPrice}
@@ -1037,12 +1105,12 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
                     {wizardStep === 4 && issuedResult && (
                       <div className="text-center space-y-5 py-2">
-                        <div className="w-14 h-14 rounded-full bg-[#0F2A1A] text-[#7FE0A6] border border-[#7FE0A6]/40 flex items-center justify-center mx-auto">
-                          <CheckCircle2 className="w-7 h-7" strokeWidth={1.6} />
+                        <div className="w-12 h-12 rounded-full bg-[#0F2A1A] text-[#7FE0A6] border border-[#7FE0A6]/40 flex items-center justify-center mx-auto">
+                          <CheckCircle2 className="w-6 h-6" strokeWidth={1.7} />
                         </div>
 
-                        <div className="space-y-2">
-                          <span className="text-[10px] font-mono tracking-widest text-[#D4AF6A] uppercase">
+                        <div className="space-y-1.5">
+                          <span className="text-[10px] font-mono tracking-[0.22em] text-[#D4AF6A] uppercase">
                             {c.wiz4Kicker}
                           </span>
                           <h3 className="text-2xl font-agrandir-extrabold uppercase text-white">
@@ -1053,7 +1121,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                           </p>
                         </div>
 
-                        <div className="py-3 border-y border-white/[0.12] max-w-md mx-auto text-left space-y-2 text-xs">
+                        <div className="p-4 rounded-[10px] bg-[#0E0E0E] border border-white/[0.12] max-w-md mx-auto text-left space-y-2.5 text-xs">
                           <div className="flex justify-between gap-2">
                             <span className="text-[#9A9A9A]">{c.wiz4Holder}</span>
                             <strong className="text-white uppercase font-mono truncate">
@@ -1062,7 +1130,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                           </div>
                           <div className="flex justify-between gap-2">
                             <span className="text-[#9A9A9A]">{c.wiz4Number}</span>
-                            <strong className="text-[#C8C8C8] font-mono tabular-nums">
+                            <strong className="text-[#D4AF6A] font-mono tabular-nums">
                               {issuedResult.card.cardNumber}
                             </strong>
                           </div>
@@ -1076,26 +1144,24 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   </div>
 
                   {/* Barre d'action fixe en bas */}
-                  <div className="shrink-0 bg-[#0E0E0E] border-t border-white/[0.12] px-5 sm:px-7 py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
+                  <div className="shrink-0 bg-[#090909] border-t border-white/[0.12] px-5 sm:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
                     {wizardStep === 1 && (
-                      <div className="flex items-center justify-end">
-                        <button
-                          type="button"
-                          onClick={handleWizardNextStep1}
-                          className="w-full sm:w-auto min-h-[50px] px-7 py-3 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors lum-press"
-                        >
-                          <span>{c.wiz1Next}</span>
-                          <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={1.6} />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={handleWizardNextStep1}
+                        className="w-full min-h-[50px] px-7 py-3 rounded-[8px] bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors lum-press"
+                      >
+                        <span>{c.wiz1Next}</span>
+                        <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={1.6} />
+                      </button>
                     )}
 
                     {wizardStep === 2 && (
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center justify-between gap-2.5">
                         <button
                           type="button"
                           onClick={() => setWizardStep(1)}
-                          className="min-h-[48px] px-4 rounded-[4px] border border-white/[0.16] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white hover:border-white/35 cursor-pointer transition-colors shrink-0 lum-press"
+                          className="min-h-[50px] px-4 rounded-[8px] border border-white/[0.16] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white hover:border-white/35 cursor-pointer transition-colors shrink-0 lum-press"
                         >
                           {c.wiz2Back}
                         </button>
@@ -1103,7 +1169,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         <button
                           type="button"
                           onClick={handleWizardNextStep2}
-                          className="flex-1 sm:flex-none min-h-[50px] px-7 py-3 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors lum-press"
+                          className="flex-1 min-h-[50px] px-7 py-3 rounded-[8px] bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors lum-press"
                         >
                           <span>{c.wiz2Next}</span>
                           <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={1.6} />
@@ -1112,11 +1178,11 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     )}
 
                     {wizardStep === 3 && (
-                      <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center justify-between gap-2.5">
                         <button
                           type="button"
                           onClick={() => setWizardStep(2)}
-                          className="min-h-[48px] px-4 rounded-[4px] border border-white/[0.16] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white hover:border-white/35 cursor-pointer transition-colors shrink-0 lum-press"
+                          className="min-h-[50px] px-4 rounded-[8px] border border-white/[0.16] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white hover:border-white/35 cursor-pointer transition-colors shrink-0 lum-press"
                         >
                           {c.wiz2Back}
                         </button>
@@ -1125,7 +1191,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                           type="submit"
                           form="black-card-checkout-form"
                           disabled={isSubmitting}
-                          className="flex-1 sm:flex-none min-h-[50px] px-7 py-3 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 transition-colors lum-press"
+                          className="flex-1 min-h-[50px] px-7 py-3 rounded-[8px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 transition-colors lum-press"
                         >
                           {isSubmitting ? (
                             <>
@@ -1143,15 +1209,13 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     )}
 
                     {wizardStep === 4 && issuedResult && (
-                      <div className="flex items-center justify-center">
-                        <button
-                          type="button"
-                          onClick={() => finishAndOpenInstalledCard(issuedResult.card)}
-                          className="w-full sm:w-auto min-h-[50px] px-8 py-3.5 rounded-[4px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs uppercase tracking-wider cursor-pointer transition-colors lum-press"
-                        >
-                          {c.wiz4Cta}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => finishAndOpenInstalledCard(issuedResult.card)}
+                        className="w-full min-h-[50px] px-8 py-3.5 rounded-[8px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs uppercase tracking-wider cursor-pointer transition-colors lum-press"
+                      >
+                        {c.wiz4Cta}
+                      </button>
                     )}
                   </div>
                 </motion.div>

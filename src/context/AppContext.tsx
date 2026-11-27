@@ -48,6 +48,10 @@ interface AppContextType {
   setSelectedEventSlug: (slug: string | null) => void;
   selectedMediaId: string | null;
   setSelectedMediaId: (id: string | null) => void;
+  selectedMemoryAlbumId: string | null;
+  setSelectedMemoryAlbumId: (id: string | null) => void;
+  rewardsInitialMode: 'points' | 'store' | 'referral';
+  setRewardsInitialMode: (mode: 'points' | 'store' | 'referral') => void;
   events: ConcertEvent[];
   featuredEvent: ConcertEvent | null;
   saveEvent: (event: ConcertEvent) => Promise<void>;
@@ -303,6 +307,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [selectedEventSlug, setSelectedEventSlug] = useState<string | null>(null);
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
+  const [selectedMemoryAlbumId, setSelectedMemoryAlbumId] = useState<string | null>(null);
+  const [rewardsInitialMode, setRewardsInitialMode] = useState<'points' | 'store' | 'referral'>('points');
 
   // Storage keys pour persistance indestructible (résout le problème d'images qui quittent)
   const STORAGE_KEYS = {
@@ -1272,6 +1278,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedEventSlug,
         selectedMediaId,
         setSelectedMediaId,
+        selectedMemoryAlbumId,
+        setSelectedMemoryAlbumId,
+        rewardsInitialMode,
+        setRewardsInitialMode,
         events,
         featuredEvent,
         saveEvent,

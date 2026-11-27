@@ -21,7 +21,6 @@ import { LumareelMemberCardPage } from './components/LumareelMemberCardPage';
 import { CardVerificationView } from './components/CardVerificationView';
 import { RewardsHubView } from './components/RewardsHubView';
 import { PrivilegedAccessView } from './components/PrivilegedAccessView';
-import { BackstageView } from './components/BackstageView';
 import { FlashDropsView } from './components/FlashDropsView';
 import { ConcertMemoriesView } from './components/ConcertMemoriesView';
 import { SuggestionsView } from './components/SuggestionsView';
@@ -119,6 +118,7 @@ const MainApp: React.FC = () => {
       'member_card',
       'card',
       'memories',
+      'backstage',
       'rewards',
       'privileged_access',
       'flash_drops',
@@ -184,7 +184,7 @@ const MainApp: React.FC = () => {
             {currentPage === 'card_verify' && <CardVerificationView />}
             {currentPage === 'rewards' && <RewardsHubView />}
             {currentPage === 'privileged_access' && <PrivilegedAccessView />}
-            {currentPage === 'backstage' && <BackstageView />}
+            {currentPage === 'backstage' && <ConcertMemoriesView />}
             {currentPage === 'flash_drops' && <FlashDropsView />}
             {currentPage === 'memories' && <ConcertMemoriesView />}
             {currentPage === 'suggestions' && <SuggestionsView />}
@@ -205,7 +205,7 @@ const MainApp: React.FC = () => {
       {/* Minimal Toast Notification */}
       {toast && (
         <div
-          className={`fixed left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-[95] bg-[#141414]/96 backdrop-blur-md border border-white/[0.16] px-4 py-3 shadow-2xl font-agrandir-regular text-xs flex items-center gap-3 text-white rounded-[4px] ${
+          className={`fixed left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-[95] bg-[#141414]/96 backdrop-blur-md border border-white/[0.16] px-4 py-3 shadow-2xl font-agrandir-regular text-xs flex items-center gap-3 text-white rounded-2xl ${
             hasBottomNav
               ? 'bottom-[calc(6.2rem+env(safe-area-inset-bottom,0px))] md:bottom-8'
               : 'bottom-6 sm:bottom-8'

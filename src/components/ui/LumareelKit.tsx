@@ -26,7 +26,7 @@ export const ScrollReveal: React.FC<{
    2. SkeletonBlock — Chargements sombres (jamais de spinner seul)
    ============================================================================ */
 export const SkeletonBlock: React.FC<{ className?: string }> = ({ className = 'h-24 w-full' }) => (
-  <div aria-hidden="true" className={`lum-skeleton border border-white/[0.06] ${className}`} />
+  <div aria-hidden="true" className={`lum-skeleton rounded-2xl border border-white/[0.06] ${className}`} />
 );
 
 /* ============================================================================
@@ -148,16 +148,20 @@ export interface HeroMediaProps {
   imageUrl?: string;
   alt: string;
   heightClass?: string;
+  className?: string;
   children: React.ReactNode;
 }
 
 export const HeroMedia: React.FC<HeroMediaProps> = ({
   imageUrl,
   alt,
-  heightClass = 'min-h-[560px] sm:min-h-[600px] lg:min-h-[640px]',
+  heightClass = 'min-h-[540px] sm:min-h-[580px] lg:min-h-[620px]',
+  className = '',
   children,
 }) => (
-  <section className={`relative w-full ${heightClass} flex flex-col justify-between overflow-hidden bg-[#0E0E0E]`}>
+  <section
+    className={`relative w-full ${heightClass} flex flex-col justify-between overflow-hidden bg-[#0E0E0E] ${className}`}
+  >
     {imageUrl ? (
       <img
         src={imageUrl}
@@ -203,7 +207,7 @@ export const PosterCard: React.FC<PosterCardProps> = ({
     onClick={onClick}
     className={`group text-left cursor-pointer block lum-press ${className}`}
   >
-    <div className={`relative ${aspectClass} w-full overflow-hidden bg-[#0E0E0E] border border-white/[0.12]`}>
+    <div className={`relative ${aspectClass} w-full rounded-[18px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/25 transition-colors`}>
       {imageUrl ? (
         <img
           src={imageUrl}
@@ -216,7 +220,7 @@ export const PosterCard: React.FC<PosterCardProps> = ({
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-black/20" />
       {badgeText && (
-        <span className="absolute top-3 left-3 px-2 py-0.5 bg-black/80 text-[9px] font-agrandir-extrabold uppercase tracking-[0.14em] text-[#D4AF6A]">
+        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/80 text-[9px] font-agrandir-extrabold uppercase tracking-[0.14em] text-[#D4AF6A]">
           {badgeText}
         </span>
       )}
@@ -266,7 +270,7 @@ export const StatusBadge: React.FC<{
   className?: string;
 }> = ({ variant, label, dot = false, className = '' }) => (
   <span
-    className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em] whitespace-nowrap leading-none ${STATUS_STYLES[variant]} ${className}`}
+    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em] whitespace-nowrap leading-none ${STATUS_STYLES[variant]} ${className}`}
   >
     {dot && <span className="w-1.5 h-1.5 rounded-full bg-current" aria-hidden="true" />}
     <span>{label}</span>
@@ -389,7 +393,7 @@ export const BottomSheet: React.FC<{
             exit={{ y: 40, opacity: 0 }}
             transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg max-h-[88dvh] overflow-y-auto bg-[#0E0E0E] border-t sm:border border-white/[0.12] p-5 sm:p-6 shadow-2xl text-white"
+            className="w-full max-w-lg max-h-[88dvh] overflow-y-auto rounded-t-[28px] sm:rounded-[24px] bg-[#0E0E0E] border-t sm:border border-white/[0.12] p-5 sm:p-6 shadow-2xl text-white"
             style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))' }}
           >
             <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4 sm:hidden" />
@@ -464,7 +468,7 @@ export const QRTicket: React.FC<QRTicketProps> = ({
   const isCancelled = status === 'cancelled';
 
   return (
-    <article className="bg-[#0E0E0E] border border-white/[0.12] overflow-hidden">
+    <article className="rounded-[22px] bg-[#0E0E0E] border border-white/[0.12] overflow-hidden">
       {/* Bandeau supérieur à halo chaud discret */}
       <div className="relative px-5 sm:px-6 pt-5 pb-5 bg-gradient-to-br from-[#2B2214]/80 via-[#15120C]/90 to-[#0E0E0E] overflow-hidden">
         <div
@@ -493,7 +497,7 @@ export const QRTicket: React.FC<QRTicketProps> = ({
       {/* Zone QR code grand format (~236px) sur fond blanc pur */}
       <div className="px-5 sm:px-6 pt-6 pb-5 text-center bg-[#0E0E0E]">
         {isCancelled ? (
-          <div className="mx-auto w-[236px] h-[236px] bg-[#141414] border border-white/[0.12] flex flex-col items-center justify-center gap-2 p-6">
+          <div className="mx-auto w-[236px] h-[236px] rounded-[18px] bg-[#141414] border border-white/[0.12] flex flex-col items-center justify-center gap-2 p-6">
             <p className="text-xs font-agrandir-extrabold text-[#C8C8C8] uppercase">
               {isEn ? 'QR Code Revoked' : 'QR Code révoqué'}
             </p>
@@ -506,12 +510,12 @@ export const QRTicket: React.FC<QRTicketProps> = ({
             type="button"
             onClick={onOpenQrFullscreen}
             aria-label={isEn ? 'Open full-screen QR code' : 'Afficher le QR code en plein écran'}
-            className="mx-auto w-[236px] h-[236px] bg-white p-3.5 flex items-center justify-center cursor-pointer lum-press"
+            className="mx-auto w-[236px] h-[236px] rounded-[18px] bg-white p-3.5 flex items-center justify-center cursor-pointer lum-press shadow-lg"
           >
             {qrDataUrl ? (
               <img src={qrDataUrl} alt={`QR ${serialNumber}`} className="w-full h-full object-contain" />
             ) : (
-              <div className="w-full h-full bg-neutral-200 animate-pulse" />
+              <div className="w-full h-full rounded-xl bg-neutral-200 animate-pulse" />
             )}
           </button>
         )}

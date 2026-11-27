@@ -2263,9 +2263,72 @@ async function startServer() {
       server: {
         middlewareMode: true,
         hmr: false,
+        ws: false,
       },
       appType: 'spa',
     });
+
+    // When HMR/WebSockets are disabled in middleware mode, Vite 8 still injects /@vite/client
+    // which attempts to open a WebSocket connection and throws "WebSocket closed without opened."
+    // Serve a lightweight no-WebSocket shim that preserves updateStyle/removeStyle/createHotContext.
+    app.get('/@vite/client', (_req: Request, res: Response) => {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store');
+      res.send(`
+const sheetsMap = new Map();
+
+export function updateStyle(id, content) {
+  let style = sheetsMap.get(id);
+  if (!style) {
+    style = document.createElement('style');
+    style.setAttribute('type', 'text/css');
+    style.setAttribute('data-vite-dev-id', id);
+    style.textContent = content;
+    document.head.appendChild(style);
+    sheetsMap.set(id, style);
+  } else {
+    style.textContent = content;
+  }
+}
+
+export function removeStyle(id) {
+  const style = sheetsMap.get(id);
+  if (style) {
+    document.head.removeChild(style);
+    sheetsMap.delete(id);
+  }
+}
+
+export function createHotContext() {
+  const noop = () => {};
+  return {
+    data: {},
+    accept: noop,
+    acceptExports: noop,
+    dispose: noop,
+    prune: noop,
+    decline: noop,
+    invalidate: noop,
+    on: noop,
+    off: noop,
+    send: noop,
+  };
+}
+
+export function injectQuery(url, queryToInject) {
+  if (!url || (url[0] !== '.' && url[0] !== '/')) return url;
+  const pathname = url.replace(/[?#].*$/, '');
+  const search = url.slice(pathname.length).replace(/#.*$/, '');
+  const hash = url.includes('#') ? url.slice(url.indexOf('#')) : '';
+  return pathname + (search ? search + '&' : '?') + queryToInject + hash;
+}
+
+export class ErrorOverlay {
+  constructor() {}
+}
+`.trim());
+    });
+
     app.use(vite.middlewares);
   } else {
     app.use(express.static(path.resolve(__dirname, 'dist')));

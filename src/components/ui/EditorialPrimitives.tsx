@@ -173,8 +173,8 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   actionLabel,
   onAction,
 }) => (
-  <div className="border border-white/[0.12] bg-[#0E0E0E] px-6 py-12 sm:py-14 text-center max-w-xl mx-auto">
-    <div className="w-11 h-11 bg-[#141414] border border-white/[0.12] text-[#D4AF6A] flex items-center justify-center mx-auto mb-4">
+  <div className="rounded-[20px] border border-white/[0.12] bg-[#0E0E0E] px-6 py-12 sm:py-14 text-center max-w-xl mx-auto">
+    <div className="w-12 h-12 rounded-2xl bg-[#141414] border border-white/[0.12] text-white flex items-center justify-center mx-auto mb-4">
       {icon}
     </div>
     <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white mb-1.5">
@@ -187,7 +187,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       <button
         type="button"
         onClick={onAction}
-        className="mt-6 min-h-[44px] px-6 rounded-[4px] bg-[#D4AF6A] text-black text-xs font-agrandir-extrabold hover:bg-[#E1BE7D] transition-colors cursor-pointer lum-press"
+        className="mt-6 min-h-[44px] px-6 rounded-full bg-[#D4AF6A] text-black text-xs font-agrandir-extrabold hover:bg-[#E1BE7D] transition-colors cursor-pointer lum-press"
       >
         {actionLabel}
       </button>
