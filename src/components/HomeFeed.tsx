@@ -17,6 +17,7 @@ export const HomeFeed: React.FC = () => {
     events,
     setCurrentPage,
     setCheckoutEvent,
+    setSelectedEventSlug,
     currentUser,
     setIsAuthModalOpen,
     showToast,
@@ -130,6 +131,12 @@ export const HomeFeed: React.FC = () => {
       return;
     }
     setCheckoutEvent(event);
+  };
+
+  const handleViewDetails = (event: ConcertEvent, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedEventSlug(event.slug || event.id);
+    setCurrentPage('event_detail');
   };
 
   const handleSelectArtistSlide = (index: number) => {
@@ -291,15 +298,23 @@ export const HomeFeed: React.FC = () => {
                     </p>
                   </div>
 
-                  {/* Bouton unique Acheter Tickets pleine largeur */}
-                  <button
-                    type="button"
-                    onClick={(e) => handleBookNow(event, e)}
-                    className="w-full min-h-[48px] bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs sm:text-[13px] py-3.5 px-4 rounded-xl flex items-center justify-center gap-2.5 active:scale-[0.98] transition-all shadow-lg uppercase tracking-wider cursor-pointer"
-                  >
-                    <Ticket className="w-4 h-4 shrink-0" />
-                    <span>{t('home.buyTickets')}</span>
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => handleBookNow(event, e)}
+                      className="min-h-[48px] bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-[10px] sm:text-xs px-3 py-3 flex items-center justify-center gap-2 transition-colors uppercase tracking-wide cursor-pointer"
+                    >
+                      <Ticket className="w-4 h-4 shrink-0" />
+                      <span>{t('home.buyTickets')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleViewDetails(event, e)}
+                      className="min-h-[48px] border border-white/25 bg-transparent hover:bg-white hover:text-black text-white font-agrandir-semibold text-[10px] sm:text-xs px-3 py-3 flex items-center justify-center gap-2 transition-colors uppercase tracking-wide cursor-pointer"
+                    >
+                      <span>{isEn ? 'Event details' : 'Détails du concert'}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             );
