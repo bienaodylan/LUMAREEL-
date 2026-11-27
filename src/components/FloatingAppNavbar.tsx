@@ -86,7 +86,10 @@ export const FloatingAppNavbar: React.FC = () => {
       ariaLabel: isEn ? 'LUMARÉEL Club' : 'Club LUMARÉEL',
       isActive: isClubActive,
       icon: Compass,
-      onClick: () => setClubSheetOpen((prev) => !prev),
+      onClick: () => {
+        setClubSheetOpen(false);
+        setCurrentPage('rewards');
+      },
     },
     {
       id: 'card',
