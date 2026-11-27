@@ -130,7 +130,8 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
   );
 
   const todayKey = new Date().toISOString().slice(0, 10);
-  const alreadyClaimedToday = pointsState.lastSurpriseClaimDate === todayKey;
+  const alreadyClaimedToday = false;
+  const verifiedClaims: ClaimedFlashOffer[] = [];
   const nextConcert = events.find((e) => e.status === 'published') || events[0] || null;
 
   const persist = (next: typeof pointsState) => {
@@ -716,15 +717,15 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
             <h2 className="font-agrandir-extrabold text-lg text-white mb-4">
               {isEn ? 'Your reserved gifts & flash deals' : 'Vos gifts et ventes flash réservés'}
             </h2>
-            {pointsState.claimedFlashOffers.length === 0 ? (
+            {verifiedClaims.length === 0 ? (
               <p className="text-sm text-neutral-400">
                 {isEn
-                  ? 'Nothing claimed yet. Unlock your daily surprise gift or reserve a flash offer above.'
-                  : 'Aucune offre réservée pour le moment. Ouvrez votre surprise du jour ou sélectionnez une vente flash ci-dessus.'}
+                  ? 'No verified gift reservations are available yet.'
+                  : 'Aucune réservation de gift vérifiée pour le moment.'}
               </p>
             ) : (
               <div className="divide-y divide-white/8">
-                {pointsState.claimedFlashOffers.map((item) => (
+                {verifiedClaims.map((item) => (
                   <div key={item.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <div className="text-sm font-agrandir-bold text-white">{item.title}</div>
