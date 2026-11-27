@@ -54,7 +54,6 @@ export const FloatingAppNavbar: React.FC = () => {
         'flash_drops',
         'suggestions',
         'organizers',
-        'news',
       ].includes(currentPage),
     },
     {
