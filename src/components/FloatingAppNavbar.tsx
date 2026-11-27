@@ -1,5 +1,5 @@
 import React from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, PageView } from '../context/AppContext';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import {
   Compass,
