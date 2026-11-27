@@ -78,6 +78,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const rules = mapEligibility(eligibility);
       const now = Date.now();
+      const expiredIds = subscriptions
+        .filter((s: any) => s.status === 'active' && s.expires_at && Date.parse(s.expires_at) <= now)
+        .map((s: any) => s.id);
+      if (expiredIds.length) {
+        const { error: expiryError } = await db.from('tv_subscriptions')
+          .update({ status: 'expired', updated_at: new Date().toISOString() })
+          .in('id', expiredIds);
+        if (expiryError) throw expiryError;
+        subscriptions = subscriptions.map((s: any) => expiredIds.includes(s.id) ? { ...s, status: 'expired' } : s);
+      }
       const activeSub = subscriptions.find((s: any) => s.status === 'active' && (!s.expires_at || Date.parse(s.expires_at) > now));
       const latestSub = activeSub || subscriptions[0];
       const cardExpiry = card?.expires_at ? Date.parse(card.expires_at) : Number.POSITIVE_INFINITY;
