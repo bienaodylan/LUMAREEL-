@@ -181,7 +181,7 @@ const MainApp: React.FC = () => {
             {currentPage === 'card' && <LumareelMemberCardPage />}
             {currentPage === 'member_card' && <LumareelMemberCardPage />}
             {currentPage === 'card_verify' && <CardVerificationView />}
-            {currentPage === 'rewards' && <RewardsHubView />}
+            {currentPage === 'rewards' && <RewardsHubView unified />}
             {currentPage === 'backstage' && <BackstageView />}
             {currentPage === 'media_detail' && <MediaDetailView />}
             {currentPage === 'flash_drops' && <RewardsHubView initialTab="gifts" />}
