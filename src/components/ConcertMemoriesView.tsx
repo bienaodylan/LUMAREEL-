@@ -496,76 +496,44 @@ export const ConcertMemoriesView: React.FC = () => {
   // =========================================================================
   // VUE INDEX : LISTE DES CONCERTS PASSÉS (PAGES SOUVENIRS)
   // =========================================================================
+  const featuredAlbum = albums[0];
+  const otherAlbums = albums.slice(1);
+
   return (
-    <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
-      <header className="mb-8 pb-6 border-b border-white/10">
-        <p className="text-xs tracking-[0.2em] text-[#D4AF37] uppercase mb-2">
-          {isEn ? 'After the Show · Official Albums' : 'Après le Concert · Albums Officiels'}
-        </p>
-        <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-tight text-white leading-[1.02] text-balance">
-          {isEn ? 'Concert Memories' : 'Souvenirs de Concerts'}
-        </h1>
-        <p className="text-sm sm:text-base text-neutral-400 mt-3 max-w-2xl leading-relaxed">
-          {isEn
-            ? 'Every event gets its own dedicated memory page: official photos, best moments, recap videos, one-tap downloads, and fan photo/video sharing.'
-            : 'Après chaque concert, retrouvez la page dédiée de l’événement : photographies officielles, meilleurs moments, vidéos récapitulatives, téléchargement et partage entre participants.'}
-        </p>
+    <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-8 md:px-12 pt-5 sm:pt-10 pb-24 text-white font-agrandir-regular">
+      <header className="mb-8 sm:mb-10">
+        <p className="mb-3 text-[10px] sm:text-xs font-agrandir-bold uppercase tracking-[.22em] text-[#D4AF37]">{isEn ? 'After the show · The collection' : 'Après le concert · La collection'}</p>
+        <h1 className="text-4xl sm:text-6xl font-agrandir-extrabold tracking-[-.055em] leading-none">{isEn ? 'The memories.' : 'Les souvenirs.'}</h1>
+        <p className="mt-4 max-w-2xl text-sm sm:text-base leading-relaxed text-neutral-400">{isEn ? 'The nights do not end when the lights go out. Find the official images, the recap and the moments shared by the crowd.' : 'La soirée ne s’arrête pas quand les lumières s’éteignent. Retrouvez les images officielles, le récap et les instants partagés par le public.'}</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {albums.map((album) => (
-          <article
-            key={album.id}
-            onClick={() => setSelectedAlbumId(album.id)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedAlbumId(album.id); } }}
-            className="group rounded-3xl overflow-hidden bg-[#0e0e0e] border border-white/10 hover:border-white/30 transition-colors cursor-pointer flex flex-col"
-          >
-            <div className="aspect-[16/10] relative bg-black overflow-hidden">
-              <img
-                src={album.coverImage}
-                alt={album.title}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-              <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-xs text-white">
-                <span className="inline-flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-[#D4AF37]" />
-                  {album.officialPhotos.length} {isEn ? 'photos' : 'photos'}
-                </span>
-                <span className="inline-flex items-center gap-1 font-mono">
-                  <Film className="w-3.5 h-3.5 text-[#D4AF37]" />
-                  {album.recapDuration}
-                </span>
-              </div>
+      {featuredAlbum ? (
+        <>
+          <button type="button" onClick={() => setSelectedAlbumId(featuredAlbum.id)} className="group relative mb-12 grid w-full overflow-hidden border border-white/10 bg-[#101010] text-left md:grid-cols-12">
+            <div className="relative aspect-[16/10] overflow-hidden bg-black md:col-span-8 md:aspect-auto md:min-h-[390px]">
+              <img src={featuredAlbum.coverImage} alt={featuredAlbum.title} referrerPolicy="no-referrer" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.035]"/>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent"/>
+              <span className="absolute bottom-4 left-5 text-[10px] font-agrandir-bold uppercase tracking-[.18em] text-white/80">{isEn ? 'Featured memory' : 'Souvenir à la une'}</span>
             </div>
-
-            <div className="p-5 flex-1 flex flex-col justify-between gap-4">
-              <div className="space-y-1.5">
-                <div className="text-xs text-neutral-400">
-                  <span>{album.date}</span>
-                  <span aria-hidden="true"> · </span>
-                  <span>{album.venue}</span>
-                </div>
-                <h2 className="font-agrandir-extrabold text-lg text-white leading-snug">
-                  {album.title}
-                </h2>
-                <p className="text-xs text-neutral-400">{album.artist}</p>
-              </div>
-
-              <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-agrandir-bold text-white group-hover:text-[#D4AF37] transition-colors">
-                <span className="inline-flex items-center gap-1.5">
-                  <Camera className="w-3.5 h-3.5" />
-                  {isEn ? 'Open memory page' : 'Ouvrir la page souvenir'}
-                </span>
-                <ChevronRight className="w-4 h-4" />
-              </div>
+            <div className="flex flex-col justify-between gap-8 p-6 sm:p-8 md:col-span-4">
+              <div><p className="mb-3 text-xs text-[#D4AF37]">{featuredAlbum.date} · {featuredAlbum.venue}</p><h2 className="text-2xl sm:text-3xl font-agrandir-extrabold leading-tight">{featuredAlbum.title}</h2><p className="mt-2 text-sm text-neutral-400">{featuredAlbum.artist}</p><p className="mt-5 text-xs leading-relaxed text-neutral-500">{isEn ? 'Official photos, the concert recap and memories shared by attendees.' : 'Photos officielles, vidéo récapitulative et souvenirs partagés par les participants.'}</p></div>
+              <span className="flex items-center justify-between border-t border-white/10 pt-4 text-xs font-agrandir-bold uppercase tracking-wider text-white group-hover:text-[#D4AF37]"><span>{isEn ? 'Open the memory' : 'Voir le souvenir'}</span><ChevronRight className="h-4 w-4"/></span>
             </div>
-          </article>
-        ))}
-      </div>
+          </button>
+
+          {otherAlbums.length > 0 && <section>
+            <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-3"><h2 className="text-xs font-agrandir-bold uppercase tracking-[.18em] text-neutral-300">{isEn ? 'More nights to relive' : 'D’autres soirées à revivre'}</h2><span className="text-[10px] text-neutral-600">{otherAlbums.length} {isEn ? 'albums' : 'albums'}</span></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+              {otherAlbums.map(album => <button key={album.id} type="button" onClick={() => setSelectedAlbumId(album.id)} className="group overflow-hidden border border-white/10 bg-[#0d0d0d] text-left transition-colors hover:border-white/30">
+                <div className="relative aspect-[16/10] overflow-hidden bg-black"><img src={album.coverImage} alt={album.title} referrerPolicy="no-referrer" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"/><span className="absolute bottom-3 left-3 text-[10px] text-white/90">{album.officialPhotos.length} {isEn ? 'photos' : 'photos'} · {album.recapDuration}</span></div>
+                <span className="block p-4"><span className="block text-[10px] text-neutral-500">{album.date} · {album.venue}</span><span className="mt-2 block text-base font-agrandir-extrabold text-white">{album.title}</span><span className="mt-1 block text-xs text-neutral-500">{album.artist}</span></span>
+              </button>)}
+            </div>
+          </section>}
+        </>
+      ) : (
+        <div className="border-y border-white/10 py-16 text-center"><Camera className="mx-auto mb-4 h-8 w-8 text-[#D4AF37]"/><h2 className="text-xl font-agrandir-extrabold">{isEn ? 'The next memories are waiting to be made.' : 'Les prochains souvenirs restent à créer.'}</h2><p className="mt-2 text-sm text-neutral-500">{isEn ? 'Official concert albums will appear here after each production.' : 'Les albums officiels apparaîtront ici après chaque production.'}</p></div>
+      )}
     </div>
   );
 };
