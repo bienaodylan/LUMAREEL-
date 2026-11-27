@@ -397,7 +397,6 @@ async function activateTvPassSubscription(
       .eq('user_id', pending.user_id)
       .eq('status', 'active')
       .gt('expires_at', now.toISOString())
-      .neq('payment_reference', reference)
       .order('expires_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -980,6 +979,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
       return res.status(405).json({ success: false, error: 'Méthode non autorisée.' });
     }
+    let pendingTvReference = '';
     try {
       const { parsed: body } = parseJsonBody(req);
       const {
@@ -1020,6 +1020,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       let tvPlan: any = null;
       if (kind === 'tv_pass') {
+        if (!isLiveConfigured) return res.status(503).json({ success: false, error: 'Le paiement PayMeTrust n’est pas configuré. Aucun abonnement n’a été créé.' });
         if (!db) return res.status(503).json({ success: false, error: 'Base de données TV indisponible.' });
         const { data, error } = await db.from('tv_pass_plans').select('*').eq('id', String(planId)).eq('status', 'active').maybeSingle();
         if (error) throw error;
@@ -1040,6 +1041,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           : `PMT-${String(orderId || crypto.randomBytes(4).toString('hex')).toUpperCase()}`;
 
       if (kind === 'tv_pass' && db && authenticatedUser) {
+        pendingTvReference = reference;
         const { error } = await db.from('tv_subscriptions').insert({
           user_id: authenticatedUser.id,
           user_email: cleanEmail,
@@ -1106,6 +1108,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const token = authData?.access_token || authData?.token || authData?.data?.access_token;
 
         if (!authRes.ok || !token) {
+          if (pendingTvReference && db) await db.from('tv_subscriptions').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('payment_reference', pendingTvReference).eq('status', 'pending_payment');
           return res.status(502).json({
             success: false,
             error: authData?.message || 'Authentification PayMeTrust indisponible.',
@@ -1142,6 +1145,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const paymentUrl = initData?.payment_url || initData?.checkout_url || initData?.data?.payment_url;
 
         if (!initRes.ok || !paymentUrl) {
+          if (pendingTvReference && db) await db.from('tv_subscriptions').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('payment_reference', pendingTvReference).eq('status', 'pending_payment');
           return res.status(502).json({
             success: false,
             error: initData?.message || 'Impossible d’initialiser le paiement PayMeTrust.',
@@ -1178,6 +1182,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         },
       });
     } catch (error: any) {
+      if (pendingTvReference && db) {
+        await db.from('tv_subscriptions').update({ status: 'cancelled', updated_at: new Date().toISOString() }).eq('payment_reference', pendingTvReference).eq('status', 'pending_payment');
+      }
       return res.status(500).json({
         success: false,
         error: error?.message || 'Impossible d’initialiser le paiement.',
