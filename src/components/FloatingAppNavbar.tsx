@@ -13,7 +13,6 @@ import {
   Camera,
   Lightbulb,
   Film,
-  Newspaper,
   ChevronRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -39,8 +38,6 @@ export const FloatingAppNavbar: React.FC = () => {
     'backstage',
     'memories',
     'suggestions',
-    'archives',
-    'news',
   ];
   const isClubActive = clubPages.includes(currentPage);
 
@@ -126,12 +123,10 @@ export const FloatingAppNavbar: React.FC = () => {
             </div>
             {[
               { title: "Points & Parrainage", subtitle: "Points fidélité · 500 F CFA par ami", icon: Award, page: "rewards" as PageView },
-              { title: "BACKSTAGE", subtitle: "Balances & contenus exclusifs", icon: Clapperboard, page: "backstage" as PageView },
+              { title: "BACKSTAGE", subtitle: "Balances & contenus exclusifs", icon: Film, page: "backstage" as PageView },
               { title: "Ventes Flash & Surprises", subtitle: "Offres éclair & récompenses surprises", icon: Zap, page: "flash_drops" as PageView },
               { title: "Souvenirs de concerts", subtitle: "Photos officielles, récaps & partages", icon: Camera, page: "memories" as PageView },
               { title: "Boîte à suggestions", subtitle: "Proposez des artistes, lieux & idées", icon: Lightbulb, page: "suggestions" as PageView },
-              { title: "Archives", subtitle: "Productions scéniques passées", icon: Film, page: "archives" as PageView },
-              { title: "Actualités", subtitle: "Communiqués et annonces officielles", icon: Newspaper, page: "news" as PageView },
             ].map((item) => {
               const Icon = item.icon;
               return <button key={item.title} type="button" onClick={() => { setClubOpen(false); setCurrentPage(item.page); }} className="flex min-h-[82px] w-full items-center gap-4 border-b border-white/[0.07] py-3 text-left last:border-0">
