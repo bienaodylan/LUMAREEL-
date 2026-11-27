@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Clapperboard,
-  Film,
   Gift,
   Image as ImageIcon,
   Mic2,
@@ -177,15 +176,6 @@ export const HomeFeed: React.FC = () => {
         ? 'Suggest artists, venues & vote on upcoming ideas'
         : 'Proposez vos artistes, lieux & idées d’événements',
       icon: Mic2,
-    },
-    {
-      id: 'archive',
-      page: 'archive' as const,
-      title: t('home.archives'),
-      subtitle: isEn
-        ? 'Past LUMARÉEL stage productions & video recaps'
-        : 'Productions scéniques passées & récaps vidéo',
-      icon: Film,
     },
   ];
 
