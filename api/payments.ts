@@ -421,8 +421,46 @@ async function activateTvPassSubscription(
   return activated;
 }
 
+const mapTvPlan = (p: any) => ({
+  id: p.id, name: p.name, nameEn: p.name_en || undefined,
+  description: p.description || '', descriptionEn: p.description_en || undefined,
+  price: Number(p.price || 0), currency: p.currency || 'FCFA',
+  durationDays: 30, billingCycleLabel: 'Par mois', billingCycleLabelEn: 'Per month',
+  autoRenew: false, renewalPolicy: p.renewal_policy || 'Renouvellement manuel à chaque échéance.',
+  conditions: p.conditions || '', status: p.status,
+});
+const mapTvEligibility = (row: any) => ({
+  enabledPlanIds: Array.isArray(row?.enabled_plan_ids) ? row.enabled_plan_ids : [],
+  blackCardIncludesVipTier: row?.black_card_includes_vip_tier !== false,
+  cardAccessEnabled: row?.card_access_enabled !== false,
+  updatedAt: row?.updated_at,
+});
+const mapTvSubscription = (s: any) => ({
+  id: s.id, userId: s.user_id, userEmail: s.user_email, userName: s.user_name,
+  planId: s.plan_id, planName: s.plan_name, status: s.status, source: s.source,
+  paymentReference: s.payment_reference, providerTransactionId: s.provider_transaction_id,
+  amountPaid: Number(s.amount_paid || 0), currency: s.currency || 'FCFA',
+  autoRenew: false, startsAt: s.starts_at, expiresAt: s.expires_at,
+  revocationReason: s.revocation_reason, createdAt: s.created_at,
+});
+async function listTvSubscriptions(db: SupabaseClient) {
+  const { data, error } = await db.from('tv_subscriptions').select('*').order('created_at', { ascending: false }).limit(500);
+  if (error) throw error;
+  const rows = data || [];
+  const expiredIds = rows
+    .filter((row: any) => row.status === 'active' && row.expires_at && Date.parse(row.expires_at) <= Date.now())
+    .map((row: any) => row.id);
+  if (expiredIds.length) {
+    const { error: expiryError } = await db.from('tv_subscriptions')
+      .update({ status: 'expired', updated_at: new Date().toISOString() })
+      .in('id', expiredIds);
+    if (expiryError) throw expiryError;
+  }
+  return rows.map((row: any) => mapTvSubscription(expiredIds.includes(row.id) ? { ...row, status: 'expired' } : row));
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  applyCors(req, res, 'GET, POST, OPTIONS');
+  applyCors(req, res, 'GET, POST, PUT, PATCH, OPTIONS');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -734,6 +772,204 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err?.message || 'Erreur wallet.' });
+    }
+  }
+
+  // ==========================================================================
+  // LUMARÉEL TV — plans, entitlement and protected administration endpoints.
+  // All TV state is persisted in Supabase; no serverless filesystem storage.
+  // ==========================================================================
+  if (route === 'tv-plans') {
+    if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Méthode non autorisée.' });
+    if (!db) return res.status(503).json({ success: false, error: 'Service TV temporairement indisponible.' });
+    try {
+      const [{ data: plans, error }, { data: eligibility }] = await Promise.all([
+        db.from('tv_pass_plans').select('*').eq('status', 'active').order('price', { ascending: true }),
+        db.from('tv_card_eligibility').select('*').eq('id', 1).maybeSingle(),
+      ]);
+      if (error) throw error;
+      return res.status(200).json({
+        success: true,
+        plans: (plans || []).map(mapTvPlan),
+        cardEligibility: mapTvEligibility(eligibility),
+        paymentReady: isLiveConfigured,
+        paymentProvider: 'paymetrust',
+        paymentEnvironment: envName,
+        channels: [
+          { id: 'wave', label: 'Wave', type: 'mobile_money' },
+          { id: 'orange_money', label: 'Orange Money', type: 'mobile_money' },
+          { id: 'mtn_momo', label: 'MTN MoMo', type: 'mobile_money' },
+          { id: 'moov_money', label: 'Moov Money', type: 'mobile_money' },
+          { id: 'card', label: 'Visa / Mastercard', type: 'card' },
+        ],
+      });
+    } catch (error: any) {
+      console.error('[tv-plans]', error?.message || error);
+      return res.status(500).json({ success: false, error: 'Impossible de charger les formules TV.' });
+    }
+  }
+
+  if (route === 'tv-entitlement') {
+    if (req.method !== 'GET') return res.status(405).json({ success: false, error: 'Méthode non autorisée.' });
+    if (!db) return res.status(503).json({ success: false, error: 'Service TV temporairement indisponible.' });
+    const auth = await getAuthenticatedUser(req);
+    if (!auth?.user?.id || !auth.user.email) return res.status(401).json({ success: false, error: 'Connexion requise.' });
+    try {
+      const email = auth.user.email.trim().toLowerCase();
+      const [{ data: eligibility }, { data: byId, error: subError }, { data: cardById }] = await Promise.all([
+        db.from('tv_card_eligibility').select('*').eq('id', 1).maybeSingle(),
+        db.from('tv_subscriptions').select('*').eq('user_id', auth.user.id).order('created_at', { ascending: false }),
+        db.from('membership_cards').select('*').eq('user_id', auth.user.id).eq('card_status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (subError) throw subError;
+      let subscriptions = byId || [];
+      if (!subscriptions.length) {
+        const { data: byEmail, error } = await db.from('tv_subscriptions').select('*').ilike('user_email', email).order('created_at', { ascending: false });
+        if (error) throw error;
+        subscriptions = byEmail || [];
+      }
+      const now = Date.now();
+      const expiredIds = subscriptions
+        .filter((s: any) => s.status === 'active' && s.expires_at && Date.parse(s.expires_at) <= now)
+        .map((s: any) => s.id);
+      if (expiredIds.length) {
+        const { error } = await db.from('tv_subscriptions').update({ status: 'expired', updated_at: new Date().toISOString() }).in('id', expiredIds);
+        if (error) throw error;
+        subscriptions = subscriptions.map((s: any) => expiredIds.includes(s.id) ? { ...s, status: 'expired' } : s);
+      }
+      let card = cardById;
+      if (!card) {
+        const { data } = await db.from('membership_cards').select('*').ilike('cardholder_email', email).eq('card_status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle();
+        card = data;
+      }
+      const rules = mapTvEligibility(eligibility);
+      const activeSub = subscriptions.find((s: any) => s.status === 'active' && (!s.expires_at || Date.parse(s.expires_at) > now));
+      const latestSub = activeSub || subscriptions[0];
+      const cardExpiry = card?.expires_at ? Date.parse(card.expires_at) : Number.POSITIVE_INFINITY;
+      const cardPlanAllowed = rules.enabledPlanIds.length === 0 || rules.enabledPlanIds.includes(String(card?.plan_id || ''));
+      const cardEligible = Boolean(rules.cardAccessEnabled && card && card.card_status === 'active' && cardExpiry > now && cardPlanAllowed);
+      const hasSub = Boolean(activeSub);
+      const source = cardEligible && hasSub ? 'both' : cardEligible ? 'lumareel_card' : hasSub ? 'tv_pass' : 'none';
+      const maxTier = cardEligible ? (rules.blackCardIncludesVipTier ? 'vip' : 'card') : hasSub ? 'tv_pass' : 'free';
+      const subStatus = latestSub?.status || undefined;
+      const subReason = activeSub ? undefined : subStatus === 'expired' ? 'Votre LUMARÉEL TV Pass a expiré.' : subStatus === 'pending_payment' ? 'Paiement en attente de confirmation.' : subStatus === 'revoked' ? (latestSub.revocation_reason || 'Votre accès a été révoqué.') : 'Aucun abonnement LUMARÉEL TV Pass actif.';
+      const entitlement = {
+        hasAccess: cardEligible || hasSub, source, maxTier,
+        cardAccess: { eligible: cardEligible, cardNumber: card?.card_number, cardStatus: card?.card_status, planId: card?.plan_id, clubVipLevel: card?.club_vip_level, expiresAt: card?.expires_at, reason: cardEligible ? undefined : 'Aucune carte active éligible.' },
+        subscriptionAccess: { active: hasSub, subscriptionId: latestSub?.id, planId: latestSub?.plan_id, planName: latestSub?.plan_name, status: subStatus, startsAt: latestSub?.starts_at, expiresAt: latestSub?.expires_at, autoRenew: false, reason: subReason },
+        checkedAt: new Date().toISOString(),
+      };
+      return res.status(200).json({ success: true, entitlement, paymentReady: isLiveConfigured });
+    } catch (error: any) {
+      console.error('[tv-entitlement]', error?.message || error);
+      return res.status(500).json({ success: false, error: 'Impossible de vérifier les droits LUMARÉEL TV.' });
+    }
+  }
+
+  if (route === 'admin-tv') {
+    const admin = await requireRole(req, ['super_admin']);
+    if (!admin.ok) return res.status(admin.status).json({ success: false, error: admin.error });
+    if (!db) return res.status(503).json({ success: false, error: 'Service Supabase indisponible.' });
+    const pathValue = Array.isArray(req.query.path) ? req.query.path.join('/') : String(req.query.path || '');
+    const parts = pathValue.split('/').filter(Boolean);
+    const resource = parts[0] || '';
+    try {
+      if (resource === 'overview' && req.method === 'GET') {
+        const [{ data: plans, error: planError }, { data: eligibility }, { data: membershipPlans }, subscriptions] = await Promise.all([
+          db.from('tv_pass_plans').select('*').order('price', { ascending: true }),
+          db.from('tv_card_eligibility').select('*').eq('id', 1).maybeSingle(),
+          db.from('membership_plans').select('id,name,price,currency').eq('status', 'active').order('created_at', { ascending: true }),
+          listTvSubscriptions(db),
+        ]);
+        if (planError) throw planError;
+        return res.status(200).json({
+          success: true, plans: (plans || []).map(mapTvPlan), subscriptions,
+          cardEligibility: mapTvEligibility(eligibility),
+          membershipPlans: (membershipPlans || []).map((p: any) => ({ id: p.id, name: p.name, price: Number(p.price || 0), currency: p.currency || 'XOF' })),
+          paymentReady: isLiveConfigured,
+        });
+      }
+      if (resource === 'plans' && req.method === 'POST') {
+        const { parsed: body } = parseJsonBody(req);
+        const name = String(body.name || '').trim();
+        const price = Math.round(Number(body.price));
+        if (!name || !Number.isFinite(price) || price <= 0) return res.status(400).json({ success: false, error: 'Nom et prix mensuel valides requis.' });
+        if (Number(body.durationDays || 30) !== 30) return res.status(400).json({ success: false, error: 'Le LUMARÉEL TV Pass est exclusivement mensuel (30 jours).' });
+        const id = String(body.id || 'tv_pass_monthly').trim();
+        const row = {
+          id, name, name_en: body.nameEn || null, description: String(body.description || ''),
+          description_en: body.descriptionEn || null, price, currency: 'FCFA', duration_days: 30,
+          billing_cycle_label: 'Par mois', billing_cycle_label_en: 'Per month', auto_renew: false,
+          renewal_policy: String(body.renewalPolicy || 'Renouvellement manuel à chaque échéance. Aucun prélèvement automatique.'),
+          conditions: String(body.conditions || 'Accès personnel pendant 30 jours après confirmation du paiement.'),
+          status: ['active','inactive','archived'].includes(body.status) ? body.status : 'active',
+          updated_at: new Date().toISOString(),
+        };
+        const { error } = await db.from('tv_pass_plans').upsert(row, { onConflict: 'id' });
+        if (error) throw error;
+        const { data: plans, error: readError } = await db.from('tv_pass_plans').select('*').order('price', { ascending: true });
+        if (readError) throw readError;
+        return res.status(200).json({ success: true, plans: (plans || []).map(mapTvPlan) });
+      }
+      if (resource === 'card-eligibility' && req.method === 'PUT') {
+        const { parsed: body } = parseJsonBody(req);
+        const row = {
+          id: 1,
+          enabled_plan_ids: Array.isArray(body.enabledPlanIds) ? body.enabledPlanIds.map(String) : [],
+          black_card_includes_vip_tier: body.blackCardIncludesVipTier !== false,
+          card_access_enabled: body.cardAccessEnabled !== false,
+          updated_at: new Date().toISOString(),
+        };
+        const { data, error } = await db.from('tv_card_eligibility').upsert(row, { onConflict: 'id' }).select('*').single();
+        if (error) throw error;
+        return res.status(200).json({ success: true, cardEligibility: mapTvEligibility(data) });
+      }
+      if (resource === 'subscriptions' && parts[1] === 'grant' && req.method === 'POST') {
+        const { parsed: body } = parseJsonBody(req);
+        const email = String(body.userEmail || '').trim().toLowerCase();
+        if (!EMAIL_REGEX.test(email)) return res.status(400).json({ success: false, error: 'Adresse e-mail invalide.' });
+        const planId = String(body.planId || 'tv_pass_monthly');
+        const { data: plan } = await db.from('tv_pass_plans').select('*').eq('id', planId).eq('status', 'active').maybeSingle();
+        if (!plan) return res.status(400).json({ success: false, error: 'Formule mensuelle introuvable ou inactive.' });
+        const now = new Date();
+        const expires = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const { error } = await db.from('tv_subscriptions').insert({
+          user_id: null, user_email: email,
+          user_name: String(body.userName || email.split('@')[0]).trim(),
+          plan_id: plan.id, plan_name: plan.name, status: 'active', source: 'admin_grant',
+          amount_paid: 0, currency: plan.currency || 'FCFA', auto_renew: false,
+          starts_at: now.toISOString(), expires_at: expires.toISOString(),
+        });
+        if (error) throw error;
+        return res.status(200).json({ success: true, subscriptions: await listTvSubscriptions(db) });
+      }
+      if (resource === 'subscriptions' && parts[1] && parts[2] === 'status' && (req.method === 'PATCH' || req.method === 'PUT')) {
+        const id = parts[1];
+        const { parsed: body } = parseJsonBody(req);
+        const status = String(body.status || '');
+        if (!['active','revoked','cancelled','expired'].includes(status)) return res.status(400).json({ success: false, error: 'Statut invalide.' });
+        const { data: current, error: readError } = await db.from('tv_subscriptions').select('*').eq('id', id).maybeSingle();
+        if (readError) throw readError;
+        if (!current) return res.status(404).json({ success: false, error: 'Abonnement introuvable.' });
+        const now = new Date();
+        const patch: any = { status, auto_renew: false, updated_at: now.toISOString() };
+        if (status === 'active' && (!current.expires_at || Date.parse(current.expires_at) <= now.getTime())) {
+          patch.starts_at = now.toISOString();
+          patch.expires_at = new Date(now.getTime() + 30 * 86400000).toISOString();
+          patch.revoked_at = null; patch.revocation_reason = null;
+        }
+        if (status === 'revoked' || status === 'cancelled') {
+          patch.revoked_at = now.toISOString();
+          patch.revocation_reason = String(body.reason || 'Révoqué par l’administration LUMARÉEL.');
+        }
+        const { error } = await db.from('tv_subscriptions').update(patch).eq('id', id);
+        if (error) throw error;
+        return res.status(200).json({ success: true, subscriptions: await listTvSubscriptions(db) });
+      }
+      return res.status(404).json({ success: false, error: 'Ressource TV administration introuvable.' });
+    } catch (error: any) {
+      console.error('[admin-tv]', error?.message || error);
+      return res.status(500).json({ success: false, error: 'Erreur lors de la gestion LUMARÉEL TV.' });
     }
   }
 
