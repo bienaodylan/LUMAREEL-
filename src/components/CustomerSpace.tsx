@@ -44,10 +44,8 @@ export const CustomerSpace: React.FC = () => {
 
   const isEn = language === 'en';
   const [activeTab, setActiveTab] = useState<TicketsTab>('upcoming');
-  const [selectedActiveTicketId, setSelectedActiveTicketId] = useState<string | null>(null);
   const [selectedTicketForQr, setSelectedTicketForQr] = useState<Ticket | null>(null);
   const [qrCodeDataUrls, setQrCodeDataUrls] = useState<Record<string, string>>({});
-  const [modalQrCodeUrl, setModalQrCodeUrl] = useState<string>('');
 
   // Transfert de billet réel côté serveur (BottomSheet dédié)
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -95,41 +93,6 @@ export const CustomerSpace: React.FC = () => {
     [allTickets]
   );
 
-  const featuredTicket = useMemo(() => {
-    if (activeTickets.length === 0) return null;
-    if (selectedActiveTicketId) {
-      const match = activeTickets.find((tkt) => tkt.id === selectedActiveTicketId);
-      if (match) return match;
-    }
-    return activeTickets[0];
-  }, [activeTickets, selectedActiveTicketId]);
-
-  const otherActiveTickets = useMemo(() => {
-    if (!featuredTicket) return [];
-    return activeTickets.filter((tkt) => tkt.id !== featuredTicket.id);
-  }, [activeTickets, featuredTicket]);
-
-  const groupedOtherTickets = useMemo(() => {
-    const groups: {
-      key: string;
-      primaryTicket: Ticket;
-      count: number;
-    }[] = [];
-    const map = new Map<string, number>();
-
-    otherActiveTickets.forEach((ticket) => {
-      const key = `${ticket.eventId || ticket.eventTitle}__${ticket.categoryName}`;
-      const idx = map.get(key);
-      if (idx === undefined) {
-        map.set(key, groups.length);
-        groups.push({ key, primaryTicket: ticket, count: 1 });
-      } else {
-        groups[idx].count += 1;
-      }
-    });
-    return groups;
-  }, [otherActiveTickets]);
-
   useEffect(() => {
     allTickets.forEach((ticket) => {
       if (ticket.status !== 'cancelled' && !qrCodeDataUrls[ticket.id]) {
@@ -143,18 +106,6 @@ export const CustomerSpace: React.FC = () => {
       }
     });
   }, [allTickets]);
-
-  useEffect(() => {
-    if (selectedTicketForQr) {
-      QRCode.toDataURL(selectedTicketForQr.token, {
-        margin: 1,
-        color: { dark: '#000000', light: '#ffffff' },
-        width: 520,
-      }).then(setModalQrCodeUrl);
-    } else {
-      setModalQrCodeUrl('');
-    }
-  }, [selectedTicketForQr]);
 
   const openTransferModal = (ticket?: Ticket) => {
     setTransferSuccessToken(null);
@@ -648,7 +599,6 @@ export const CustomerSpace: React.FC = () => {
               doorsLine={`${selectedTicketForQr.eventTime || '19:00'} · ${isEn ? 'Gate A' : 'Entrée A'}`}
               directionsUrl={buildDirectionsUrl(selectedTicketForQr.eventVenue)}
               isEn={isEn}
-              onOpenQrFullscreen={() => setModalQrCodeUrl(qrCodeDataUrls[selectedTicketForQr.id] || '')}
               onTransfer={() => openTransferModal(selectedTicketForQr)}
             />
             <div className="mt-3 grid grid-cols-2 gap-2.5">
