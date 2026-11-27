@@ -13,10 +13,11 @@ import {
 } from '../utils/mediaHubStorage';
 import { loadStoredMemberCard } from '../utils/memberCardStorage';
 import { ConcertMemoriesView } from './ConcertMemoriesView';
+import { ArchiveView } from './ArchiveView';
 import { PageHeader, SegmentedControl } from './ui/EditorialPrimitives';
 import { ArrowUpRight, Lock, Play } from 'lucide-react';
 
-type BackstageSection = 'coulisses' | 'memories';
+type BackstageSection = 'coulisses' | 'memories' | 'archives';
 
 /**
  * BACKSTAGE — Destination média monochrome unifiée regroupant Coulisses & Memories.
@@ -131,6 +132,7 @@ export const BackstageView: React.FC = () => {
             options={[
               { id: 'coulisses', label: isEn ? 'Behind the Scenes' : 'Coulisses' },
               { id: 'memories', label: 'Memories' },
+              { id: 'archives', label: 'Archives' },
             ]}
           />
         }
@@ -427,7 +429,7 @@ export const BackstageView: React.FC = () => {
                 </h2>
                 <button
                   type="button"
-                  onClick={() => setCurrentPage('archive')}
+                  onClick={() => setSection('archives')}
                   className="text-xs font-agrandir-semibold text-neutral-400 hover:text-white inline-flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <span>{isEn ? 'Archives' : 'Archives'}</span>
@@ -466,11 +468,10 @@ export const BackstageView: React.FC = () => {
 
       {/* VUE 2 : MEMORIES INTÉGRÉ DANS BACKSTAGE */}
       {section === 'memories' && (
-        <ConcertMemoriesView
-          embedded
-          onJumpToBackstage={() => setSection('coulisses')}
-        />
+        <ConcertMemoriesView embedded onJumpToBackstage={() => setSection('coulisses')} />
       )}
+
+      {section === 'archives' && <ArchiveView embedded />}
     </div>
   );
 };
