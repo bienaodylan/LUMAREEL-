@@ -72,29 +72,23 @@ export const ClubExplorer: React.FC<Props> = ({ isEn, points, creditFcfa, active
   return (
     <div className="mb-10">
       {/* HERO CINÉMATIQUE */}
-      <section className="relative -mx-4 sm:mx-0 overflow-hidden sm:rounded-[2rem] min-h-[340px] sm:min-h-[420px] flex items-end">
+      <section className="relative -mx-4 sm:mx-0 overflow-hidden sm:rounded-none min-h-[340px] sm:min-h-[420px] flex items-end">
         <motion.img
           src={imgHero}
           alt=""
           aria-hidden
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover grayscale"
           initial={{ scale: 1.18, opacity: 0 }}
           animate={{ scale: 1.04, opacity: 0.55 }}
           transition={{ duration: 2.4, ease: [0.22, 1, 0.36, 1] }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/10" />
-        <motion.div
-          aria-hidden
-          className="absolute -top-24 right-[-10%] w-[420px] h-[420px] rounded-full bg-[#D4AF37]/20 blur-[120px]"
-          animate={{ opacity: [0.35, 0.7, 0.35], scale: [1, 1.12, 1] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        />
         <div className="relative w-full px-5 sm:px-10 pb-8 sm:pb-10 pt-24">
           <motion.p
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.6 }}
-            className="text-[11px] tracking-[0.32em] uppercase text-[#D4AF37] mb-3"
+            className="text-[11px] tracking-[0.32em] uppercase text-white mb-3"
           >
             {isEn ? 'LUMARÉEL Club' : 'Club LUMARÉEL'}
           </motion.p>
@@ -115,7 +109,7 @@ export const ClubExplorer: React.FC<Props> = ({ isEn, points, creditFcfa, active
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7, duration: 0.6 }}
-            className="mt-6 inline-flex items-center gap-6 rounded-2xl bg-white/[0.06] backdrop-blur-xl border border-white/10 px-5 py-3.5"
+            className="mt-6 inline-flex items-center gap-6 rounded-none bg-white/[0.04] backdrop-blur-xl border border-white/10 px-5 py-3.5"
           >
             <div>
               <div className="text-[11px] text-neutral-400">{isEn ? 'Points' : 'Points'}</div>
@@ -153,8 +147,8 @@ export const ClubExplorer: React.FC<Props> = ({ isEn, points, creditFcfa, active
               transition={{ delay: 0.5 + i * 0.07, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
               whileHover={{ y: -6 }}
               whileTap={{ scale: 0.97 }}
-              className={`group relative snap-start shrink-0 w-[62vw] max-w-[230px] sm:w-[220px] aspect-[3/4] rounded-3xl overflow-hidden text-left cursor-pointer border transition-colors ${
-                active ? 'border-[#D4AF37] shadow-[0_0_0_1px_#D4AF37,0_20px_60px_-20px_rgba(212,175,55,0.5)]' : 'border-white/10'
+              className={`group relative snap-start shrink-0 w-[62vw] max-w-[230px] sm:w-[220px] aspect-[3/4] rounded-none overflow-hidden text-left cursor-pointer border transition-colors ${
+                active ? 'border-white shadow-[0_0_0_1px_rgba(255,255,255,0.35)]' : 'border-white/10'
               }`}
             >
               <img
