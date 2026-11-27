@@ -1,8 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
-import { ChevronLeft, ChevronRight, ArrowUpRight, Ticket } from 'lucide-react';
-import { formatDateLong } from '../utils/dateUtils';
+import { ChevronLeft, ChevronRight, ArrowUpRight } from 'lucide-react';
 import blackCardImage from '../assets/images/black_card_hero_banner_1795099705118.jpg';
 import backstageImage from '../assets/images/backstage_soundcheck_1795735706175.jpg';
 import memoriesImage from '../assets/images/concert_memories_crowd_1795735706315.jpg';
@@ -17,27 +16,58 @@ type QuickAccessItem = {
   position?: string;
 };
 
+const getEventTimestamp = (event: ConcertEvent) => {
+  const rawDate = String(event.date || '').slice(0, 10);
+  const rawTime = String(event.time || '20:00').slice(0, 8);
+  const normalizedTime = /^\d{2}:\d{2}$/.test(rawTime) ? rawTime : rawTime.slice(0, 5);
+  const timestamp = new Date(`${rawDate}T${normalizedTime}:00`).getTime();
+  return Number.isFinite(timestamp) ? timestamp : new Date(rawDate).getTime();
+};
+
+const EventCountdown: React.FC<{ event: ConcertEvent }> = ({ event }) => {
+  const target = useMemo(() => getEventTimestamp(event), [event.date, event.time]);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  if (!Number.isFinite(target) || target <= now) return null;
+  const remaining = Math.floor((target - now) / 1000);
+  const days = Math.floor(remaining / 86400);
+  const hours = Math.floor((remaining % 86400) / 3600);
+  const minutes = Math.floor((remaining % 3600) / 60);
+  const seconds = remaining % 60;
+  const pad = (value: number) => String(value).padStart(2, '0');
+
+  return (
+    <div className="absolute right-3 top-3 z-10 flex items-center gap-1.5 bg-black/45 px-2.5 py-1.5 text-[10px] font-agrandir-semibold tracking-[0.08em] text-white backdrop-blur-sm sm:right-5 sm:top-5 sm:text-xs" aria-label="Compte à rebours avant le concert">
+      {days > 0 && <span>{days}J</span>}
+      <span>{pad(hours)}H</span><span>{pad(minutes)}M</span><span>{pad(seconds)}S</span>
+    </div>
+  );
+};
+
 export const HomeFeed: React.FC = () => {
   const {
     events,
     setCurrentPage,
-    setCheckoutEvent,
     setSelectedEventSlug,
-    currentUser,
-    setIsAuthModalOpen,
-    showToast,
     language,
-    setLanguage,
-    t,
   } = useApp();
   const isEn = language === 'en';
 
-  // The existing event source, filtering, carousel timing and booking handlers are preserved.
-  const featuredSlides = events.filter((event) => event.isFeatured && event.status !== 'draft');
-  const activeSlides = featuredSlides.length > 0 ? featuredSlides : events.slice(0, 3);
+  // Keep the existing event records intact; only present upcoming, non-draft productions here.
+  const activeSlides = useMemo(
+    () => events
+      .filter((event) => event.status !== 'draft' && getEventTimestamp(event) > Date.now())
+      .sort((a, b) => getEventTimestamp(a) - getEventTimestamp(b)),
+    [events]
+  );
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const featuredRowRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const cardRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const isProgrammaticScroll = useRef(false);
   const scrollRafRef = useRef<number | null>(null);
 
@@ -49,14 +79,14 @@ export const HomeFeed: React.FC = () => {
     setCurrentSlideIndex(index);
     const containerRect = container.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect();
-    const offset = cardRect.left - containerRect.left - (containerRect.width - cardRect.width) / 2;
+    const offset = cardRect.left - containerRect.left - (container.clientWidth - cardRect.width) / 2;
     container.scrollBy({ left: offset, behavior: 'smooth' });
-    window.setTimeout(() => { isProgrammaticScroll.current = false; }, 500);
+    window.setTimeout(() => { isProgrammaticScroll.current = false; }, 550);
   };
 
   const handleContainerScroll = () => {
     if (isProgrammaticScroll.current) return;
-    if (scrollRafRef.current) cancelAnimationFrame(scrollRafRef.current);
+    if (scrollRafRef.current !== null) cancelAnimationFrame(scrollRafRef.current);
     scrollRafRef.current = requestAnimationFrame(() => {
       const container = featuredRowRef.current;
       if (!container) return;
@@ -69,9 +99,7 @@ export const HomeFeed: React.FC = () => {
         const distance = Math.abs(center - (rect.left + rect.width / 2));
         if (distance < minDistance) { minDistance = distance; closestIndex = index; }
       });
-      if (closestIndex !== currentSlideIndex && closestIndex < activeSlides.length) {
-        setCurrentSlideIndex(closestIndex);
-      }
+      setCurrentSlideIndex(closestIndex);
     });
   };
 
@@ -89,27 +117,8 @@ export const HomeFeed: React.FC = () => {
     return () => window.clearInterval(interval);
   }, [activeSlides.length]);
 
-  const scrollFeaturedRow = (direction: 'left' | 'right') => {
-    if (!activeSlides.length) return;
-    const next = direction === 'left'
-      ? (currentSlideIndex === 0 ? activeSlides.length - 1 : currentSlideIndex - 1)
-      : (currentSlideIndex + 1) % activeSlides.length;
-    scrollToSlide(next);
-  };
-
-  const handleBookNow = (event: ConcertEvent, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!currentUser) {
-      showToast(isEn ? 'Account required to book tickets.' : 'Création de compte obligatoire pour réserver vos billets.', 'info');
-      setCheckoutEvent(event);
-      setIsAuthModalOpen(true);
-      return;
-    }
-    setCheckoutEvent(event);
-  };
-
-  const handleViewDetails = (event: ConcertEvent, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleViewAll = () => setCurrentPage('discover');
+  const handleViewDetails = (event: ConcertEvent) => {
     setSelectedEventSlug(event.slug || event.id);
     setCurrentPage('event_detail');
   };
@@ -123,137 +132,84 @@ export const HomeFeed: React.FC = () => {
   ];
 
   return (
-    <div className="home-editorial min-h-screen w-full max-w-full overflow-x-clip bg-[#050505] text-white pb-16 select-none">
-      {/* 01 — HERO */}
-      <section className="home-hero relative isolate mx-auto w-full max-w-[1600px] px-3 sm:px-6 lg:px-10 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] md:pt-7">
-        <div className="home-hero-frame relative min-h-[300px] h-[48svh] max-h-[590px] overflow-hidden bg-[#111]">
-          <img
-            src={memoriesImage}
-            alt={isEn ? 'Live concert atmosphere' : 'Ambiance immersive de concert'}
-            className="absolute inset-0 h-full w-full object-cover object-center"
-            fetchPriority="high"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/25 to-black/5" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-black/10" />
-          <div className="absolute left-5 right-5 bottom-6 sm:left-10 sm:bottom-10 lg:left-14 lg:bottom-14">
-            <p className="mb-3 text-[9px] sm:text-[10px] uppercase tracking-[0.32em] text-white/75">LUMARÉEL · LIVE EXPERIENCES</p>
-            <h1 className="max-w-3xl text-[clamp(2.2rem,7vw,5.8rem)] font-agrandir-extrabold uppercase leading-[0.92] tracking-[-0.055em]">
+    <div className="home-editorial w-full min-h-screen max-w-full overflow-x-clip bg-[#050505] pb-0 text-white">
+      <section className="home-hero relative isolate w-full overflow-hidden pt-[calc(4.5rem+env(safe-area-inset-top,0px))] md:pt-0">
+        <div className="home-hero-frame relative h-[54svh] min-h-[340px] max-h-[720px] w-full overflow-hidden bg-[#111] sm:h-[62svh]">
+          <img src={memoriesImage} alt={isEn ? 'Live concert atmosphere' : 'Ambiance de concert'} className="absolute inset-0 h-full w-full object-cover object-center" fetchPriority="high" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/15 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
+          <div className="absolute bottom-7 left-5 right-5 sm:bottom-12 sm:left-10 lg:bottom-16 lg:left-16">
+            <h1 className="max-w-4xl text-[clamp(2.4rem,7.5vw,7rem)] font-agrandir-extrabold uppercase leading-[0.9] tracking-[-0.055em]">
               {isEn ? 'Live beyond the stage.' : 'Vivez au-delà de la scène.'}
             </h1>
-            <button
-              type="button"
-              onClick={() => document.getElementById('home-upcoming-events')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-              className="mt-6 inline-flex min-h-11 items-center gap-5 border border-white/80 bg-white px-5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.16em] text-black transition-colors hover:bg-transparent hover:text-white"
-            >
-              {isEn ? 'Explore events' : 'Découvrir les événements'}
-              <ArrowUpRight className="h-4 w-4" />
+            <button type="button" onClick={() => document.getElementById('home-upcoming-events')?.scrollIntoView({ behavior: 'smooth' })} className="mt-5 inline-flex min-h-10 items-center gap-4 border border-white bg-white px-4 text-[10px] font-agrandir-extrabold uppercase tracking-[0.13em] text-black transition-colors hover:bg-transparent hover:text-white">
+              {isEn ? 'Explore events' : 'Découvrir les événements'} <ArrowUpRight className="h-4 w-4" />
             </button>
           </div>
-          <div className="absolute right-5 top-5 hidden sm:block text-[9px] tracking-[0.24em] text-white/70">ABIDJAN · CULTURE · LIVE</div>
         </div>
       </section>
 
-      {/* 02 — UPCOMING EVENTS: data, carousel mechanics and booking actions unchanged */}
-      <section id="home-upcoming-events" className="home-section home-events relative z-10 mx-auto w-full max-w-[1600px] px-4 pt-8 sm:px-6 sm:pt-12 lg:px-10">
-        <div className="mb-4 flex items-end justify-between border-b border-white/15 pb-3">
-          <div className="min-w-0">
-            <p className="mb-1 text-[9px] uppercase tracking-[0.25em] text-[#777]">LUMARÉEL · AGENDA</p>
-            <h2 className="text-base font-agrandir-extrabold uppercase tracking-[-0.02em] sm:text-xl">{t('home.upcomingTitle')}</h2>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <div className="hidden items-center border border-white/15 text-[10px] tracking-wider md:flex">
-              <button type="button" onClick={() => setLanguage('fr')} className={`px-3 py-2 transition-colors ${language === 'fr' ? 'bg-white text-black' : 'text-[#888] hover:text-white'}`}>FR</button>
-              <button type="button" onClick={() => setLanguage('en')} className={`px-3 py-2 transition-colors ${language === 'en' ? 'bg-white text-black' : 'text-[#888] hover:text-white'}`}>EN</button>
+      <section id="home-upcoming-events" className="home-events w-full pt-5 sm:pt-7">
+        <div className="mb-3 flex items-center justify-between border-b border-white/15 px-4 pb-2.5 sm:px-7 lg:px-10">
+          <h2 className="text-lg font-agrandir-extrabold uppercase tracking-[-0.025em] sm:text-2xl">ÉVÉNEMENTS</h2>
+          <button type="button" onClick={handleViewAll} className="inline-flex min-h-9 items-center gap-2 text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em] text-white transition-opacity hover:opacity-65">
+            VOIR TOUT <ArrowUpRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        {activeSlides.length > 0 ? (
+          <>
+            <div className="hidden justify-end gap-2 px-7 pb-2 md:flex lg:px-10">
+              <button type="button" onClick={() => scrollToSlide((currentSlideIndex - 1 + activeSlides.length) % activeSlides.length)} aria-label="Événement précédent" className="flex h-9 w-9 items-center justify-center border border-white/25 text-white hover:bg-white hover:text-black"><ChevronLeft className="h-4 w-4" /></button>
+              <button type="button" onClick={() => scrollToSlide((currentSlideIndex + 1) % activeSlides.length)} aria-label="Événement suivant" className="flex h-9 w-9 items-center justify-center border border-white/25 text-white hover:bg-white hover:text-black"><ChevronRight className="h-4 w-4" /></button>
             </div>
-            <button type="button" onClick={() => scrollFeaturedRow('left')} aria-label={t('home.prevConcert')} className="flex h-9 w-9 items-center justify-center border border-white/25 text-white transition-colors hover:bg-white hover:text-black"><ChevronLeft className="h-4 w-4" /></button>
-            <button type="button" onClick={() => scrollFeaturedRow('right')} aria-label={t('home.nextConcert')} className="flex h-9 w-9 items-center justify-center border border-white/25 text-white transition-colors hover:bg-white hover:text-black"><ChevronRight className="h-4 w-4" /></button>
-          </div>
-        </div>
-
-        <div
-          ref={featuredRowRef}
-          onScroll={handleContainerScroll}
-          className="flex snap-x snap-mandatory items-start gap-4 overflow-x-auto pb-4 pt-2 scroll-smooth sm:gap-6"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {activeSlides.map((event, index) => {
-            const isActive = index === currentSlideIndex;
-            return (
-              <article
-                key={event.id}
-                ref={(element) => { cardRefs.current[index] = element; }}
-                onClick={() => scrollToSlide(index)}
-                className="group w-[calc(100vw-3rem)] max-w-[calc(100vw-3rem)] shrink-0 snap-start cursor-pointer sm:w-[390px] sm:max-w-none lg:w-[420px]"
-              >
-                <div className={`relative aspect-[16/9] w-full overflow-hidden bg-[#111] transition-all duration-300 ${isActive ? 'outline outline-1 outline-white outline-offset-2' : 'opacity-85 hover:opacity-100'}`}>
-                  <img src={event.officialPoster || event.bannerImage} alt={event.title} referrerPolicy="no-referrer" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.035]" />
-                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent" />
-                </div>
-                <div className="flex flex-col gap-3 pt-4">
-                  <div>
-                    <h3 className="truncate text-sm font-agrandir-extrabold uppercase tracking-tight text-white sm:text-base">{event.artist} {t('home.inConcert')}</h3>
-                    <p className="mt-1 truncate text-[11px] text-[#999]"><span className="text-white">{event.venue}</span> · {formatDateLong(event.date, language)}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button type="button" onClick={(e) => handleBookNow(event, e)} className="flex min-h-11 items-center justify-center gap-2 bg-white px-3 text-[9px] font-agrandir-extrabold uppercase tracking-wide text-black transition-colors hover:bg-[#ddd] sm:text-[10px]">
-                      <Ticket className="h-4 w-4" />{t('home.buyTickets')}
-                    </button>
-                    <button type="button" onClick={(e) => handleViewDetails(event, e)} className="min-h-11 border border-white/30 px-3 text-[9px] font-agrandir-semibold uppercase tracking-wide text-white transition-colors hover:bg-white hover:text-black sm:text-[10px]">
-                      {isEn ? 'Event details' : 'Détails du concert'}
-                    </button>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+            <div ref={featuredRowRef} onScroll={handleContainerScroll} className="home-events-track flex snap-x snap-mandatory items-stretch gap-2.5 overflow-x-auto px-3 pb-2 pt-1 sm:gap-4 sm:px-6 lg:gap-5 lg:px-10" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {activeSlides.map((event, index) => (
+                <button
+                  key={event.id}
+                  ref={(element) => { cardRefs.current[index] = element; }}
+                  type="button"
+                  onClick={() => handleViewDetails(event)}
+                  className={`home-event-poster group relative block aspect-[4/5] w-[84vw] max-w-[440px] shrink-0 snap-start overflow-hidden bg-[#111] text-left sm:w-[48vw] lg:w-[32vw] ${index === currentSlideIndex ? 'opacity-100' : 'opacity-90'}`}
+                  aria-label={`${event.artist} EN CONCERT — Découvrir`}
+                >
+                  <img src={event.officialPoster || event.bannerImage} alt={event.title || event.artist} referrerPolicy="no-referrer" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.025]" />
+                  <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-black/10" />
+                  <EventCountdown event={event} />
+                  <span className="absolute bottom-5 left-4 right-4 sm:bottom-7 sm:left-6">
+                    <span className="block text-[clamp(1.2rem,3vw,2rem)] font-agrandir-extrabold uppercase leading-[0.95] tracking-[-0.025em] text-white">{event.artist}</span>
+                    <span className="mt-1.5 block text-[9px] font-agrandir-semibold uppercase tracking-[0.22em] text-white/80">EN CONCERT</span>
+                    <span className="mt-4 inline-flex items-center gap-2 border-b border-white pb-1 text-[9px] font-agrandir-extrabold uppercase tracking-[0.16em] text-white">DÉCOUVRIR <ArrowUpRight className="h-3.5 w-3.5" /></span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="px-4 py-8 text-xs uppercase tracking-wider text-white/50">{isEn ? 'No upcoming events at the moment.' : 'Aucun événement à venir pour le moment.'}</div>
+        )}
       </section>
 
-      {/* 03 — QUICK ACCESS: one horizontally scrollable visual ribbon */}
-      <section className="home-quick-access mt-7 w-full overflow-hidden border-y border-white/15 py-5 sm:mt-10 sm:py-7" aria-label={isEn ? 'Quick access' : 'Accès rapide'}>
-        <div className="mb-4 flex items-center justify-between px-4 sm:px-6 lg:px-10">
-          <div>
-            <p className="text-[9px] uppercase tracking-[0.26em] text-[#777]">EXPLORE LUMARÉEL</p>
-            <h2 className="mt-1 text-sm font-agrandir-extrabold uppercase tracking-[0.08em] sm:text-base">{isEn ? 'Quick access' : 'Accès rapide'}</h2>
-          </div>
-          <span className="text-[9px] uppercase tracking-[0.18em] text-[#777]">{isEn ? 'Swipe to explore' : 'Glisser pour explorer'} <span aria-hidden="true">→</span></span>
-        </div>
-        <div className="home-quick-track flex w-full snap-x snap-mandatory items-stretch overflow-x-auto px-4 pb-2 sm:px-6 lg:px-10">
+      <section className="home-quick-access mt-4 w-full overflow-hidden">
+        <div className="home-quick-track flex w-full snap-x snap-mandatory items-stretch overflow-x-auto px-2 pb-1 sm:px-3" aria-label={isEn ? 'Quick access' : 'Accès rapide'}>
           {quickAccessItems.map((item, index) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setCurrentPage(item.page)}
-              className={`home-quick-tile group relative h-[210px] w-[68vw] max-w-[310px] min-w-[230px] shrink-0 snap-start overflow-hidden border border-white/20 text-left transition-transform duration-500 hover:z-20 hover:-translate-y-1 sm:h-[250px] sm:w-[28vw] lg:h-[285px] lg:w-[23vw] ${index ? '-ml-5 sm:-ml-7' : ''}`}
-              style={{ zIndex: index + 1 }}
-              aria-label={item.title}
-            >
+            <button key={item.id} type="button" onClick={() => setCurrentPage(item.page)} className={`home-quick-tile group relative h-[190px] w-[62vw] min-w-[210px] max-w-[330px] shrink-0 snap-start overflow-hidden border border-white/20 text-left sm:h-[230px] sm:w-[25vw] lg:h-[270px] lg:w-[20vw] ${index ? '-ml-3 sm:-ml-4' : ''}`} style={{ zIndex: index + 1 }} aria-label={item.title}>
               <img src={item.image} alt="" className={`absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 ${item.position || ''}`} />
-              <span className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/15 to-black/5 transition-opacity group-hover:from-black/75" />
-              <span className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-2 sm:bottom-5 sm:left-5">
-                <span className="text-[11px] font-agrandir-extrabold uppercase tracking-[0.12em] text-white sm:text-xs">{item.title}</span>
-                <ArrowUpRight className="h-4 w-4 shrink-0 text-white transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
-              </span>
+              <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/5" />
+              <span className="absolute bottom-4 left-4 right-3 text-[11px] font-agrandir-extrabold uppercase tracking-[0.12em] text-white sm:bottom-5 sm:left-5 sm:text-xs">{item.title}</span>
             </button>
           ))}
         </div>
       </section>
 
-      {/* 04 — CLUB: visual invitation only; existing Club route and permissions remain untouched */}
-      <section className="home-club mx-auto mt-8 w-full max-w-[1600px] px-4 pb-5 sm:mt-12 sm:px-6 lg:px-10">
-        <div className="relative isolate min-h-[230px] overflow-hidden border border-white/15 bg-[#111] sm:min-h-[300px]">
+      <section className="home-club mt-4 w-full pb-0">
+        <div className="relative isolate min-h-[220px] w-full overflow-hidden border-y border-white/15 bg-[#111] sm:min-h-[290px]">
           <img src={blackCardImage} alt="" className="absolute inset-0 h-full w-full object-cover object-center opacity-55" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-black/20" />
-          <div className="relative flex min-h-[230px] flex-col items-start justify-center px-6 py-9 sm:min-h-[300px] sm:px-12 lg:px-16">
-            <p className="mb-3 text-[9px] uppercase tracking-[0.3em] text-white/60">LUMARÉEL · MEMBERS EXPERIENCE</p>
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/65 to-black/15" />
+          <div className="relative flex min-h-[220px] flex-col items-start justify-center px-5 py-8 sm:min-h-[290px] sm:px-10 lg:px-16">
             <h2 className="text-3xl font-agrandir-extrabold uppercase leading-none tracking-[-0.04em] sm:text-5xl">LUMARÉEL CLUB</h2>
-            <button
-              type="button"
-              onClick={() => setCurrentPage('rewards')}
-              className="mt-6 inline-flex min-h-11 items-center gap-5 border border-white bg-white px-5 text-[9px] font-agrandir-extrabold uppercase tracking-[0.16em] text-black transition-colors hover:bg-transparent hover:text-white"
-            >
-              {isEn ? 'Discover the Club' : 'Découvrir le Club'}
-              <ArrowUpRight className="h-4 w-4" />
+            <button type="button" onClick={() => setCurrentPage('rewards')} className="mt-5 inline-flex min-h-10 items-center gap-4 border border-white bg-white px-4 text-[9px] font-agrandir-extrabold uppercase tracking-[0.14em] text-black transition-colors hover:bg-transparent hover:text-white">
+              {isEn ? 'Discover the Club' : 'Découvrir le Club'} <ArrowUpRight className="h-4 w-4" />
             </button>
           </div>
         </div>
