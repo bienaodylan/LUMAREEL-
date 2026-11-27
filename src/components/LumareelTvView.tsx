@@ -60,6 +60,7 @@ function formatPrice(price: number, currency: string): string {
 }
 
 interface HorizontalShelfProps {
+  id?: string;
   kicker?: string;
   title: string;
   items: MediaHubItem[];
@@ -72,6 +73,7 @@ interface HorizontalShelfProps {
 }
 
 const TvHorizontalShelf: React.FC<HorizontalShelfProps> = ({
+  id,
   kicker,
   title,
   items,
@@ -94,7 +96,7 @@ const TvHorizontalShelf: React.FC<HorizontalShelfProps> = ({
   };
 
   return (
-    <section id="lumareel-tv-catalogue" className="space-y-3">
+    <section id={id} className="space-y-3">
       <div className="flex items-end justify-between gap-4">
         <div>
           {kicker && (
@@ -849,6 +851,7 @@ export const LumareelTvView: React.FC = () => {
         {publishedItems.length > 0 && (
           <ScrollReveal>
             <TvHorizontalShelf
+              id="lumareel-tv-catalogue"
               kicker={isEn ? 'CATALOGUE PREVIEW' : 'APERÇU DU CATALOGUE'}
               title={
                 isEn
