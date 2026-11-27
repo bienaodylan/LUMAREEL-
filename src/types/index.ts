@@ -156,6 +156,7 @@ export interface ArchiveProduction {
   photos: string[]; // Photo gallery
   isPublished: boolean;
   orderIndex: number;
+  isDemo?: boolean;
 }
 
 export interface WorkProduction {
