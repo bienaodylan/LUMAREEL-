@@ -113,7 +113,7 @@ export const ClubExplorer: React.FC<Props> = ({ isEn, points, creditFcfa, active
           >
             <div>
               <div className="text-[11px] text-neutral-400">{isEn ? 'Points' : 'Points'}</div>
-              <div className="text-2xl sm:text-3xl font-agrandir-extrabold text-[#D4AF37] tabular-nums leading-tight">
+              <div className="text-2xl sm:text-3xl font-agrandir-extrabold text-[#FFFFFF] tabular-nums leading-tight">
                 <CountUp value={points} /> <span className="text-sm text-neutral-300">pts</span>
               </div>
             </div>
@@ -159,17 +159,17 @@ export const ClubExplorer: React.FC<Props> = ({ isEn, points, creditFcfa, active
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
               <div className="absolute top-3 left-3 w-9 h-9 rounded-full bg-black/50 backdrop-blur-md border border-white/15 flex items-center justify-center">
-                <Icon className={`w-4 h-4 ${active ? 'text-[#D4AF37]' : 'text-white'}`} />
+                <Icon className={`w-4 h-4 ${active ? 'text-[#FFFFFF]' : 'text-white'}`} />
               </div>
               {item.kind === 'portal' && (
                 <ArrowUpRight className="absolute top-4 right-4 w-4 h-4 text-white/70 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               )}
               <div className="absolute bottom-0 inset-x-0 p-4">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-[#D4AF37] mb-1">{isEn ? item.kickerEn : item.kickerFr}</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-[#FFFFFF] mb-1">{isEn ? item.kickerEn : item.kickerFr}</p>
                 <p className="font-agrandir-extrabold text-lg leading-tight">{isEn ? item.titleEn : item.titleFr}</p>
               </div>
               {active && (
-                <motion.span layoutId="club-active" className="absolute bottom-0 left-4 right-4 h-[3px] rounded-full bg-[#D4AF37]" />
+                <motion.span layoutId="club-active" className="absolute bottom-0 left-4 right-4 h-[3px] rounded-full bg-[#FFFFFF]" />
               )}
             </motion.button>
           );
