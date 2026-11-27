@@ -81,6 +81,7 @@ export const Navbar: React.FC = () => {
 
   const pageTitleMap: Partial<Record<PageView, string>> = {
     client_space: t('nav.orders'),
+    event_detail: isEn ? 'Event details' : 'Détails du concert',
     member_card: 'LUMARÉEL Black Card',
     card: 'LUMARÉEL Black Card',
     profile: t('nav.account'),
