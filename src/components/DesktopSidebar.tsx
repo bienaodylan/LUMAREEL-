@@ -1,7 +1,6 @@
 import React from 'react';
 import { useApp, PageView } from '../context/AppContext';
 import {
-  Archive,
   Camera,
   Clapperboard,
   CreditCard,
@@ -40,7 +39,6 @@ export const DesktopSidebar: React.FC = () => {
     { label: 'Backstage', page: 'backstage', icon: Clapperboard },
     { label: isEn ? 'My Moments' : 'Mes Moments', page: 'memories', icon: Camera },
     { label: isEn ? 'Your Voice' : 'Ta Voix', page: 'suggestions', icon: Mic2 },
-    { label: t('nav.archives'), page: 'archive', icon: Archive },
   ];
 
   const go = (page: PageView) => setCurrentPage(page);
