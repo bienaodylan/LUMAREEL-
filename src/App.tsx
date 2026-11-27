@@ -176,7 +176,6 @@ const MainApp: React.FC = () => {
             {currentPage === 'media_detail' && <MediaDetailView />}
             {currentPage === 'contributor_studio' && <ContributorPortalView />}
             {currentPage === 'archive' && <ArchiveView />}
-            {currentPage === 'news' && <ExplorerView />}
             {currentPage === 'organizers' && <OrganizersView />}
             {currentPage === 'client_space' && <CustomerSpace />}
             {currentPage === 'profile' && <ProfileView />}
