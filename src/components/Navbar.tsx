@@ -69,6 +69,7 @@ export const Navbar: React.FC = () => {
 
   const isEn = language === 'en';
   const isHome = currentPage === 'home' || currentPage === 'discover';
+  if (currentPage === 'backstage') return null;
   const isRootAppTab =
     isHome ||
     currentPage === 'client_space' ||
@@ -83,7 +84,6 @@ export const Navbar: React.FC = () => {
 
   const pageTitleMap: Partial<Record<PageView, string>> = {
     client_space: t('nav.orders'),
-    archive: t('nav.archives'),
     member_card: 'LUMARÉEL Black Card',
     card: 'LUMARÉEL Black Card',
     profile: t('nav.account'),
@@ -117,7 +117,6 @@ export const Navbar: React.FC = () => {
     { label: 'Backstage', page: 'backstage', icon: Clapperboard },
     { label: isEn ? 'My Moments' : 'Mes Moments', page: 'memories', icon: Camera },
     { label: isEn ? 'Your Voice' : 'Ta Voix', page: 'suggestions', icon: Mic2 },
-    { label: t('nav.archives'), page: 'archive', icon: Film },
   ];
 
   const isSuperAdmin =
