@@ -975,14 +975,16 @@ const SEED_SUGGESTIONS: CommunitySuggestion[] = [
 ];
 
 export function loadSuggestions(): CommunitySuggestion[] {
-  if (typeof window === 'undefined') return SEED_SUGGESTIONS;
+  if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(SUGGESTIONS_KEY);
-    if (!raw) return SEED_SUGGESTIONS;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : SEED_SUGGESTIONS;
+    return Array.isArray(parsed)
+      ? parsed.filter((item) => item && item.type === 'artist_venue')
+      : [];
   } catch {
-    return SEED_SUGGESTIONS;
+    return [];
   }
 }
 
