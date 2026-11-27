@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import {
   MediaHubItem,
   TV_CATEGORY_META,
@@ -425,9 +426,21 @@ export const LumareelTvView: React.FC = () => {
 
     setIsSubmittingSub(true);
     try {
+      const { data: sessionData } = isSupabaseConfigured
+        ? await supabase.auth.getSession()
+        : { data: { session: null } };
+      const accessToken = sessionData?.session?.access_token;
+      if (!accessToken) {
+        showToast(isEn ? 'Your session has expired. Please sign in again.' : 'Votre session a expiré. Reconnectez-vous avant de payer.', 'error');
+        setIsAuthModalOpen(true);
+        return;
+      }
       const res = await fetch('/api/payments/paymetrust/initiate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           kind: 'tv_pass',
           planId: chosenPlan.id,
