@@ -163,7 +163,7 @@ export const HomeFeed: React.FC = () => {
               <button type="button" onClick={() => scrollToSlide((currentSlideIndex - 1 + activeSlides.length) % activeSlides.length)} aria-label="Événement précédent" className="flex h-9 w-9 items-center justify-center border border-white/25 text-white hover:bg-white hover:text-black"><ChevronLeft className="h-4 w-4" /></button>
               <button type="button" onClick={() => scrollToSlide((currentSlideIndex + 1) % activeSlides.length)} aria-label="Événement suivant" className="flex h-9 w-9 items-center justify-center border border-white/25 text-white hover:bg-white hover:text-black"><ChevronRight className="h-4 w-4" /></button>
             </div>
-            <div ref={featuredRowRef} onScroll={handleContainerScroll} className="home-events-track flex snap-x snap-mandatory items-stretch gap-2.5 overflow-x-auto px-3 pb-2 pt-1 sm:gap-4 sm:px-6 lg:gap-5 lg:px-10" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div ref={featuredRowRef} onScroll={handleContainerScroll} className="home-events-track flex snap-x snap-mandatory items-stretch gap-2.5 overflow-x-auto px-0 pb-2 pt-1 sm:gap-4 lg:gap-5" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {activeSlides.map((event, index) => (
                 <button
                   key={event.id}
@@ -191,7 +191,7 @@ export const HomeFeed: React.FC = () => {
       </section>
 
       <section className="home-quick-access mt-4 w-full overflow-hidden">
-        <div className="home-quick-track flex w-full snap-x snap-mandatory items-stretch overflow-x-auto px-2 pb-1 sm:px-3" aria-label={isEn ? 'Quick access' : 'Accès rapide'}>
+        <div className="home-quick-track flex w-full snap-x snap-mandatory items-stretch overflow-x-auto px-0 pb-1" aria-label={isEn ? 'Quick access' : 'Accès rapide'}>
           {quickAccessItems.map((item, index) => (
             <button key={item.id} type="button" onClick={() => setCurrentPage(item.page)} className={`home-quick-tile group relative h-[190px] w-[62vw] min-w-[210px] max-w-[330px] shrink-0 snap-start overflow-hidden border border-white/20 text-left sm:h-[230px] sm:w-[25vw] lg:h-[270px] lg:w-[20vw] ${index ? '-ml-3 sm:-ml-4' : ''}`} style={{ zIndex: index + 1 }} aria-label={item.title}>
               <img src={item.image} alt="" className={`absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 ${item.position || ''}`} />
