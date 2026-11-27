@@ -105,7 +105,23 @@ export const HomeFeed: React.FC = () => {
     });
   };
 
-  const heroEvent = activeSlides.find((event) => event.isFeatured) || activeSlides[0] || null;
+  const heroSlides = activeSlides;
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
+  const heroRowRef = useRef<HTMLDivElement>(null);
+  const scrollHeroTo = (index: number) => {
+    const container = heroRowRef.current;
+    if (!container || heroSlides.length === 0) return;
+    const nextIndex = Math.max(0, Math.min(index, heroSlides.length - 1));
+    container.scrollTo({ left: nextIndex * container.clientWidth, behavior: 'smooth' });
+    setHeroSlideIndex(nextIndex);
+  };
+  const handleHeroScroll = () => {
+    const container = heroRowRef.current;
+    if (!container) return;
+    const nextIndex = Math.round(container.scrollLeft / Math.max(container.clientWidth, 1));
+    setHeroSlideIndex(Math.max(0, Math.min(nextIndex, heroSlides.length - 1)));
+  };
+  const heroEvent = heroSlides[heroSlideIndex] || heroSlides[0] || null;
   const formatEventDate = (date: string) => {
     const parsed = new Date(`${String(date || '').slice(0, 10)}T12:00:00`);
     if (Number.isNaN(parsed.getTime())) return date;
@@ -133,37 +149,55 @@ export const HomeFeed: React.FC = () => {
   return (
     <div className="home-editorial w-full min-h-screen max-w-full overflow-x-clip bg-[#050505] pb-0 text-white">
       <section className="home-hero relative isolate w-full overflow-hidden pt-[calc(4.5rem+env(safe-area-inset-top,0px))] md:pt-0">
-        {heroEvent ? (
-          <div className="home-hero-frame relative h-[66svh] min-h-[470px] max-h-[820px] w-full overflow-hidden bg-[#111] sm:h-[72svh]">
-            <img
-              src={heroEvent.artistPortrait || heroEvent.bannerImage || heroEvent.officialPoster}
-              alt={heroEvent.artist}
-              className="absolute inset-0 h-full w-full object-cover object-center"
-              fetchPriority="high"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-transparent" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/10" />
-            <EventCountdown event={heroEvent} />
-            <div className="absolute bottom-8 left-5 right-5 max-w-3xl sm:bottom-12 sm:left-10 lg:bottom-16 lg:left-16">
-              <div className="mb-3 inline-flex items-center gap-2 text-[10px] font-agrandir-extrabold uppercase tracking-[0.25em] text-white/80">
-                <span className="h-px w-7 bg-white/70" /> {isEn ? 'Featured event' : 'À l’affiche'}
-              </div>
-              <h1 className="text-[clamp(2.5rem,7vw,6.5rem)] font-agrandir-extrabold uppercase leading-[0.88] tracking-[-0.055em]">
-                {heroEvent.artist}
-              </h1>
-              <p className="mt-3 text-xs font-agrandir-extrabold uppercase tracking-[0.3em] text-white sm:text-sm">EN CONCERT</p>
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-agrandir-semibold text-white/85 sm:text-sm">
-                <span>{heroEvent.venue}{heroEvent.city ? `, ${heroEvent.city}` : ''}</span>
-                <span className="text-white/45">·</span>
-                <span>{formatEventDate(heroEvent.date)}{heroEvent.time ? ` · ${heroEvent.time}` : ''}</span>
-              </div>
-              <div className="mt-5 flex flex-wrap items-center gap-4">
-                <button type="button" onClick={() => handleViewDetails(heroEvent)} className="inline-flex min-h-11 items-center gap-3 bg-white px-5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white/80">
-                  {isEn ? 'Discover' : 'Découvrir'} <ArrowUpRight className="h-4 w-4" />
-                </button>
-              </div>
+        {heroSlides.length > 0 ? (
+          <div className="relative w-full">
+            <div
+              ref={heroRowRef}
+              onScroll={handleHeroScroll}
+              className="flex w-full snap-x snap-mandatory overflow-x-auto"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', scrollBehavior: 'smooth' }}
+              aria-label={isEn ? 'Featured concerts' : 'Concerts à découvrir'}
+            >
+              {heroSlides.map((event) => (
+                <article key={event.id} className="home-hero-frame relative h-[66svh] min-h-[470px] max-h-[820px] w-full shrink-0 snap-start overflow-hidden bg-[#111] sm:h-[72svh]">
+                  <img
+                    src={event.artistPortrait || event.bannerImage || event.officialPoster}
+                    alt={event.artist}
+                    className="absolute inset-0 h-full w-full object-cover object-center"
+                    fetchPriority="high"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/10" />
+                  <EventCountdown event={event} />
+                  <div className="absolute bottom-8 left-5 right-5 max-w-3xl sm:bottom-12 sm:left-10 lg:bottom-16 lg:left-16">
+                    <h1 className="text-[clamp(2.5rem,7vw,6.5rem)] font-agrandir-extrabold uppercase leading-[0.88] tracking-[-0.055em]">
+                      {event.artist}
+                    </h1>
+                    <p className="mt-3 text-xs font-agrandir-extrabold uppercase tracking-[0.3em] text-white sm:text-sm">EN CONCERT</p>
+                    <div className="mt-5">
+                      <button type="button" onClick={() => handleViewDetails(event)} className="inline-flex min-h-11 items-center gap-3 bg-white px-5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.16em] text-black transition-colors hover:bg-white/80">
+                        {isEn ? 'Discover' : 'Découvrir'} <ArrowUpRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              ))}
             </div>
+            {heroSlides.length > 1 && (
+              <>
+                <div className="absolute bottom-4 right-5 z-20 flex items-center gap-2 sm:bottom-6 sm:right-8">
+                  <span className="text-[10px] font-agrandir-semibold tracking-[0.18em] text-white/75 tabular-nums">{String(heroSlideIndex + 1).padStart(2, '0')} / {String(heroSlides.length).padStart(2, '0')}</span>
+                  <button type="button" onClick={() => scrollHeroTo(heroSlideIndex - 1)} disabled={heroSlideIndex === 0} aria-label={isEn ? 'Previous featured concert' : 'Concert précédent'} className="hidden h-9 w-9 items-center justify-center border border-white/45 text-white transition-colors hover:bg-white hover:text-black disabled:opacity-30 sm:flex"><ChevronLeft className="h-4 w-4" /></button>
+                  <button type="button" onClick={() => scrollHeroTo(heroSlideIndex + 1)} disabled={heroSlideIndex >= heroSlides.length - 1} aria-label={isEn ? 'Next featured concert' : 'Concert suivant'} className="hidden h-9 w-9 items-center justify-center border border-white/45 text-white transition-colors hover:bg-white hover:text-black disabled:opacity-30 sm:flex"><ChevronRight className="h-4 w-4" /></button>
+                </div>
+                <div className="absolute bottom-5 left-5 z-20 flex gap-1.5 sm:hidden">
+                  {heroSlides.map((event, index) => (
+                    <button key={event.id} type="button" onClick={() => scrollHeroTo(index)} aria-label={`${isEn ? 'Go to concert' : 'Aller au concert'} ${index + 1}`} className={`h-1 transition-all ${index === heroSlideIndex ? 'w-6 bg-white' : 'w-2 bg-white/45'}`} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="flex min-h-[55svh] items-end bg-[#111] px-5 pb-12 sm:px-10">
