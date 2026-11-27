@@ -208,6 +208,7 @@
 
 
 /* Homepage editorial system — mobile-first, monochrome, sharp edges, isolated horizontal rails */
+/* Git-to-Vercel preview sync checkpoint: mobile homepage updates. */
 .home-editorial {
   --home-black: #050505;
   --home-deep: #111111;
