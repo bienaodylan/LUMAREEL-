@@ -56,7 +56,6 @@ export const DesktopTopNav: React.FC = () => {
         'flash_drops',
         'suggestions',
         'organizers',
-        'news',
       ].includes(currentPage),
     },
     {
