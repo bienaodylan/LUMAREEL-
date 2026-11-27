@@ -787,10 +787,10 @@ export const LumareelTvView: React.FC = () => {
               LUMARÉEL TV
             </h1>
 
-            <p className="text-[12.5px] text-[#BDBDBD] leading-[1.48]">
+            <p className="text-[12.5px] text-[#BDBDBD] leading-[1.45]">
               {isEn
-                ? 'Originals, filmed concerts, backstage sessions & interviews. Included with LUMARÉEL Card or via TV Pass.'
-                : 'Originals, concerts filmés, coulisses et interviews exclusives. Inclus avec la LUMARÉEL Card ou via le TV Pass.'}
+                ? 'Live concerts, backstage vlogs & exclusive videos.'
+                : 'Concerts filmés, coulisses et vidéos exclusives.'}
             </p>
 
             <div className="pt-0.5 flex flex-col gap-2">
@@ -800,7 +800,7 @@ export const LumareelTvView: React.FC = () => {
                 className="w-full min-h-[42px] px-4 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer lum-press"
               >
                 <Tv className="w-3.5 h-3.5" strokeWidth={1.9} />
-                <span>{isEn ? 'Subscribe to LUMARÉEL TV' : 'S’abonner à LUMARÉEL TV'}</span>
+                <span>{isEn ? 'Subscribe' : 'S’abonner'}</span>
               </button>
 
               <button
@@ -809,14 +809,14 @@ export const LumareelTvView: React.FC = () => {
                 className="w-full min-h-[38px] px-4 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white text-[11.5px] font-agrandir-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <CreditCard className="w-3.5 h-3.5 text-[#D4AF6A]" strokeWidth={1.6} />
-                <span>{isEn ? 'Discover LUMARÉEL Card' : 'Découvrir la LUMARÉEL Card'}</span>
+                <span>{isEn ? 'See Black Card' : 'Voir la Black Card'}</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* Version tablette / desktop cinématique */}
-        <div className="hidden sm:flex relative min-h-[360px] lg:min-h-[400px] items-end">
+        <div className="hidden sm:flex relative min-h-[340px] lg:min-h-[380px] items-end">
           {featuredItem && (
             <img
               src={featuredItem.thumbnailUrl || featuredItem.url}
@@ -828,20 +828,20 @@ export const LumareelTvView: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/25" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/45 to-transparent" />
 
-          <div className="relative z-10 p-8 lg:p-10 max-w-2xl space-y-4">
+          <div className="relative z-10 p-8 lg:p-10 max-w-xl space-y-3.5">
             <div className="inline-flex items-center gap-2 text-[10px] font-agrandir-extrabold uppercase tracking-[0.24em] text-[#D4AF6A]">
               <Tv className="w-3.5 h-3.5" strokeWidth={1.7} />
-              <span>{isEn ? 'EXCLUSIVE STREAMING PLATFORM' : 'PLATEFORME EXCLUSIVE'}</span>
+              <span>{isEn ? 'EXCLUSIVE' : 'EXCLUSIF'}</span>
             </div>
 
             <h1 className="font-agrandir-extrabold text-4xl lg:text-5xl text-white tracking-tight leading-[1.02]">
               LUMARÉEL TV
             </h1>
 
-            <p className="text-sm lg:text-base text-[#D0D0D0] leading-relaxed max-w-xl">
+            <p className="text-sm lg:text-base text-[#D0D0D0] leading-relaxed">
               {isEn
-                ? 'Original films, filmed concerts, backstage sessions, artist interviews, and curated retrospectives. Included with an eligible LUMARÉEL Card or available independently with the TV Pass.'
-                : 'Originals, concerts filmés, coulisses, interviews d’artistes et rétrospectives exclusives. Inclus avec une LUMARÉEL Card éligible ou accessible indépendamment avec le LUMARÉEL TV Pass.'}
+                ? 'Live concerts, backstage vlogs and artist interviews. Included with the Black Card or via TV Pass.'
+                : 'Concerts filmés, coulisses et interviews d’artistes. Inclus avec la Black Card ou via le TV Pass.'}
             </p>
 
             <div className="pt-1 flex flex-wrap items-center gap-3">
@@ -851,7 +851,7 @@ export const LumareelTvView: React.FC = () => {
                 className="min-h-[44px] px-6 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-sm font-agrandir-extrabold inline-flex items-center gap-2 transition-colors cursor-pointer lum-press"
               >
                 <Tv className="w-4 h-4" strokeWidth={1.8} />
-                <span>{isEn ? 'Subscribe to TV Pass' : 'S’abonner à LUMARÉEL TV'}</span>
+                <span>{isEn ? 'Subscribe' : 'S’abonner'}</span>
               </button>
 
               <button
@@ -860,7 +860,7 @@ export const LumareelTvView: React.FC = () => {
                 className="min-h-[44px] px-5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.18] text-white text-sm font-agrandir-semibold inline-flex items-center gap-2 transition-colors cursor-pointer"
               >
                 <CreditCard className="w-4 h-4 text-[#D4AF6A]" strokeWidth={1.6} />
-                <span>{isEn ? 'Discover LUMARÉEL Card' : 'Découvrir la LUMARÉEL Card'}</span>
+                <span>{isEn ? 'See Black Card' : 'Voir la Black Card'}</span>
               </button>
             </div>
           </div>
@@ -902,41 +902,20 @@ export const LumareelTvView: React.FC = () => {
             <div className="divide-y divide-white/[0.10] border-y border-white/[0.10]">
               <EditorialRow
                 index="01"
-                title={isEn ? 'LUMARÉEL Originals & Filmed Concerts' : 'LUMARÉEL Originals & Concerts filmés'}
-                subtitle={
-                  isEn
-                    ? 'Full performances, director cuts, and editorial films crafted by LUMARÉEL.'
-                    : 'Captations intégrales, films originaux et créations éditoriales LUMARÉEL.'
-                }
+                title={isEn ? 'Full concerts & Originals' : 'Concerts complets & Originals'}
+                subtitle={isEn ? 'Watch the biggest nights anytime.' : 'Revivez les grands concerts quand vous voulez.'}
               />
               <EditorialRow
                 index="02"
-                title={isEn ? 'Backstage & Artist Interviews' : 'Backstage & Interviews exclusives'}
-                subtitle={
-                  isEn
-                    ? 'Soundchecks, studio arrangements, greenroom diaries, and behind-the-scenes stories.'
-                    : 'Balances, sessions studio, carnets de loges et coulisses des tournées.'
-                }
+                title={isEn ? 'Backstage & Interviews' : 'Coulisses & Interviews'}
+                subtitle={isEn ? 'Studio sessions, greenrooms and artists up close.' : 'Dans les loges et en studio avec les artistes.'}
               />
               <EditorialRow
                 index="03"
-                title={isEn ? 'Included with eligible LUMARÉEL Card' : 'Inclus avec une LUMARÉEL Card éligible'}
-                subtitle={
-                  isEn
-                    ? 'Cardholders with TV access included enter automatically—no extra TV Pass required.'
-                    : 'Les titulaires d’une carte éligible accèdent directement sans abonnement supplémentaire.'
-                }
-                rightText={isEn ? 'Discover Card' : 'Voir la carte'}
+                title={isEn ? 'Included with Black Card' : 'Inclus avec la Black Card'}
+                subtitle={isEn ? 'Cardholders enter directly.' : 'Accès direct sans abonnement en plus.'}
+                rightText={isEn ? 'See Card' : 'Voir la carte'}
                 onClick={() => setCurrentPage('member_card')}
-              />
-              <EditorialRow
-                index="04"
-                title={isEn ? 'Independent TV Pass' : 'LUMARÉEL TV Pass indépendant'}
-                subtitle={
-                  isEn
-                    ? 'Subscribe purely to LUMARÉEL TV without holding a physical card.'
-                    : 'Accédez à toute la plateforme de streaming sans posséder de carte physique.'
-                }
               />
             </div>
           </section>

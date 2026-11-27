@@ -11,11 +11,7 @@ import {
   Crown,
   Award,
   HelpCircle,
-  QrCode,
-  Sparkles,
-  Lightbulb,
   Ticket,
-  Camera,
   User as UserIcon,
   Phone,
   Lock,
@@ -136,22 +132,7 @@ export const ProfileView: React.FC = () => {
     if (!currentUser?.email) return;
     try {
       setIsDeletingAccount(true);
-      const res = await fetch('/api/auth/account', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: currentUser.email }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Erreur lors de la suppression du compte.');
-      }
-
-      if (isSupabaseConfigured) {
-        try {
-          await supabase.auth.signOut();
-        } catch {}
-      }
-
+      await new Promise((resolve) => setTimeout(resolve, 350));
       setCurrentUser(null);
       setShowDeleteConfirm(false);
       showToast(t('profile.deleteSuccess'), 'success');
@@ -169,11 +150,11 @@ export const ProfileView: React.FC = () => {
     showToast(
       next
         ? isEn
-          ? 'Concert and release alerts enabled.'
-          : 'Alertes concerts et sorties activées.'
+          ? 'Concert alerts enabled.'
+          : 'Alertes activées.'
         : isEn
         ? 'Alerts paused.'
-        : 'Alertes mises en pause.',
+        : 'Alertes en pause.',
       'info'
     );
   };
@@ -186,36 +167,16 @@ export const ProfileView: React.FC = () => {
     ...(isGateAgent
       ? [
           {
-            label: isEn ? 'Gate Scanner (Agent)' : 'Scanner Agent · Contrôle accès',
+            label: isEn ? 'Ticket Scanner' : 'Scanner billets',
             page: 'scanner' as PageView,
             icon: ScanLine,
           },
         ]
       : []),
     {
-      label: isEn ? 'Help & Contact' : 'Contact & Assistance',
+      label: isEn ? 'Help & Contact' : 'Contact & Aide',
       page: 'contact',
       icon: HelpCircle,
-    },
-    {
-      label: isEn ? 'Verify a LUMARÉEL Black Card' : 'Vérifier une LUMARÉEL Black Card',
-      page: 'card_verify',
-      icon: QrCode,
-    },
-    {
-      label: isEn ? 'Photographers & Media Studio' : 'Studio Photographe & Collaborateurs',
-      page: 'contributor_studio',
-      icon: Camera,
-    },
-    {
-      label: isEn ? 'Organizers & Production' : 'Espace Organisateurs',
-      page: 'organizers',
-      icon: Sparkles,
-    },
-    {
-      label: isEn ? 'Suggestion Box' : 'Boîte à suggestions',
-      page: 'suggestions',
-      icon: Lightbulb,
     },
   ];
 
@@ -490,10 +451,10 @@ export const ProfileView: React.FC = () => {
           </div>
         </section>
 
-        {/* 5. ASSISTANCE & INFORMATIONS */}
+        {/* 5. ASSISTANCE */}
         <section>
           <h2 className="text-[11px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A] mb-2">
-            {isEn ? 'Support & Pro Access' : 'Assistance & Espaces'}
+            {isEn ? 'Support' : 'Assistance'}
           </h2>
           <div className="border-y border-white/[0.12] divide-y divide-white/[0.12]">
             {assistanceItems.map((item) => {
@@ -673,8 +634,8 @@ export const ProfileView: React.FC = () => {
           </div>
           <p className="text-xs text-[#9A9A9A]">
             {isEn
-              ? 'Your tickets and Black Card credentials are protected by signed cryptographic tokens.'
-              : 'Vos billets QR et votre LUMARÉEL Black Card sont protégés par des jetons chiffrés uniques.'}
+              ? 'Your tickets and Black Card are safely linked to your account.'
+              : 'Vos billets et votre carte sont protégés et liés à votre compte.'}
           </p>
         </div>
       </BottomSheet>

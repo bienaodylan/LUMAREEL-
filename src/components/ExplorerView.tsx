@@ -345,7 +345,7 @@ export const ExplorerView: React.FC = () => {
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#D4AF6A]">
-                  {isEn ? 'PAST EVENTS · PUBLIC RECAPS' : 'ÉVÉNEMENTS PASSÉS · RÉCAPITULATIFS'}
+                  {isEn ? 'PAST SHOWS' : 'CONCERTS PASSÉS'}
                 </p>
                 <h2 className="mt-0.5 font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight">
                   Archives
@@ -453,15 +453,15 @@ export const ExplorerView: React.FC = () => {
                 <div className="space-y-1.5 max-w-lg">
                   <div className="inline-flex items-center gap-1.5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.22em] text-[#D4AF6A]">
                     <Tv className="w-3.5 h-3.5" strokeWidth={1.7} />
-                    <span>{isEn ? 'EXCLUSIVE STREAMING' : 'STREAMING EXCLUSIF'}</span>
+                    <span>{isEn ? 'EXCLUSIVE VIDEOS' : 'VIDÉOS EXCLUSIVES'}</span>
                   </div>
                   <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight leading-none">
                     LUMARÉEL TV
                   </h2>
                   <p className="text-xs sm:text-sm text-[#C8C8C8] leading-snug">
                     {isEn
-                      ? 'Originals, filmed concerts, backstage sessions and exclusive artist interviews.'
-                      : 'Originals, concerts filmés, coulisses et interviews exclusives.'}
+                      ? 'Live concerts, backstage vlogs & interviews.'
+                      : 'Concerts filmés, coulisses et interviews.'}
                   </p>
                 </div>
 
@@ -482,7 +482,7 @@ export const ExplorerView: React.FC = () => {
             <div className="flex items-baseline justify-between gap-3">
               <div>
                 <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#D4AF6A]">
-                  {isEn ? 'LIMITED WINDOWS' : 'OPPORTUNITÉS PONCTUELLES'}
+                  {isEn ? 'LIMITED TIME' : 'OFFRES DU MOMENT'}
                 </p>
                 <h2 className="mt-0.5 font-agrandir-extrabold text-xl text-white tracking-tight">
                   Flash &amp; Surprises
@@ -576,10 +576,10 @@ export const ExplorerView: React.FC = () => {
             <div className="flex items-baseline justify-between gap-3 pt-2">
               <div>
                 <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A]">
-                  {isEn ? 'ACCESS · INVITATIONS · MEETS' : 'ACCÈS SPÉCIAUX · INVITATIONS · RENCONTRES'}
+                  {isEn ? 'INVITATIONS & MEETS' : 'INVITATIONS & RENCONTRES'}
                 </p>
                 <h2 className="mt-0.5 font-agrandir-extrabold text-base sm:text-lg text-white tracking-tight">
-                  {isEn ? 'Experiences & Invitations' : 'Expériences & Invitations'}
+                  {isEn ? 'Experiences' : 'Expériences'}
                 </h2>
               </div>
               <button
