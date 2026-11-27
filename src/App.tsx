@@ -133,9 +133,7 @@ const MainApp: React.FC = () => {
         className={`flex-1 w-full max-w-full min-w-0 relative z-10 ${
           !isAdminOrScanner
             ? `${
-                isStandalone
-                  ? 'pb-[calc(6.25rem+env(safe-area-inset-bottom,0px))]'
-                  : 'pb-10'
+                'pb-[calc(6.25rem+env(safe-area-inset-bottom,0px))]'
               } ${
                 hasVisibleMobileHeader && !isHomePage
                   ? 'pt-[calc(4.1rem+env(safe-area-inset-top,0px))] md:pt-0'
