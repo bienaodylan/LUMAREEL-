@@ -246,7 +246,10 @@
     height: min(48svh, 430px);
   }
   .home-editorial .home-quick-tile {
-    min-height: 205px;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px;
+    width: 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
