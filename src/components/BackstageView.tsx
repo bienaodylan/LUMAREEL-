@@ -113,24 +113,24 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = ({ embedded = fal
   return (
     <div className={`w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 ${embedded ? "pt-0 pb-8" : "min-h-screen pt-4 sm:pt-9 pb-20"} text-white font-agrandir-regular`}>
       {!embedded && (
-      <PageHeader
-        compact
-        eyebrow={isEn ? 'Inside LUMARÉEL' : 'Dans les coulisses'}
-        title="BACKSTAGE"
-        action={
-          <SegmentedControl<BackstageSection>
-            value={section}
-            onChange={setSection}
-            layoutId="lumareel-backstage-switch"
-            pill
-            options={[
-              { id: 'coulisses', label: isEn ? 'Behind the Scenes' : 'Coulisses' },
-              { id: 'memories', label: 'Memories' },
-            ]}
-          />
-
-      )}        }
-      />
+        <PageHeader
+          compact
+          eyebrow={isEn ? 'Inside LUMARÉEL' : 'Dans les coulisses'}
+          title="BACKSTAGE"
+          action={
+            <SegmentedControl<BackstageSection>
+              value={section}
+              onChange={setSection}
+              layoutId="lumareel-backstage-switch"
+              pill
+              options={[
+                { id: 'coulisses', label: isEn ? 'Behind the Scenes' : 'Coulisses' },
+                { id: 'memories', label: 'Memories' },
+              ]}
+            />
+          }
+        />
+      )}
 
       {/* VUE 1 : COULISSES */}
       {section === 'coulisses' && (
@@ -419,7 +419,7 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = ({ embedded = fal
 
       {/* VUE 2 : MEMORIES INTÉGRÉ DANS BACKSTAGE */}
       {section === 'memories' && (
-        <ConcertMemoriesView embedded onJumpToBackstage={() => setSection('coulisses')} />
+        <ConcertMemoriesView embedded />
       )}
     </div>
   );
