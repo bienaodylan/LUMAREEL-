@@ -191,14 +191,14 @@ export const ConcertMemoriesView: React.FC = () => {
         {/* En-tête de l'événement */}
         <header className="mb-10 pb-6 border-b border-white/10 space-y-3">
           <div className="text-xs text-neutral-400 flex flex-wrap items-center gap-2">
-            <span className="text-[#D4AF37] font-agrandir-bold uppercase tracking-wider">
+            <span className="text-[#FFFFFF] font-agrandir-bold uppercase tracking-wider">
               {isEn ? 'Event Memory Page' : 'Page Souvenir Officielle'}
             </span>
             <span aria-hidden="true">·</span>
             <span>{selectedAlbum.date}</span>
             <span aria-hidden="true">·</span>
             <span className="inline-flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-[#D4AF37]" />
+              <MapPin className="w-3.5 h-3.5 text-[#FFFFFF]" />
               {selectedAlbum.venue}, {selectedAlbum.city}
             </span>
           </div>
@@ -263,11 +263,11 @@ export const ConcertMemoriesView: React.FC = () => {
                   onClick={() => setIsVideoPlaying(true)}
                   className="w-full py-3.5 text-left group cursor-pointer flex items-start gap-3"
                 >
-                  <span className="font-mono text-xs text-[#D4AF37] pt-0.5 shrink-0 tabular-nums">
+                  <span className="font-mono text-xs text-[#FFFFFF] pt-0.5 shrink-0 tabular-nums">
                     {hl.time}
                   </span>
                   <div className="min-w-0">
-                    <div className="text-sm font-agrandir-bold text-white group-hover:text-[#D4AF37] transition-colors">
+                    <div className="text-sm font-agrandir-bold text-white group-hover:text-[#FFFFFF] transition-colors">
                       {isEn ? hl.titleEn : hl.titleFr}
                     </div>
                     <p className="text-xs text-neutral-400 mt-0.5 leading-relaxed">
@@ -361,7 +361,7 @@ export const ConcertMemoriesView: React.FC = () => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full min-h-[120px] rounded-2xl border border-dashed border-white/20 hover:border-[#D4AF37] bg-black/60 flex flex-col items-center justify-center gap-2 p-4 text-center transition-colors cursor-pointer"
+              className="w-full min-h-[120px] rounded-2xl border border-dashed border-white/20 hover:border-[#FFFFFF] bg-black/60 flex flex-col items-center justify-center gap-2 p-4 text-center transition-colors cursor-pointer"
             >
               {uploadPreviewUrl ? (
                 uploadMediaType === 'video' ? (
@@ -371,7 +371,7 @@ export const ConcertMemoriesView: React.FC = () => {
                 )
               ) : (
                 <>
-                  <Upload className="w-5 h-5 text-[#D4AF37]" />
+                  <Upload className="w-5 h-5 text-[#FFFFFF]" />
                   <span className="text-xs font-agrandir-bold text-white">
                     {isEn ? 'Choose a photo or video' : 'Choisir une photo ou vidéo'}
                   </span>
@@ -389,7 +389,7 @@ export const ConcertMemoriesView: React.FC = () => {
                 value={uploadCaption}
                 onChange={(e) => setUploadCaption(e.target.value)}
                 placeholder={isEn ? 'Best moment from the front row...' : 'Meilleur moment depuis la fosse...'}
-                className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#D4AF37] focus:outline-none"
+                className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/15 text-sm text-white focus:border-[#FFFFFF] focus:outline-none"
               />
             </div>
 
@@ -443,7 +443,7 @@ export const ConcertMemoriesView: React.FC = () => {
                             `lumareel-souvenir-${item.id}.${item.mediaType === 'video' ? 'mp4' : 'jpg'}`
                           )
                         }
-                        className="text-[#D4AF37] hover:underline cursor-pointer"
+                        className="text-[#FFFFFF] hover:underline cursor-pointer"
                       >
                         {isEn ? 'Download' : 'Télécharger'}
                       </button>
@@ -499,7 +499,7 @@ export const ConcertMemoriesView: React.FC = () => {
   return (
     <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
       <header className="mb-8 pb-6 border-b border-white/10">
-        <p className="text-xs tracking-[0.2em] text-[#D4AF37] uppercase mb-2">
+        <p className="text-xs tracking-[0.2em] text-[#FFFFFF] uppercase mb-2">
           {isEn ? 'After the Show · Concert Memories' : 'Après le Concert · Souvenirs Officiels'}
         </p>
         <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-tight text-white leading-[1.02] text-balance">
@@ -532,11 +532,11 @@ export const ConcertMemoriesView: React.FC = () => {
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
               <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-xs text-white">
                 <span className="inline-flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <ImageIcon className="w-3.5 h-3.5 text-[#FFFFFF]" />
                   {album.officialPhotos.length} {isEn ? 'photos' : 'photos'}
                 </span>
                 <span className="inline-flex items-center gap-1 font-mono">
-                  <Film className="w-3.5 h-3.5 text-[#D4AF37]" />
+                  <Film className="w-3.5 h-3.5 text-[#FFFFFF]" />
                   {album.recapDuration}
                 </span>
               </div>
@@ -555,7 +555,7 @@ export const ConcertMemoriesView: React.FC = () => {
                 <p className="text-xs text-neutral-400">{album.artist}</p>
               </div>
 
-              <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-agrandir-bold text-white group-hover:text-[#D4AF37] transition-colors">
+              <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs font-agrandir-bold text-white group-hover:text-[#FFFFFF] transition-colors">
                 <span className="inline-flex items-center gap-1.5">
                   <Camera className="w-3.5 h-3.5" />
                   {isEn ? 'Open memory page' : 'Ouvrir la page souvenir'}
