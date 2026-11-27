@@ -9,10 +9,8 @@ import {
   COMMUNITY_MEDIA,
   ClaimedFlashOffer,
   POINTS_RULES,
-  REFERRAL_CREDIT_FCFA,
   RedeemedReward,
   computeUserPointsSummary,
-  generateReferralCode,
   loadUserPointsState,
   saveUserPointsState,
 } from '../utils/communityStorage';
@@ -92,7 +90,6 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
 
   const [activeTab, setActiveTab] = useState<RewardsTab>(initialTab);
   const [pointsState, setPointsState] = useState(() => loadUserPointsState(currentUser));
-  const [copiedCode, setCopiedCode] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [revealedSurprise, setRevealedSurprise] = useState<ClaimedFlashOffer | null>(null);
 
@@ -111,10 +108,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
   const [profileGenre, setProfileGenre] = useState(pointsState.profileDetails?.favoriteGenre || 'Afrobeats / Live');
 
   // Formulaire code parrain d'un ami
-  const [friendCodeInput, setFriendCodeInput] = useState('');
-  const [inviteFriendName, setInviteFriendName] = useState('');
 
-  const myReferralCode = useMemo(() => generateReferralCode(currentUser), [currentUser]);
   const summary = useMemo(
     () =>
       computeUserPointsSummary(currentUser, customerOrders, {
@@ -295,127 +289,6 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
     persist(next);
     showToast(
       isEn ? `Reward unlocked! Voucher code: ${code}` : `Récompense obtenue ! Code bon : ${code}`,
-      'success'
-    );
-  };
-
-  const handleCopyReferralCode = async () => {
-    try {
-      await navigator.clipboard.writeText(myReferralCode);
-      setCopiedCode(true);
-      showToast(
-        isEn ? `Referral code ${myReferralCode} copied.` : `Code parrainage ${myReferralCode} copié.`,
-        'success'
-      );
-      setTimeout(() => setCopiedCode(false), 2200);
-    } catch {
-      showToast(myReferralCode, 'info');
-    }
-  };
-
-  const handleShareReferral = async () => {
-    const shareText = isEn
-      ? `Join LUMARÉEL with my code ${myReferralCode} and get 500 FCFA ticketing credit on your first concert ticket.`
-      : `Rejoins LUMARÉEL avec mon code ${myReferralCode} et reçois 500 F CFA de crédit billetterie dès ton premier achat !`;
-    const shareUrl =
-      typeof window !== 'undefined' ? `${window.location.origin}/?ref=${encodeURIComponent(myReferralCode)}` : '';
-
-    if (typeof navigator !== 'undefined' && navigator.share) {
-      try {
-        await navigator.share({
-          title: 'LUMARÉEL — Parrainage 500 F CFA',
-          text: shareText,
-          url: shareUrl,
-        });
-        return;
-      } catch {
-        // fallback copy below
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-      showToast(
-        isEn ? 'Referral invite copied to share with your friends.' : 'Lien d’invitation copié, prêt à être partagé.',
-        'success'
-      );
-    } catch {
-      showToast(shareText, 'info');
-    }
-  };
-
-  const handleApplyFriendCode = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) {
-      setIsAuthModalOpen(true);
-      showToast(
-        isEn ? 'Create an account to claim your 500 FCFA referral credit.' : 'Créez un compte pour activer vos 500 F CFA de crédit.',
-        'info'
-      );
-      return;
-    }
-    const clean = friendCodeInput.trim().toUpperCase();
-    if (!clean || clean.length < 5) {
-      showToast(
-        isEn ? 'Enter a valid referral code (e.g. LMR-KOFFI124).' : 'Saisissez un code de parrainage valide (ex : LMR-KOFFI124).',
-        'error'
-      );
-      return;
-    }
-    if (clean === myReferralCode) {
-      showToast(
-        isEn ? 'You cannot use your own referral code.' : 'Vous ne pouvez pas utiliser votre propre code de parrainage.',
-        'error'
-      );
-      return;
-    }
-    if (pointsState.appliedReferralCode) {
-      showToast(
-        isEn ? 'A referral code has already been applied to your account.' : 'Un code de parrainage est déjà actif sur votre compte.',
-        'info'
-      );
-      return;
-    }
-    const next = {
-      ...pointsState,
-      appliedReferralCode: clean,
-      welcomeReferralCreditFcfa: pointsState.welcomeReferralCreditFcfa + REFERRAL_CREDIT_FCFA,
-    };
-    persist(next);
-    setFriendCodeInput('');
-    showToast(
-      isEn
-        ? 'Referral code activated! 500 FCFA ticketing credit added to your account.'
-        : 'Code parrain validé ! 500 F CFA de crédit billetterie ajoutés à votre compte.',
-      'success'
-    );
-  };
-
-  const handleRegisterFriendInvite = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) {
-      setIsAuthModalOpen(true);
-      return;
-    }
-    const cleanFriend = inviteFriendName.trim();
-    if (!cleanFriend) return;
-
-    const newEntry = {
-      id: `ref_${Date.now()}`,
-      friendName: cleanFriend,
-      status: 'signed_up' as const,
-      creditFcfa: REFERRAL_CREDIT_FCFA,
-      pointsAwarded: POINTS_RULES.REFERRAL_PURCHASE,
-      createdAt: new Date().toISOString(),
-    };
-    persist({
-      ...pointsState,
-      referrals: [newEntry, ...pointsState.referrals],
-    });
-    setInviteFriendName('');
-    showToast(
-      isEn
-        ? `Invitation tracked for ${cleanFriend}. Rewards unlock once their first ticket is purchased.`
-        : `Invitation enregistrée pour ${cleanFriend}. Les 500 F CFA + 200 pts se débloquent dès son premier achat.`,
       'success'
     );
   };
@@ -847,7 +720,7 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
                 <h3 className="font-agrandir-extrabold text-base text-white">
                   {isEn ? 'Complete your profile' : 'Compléter votre profil'}
                 </h3>
-                <span className="font-mono text-xs font-bold text-[#FFFFFF] tabular-nums">+50 pts</span>
+                <span className="text-[10px] uppercase tracking-wider text-neutral-500">{isEn ? "Member details" : "Profil membre"}</span>
               </div>
               <form onSubmit={handleSaveProfileBonus} className="space-y-3.5">
                 <div>
@@ -898,8 +771,8 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
                       ? 'Update profile'
                       : 'Mettre à jour le profil'
                     : isEn
-                    ? 'Save & claim +50 pts'
-                    : 'Valider et recevoir +50 pts'}
+                    ? 'Save profile'
+                    : 'Enregistrer le profil'}
                 </button>
               </form>
             </section>
