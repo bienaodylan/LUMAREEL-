@@ -21,7 +21,7 @@ type BackstageSection = 'coulisses' | 'memories';
  * BACKSTAGE — Destination média monochrome unifiée regroupant Coulisses & Memories.
  * Miniatures 100 % dégagées : titres et repères placés proprement sous chaque visuel.
  */
-export const BackstageView: React.FC = () => {
+export const BackstageView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const {
     currentUser,
     events,
@@ -111,7 +111,8 @@ export const BackstageView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-9 pb-20 text-white font-agrandir-regular">
+    <div className={`w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 ${embedded ? "pt-0 pb-8" : "min-h-screen pt-4 sm:pt-9 pb-20"} text-white font-agrandir-regular`}>
+      {!embedded && (
       <PageHeader
         compact
         eyebrow={isEn ? 'Inside LUMARÉEL' : 'Dans les coulisses'}
@@ -127,7 +128,8 @@ export const BackstageView: React.FC = () => {
               { id: 'memories', label: 'Memories' },
             ]}
           />
-        }
+
+      )}        }
       />
 
       {/* VUE 1 : COULISSES */}
