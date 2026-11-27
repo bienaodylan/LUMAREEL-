@@ -121,6 +121,7 @@ const MainApp: React.FC = () => {
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
   const isHomePage = currentPage === 'home' || currentPage === 'discover';
+  const isLandingPage = currentPage === 'home' || currentPage === 'splash';
   const isStandaloneRootTab =
     isHomePage ||
     currentPage === 'client_space' ||
@@ -147,9 +148,11 @@ const MainApp: React.FC = () => {
         className={`flex-1 w-full max-w-full min-w-0 relative z-10 ${
           !isAdminOrScanner
             ? `${
-                isStandalone
-                  ? 'pb-[calc(6.25rem+env(safe-area-inset-bottom,0px))]'
-                  : 'pb-10'
+                isLandingPage
+                  ? ''
+                  : isStandalone
+                    ? 'pb-[calc(6.25rem+env(safe-area-inset-bottom,0px))]'
+                    : 'pb-10'
               } ${
                 hasVisibleMobileHeader && !isHomePage
                   ? 'pt-[calc(4.1rem+env(safe-area-inset-top,0px))] md:pt-0'
