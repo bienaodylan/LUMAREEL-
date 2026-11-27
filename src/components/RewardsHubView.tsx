@@ -116,7 +116,16 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
 
   const myReferralCode = useMemo(() => generateReferralCode(currentUser), [currentUser]);
   const summary = useMemo(
-    () => computeUserPointsSummary(currentUser, customerOrders, pointsState),
+    () =>
+      computeUserPointsSummary(currentUser, customerOrders, {
+        ...pointsState,
+        profileCompleted: false,
+        completedChallenges: [],
+        redeemedRewards: [],
+        referrals: [],
+        bonusSurprisePoints: 0,
+        welcomeReferralCreditFcfa: 0,
+      }),
     [currentUser, customerOrders, pointsState]
   );
 
@@ -227,25 +236,19 @@ export const RewardsHubView: React.FC<{ initialTab?: RewardsTab; unified?: boole
     const alreadyDone = pointsState.completedChallenges.includes('challenge_profile_full');
     const next = {
       ...pointsState,
-      profileCompleted: true,
+      profileCompleted: false,
       profileDetails: {
         city: profileCity.trim(),
         phone: profilePhone.trim(),
         favoriteGenre: profileGenre.trim(),
       },
-      completedChallenges: alreadyDone
-        ? pointsState.completedChallenges
-        : [...pointsState.completedChallenges, 'challenge_profile_full'],
+      completedChallenges: pointsState.completedChallenges,
     };
     persist(next);
     showToast(
-      alreadyDone
-        ? isEn
-          ? 'Member profile updated.'
-          : 'Profil membre mis à jour.'
-        : isEn
-        ? '+50 points added for completing your profile.'
-        : '+50 points crédités pour votre profil complet !',
+      isEn
+        ? 'Profile details saved. Loyalty points are credited only after server validation is enabled.'
+        : 'Profil enregistré. Les points seront crédités après activation de la validation serveur.',
       'success'
     );
   };
