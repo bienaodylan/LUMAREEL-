@@ -12,7 +12,7 @@ import { ArrowUp, Lightbulb, MapPin, Mic2, Send } from 'lucide-react';
 type SuggestionFilter = 'all' | 'artist_venue' | 'general_event';
 type SortMode = 'popular' | 'recent';
 
-export const SuggestionsView: React.FC = () => {
+export const SuggestionsView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { currentUser, showToast, language } = useApp();
   const isEn = language === 'en';
 
@@ -119,7 +119,8 @@ export const SuggestionsView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-4 sm:pt-10 pb-20 text-white font-agrandir-regular">
+    <div className={`w-full max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 ${embedded ? "pt-0 pb-8" : "min-h-screen pt-4 sm:pt-10 pb-20"} text-white font-agrandir-regular`}>
+      {!embedded && (
       <header className="mb-8 pb-6 border-b border-white/10">
         <p className="text-xs tracking-[0.2em] text-[#FFFFFF] uppercase mb-2">
           {isEn ? 'LUMARÉEL Club · Lineup & Ideas' : 'Club LUMARÉEL · Programmation & Idées'}
@@ -132,7 +133,8 @@ export const SuggestionsView: React.FC = () => {
             ? 'Shape the next LUMARÉEL shows: request the artists and venues you want to see live, pitch event concepts, and vote on community favorites.'
             : 'Façonnez les prochains spectacles LUMARÉEL : proposez les artistes et salles que vous rêvez de voir sur scène, soumettez vos idées d’événements et votez pour vos envies.'}
         </p>
-      </header>
+      </header
+      )}>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Colonne gauche : Formulaire de proposition */}
