@@ -1,9 +1,20 @@
 import { COMMUNITY_MEDIA } from './communityStorage';
+import type { TvAccessTier, TvEntitlementClient } from './tvAccess';
 
-export type MediaPlacement = 'backstage' | 'memories';
+export type MediaPlacement = 'backstage' | 'memories' | 'lumareel_tv';
 export type MediaItemStatus = 'draft' | 'published' | 'rejected';
 export type VisualContextRole = 'none' | 'artist' | 'concert' | 'editorial';
 export type ContributorRole = 'editorial' | 'photographer' | 'media_collaborator';
+export type MediaAccessLevel = 'public' | 'members' | 'black_card' | 'specific';
+
+export type TvContentCategory =
+  | 'originals'
+  | 'concerts_live'
+  | 'backstage'
+  | 'interviews'
+  | 'retrospectives';
+
+export type TvPrivacyLevel = 'public' | 'private' | 'restricted';
 
 export interface MediaHubItem {
   id: string;
@@ -18,6 +29,12 @@ export interface MediaHubItem {
   duration?: string;
   tag?: string;
   placement: MediaPlacement;
+  /** LUMARÉEL TV structured fields */
+  tvCategory?: TvContentCategory;
+  privacyLevel?: TvPrivacyLevel;
+  tvAccessTier?: TvAccessTier;
+  isFeaturedOnTv?: boolean;
+  publishedAt?: string;
   albumTitle?: string;
   eventId?: string;
   artistName?: string;
@@ -25,11 +42,206 @@ export interface MediaHubItem {
   status: MediaItemStatus;
   downloadable: boolean;
   membersOnly: boolean;
+  accessLevel?: MediaAccessLevel;
+  accessNoteFr?: string;
+  accessNoteEn?: string;
   visualContextRole: VisualContextRole;
   submittedByName: string;
   submittedByRole: 'super_admin' | ContributorRole;
   notes?: string[];
   createdAt: string;
+}
+
+export interface MediaAccessEvaluation {
+  allowed: boolean;
+  level: MediaAccessLevel;
+  tvTier: TvAccessTier;
+  labelFr: string;
+  labelEn: string;
+  requirementFr: string;
+  requirementEn: string;
+}
+
+export const TV_CATEGORY_META: Record<
+  TvContentCategory,
+  { labelFr: string; labelEn: string; shortFr: string; shortEn: string }
+> = {
+  originals: {
+    labelFr: 'LUMARÉEL Originals',
+    labelEn: 'LUMARÉEL Originals',
+    shortFr: 'Original',
+    shortEn: 'Original',
+  },
+  concerts_live: {
+    labelFr: 'Concerts & Live',
+    labelEn: 'Concerts & Live',
+    shortFr: 'Concert Live',
+    shortEn: 'Live Concert',
+  },
+  backstage: {
+    labelFr: 'Backstage',
+    labelEn: 'Backstage',
+    shortFr: 'Backstage',
+    shortEn: 'Backstage',
+  },
+  interviews: {
+    labelFr: 'Interviews',
+    labelEn: 'Interviews',
+    shortFr: 'Interview',
+    shortEn: 'Interview',
+  },
+  retrospectives: {
+    labelFr: 'Rétrospectives',
+    labelEn: 'Retrospectives',
+    shortFr: 'Rétrospective',
+    shortEn: 'Retrospective',
+  },
+};
+
+export function resolveTvCategory(item: MediaHubItem): TvContentCategory {
+  if (item.tvCategory) return item.tvCategory;
+  const tag = (item.tag || '').toLowerCase();
+  if (tag.includes('interview') || tag.includes('studio') || tag.includes('loge')) return 'interviews';
+  if (tag.includes('original') || tag.includes('scénographie') || tag.includes('film')) return 'originals';
+  if (tag.includes('rétro') || tag.includes('retro') || tag.includes('concert') || item.placement === 'memories') {
+    return item.mediaType === 'video' ? 'concerts_live' : 'retrospectives';
+  }
+  return 'backstage';
+}
+
+export function resolveTvAccessTier(item: MediaHubItem): TvAccessTier {
+  if (item.tvAccessTier) return item.tvAccessTier;
+  const legacy = resolveMediaAccessLevel(item);
+  if (legacy === 'public') return 'free';
+  if (legacy === 'members') return 'tv_pass';
+  if (legacy === 'black_card') return 'card';
+  return 'vip';
+}
+
+export function resolvePrivacyLevel(item: MediaHubItem): TvPrivacyLevel {
+  if (item.privacyLevel) return item.privacyLevel;
+  const tier = resolveTvAccessTier(item);
+  if (tier === 'free') return 'public';
+  if (tier === 'tv_pass') return 'private';
+  return 'restricted';
+}
+
+export function resolveMediaAccessLevel(item: MediaHubItem): MediaAccessLevel {
+  if (item.accessLevel) return item.accessLevel;
+  if (item.tvAccessTier === 'free') return 'public';
+  if (item.tvAccessTier === 'tv_pass') return 'members';
+  if (item.tvAccessTier === 'card') return 'black_card';
+  if (item.tvAccessTier === 'vip') return 'specific';
+  return item.membersOnly ? 'black_card' : 'public';
+}
+
+/**
+ * Single centralized LUMARÉEL TV permission evaluator combining:
+ * - Free content (accessible to everyone)
+ * - TV Pass content (accessible via active TV Pass OR eligible LUMARÉEL Card)
+ * - Card content (accessible via eligible LUMARÉEL Card)
+ * - VIP content (accessible via eligible LUMARÉEL Card with VIP tier OR verified concert ticket)
+ */
+export function evaluateTvMediaAccess(
+  item: MediaHubItem,
+  entitlement: TvEntitlementClient | null | undefined,
+  options?: { hasSpecificAccess?: boolean }
+): MediaAccessEvaluation {
+  const tier = resolveTvAccessTier(item);
+  const legacyLevel = resolveMediaAccessLevel(item);
+  const hasCardAccess = Boolean(entitlement?.cardAccess?.eligible);
+  const hasSubAccess = Boolean(entitlement?.subscriptionAccess?.active);
+  const hasVipCard = hasCardAccess && entitlement?.maxTier === 'vip';
+  const hasSpecific = Boolean(options?.hasSpecificAccess);
+
+  if (tier === 'free') {
+    return {
+      allowed: true,
+      level: 'public',
+      tvTier: 'free',
+      labelFr: 'Gratuit',
+      labelEn: 'Free',
+      requirementFr: 'Accessible à tous sur LUMARÉEL TV.',
+      requirementEn: 'Open to everyone on LUMARÉEL TV.',
+    };
+  }
+
+  if (tier === 'tv_pass') {
+    return {
+      allowed: hasSubAccess || hasCardAccess,
+      level: legacyLevel,
+      tvTier: 'tv_pass',
+      labelFr: 'TV Pass',
+      labelEn: 'TV Pass',
+      requirementFr:
+        item.accessNoteFr ||
+        'Accessible avec un LUMARÉEL TV Pass actif ou une LUMARÉEL Card éligible.',
+      requirementEn:
+        item.accessNoteEn ||
+        'Available with an active LUMARÉEL TV Pass or an eligible LUMARÉEL Card.',
+    };
+  }
+
+  if (tier === 'card') {
+    return {
+      allowed: hasCardAccess,
+      level: 'black_card',
+      tvTier: 'card',
+      labelFr: 'LUMARÉEL Card',
+      labelEn: 'LUMARÉEL Card',
+      requirementFr:
+        item.accessNoteFr ||
+        'Exclusivité réservée aux détenteurs d’une LUMARÉEL Card active et éligible.',
+      requirementEn:
+        item.accessNoteEn ||
+        'Exclusive release reserved for active, eligible LUMARÉEL Card holders.',
+    };
+  }
+
+  // tier === 'vip'
+  return {
+    allowed: hasVipCard || hasSpecific,
+    level: 'specific',
+    tvTier: 'vip',
+    labelFr: 'Accès VIP',
+    labelEn: 'VIP Access',
+    requirementFr:
+      item.accessNoteFr ||
+      'Accès VIP requis : LUMARÉEL Card éligible ou billet vérifié pour cet événement.',
+    requirementEn:
+      item.accessNoteEn ||
+      'VIP access required: eligible LUMARÉEL Card or verified event ticket.',
+  };
+}
+
+/** Legacy wrapper kept for backward compatibility with older call sites. */
+export function evaluateMediaAccess(
+  item: MediaHubItem,
+  ctx: {
+    isAuthenticated: boolean;
+    hasBlackCard: boolean;
+    hasTvPass?: boolean;
+    hasSpecificAccess?: boolean;
+  }
+): MediaAccessEvaluation {
+  const syntheticEntitlement: TvEntitlementClient = {
+    hasAccess: Boolean(ctx.hasBlackCard || ctx.hasTvPass),
+    source:
+      ctx.hasBlackCard && ctx.hasTvPass
+        ? 'both'
+        : ctx.hasBlackCard
+        ? 'lumareel_card'
+        : ctx.hasTvPass
+        ? 'tv_pass'
+        : 'none',
+    maxTier: ctx.hasBlackCard ? 'vip' : ctx.hasTvPass ? 'tv_pass' : 'free',
+    cardAccess: { eligible: Boolean(ctx.hasBlackCard) },
+    subscriptionAccess: { active: Boolean(ctx.hasTvPass) },
+    checkedAt: '',
+  };
+  return evaluateTvMediaAccess(item, syntheticEntitlement, {
+    hasSpecificAccess: ctx.hasSpecificAccess,
+  });
 }
 
 export interface ContributorAccessInvite {
@@ -71,6 +283,10 @@ export function isSafeMediaUrl(url?: string): boolean {
   }
 }
 
+/**
+ * All existing Memories & Backstage items preserved and migrated into LUMARÉEL TV
+ * categories and access tiers (no media removed).
+ */
 export const INITIAL_MEDIA_HUB_ITEMS: MediaHubItem[] = [
   {
     id: 'media_bs_1',
@@ -86,11 +302,17 @@ export const INITIAL_MEDIA_HUB_ITEMS: MediaHubItem[] = [
     embedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
     duration: '08:42',
     tag: 'Soundcheck',
-    placement: 'backstage',
+    placement: 'lumareel_tv',
+    tvCategory: 'originals',
+    privacyLevel: 'public',
+    tvAccessTier: 'free',
+    isFeaturedOnTv: true,
+    publishedAt: '2026-11-10',
     date: 'Nov 2026',
     status: 'published',
     downloadable: false,
     membersOnly: false,
+    accessLevel: 'public',
     visualContextRole: 'editorial',
     submittedByName: 'Direction LUMARÉEL',
     submittedByRole: 'super_admin',
@@ -115,11 +337,18 @@ export const INITIAL_MEDIA_HUB_ITEMS: MediaHubItem[] = [
     embedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
     duration: '11:15',
     tag: 'Session Studio',
-    placement: 'backstage',
+    placement: 'lumareel_tv',
+    tvCategory: 'interviews',
+    privacyLevel: 'private',
+    tvAccessTier: 'tv_pass',
+    publishedAt: '2026-11-12',
     date: 'Nov 2026',
     status: 'published',
     downloadable: false,
-    membersOnly: false,
+    membersOnly: true,
+    accessLevel: 'members',
+    accessNoteFr: 'Accessible avec le LUMARÉEL TV Pass ou une LUMARÉEL Card éligible.',
+    accessNoteEn: 'Available with a LUMARÉEL TV Pass or an eligible LUMARÉEL Card.',
     visualContextRole: 'none',
     submittedByName: 'Direction LUMARÉEL',
     submittedByRole: 'super_admin',
@@ -144,11 +373,16 @@ export const INITIAL_MEDIA_HUB_ITEMS: MediaHubItem[] = [
     embedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
     duration: '06:28',
     tag: 'Scénographie',
-    placement: 'backstage',
+    placement: 'lumareel_tv',
+    tvCategory: 'backstage',
+    privacyLevel: 'private',
+    tvAccessTier: 'tv_pass',
+    publishedAt: '2026-10-28',
     date: 'Oct 2026',
     status: 'published',
     downloadable: false,
-    membersOnly: false,
+    membersOnly: true,
+    accessLevel: 'members',
     visualContextRole: 'none',
     submittedByName: 'Direction LUMARÉEL',
     submittedByRole: 'super_admin',
@@ -163,25 +397,30 @@ export const INITIAL_MEDIA_HUB_ITEMS: MediaHubItem[] = [
     title: 'Carnet privé des loges — Rencontre d’après-concert',
     titleEn: 'Private greenroom diary — Post-show conversations',
     description:
-      'Les minutes qui suivent la sortie de scène, réservées aux détenteurs de la LUMARÉEL Black Card.',
+      'Les minutes qui suivent la sortie de scène, réservées aux titulaires de la LUMARÉEL Card.',
     descriptionEn:
-      'The raw minutes right after walking off stage, reserved for LUMARÉEL Black Card holders.',
+      'The raw minutes right after walking off stage, reserved for LUMARÉEL Card holders.',
     mediaType: 'video',
     url: COMMUNITY_MEDIA.vipMezzanineImg,
     thumbnailUrl: COMMUNITY_MEDIA.vipMezzanineImg,
     embedUrl: 'https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0',
     duration: '14:05',
-    tag: 'Black Card',
-    placement: 'backstage',
+    tag: 'Loges Privées',
+    placement: 'lumareel_tv',
+    tvCategory: 'backstage',
+    privacyLevel: 'restricted',
+    tvAccessTier: 'card',
+    publishedAt: '2026-11-18',
     date: 'Nov 2026',
     status: 'published',
     downloadable: false,
     membersOnly: true,
+    accessLevel: 'black_card',
     visualContextRole: 'none',
     submittedByName: 'Direction LUMARÉEL',
     submittedByRole: 'super_admin',
     notes: [
-      'Accès exclusif réservé aux membres LUMARÉEL Black Card.',
+      'Accès exclusif réservé aux détenteurs de la LUMARÉEL Card.',
       'Réactions à chaud des artistes dans les loges privées.',
     ],
     createdAt: '2026-11-18T23:45:00Z',
@@ -190,18 +429,23 @@ export const INITIAL_MEDIA_HUB_ITEMS: MediaHubItem[] = [
     id: 'media_mem_1',
     title: 'Ouverture devant la fosse — Abidjan',
     titleEn: 'Opening silhouette before the crowd — Abidjan',
-    description: 'Prise officielle grand angle au lancement du concert.',
-    descriptionEn: 'Official wide-angle still at show opening.',
+    description: 'Prise inédite grand angle au lancement du concert, sélection LUMARÉEL TV.',
+    descriptionEn: 'Unreleased wide-angle still at show opening, LUMARÉEL TV selection.',
     mediaType: 'photo',
     url: COMMUNITY_MEDIA.concertMemoriesCrowdImg,
     thumbnailUrl: COMMUNITY_MEDIA.concertMemoriesCrowdImg,
-    tag: 'Officiel',
-    placement: 'memories',
+    tag: 'Concert Live',
+    placement: 'lumareel_tv',
+    tvCategory: 'concerts_live',
+    privacyLevel: 'private',
+    tvAccessTier: 'tv_pass',
     albumTitle: 'LUMARÉEL Live Session — Abidjan',
+    publishedAt: '2026-10-20',
     date: 'Oct 2026',
     status: 'published',
     downloadable: true,
-    membersOnly: false,
+    membersOnly: true,
+    accessLevel: 'members',
     visualContextRole: 'none',
     submittedByName: 'Photographe Officiel LUMARÉEL',
     submittedByRole: 'photographer',
@@ -211,24 +455,44 @@ export const INITIAL_MEDIA_HUB_ITEMS: MediaHubItem[] = [
     id: 'media_mem_2',
     title: 'Foule en fusion sous les faisceaux',
     titleEn: 'Crowd under stage beams',
-    description: 'Vue de la salle complète pendant le rappel final.',
-    descriptionEn: 'Full hall perspective during the final encore.',
+    description:
+      'Rétrospective photo du rappel final à Abidjan, accessible en accès VIP ou LUMARÉEL Card.',
+    descriptionEn:
+      'Final encore retrospective still from Abidjan, available with VIP access or LUMARÉEL Card.',
     mediaType: 'photo',
     url: COMMUNITY_MEDIA.crowdArchiveImg,
     thumbnailUrl: COMMUNITY_MEDIA.crowdArchiveImg,
-    tag: 'Officiel',
-    placement: 'memories',
+    tag: 'Rétrospective',
+    placement: 'lumareel_tv',
+    tvCategory: 'retrospectives',
+    privacyLevel: 'restricted',
+    tvAccessTier: 'vip',
     albumTitle: 'LUMARÉEL Live Session — Abidjan',
+    publishedAt: '2026-10-20',
     date: 'Oct 2026',
     status: 'published',
     downloadable: true,
-    membersOnly: false,
+    membersOnly: true,
+    accessLevel: 'specific',
     visualContextRole: 'none',
     submittedByName: 'Photographe Officiel LUMARÉEL',
     submittedByRole: 'photographer',
     createdAt: '2026-10-20T22:30:00Z',
   },
 ];
+
+function normalizeMediaHubItem(raw: MediaHubItem): MediaHubItem {
+  const tvCategory = resolveTvCategory(raw);
+  const tvAccessTier = resolveTvAccessTier(raw);
+  const privacyLevel = resolvePrivacyLevel({ ...raw, tvAccessTier });
+  return {
+    ...raw,
+    tvCategory,
+    tvAccessTier,
+    privacyLevel,
+    publishedAt: raw.publishedAt || raw.createdAt?.slice(0, 10),
+  };
+}
 
 function emitMediaHubUpdate(): void {
   if (typeof window !== 'undefined') {
@@ -256,15 +520,17 @@ export function subscribeMediaHub(listener: () => void): () => void {
 }
 
 export function loadMediaHubItems(): MediaHubItem[] {
-  if (typeof window === 'undefined') return INITIAL_MEDIA_HUB_ITEMS;
+  if (typeof window === 'undefined') return INITIAL_MEDIA_HUB_ITEMS.map(normalizeMediaHubItem);
   try {
     const raw = localStorage.getItem(MEDIA_ITEMS_KEY);
-    if (!raw) return INITIAL_MEDIA_HUB_ITEMS;
+    if (!raw) return INITIAL_MEDIA_HUB_ITEMS.map(normalizeMediaHubItem);
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return INITIAL_MEDIA_HUB_ITEMS;
-    return parsed;
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return INITIAL_MEDIA_HUB_ITEMS.map(normalizeMediaHubItem);
+    }
+    return parsed.map((item: MediaHubItem) => normalizeMediaHubItem(item));
   } catch {
-    return INITIAL_MEDIA_HUB_ITEMS;
+    return INITIAL_MEDIA_HUB_ITEMS.map(normalizeMediaHubItem);
   }
 }
 
@@ -279,12 +545,13 @@ export function saveMediaHubItems(items: MediaHubItem[]): void {
 }
 
 export function upsertMediaHubItem(item: MediaHubItem): MediaHubItem[] {
+  const normalized = normalizeMediaHubItem(item);
   const existing = loadMediaHubItems();
-  const idx = existing.findIndex((x) => x.id === item.id);
+  const idx = existing.findIndex((x) => x.id === normalized.id);
   const next =
     idx >= 0
-      ? existing.map((x) => (x.id === item.id ? item : x))
-      : [item, ...existing];
+      ? existing.map((x) => (x.id === normalized.id ? normalized : x))
+      : [normalized, ...existing];
   saveMediaHubItems(next);
   return next;
 }

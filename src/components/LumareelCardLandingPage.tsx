@@ -40,8 +40,8 @@ const CARD_COPY = {
       },
       {
         num: '03',
-        title: 'Souvenirs VIP & invitations',
-        desc: 'Contenus exclusifs, rencontres, soirées privées.',
+        title: 'LUMARÉEL TV & invitations',
+        desc: 'Originals, concerts filmés, coulisses, rencontres et soirées privées.',
       },
     ],
     digitalPhysicalKicker: 'NUMÉRIQUE + PHYSIQUE',
@@ -126,8 +126,8 @@ const CARD_COPY = {
       },
       {
         num: '03',
-        title: 'VIP Memories & invitations',
-        desc: 'Exclusive content, artist meetings, private nights.',
+        title: 'LUMARÉEL TV & invitations',
+        desc: 'Originals, filmed concerts, backstage, artist meetings and private nights.',
       },
     ],
     digitalPhysicalKicker: 'DIGITAL + PHYSICAL',

@@ -7,6 +7,7 @@ import { HomeFeed } from './components/HomeFeed';
 import { ExplorerView } from './components/ExplorerView';
 import { MediaDetailView } from './components/MediaDetailView';
 import { ContributorPortalView } from './components/ContributorPortalView';
+import { ArchiveView } from './components/ArchiveView';
 import { OrganizersView } from './components/OrganizersView';
 import { CustomerSpace } from './components/CustomerSpace';
 import { ProfileView } from './components/ProfileView';
@@ -20,7 +21,7 @@ import { CardVerificationView } from './components/CardVerificationView';
 import { RewardsHubView } from './components/RewardsHubView';
 import { PrivilegedAccessView } from './components/PrivilegedAccessView';
 import { FlashDropsView } from './components/FlashDropsView';
-import { ConcertMemoriesView } from './components/ConcertMemoriesView';
+import { LumareelTvView } from './components/LumareelTvView';
 import { SuggestionsView } from './components/SuggestionsView';
 import { DiscoverDetailView } from './components/DiscoverDetailView';
 import { ContactView } from './components/ContactView';
@@ -68,16 +69,19 @@ const MainApp: React.FC = () => {
         if (res.ok && data?.success && data?.transaction?.status === 'SUCCESS') {
           await Promise.all([refreshCustomerOrders(), refreshEvents()]);
           const isCard = ref.startsWith('PMT-CARD-');
+          const isTvPass = ref.startsWith('PMT-TV-');
           if (isCard && data?.fulfillment?.card) {
             saveStoredMemberCard(data.fulfillment.card);
           }
           showToast(
-            isCard
+            isTvPass
+              ? (language === 'en' ? 'LUMARÉEL TV Pass confirmed! Welcome to LUMARÉEL TV.' : 'Paiement LUMARÉEL TV Pass confirmé ! Bienvenue sur LUMARÉEL TV.')
+              : isCard
               ? (language === 'en' ? 'LUMARÉEL Black Card payment confirmed! Your card is ready.' : 'Paiement LUMARÉEL Black Card confirmé ! Votre carte est prête.')
               : (language === 'en' ? 'Payment confirmed! Your tickets are available.' : 'Paiement confirmé ! Vos billets sont disponibles.'),
             'success'
           );
-          setCurrentPage(isCard ? 'member_card' : 'client_space');
+          setCurrentPage(isTvPass ? 'lumareel_tv' : isCard ? 'member_card' : 'client_space');
         } else {
           showToast(
             language === 'en'
@@ -118,6 +122,7 @@ const MainApp: React.FC = () => {
       'member_card',
       'card',
       'memories',
+      'lumareel_tv',
       'backstage',
       'archive',
       'rewards',
@@ -176,7 +181,7 @@ const MainApp: React.FC = () => {
             {currentPage === 'booking' && <CheckoutModal />}
             {currentPage === 'media_detail' && <MediaDetailView />}
             {currentPage === 'contributor_studio' && <ContributorPortalView />}
-            {currentPage === 'archive' && <ConcertMemoriesView />}
+            {currentPage === 'archive' && <ArchiveView />}
             {currentPage === 'organizers' && <OrganizersView />}
             {currentPage === 'client_space' && <CustomerSpace />}
             {currentPage === 'profile' && <ProfileView />}
@@ -185,9 +190,10 @@ const MainApp: React.FC = () => {
             {currentPage === 'card_verify' && <CardVerificationView />}
             {currentPage === 'rewards' && <RewardsHubView />}
             {currentPage === 'privileged_access' && <PrivilegedAccessView />}
-            {currentPage === 'backstage' && <ConcertMemoriesView />}
+            {currentPage === 'backstage' && <LumareelTvView />}
             {currentPage === 'flash_drops' && <FlashDropsView />}
-            {currentPage === 'memories' && <ConcertMemoriesView />}
+            {currentPage === 'memories' && <LumareelTvView />}
+            {currentPage === 'lumareel_tv' && <LumareelTvView />}
             {currentPage === 'suggestions' && <SuggestionsView />}
             {currentPage === 'discover_detail' && <DiscoverDetailView />}
             {currentPage === 'contact' && <ContactView />}

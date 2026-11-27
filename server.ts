@@ -9,6 +9,7 @@ import QRCode from 'qrcode';
 import { db } from './src/server/db';
 import { membershipService } from './src/server/membershipService';
 import { paymetrustService, PayMeTrustChannel } from './src/server/paymetrustService';
+import { lumareelTvService } from './src/server/tvService';
 import {
   getResendFromAddress,
   isResendConfigured,
@@ -615,6 +616,16 @@ async function startServer() {
       return { success: true, card: issued.card, physicalOrder: issued.physicalOrder };
     }
 
+    if (tx.kind === 'tv_pass') {
+      const sub = lumareelTvService.activateSubscriptionFromPayment(
+        tx.reference,
+        providerTxId || tx.reference
+      );
+      if (sub) {
+        return { success: true, subscription: sub };
+      }
+    }
+
     return null;
   };
 
@@ -720,6 +731,44 @@ async function startServer() {
           userId: userId || `usr_${crypto.randomBytes(6).toString('hex')}`,
           shippingAddress,
         };
+      } else if (kind === 'tv_pass') {
+        if (!paymetrustService.isConfigured()) {
+          return res.status(503).json({
+            success: false,
+            code: 'PAYMENT_PROVIDER_NOT_CONFIGURED',
+            error:
+              'Le paiement réel PayMeTrust n’est pas encore configuré (PAYMETRUST_API_KEY / PAYMETRUST_SECRET_KEY). Aucun abonnement ne peut être activé sans confirmation réelle.',
+          });
+        }
+        if (!resolvedEmail) {
+          return res.status(400).json({
+            success: false,
+            error: 'Veuillez vous connecter avec votre adresse e-mail pour souscrire au LUMARÉEL TV Pass.',
+          });
+        }
+        const activeTvPlans = lumareelTvService.getActivePlans();
+        const tvPlan = planId ? lumareelTvService.getPlanById(String(planId)) : activeTvPlans[0];
+        if (!tvPlan || tvPlan.status !== 'active') {
+          return res.status(404).json({
+            success: false,
+            error: 'Formule LUMARÉEL TV Pass introuvable ou inactive.',
+          });
+        }
+        amount = tvPlan.price;
+        resolvedOrderId = `tvord_${crypto.randomBytes(6).toString('hex')}`;
+        reference = `PMT-TV-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+        description = `${tvPlan.name} (${tvPlan.durationDays} jours)`;
+        lumareelTvService.createPendingSubscription({
+          userId: userId ? String(userId) : undefined,
+          userEmail: resolvedEmail,
+          userName: resolvedName || resolvedEmail.split('@')[0],
+          planId: tvPlan.id,
+          paymentReference: reference,
+        });
+        metadata = {
+          planId: tvPlan.id,
+          userId: userId ? String(userId) : undefined,
+        };
       } else {
         return res.status(400).json({ success: false, error: 'Type de transaction invalide.' });
       }
@@ -810,6 +859,14 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'Référence de transaction requise.' });
       }
 
+      const existingTx = paymetrustService.getTransaction(String(reference));
+      if (existingTx?.kind === 'tv_pass' || String(reference).startsWith('PMT-TV-')) {
+        return res.status(403).json({
+          success: false,
+          error: 'Aucun paiement simulé n’est autorisé pour LUMARÉEL TV Pass : une confirmation réelle est requise.',
+        });
+      }
+
       const tx = paymetrustService.updateTransactionStatus(
         String(reference),
         'SUCCESS',
@@ -862,6 +919,187 @@ async function startServer() {
       return res.status(200).json({ received: true, status: normalizedStatus });
     } catch (error: any) {
       console.error('[PAYMETRUST WEBHOOK ERROR]', error);
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // ============================================================================
+  // LUMARÉEL TV — PLANS, CENTRALIZED ENTITLEMENTS & ADMIN MANAGEMENT
+  // ============================================================================
+
+  app.get('/api/tv/plans', (_req: Request, res: Response) => {
+    try {
+      const plans = lumareelTvService.getActivePlans();
+      const cardEligibility = lumareelTvService.getCardEligibilityConfig();
+      const paymentConfig = paymetrustService.getPublicConfig();
+      return res.json({
+        success: true,
+        plans,
+        cardEligibility,
+        paymentReady: paymentConfig.configured,
+        paymentProvider: paymentConfig.provider,
+        paymentEnvironment: paymentConfig.environment,
+        channels: paymentConfig.channels,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/tv/entitlement', async (req: Request, res: Response) => {
+    try {
+      let verifiedEmail: string | null = null;
+      const bearer = String(req.headers.authorization || '');
+      const token = bearer.startsWith('Bearer ') ? bearer.slice(7) : '';
+      const sbUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+      const sbKey =
+        process.env.VITE_SUPABASE_ANON_KEY ||
+        process.env.SUPABASE_ANON_KEY ||
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+        process.env.SUPABASE_PUBLISHABLE_KEY;
+
+      let isTokenVerified = false;
+      if (token && sbUrl && sbKey) {
+        const client = createClient(sbUrl, sbKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        });
+        const { data, error } = await client.auth.getUser(token);
+        if (!error && data.user?.email) {
+          verifiedEmail = data.user.email;
+          isTokenVerified = true;
+        }
+      }
+
+      const allowLocalFallback = process.env.NODE_ENV !== 'production' || !(sbUrl && sbKey);
+      if (!verifiedEmail && allowLocalFallback && typeof req.query.email === 'string' && req.query.email.trim()) {
+        verifiedEmail = req.query.email.trim().toLowerCase();
+      }
+
+      const entitlement = lumareelTvService.evaluateUserEntitlement(verifiedEmail);
+      if (!isTokenVerified && entitlement.cardAccess.cardNumber) {
+        entitlement.cardAccess.cardNumber = `****-${entitlement.cardAccess.cardNumber.slice(-4)}`;
+      }
+      return res.json({
+        success: true,
+        entitlement,
+        paymentReady: paymetrustService.isConfigured(),
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/admin/tv/overview', async (req: Request, res: Response) => {
+    if (!(await requireMemberAdmin(req, res, ['super_admin']))) return;
+    try {
+      return res.json({
+        success: true,
+        plans: lumareelTvService.getAllPlans(),
+        subscriptions: lumareelTvService.getAllSubscriptions(),
+        cardEligibility: lumareelTvService.getCardEligibilityConfig(),
+        membershipPlans: membershipService.getPlans(),
+        paymentReady: paymetrustService.isConfigured(),
+        paymentEnvironment: paymetrustService.getPublicConfig().environment,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/admin/tv/plans', async (req: Request, res: Response) => {
+    if (!(await requireMemberAdmin(req, res, ['super_admin']))) return;
+    try {
+      const body = req.body || {};
+      if (!body.name || typeof body.name !== 'string') {
+        return res.status(400).json({ success: false, error: 'Le nom de la formule est requis.' });
+      }
+      const plan = lumareelTvService.upsertPlan({
+        id: body.id ? String(body.id) : undefined,
+        name: String(body.name),
+        nameEn: body.nameEn ? String(body.nameEn) : undefined,
+        description: body.description ? String(body.description) : '',
+        descriptionEn: body.descriptionEn ? String(body.descriptionEn) : undefined,
+        price: Number(body.price) || 0,
+        currency: body.currency ? String(body.currency) : 'FCFA',
+        durationDays: Number(body.durationDays) || 30,
+        billingCycleLabel: body.billingCycleLabel ? String(body.billingCycleLabel) : undefined,
+        billingCycleLabelEn: body.billingCycleLabelEn ? String(body.billingCycleLabelEn) : undefined,
+        autoRenew: Boolean(body.autoRenew),
+        renewalPolicy: body.renewalPolicy ? String(body.renewalPolicy) : undefined,
+        conditions: body.conditions ? String(body.conditions) : undefined,
+        status: ['active', 'inactive', 'archived'].includes(body.status) ? body.status : 'active',
+      });
+      return res.json({ success: true, plan, plans: lumareelTvService.getAllPlans() });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.put('/api/admin/tv/card-eligibility', async (req: Request, res: Response) => {
+    if (!(await requireMemberAdmin(req, res, ['super_admin']))) return;
+    try {
+      const body = req.body || {};
+      const updated = lumareelTvService.updateCardEligibilityConfig({
+        cardAccessEnabled:
+          body.cardAccessEnabled !== undefined ? Boolean(body.cardAccessEnabled) : undefined,
+        blackCardIncludesVipTier:
+          body.blackCardIncludesVipTier !== undefined
+            ? Boolean(body.blackCardIncludesVipTier)
+            : undefined,
+        enabledPlanIds: Array.isArray(body.enabledPlanIds) ? body.enabledPlanIds : undefined,
+      });
+      return res.json({ success: true, cardEligibility: updated });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/admin/tv/subscriptions/grant', async (req: Request, res: Response) => {
+    if (!(await requireMemberAdmin(req, res, ['super_admin']))) return;
+    try {
+      const { userEmail, userName, planId, durationDays } = req.body || {};
+      if (!userEmail || typeof userEmail !== 'string') {
+        return res.status(400).json({ success: false, error: 'Adresse e-mail requise.' });
+      }
+      const subscription = lumareelTvService.adminGrantSubscription({
+        userEmail,
+        userName: String(userName || userEmail.split('@')[0]),
+        planId: String(planId || ''),
+        durationDays: durationDays ? Number(durationDays) : undefined,
+      });
+      return res.json({
+        success: true,
+        subscription,
+        subscriptions: lumareelTvService.getAllSubscriptions(),
+      });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.patch('/api/admin/tv/subscriptions/:id/status', async (req: Request, res: Response) => {
+    if (!(await requireMemberAdmin(req, res, ['super_admin']))) return;
+    try {
+      const { status, reason } = req.body || {};
+      const allowed = ['active', 'expired', 'revoked', 'cancelled', 'pending_payment'];
+      if (!allowed.includes(String(status))) {
+        return res.status(400).json({ success: false, error: 'Statut d’abonnement invalide.' });
+      }
+      const updated = lumareelTvService.updateSubscriptionStatus(
+        req.params.id,
+        status,
+        reason ? String(reason) : undefined
+      );
+      if (!updated) {
+        return res.status(404).json({ success: false, error: 'Abonnement introuvable.' });
+      }
+      return res.json({
+        success: true,
+        subscription: updated,
+        subscriptions: lumareelTvService.getAllSubscriptions(),
+      });
+    } catch (error: any) {
       return res.status(500).json({ success: false, error: error.message });
     }
   });

@@ -27,6 +27,7 @@ export type PageView =
   | 'media_detail'
   | 'flash_drops'
   | 'memories'
+  | 'lumareel_tv'
   | 'suggestions'
   | 'contact'
   | 'contributor_studio'
@@ -52,6 +53,8 @@ interface AppContextType {
   setSelectedMediaId: (id: string | null) => void;
   selectedMemoryAlbumId: string | null;
   setSelectedMemoryAlbumId: (id: string | null) => void;
+  selectedArchiveId: string | null;
+  setSelectedArchiveId: (id: string | null) => void;
   selectedDiscoverItem: DiscoverDetailPayload | null;
   setSelectedDiscoverItem: (item: DiscoverDetailPayload | null) => void;
   rewardsInitialMode: 'points' | 'store' | 'referral';
@@ -312,6 +315,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedEventSlug, setSelectedEventSlug] = useState<string | null>(null);
   const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
   const [selectedMemoryAlbumId, setSelectedMemoryAlbumId] = useState<string | null>(null);
+  const [selectedArchiveId, setSelectedArchiveId] = useState<string | null>(null);
   const [selectedDiscoverItem, setSelectedDiscoverItem] = useState<DiscoverDetailPayload | null>(null);
   const [rewardsInitialMode, setRewardsInitialMode] = useState<'points' | 'store' | 'referral'>('points');
 
@@ -1497,6 +1501,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedMediaId,
         selectedMemoryAlbumId,
         setSelectedMemoryAlbumId,
+        selectedArchiveId,
+        setSelectedArchiveId,
         selectedDiscoverItem,
         setSelectedDiscoverItem,
         rewardsInitialMode,

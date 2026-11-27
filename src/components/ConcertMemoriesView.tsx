@@ -17,10 +17,13 @@ import {
 } from '../utils/communityStorage';
 import {
   MediaHubItem,
+  evaluateMediaAccess,
   getPublishedMediaItems,
+  resolveMediaAccessLevel,
   subscribeMediaHub,
 } from '../utils/mediaHubStorage';
-import { BottomSheet, ScrollReveal, Tabs } from './ui/LumareelKit';
+import { loadStoredMemberCard } from '../utils/memberCardStorage';
+import { BottomSheet, ScrollReveal, StatusBadge, Tabs } from './ui/LumareelKit';
 import {
   ArrowRight,
   Camera,
@@ -31,6 +34,7 @@ import {
   Film,
   Image as ImageIcon,
   Loader2,
+  Lock,
   Play,
   Plus,
   Share2,
@@ -47,7 +51,7 @@ interface ConcertMemoriesViewProps {
 }
 
 type AlbumTab = 'official' | 'highlights' | 'videos' | 'coulisses' | 'participants';
-type MemoriesFilter = 'all' | 'concerts' | 'coulisses' | 'photos' | 'videos';
+type MemoriesFilter = 'all' | 'public' | 'members' | 'black_card' | 'coulisses' | 'concerts';
 
 const MAX_INLINE_VIDEO_BYTES = 3.5 * 1024 * 1024;
 
@@ -1625,16 +1629,30 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
   }
 
   // =========================================================================
-  // VUE INDEX MEMORIES — CENTRALISATION COMPLÈTE (CONCERTS · COULISSES · PHOTOS · VIDÉOS)
+  // VUE INDEX MEMORIES — CONTENUS EXCLUSIFS, COULISSES & ACCÈS PRIVÉS
   // =========================================================================
-  const allVideoItems = allHubMedia.filter((m) => m.mediaType === 'video');
+  const hasBlackCard = Boolean(loadStoredMemberCard(currentUser?.email));
+  const hasSpecificAccess = Boolean(
+    customerOrders && customerOrders.some((o) => o.paymentStatus === 'completed')
+  );
+
   const filterTabs: Array<{ id: MemoriesFilter; label: string }> = [
     { id: 'all', label: isEn ? 'All' : 'Tout' },
-    { id: 'concerts', label: 'Concerts' },
+    { id: 'public', label: 'Public' },
+    { id: 'members', label: isEn ? 'Members' : 'Membres' },
+    { id: 'black_card', label: 'Black Card' },
     { id: 'coulisses', label: isEn ? 'Backstage' : 'Coulisses' },
-    { id: 'photos', label: 'Photos' },
-    { id: 'videos', label: isEn ? 'Videos' : 'Vidéos' },
+    { id: 'concerts', label: isEn ? 'Concert exclusives' : 'Souvenirs privés' },
   ];
+
+  const filteredExclusiveMedia = allHubMedia.filter((item) => {
+    const level = resolveMediaAccessLevel(item);
+    if (indexFilter === 'public') return level === 'public';
+    if (indexFilter === 'members') return level === 'members' || level === 'specific';
+    if (indexFilter === 'black_card') return level === 'black_card';
+    if (indexFilter === 'coulisses') return item.placement === 'backstage';
+    return true;
+  });
 
   return (
     <div
@@ -1646,26 +1664,43 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
       style={embedded ? undefined : { paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
     >
       {!embedded && (
-        <div className="mb-6 space-y-4">
-          <button
-            type="button"
-            onClick={() => setCurrentPage('explore')}
-            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
-            <span>Discover</span>
-          </button>
+        <div className="mb-7 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setCurrentPage('explore')}
+              className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
+            >
+              <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
+              <span>Discover</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCurrentPage('archive')}
+              className="text-xs text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
+            >
+              {isEn ? 'Past event Archives' : 'Voir les Archives publiques'}
+            </button>
+          </div>
 
           <header className="space-y-1.5">
             <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#D4AF6A]">
-              {isEn ? 'CONCERTS · BACKSTAGE · ARCHIVES' : 'CONCERTS · COULISSES · SOUVENIRS'}
+              {isEn
+                ? 'EXCLUSIVE RELEASES · BACKSTAGE · PRIVATE ACCESS'
+                : 'PUBLICATIONS EXCLUSIVES · COULISSES · ACCÈS PRIVÉS'}
             </p>
             <h1 className="text-[2.25rem] sm:text-5xl font-agrandir-extrabold tracking-tight leading-none text-white">
               Memories
             </h1>
+            <p className="text-xs sm:text-sm text-[#9A9A9A] max-w-xl">
+              {isEn
+                ? 'Unreleased backstage footage, private photos, and concert moments unlocked by your LUMARÉEL access level.'
+                : 'Coulisses inédites, photos et vidéos privées, et moments exclusifs accessibles selon vos droits LUMARÉEL.'}
+            </p>
           </header>
 
-          {/* Filtres internes : Tout · Concerts · Coulisses · Photos · Vidéos */}
+          {/* Filtres par droits d'accès et type de publication */}
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
             {filterTabs.map((tab) => {
               const active = indexFilter === tab.id;
@@ -1674,7 +1709,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                   key={tab.id}
                   type="button"
                   onClick={() => setIndexFilter(tab.id)}
-                  className={`min-h-[36px] px-4 rounded-full text-xs whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  className={`min-h-[34px] px-3.5 rounded-full text-xs whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                     active
                       ? 'bg-white text-black font-agrandir-extrabold'
                       : 'border border-white/20 text-[#C8C8C8] hover:border-white/50 hover:text-white'
@@ -1688,88 +1723,60 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
         </div>
       )}
 
-      <div className="space-y-12">
-        {/* 1. CONCERTS & ARCHIVES ÉVÉNEMENTS */}
-        {(indexFilter === 'all' || indexFilter === 'concerts') && (
+      <div className="space-y-10">
+        {/* 1. PUBLICATIONS EXCLUSIVES, COULISSES & CONTENUS INÉDITS (GESTION DES ACCÈS) */}
+        {indexFilter !== 'concerts' && (
           <section className="space-y-4">
-            {indexFilter === 'all' && (
+            <div className="flex items-baseline justify-between gap-3">
               <h2 className="text-lg sm:text-xl font-agrandir-extrabold text-white">
-                {isEn ? 'Concerts & events' : 'Concerts & événements'}
+                {indexFilter === 'coulisses'
+                  ? isEn
+                    ? 'Backstage & unreleased'
+                    : 'Coulisses & inédits'
+                  : indexFilter === 'black_card'
+                  ? isEn
+                    ? 'Black Card exclusives'
+                    : 'Exclusivités Black Card'
+                  : indexFilter === 'members'
+                  ? isEn
+                    ? 'Members-only releases'
+                    : 'Réservé aux membres'
+                  : indexFilter === 'public'
+                  ? isEn
+                    ? 'Public previews'
+                    : 'Accès public'
+                  : isEn
+                  ? 'Exclusive publications'
+                  : 'Publications exclusives'}
               </h2>
-            )}
+              <span className="text-xs text-[#9A9A9A] tabular-nums">
+                {filteredExclusiveMedia.length}{' '}
+                {filteredExclusiveMedia.length > 1
+                  ? isEn
+                    ? 'releases'
+                    : 'publications'
+                  : isEn
+                  ? 'release'
+                  : 'publication'}
+              </span>
+            </div>
 
-            {albums.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-                {albums.map((album) => (
-                  <button
-                    key={album.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedAlbumId(album.id);
-                      setAlbumTab('official');
-                      if (typeof window !== 'undefined') {
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                      }
-                    }}
-                    className="group text-left cursor-pointer block lum-press"
-                  >
-                    <div className="relative aspect-[3/4] sm:aspect-[16/10] w-full rounded-[18px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
-                      <img
-                        src={album.coverImage}
-                        alt={album.title}
-                        referrerPolicy="no-referrer"
-                        loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                      <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-black/75 border border-white/[0.14] text-[10px] font-agrandir-semibold text-white">
-                        {album.officialPhotos.length} photos · Aftermovie
-                      </span>
-                    </div>
-                    <div className="pt-3 space-y-0.5">
-                      <h3 className="text-base font-agrandir-extrabold text-white group-hover:text-[#D4AF6A] transition-colors line-clamp-1">
-                        {album.artist || album.title}
-                      </h3>
-                      <p className="text-xs text-[#9A9A9A] truncate">
-                        {album.date} · {album.venue}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="py-14 px-6 text-center rounded-[20px] bg-[#0E0E0E] border border-white/[0.12] max-w-md mx-auto">
-                <Camera className="mx-auto mb-3 h-7 w-7 text-[#D4AF6A]" strokeWidth={1.6} />
-                <p className="text-sm font-agrandir-extrabold text-white">
-                  {isEn ? 'Concert memories coming soon' : 'Souvenirs de concerts à venir'}
-                </p>
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* 2. COULISSES (EX-BACKSTAGE CENTRALISÉ DANS MEMORIES) */}
-        {(indexFilter === 'all' || indexFilter === 'coulisses') && (
-          <section className={indexFilter === 'all' ? 'pt-8 border-t border-white/[0.12] space-y-4' : 'space-y-4'}>
-            {indexFilter === 'all' && (
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="text-lg sm:text-xl font-agrandir-extrabold text-white">
-                  {isEn ? 'Backstage & behind the scenes' : 'Coulisses'}
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setIndexFilter('coulisses')}
-                  className="text-xs text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
-                >
-                  {isEn ? 'See all' : 'Tout voir'}
-                </button>
-              </div>
-            )}
-
-            {publishedBackstageMedia.length > 0 ? (
+            {filteredExclusiveMedia.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {publishedBackstageMedia.map((item) => {
+                {filteredExclusiveMedia.map((item) => {
                   const title = isEn && item.titleEn ? item.titleEn : item.title;
+                  const evalAccess = evaluateMediaAccess(item, {
+                    isAuthenticated: Boolean(currentUser),
+                    hasBlackCard,
+                    hasSpecificAccess,
+                  });
+                  const badgeVariant =
+                    evalAccess.level === 'black_card'
+                      ? 'retained'
+                      : evalAccess.level === 'public'
+                      ? 'valid'
+                      : 'study';
+
                   return (
                     <button
                       key={item.id}
@@ -1780,33 +1787,53 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                       }}
                       className="group text-left cursor-pointer block lum-press"
                     >
-                      <div className="relative aspect-[16/10] w-full rounded-[16px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
+                      <div className="relative aspect-[16/10] w-full rounded-[15px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
                         <img
                           src={item.thumbnailUrl || item.url}
                           alt={title}
                           referrerPolicy="no-referrer"
                           loading="lazy"
-                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                          className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03] ${
+                            !evalAccess.allowed ? 'brightness-[0.65]' : ''
+                          }`}
                         />
-                        {item.mediaType === 'video' && (
-                          <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
-                            <span className="w-11 h-11 rounded-full bg-black/65 border border-white/30 flex items-center justify-center text-white">
-                              <Play className="w-4 h-4 ml-0.5 fill-current" strokeWidth={1.6} />
+
+                        <div className="absolute top-2.5 left-2.5">
+                          <StatusBadge
+                            variant={badgeVariant}
+                            label={isEn ? evalAccess.labelEn : evalAccess.labelFr}
+                          />
+                        </div>
+
+                        {!evalAccess.allowed ? (
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                            <span className="w-10 h-10 rounded-full bg-black/75 border border-white/25 flex items-center justify-center text-[#D4AF6A]">
+                              <Lock className="w-4 h-4" strokeWidth={1.7} />
                             </span>
                           </div>
+                        ) : (
+                          item.mediaType === 'video' && (
+                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                              <span className="w-10 h-10 rounded-full bg-black/65 border border-white/30 flex items-center justify-center text-white">
+                                <Play className="w-4 h-4 ml-0.5 fill-current" strokeWidth={1.6} />
+                              </span>
+                            </div>
+                          )
                         )}
+
                         {item.duration && (
                           <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/80 text-[10px] font-mono text-white">
                             {item.duration}
                           </span>
                         )}
                       </div>
+
                       <div className="pt-2.5 space-y-0.5">
                         <h3 className="text-sm font-agrandir-extrabold text-white group-hover:text-[#D4AF6A] transition-colors line-clamp-1">
                           {title}
                         </h3>
                         <p className="text-xs text-[#9A9A9A] truncate">
-                          {item.tag || (isEn ? 'Backstage' : 'Coulisses')} · {item.date}
+                          {item.tag || (isEn ? 'Exclusive' : 'Exclusif')} · {item.date}
                         </p>
                       </div>
                     </button>
@@ -1814,154 +1841,79 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                 })}
               </div>
             ) : (
-              <p className="py-10 text-center text-xs text-[#9A9A9A] rounded-[18px] bg-[#0E0E0E] border border-white/[0.12]">
+              <p className="py-10 text-center text-xs text-[#9A9A9A] rounded-[16px] bg-[#0E0E0E] border border-white/[0.12]">
                 {isEn
-                  ? 'No backstage content published yet.'
-                  : 'Aucun contenu coulisses publié pour le moment.'}
+                  ? 'No exclusive releases in this access tier yet.'
+                  : 'Aucune publication dans ce niveau d’accès pour le moment.'}
               </p>
             )}
           </section>
         )}
 
-        {/* 3. PHOTOS (GALERIE UNIFIÉE) */}
-        {(indexFilter === 'all' || indexFilter === 'photos') && allIndexPhotos.length > 0 && (
-          <section className={indexFilter === 'all' ? 'pt-8 border-t border-white/[0.12] space-y-4' : 'space-y-4'}>
-            {indexFilter === 'all' && (
-              <div className="flex items-baseline justify-between gap-3">
-                <h2 className="text-lg sm:text-xl font-agrandir-extrabold text-white">
-                  {isEn ? 'Official photos' : 'Photos officielles'}
+        {/* 2. MOMENTS PRIVÉS LIÉS AUX CONCERTS (ESPACE PARTICIPANTS & MEMBRES) */}
+        {(indexFilter === 'all' || indexFilter === 'concerts') && albums.length > 0 && (
+          <section
+            className={
+              indexFilter === 'all' ? 'pt-7 border-t border-white/[0.10] space-y-3' : 'space-y-3'
+            }
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A]">
+                  {isEn ? 'ATTENDEE & MEMBER SPACES' : 'ESPACES PARTICIPANTS & MEMBRES'}
+                </p>
+                <h2 className="mt-0.5 text-base sm:text-lg font-agrandir-extrabold text-white">
+                  {isEn ? 'Private concert moments' : 'Souvenirs privés par concert'}
                 </h2>
-                <button
-                  type="button"
-                  onClick={() => setIndexFilter('photos')}
-                  className="text-xs text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
-                >
-                  {isEn ? 'See all' : 'Tout voir'}
-                </button>
               </div>
-            )}
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-              {(indexFilter === 'all' ? allIndexPhotos.slice(0, 8) : allIndexPhotos).map((photo, idx) => (
-                <button
-                  key={`${photo.url}_${idx}`}
-                  type="button"
-                  onClick={() => setLightboxPhoto(photo)}
-                  className="group relative aspect-square rounded-[14px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] hover:border-white/30 cursor-pointer block"
-                >
-                  <img
-                    src={photo.url}
-                    alt={photo.caption}
-                    referrerPolicy="no-referrer"
-                    loading="lazy"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/80 to-transparent text-left">
-                    <p className="text-[11px] font-agrandir-semibold text-white truncate">
-                      {photo.albumLabel}
-                    </p>
-                  </div>
-                </button>
-              ))}
             </div>
-          </section>
-        )}
 
-        {/* 4. VIDÉOS (AFTERMOVIES + VIDÉOS COULISSES) */}
-        {indexFilter === 'videos' && (
-          <section className="space-y-5">
-            {albums.length > 0 || allVideoItems.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {albums.map((album) => (
+            <div className="divide-y divide-white/[0.10] border-y border-white/[0.10]">
+              {albums.map((album) => {
+                const attended = didAttendAlbum(album);
+                return (
                   <button
-                    key={`vid_album_${album.id}`}
+                    key={album.id}
                     type="button"
                     onClick={() => {
                       setSelectedAlbumId(album.id);
-                      setAlbumTab('official');
-                      setIsVideoPlaying(true);
+                      setAlbumTab('participants');
                       if (typeof window !== 'undefined') {
                         window.scrollTo({ top: 0, behavior: 'smooth' });
                       }
                     }}
-                    className="group text-left cursor-pointer block lum-press"
+                    className="w-full py-3.5 flex items-center gap-3.5 text-left group cursor-pointer"
                   >
-                    <div className="relative aspect-[16/9] w-full rounded-[16px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
+                    <div className="w-14 h-14 rounded-[12px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] shrink-0">
                       <img
                         src={album.coverImage}
                         alt={album.title}
                         referrerPolicy="no-referrer"
                         loading="lazy"
-                        className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                        className="h-full w-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
                       />
-                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                        <span className="w-12 h-12 rounded-full bg-black/65 border border-white/30 flex items-center justify-center text-white">
-                          <Play className="w-5 h-5 ml-0.5 fill-current" strokeWidth={1.6} />
-                        </span>
-                      </div>
-                      <span className="absolute bottom-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-black/80 text-[10px] font-agrandir-semibold text-[#D4AF6A]">
-                        Aftermovie
-                      </span>
                     </div>
-                    <div className="pt-2.5 space-y-0.5">
-                      <h3 className="text-sm font-agrandir-extrabold text-white group-hover:text-[#D4AF6A] transition-colors line-clamp-1">
-                        {album.artist || album.title}
-                      </h3>
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-agrandir-extrabold text-white group-hover:text-[#D4AF6A] transition-colors truncate">
+                          {album.artist || album.title}
+                        </h3>
+                        {attended && (
+                          <StatusBadge variant="retained" label={isEn ? 'ATTENDED' : 'VOUS Y ÉTIEZ'} />
+                        )}
+                      </div>
                       <p className="text-xs text-[#9A9A9A] truncate">
                         {album.date} · {album.venue}
                       </p>
                     </div>
+                    <ChevronRight
+                      className="w-4 h-4 text-[#777] group-hover:text-white shrink-0"
+                      strokeWidth={1.6}
+                    />
                   </button>
-                ))}
-
-                {allVideoItems.map((item) => {
-                  const title = isEn && item.titleEn ? item.titleEn : item.title;
-                  return (
-                    <button
-                      key={`vid_hub_${item.id}`}
-                      type="button"
-                      onClick={() => {
-                        setSelectedMediaId(item.id);
-                        setCurrentPage('media_detail');
-                      }}
-                      className="group text-left cursor-pointer block lum-press"
-                    >
-                      <div className="relative aspect-[16/9] w-full rounded-[16px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
-                        <img
-                          src={item.thumbnailUrl || item.url}
-                          alt={title}
-                          referrerPolicy="no-referrer"
-                          loading="lazy"
-                          className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                          <span className="w-12 h-12 rounded-full bg-black/65 border border-white/30 flex items-center justify-center text-white">
-                            <Play className="w-5 h-5 ml-0.5 fill-current" strokeWidth={1.6} />
-                          </span>
-                        </div>
-                        {item.duration && (
-                          <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/80 text-[10px] font-mono text-white">
-                            {item.duration}
-                          </span>
-                        )}
-                      </div>
-                      <div className="pt-2.5 space-y-0.5">
-                        <h3 className="text-sm font-agrandir-extrabold text-white group-hover:text-[#D4AF6A] transition-colors line-clamp-1">
-                          {title}
-                        </h3>
-                        <p className="text-xs text-[#9A9A9A] truncate">
-                          {item.tag || (isEn ? 'Backstage' : 'Coulisses')} · {item.date}
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="py-10 text-center text-xs text-[#9A9A9A] rounded-[18px] bg-[#0E0E0E] border border-white/[0.12]">
-                {isEn ? 'No videos published yet.' : 'Aucune vidéo publiée pour le moment.'}
-              </p>
-            )}
+                );
+              })}
+            </div>
           </section>
         )}
       </div>

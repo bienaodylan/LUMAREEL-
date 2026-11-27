@@ -19,6 +19,7 @@ export const Navbar: React.FC = () => {
       'member_card',
       'card',
       'memories',
+      'lumareel_tv',
       'rewards',
       'privileged_access',
       'flash_drops',
@@ -35,8 +36,8 @@ export const Navbar: React.FC = () => {
   const isEn = language === 'en';
 
   const pageTitleMap: Partial<Record<PageView, string>> = {
-    backstage: 'BACKSTAGE',
-    media_detail: 'BACKSTAGE',
+    backstage: 'LUMARÉEL TV',
+    media_detail: 'LUMARÉEL TV',
     archive: 'Archives',
     card_verify: isEn ? 'Verification' : 'Vérification',
     organizers: isEn ? 'Organizers' : 'Organisateurs',

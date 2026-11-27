@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   COMMUNITY_MEDIA,
@@ -6,11 +6,6 @@ import {
   loadSuggestions,
   loadUserPointsState,
 } from '../utils/communityStorage';
-import {
-  MediaHubItem,
-  getPublishedMediaItems,
-  subscribeMediaHub,
-} from '../utils/mediaHubStorage';
 import {
   articleToDiscoverDetail,
   buildLumareelExperiences,
@@ -21,25 +16,26 @@ import {
 import { formatDateLong } from '../utils/dateUtils';
 import { ScrollReveal, StatusBadge } from './ui/LumareelKit';
 import { Icons } from './ui/Icons';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Tv } from 'lucide-react';
 
-interface MemoryPreviewCard {
+interface ArchivePreviewCard {
   id: string;
-  albumId: string;
   artist: string;
   date: string;
+  venue: string;
+  photoCount: number;
   image: string;
 }
 
 /**
  * 02 — Discover LUMARÉEL
- * Hub éditorial vivant (format magazine digital moderne, inspiré par les compositions mixtes compactes) :
- * - Barre d'accès rapide aux 4 univers (Memories · Expériences · Flash & Surprises · Communauté)
- * - Bandeau horizontal compact : Actualités, Sélections & Invitations (ouvre une page détaillée)
- * - Rail horizontal compact : Memories (concerts, coulisses, photos & vidéos)
- * - Flux vertical éditorial : Expériences, Rencontres, Invitations & Coulisses
- * - Bandeau horizontal compact : Flash & Surprises (statuts réels, sans compteurs fictifs)
- * - Entrée compacte & discrète : Communauté (proposer & voter)
+ * Hub éditorial compact (inspiration fonctionnelle KOMI) organisé par priorité :
+ * 1. Contenus éditoriaux & découverte (+ accès dédié Memories)
+ * 2. Archives — entrée prioritaire & visible des événements passés (affiches, récaps publics)
+ * 3. Flash & Surprises
+ * 4. Communauté
+ * 5. Accès spéciaux, invitations, rencontres & expériences (partie inférieure, secondaire)
+ * Aucune section « Dans les coulisses » redondante.
  */
 export const ExplorerView: React.FC = () => {
   const {
@@ -48,22 +44,14 @@ export const ExplorerView: React.FC = () => {
     news,
     archives,
     setCurrentPage,
+    setSelectedArchiveId,
     setSelectedMemoryAlbumId,
-    setSelectedMediaId,
     setSelectedDiscoverItem,
     language,
   } = useApp();
 
   const isEn = language === 'en';
-  const memoriesRailRef = useRef<HTMLDivElement>(null);
-
-  const [hubItems, setHubItems] = useState<MediaHubItem[]>(() => getPublishedMediaItems());
-
-  useEffect(() => {
-    const sync = () => setHubItems(getPublishedMediaItems());
-    sync();
-    return subscribeMediaHub(sync);
-  }, []);
+  const archivesRailRef = useRef<HTMLDivElement>(null);
 
   const publishedEvents = useMemo(
     () => (events || []).filter((e) => e.status !== 'draft'),
@@ -75,7 +63,7 @@ export const ExplorerView: React.FC = () => {
     [archives]
   );
 
-  const memoryAlbums = useMemo(
+  const archiveAlbums = useMemo(
     () => buildConcertMemoryAlbums(publishedArchives),
     [publishedArchives]
   );
@@ -117,42 +105,7 @@ export const ExplorerView: React.FC = () => {
     month: '2-digit',
   });
 
-  // Rail Memories compact
-  const memoryPreviews = useMemo<MemoryPreviewCard[]>(() => {
-    const items: MemoryPreviewCard[] = memoryAlbums.map((album) => ({
-      id: `album_${album.id}`,
-      albumId: album.id,
-      artist: album.artist || album.title,
-      date: album.date,
-      image: album.coverImage || COMMUNITY_MEDIA.concertMemoriesCrowdImg,
-    }));
-
-    const fallbackAlbumId = memoryAlbums[0]?.id || 'dopelym';
-    const existingKeys = new Set(items.map((it) => it.artist.trim().toLowerCase()));
-
-    for (const ev of publishedEvents) {
-      const artistKey = (ev.artist || ev.title || '').trim().toLowerCase();
-      if (!artistKey || existingKeys.has(artistKey)) continue;
-      const matchedAlbum = memoryAlbums.find((a) => {
-        const hay = `${a.artist} ${a.title}`.toLowerCase();
-        return hay.includes(artistKey) || artistKey.includes((a.artist || '').toLowerCase());
-      });
-      const img = ev.officialPoster || ev.artistPortrait || ev.bannerImage || ev.coverImage;
-      if (!img) continue;
-      existingKeys.add(artistKey);
-      items.push({
-        id: `event_${ev.id}`,
-        albumId: matchedAlbum?.id || fallbackAlbumId,
-        artist: ev.artist || ev.title,
-        date: ev.date,
-        image: img,
-      });
-    }
-
-    return items;
-  }, [memoryAlbums, publishedEvents]);
-
-  // Sélection horizontale compacte : Actualités + Invitation/Expérience + Flash actif
+  // 1. Contenus éditoriaux & découverte (actualités + accès unique dédié à Memories)
   const editorialHighlights = useMemo(() => {
     const list: Array<{
       id: string;
@@ -160,28 +113,14 @@ export const ExplorerView: React.FC = () => {
       title: string;
       meta: string;
       image: string;
+      exclusive?: boolean;
       onOpen: () => void;
     }> = [];
 
-    const firstExp = experiences.find((e) => e.status === 'available') || experiences[0];
-    if (firstExp) {
+    (news || []).slice(0, 4).forEach((article) => {
       list.push({
-        id: `hl_exp_${firstExp.id}`,
-        tag: isEn ? firstExp.categoryEn : firstExp.categoryFr,
-        title: isEn ? firstExp.titleEn : firstExp.titleFr,
-        meta: firstExp.dateLabel || (isEn ? 'Available' : 'Disponible'),
-        image: firstExp.image,
-        onOpen: () => {
-          setSelectedDiscoverItem(experienceToDiscoverDetail(firstExp, isEn));
-          setCurrentPage('discover_detail');
-        },
-      });
-    }
-
-    (news || []).slice(0, 3).forEach((article) => {
-      list.push({
-        id: `hl_news_${article.id}`,
-        tag: article.category || (isEn ? 'News' : 'Actualité'),
+        id: `ed_news_${article.id}`,
+        tag: article.category || (isEn ? 'Editorial' : 'Actualité'),
         title: article.title,
         meta: article.readTime ? `${article.date} · ${article.readTime}` : article.date,
         image: article.imageUrl,
@@ -192,29 +131,40 @@ export const ExplorerView: React.FC = () => {
       });
     });
 
-    const inviteExp = experiences.find((e) => e.id === 'private_listening');
-    if (inviteExp) {
-      list.push({
-        id: `hl_inv_${inviteExp.id}`,
-        tag: isEn ? 'Invitation' : 'Invitation',
-        title: isEn ? inviteExp.titleEn : inviteExp.titleFr,
-        meta: isEn ? 'On request' : 'Sur demande',
-        image: inviteExp.image,
-        onOpen: () => {
-          setSelectedDiscoverItem(experienceToDiscoverDetail(inviteExp, isEn));
-          setCurrentPage('discover_detail');
-        },
+    return list;
+  }, [news, publishedEvents, isEn, setSelectedDiscoverItem, setCurrentPage]);
+
+  // 2. Rail Archives — Événements passés publics LUMARÉEL
+  const archivePreviews = useMemo<ArchivePreviewCard[]>(() => {
+    const byId = new Map<string, ArchivePreviewCard>();
+
+    for (const item of publishedArchives) {
+      byId.set(item.id, {
+        id: item.id,
+        artist: (item.artists && item.artists[0]) || item.title,
+        date: item.date ? formatDateLong(item.date, language) : item.year,
+        venue: item.venue || item.city,
+        photoCount: Array.isArray(item.photos) && item.photos.length > 0 ? item.photos.length : 1,
+        image: item.coverImage || COMMUNITY_MEDIA.concertMemoriesCrowdImg,
       });
     }
 
-    return list;
-  }, [experiences, news, publishedEvents, isEn, setSelectedDiscoverItem, setCurrentPage]);
+    for (const album of archiveAlbums) {
+      if (byId.has(album.id)) continue;
+      byId.set(album.id, {
+        id: album.id,
+        artist: album.artist || album.title,
+        date: album.date,
+        venue: album.venue || album.city,
+        photoCount: Math.max(1, album.officialPhotos.length),
+        image: album.coverImage || COMMUNITY_MEDIA.concertMemoriesCrowdImg,
+      });
+    }
 
-  // Flux vertical éditorial : sélection d'expériences + coulisses publiées
-  const featuredExperiences = useMemo(() => experiences.slice(0, 3), [experiences]);
-  const backstageHighlights = useMemo(() => hubItems.slice(0, 2), [hubItems]);
+    return Array.from(byId.values());
+  }, [publishedArchives, archiveAlbums, language]);
 
-  // Opérations Flash & Surprises compactes (statuts réels, zéro faux compte à rebours)
+  // 3. Opérations Flash & Surprises compactes (statuts réels, zéro faux compte à rebours)
   const flashStripItems = useMemo(() => {
     const items: Array<{
       id: string;
@@ -263,8 +213,11 @@ export const ExplorerView: React.FC = () => {
     return items;
   }, [publishedEvents, surpriseClaimedToday, formattedToday, formattedTomorrow, isEn, language]);
 
-  const scrollMemoriesRail = (direction: 'left' | 'right') => {
-    const el = memoriesRailRef.current;
+  // 5. Expériences, invitations & accès spéciaux (secondaires, partie inférieure)
+  const compactExperiences = useMemo(() => experiences.slice(0, 4), [experiences]);
+
+  const scrollArchivesRail = (direction: 'left' | 'right') => {
+    const el = archivesRailRef.current;
     if (!el) return;
     const delta = Math.round(el.clientWidth * 0.72);
     el.scrollBy({
@@ -273,14 +226,14 @@ export const ExplorerView: React.FC = () => {
     });
   };
 
-  const openConcertMemories = (albumId: string | null) => {
-    setSelectedMemoryAlbumId(albumId);
-    setCurrentPage('memories');
+  const openArchiveEvent = (archiveId: string | null) => {
+    setSelectedArchiveId(archiveId);
+    setCurrentPage('archive');
   };
 
-  const openMediaItem = (item: MediaHubItem) => {
-    setSelectedMediaId(item.id);
-    setCurrentPage('media_detail');
+  const openLumareelTv = () => {
+    setSelectedMemoryAlbumId(null);
+    setCurrentPage('lumareel_tv');
   };
 
   return (
@@ -288,7 +241,7 @@ export const ExplorerView: React.FC = () => {
       className="min-h-screen w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pb-20 bg-black text-white font-agrandir-regular"
       style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top, 0px))' }}
     >
-      {/* A. EN-TÊTE ÉDITORIAL + ACCÈS RAPIDES AUX 4 UNIVERS */}
+      {/* EN-TÊTE ÉDITORIAL + ACCÈS DIRECTS NON REDONDANTS */}
       <header className="mb-7 space-y-4">
         <div>
           <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.26em] text-[#9A9A9A] mb-1">
@@ -304,11 +257,8 @@ export const ExplorerView: React.FC = () => {
           className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-0.5 -mx-5 px-5 sm:mx-0 sm:px-0"
         >
           {[
-            { label: 'Memories', onClick: () => openConcertMemories(null) },
-            {
-              label: isEn ? 'Experiences' : 'Expériences',
-              onClick: () => setCurrentPage('privileged_access'),
-            },
+            { label: 'Archives', onClick: () => openArchiveEvent(null), highlight: true },
+            { label: 'LUMARÉEL TV', onClick: openLumareelTv },
             {
               label: 'Flash & Surprises',
               onClick: () => setCurrentPage('flash_drops'),
@@ -317,12 +267,20 @@ export const ExplorerView: React.FC = () => {
               label: isEn ? 'Community' : 'Communauté',
               onClick: () => setCurrentPage('suggestions'),
             },
+            {
+              label: isEn ? 'Experiences' : 'Expériences',
+              onClick: () => setCurrentPage('privileged_access'),
+            },
           ].map((navItem) => (
             <button
               key={navItem.label}
               type="button"
               onClick={navItem.onClick}
-              className="min-h-[34px] px-3.5 rounded-full bg-[#0E0E0E] hover:bg-[#161616] border border-white/[0.12] hover:border-white/30 text-xs font-agrandir-semibold text-[#D0D0D0] hover:text-white whitespace-nowrap shrink-0 transition-colors cursor-pointer"
+              className={`min-h-[34px] px-3.5 rounded-full text-xs font-agrandir-semibold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                navItem.highlight
+                  ? 'bg-[#D4AF6A]/15 border border-[#D4AF6A]/45 text-[#D4AF6A] hover:bg-[#D4AF6A]/25'
+                  : 'bg-[#0E0E0E] hover:bg-[#161616] border border-white/[0.12] hover:border-white/30 text-[#D0D0D0] hover:text-white'
+              }`}
             >
               {navItem.label}
             </button>
@@ -332,17 +290,17 @@ export const ExplorerView: React.FC = () => {
 
       <div className="space-y-9">
         {/* ===================================================================
-            1. BANDEAU HORIZONTAL COMPACT : À LA UNE & ACTUALITÉS
+            1. CONTENUS ÉDITORIAUX ET DÉCOUVERTE
            =================================================================== */}
         {editorialHighlights.length > 0 && (
           <ScrollReveal>
             <section className="space-y-3">
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="font-agrandir-extrabold text-lg sm:text-xl text-white tracking-tight">
-                  {isEn ? 'Featured & Editorial' : 'À la une & Sélections'}
+                  {isEn ? 'Editorial & Discovery' : 'À la une & Découverte'}
                 </h2>
                 <span className="text-[11px] text-[#9A9A9A]">
-                  {isEn ? 'Latest updates' : 'Sélection LUMARÉEL'}
+                  {isEn ? 'LUMARÉEL Selection' : 'Sélection LUMARÉEL'}
                 </span>
               </div>
 
@@ -354,7 +312,7 @@ export const ExplorerView: React.FC = () => {
                     onClick={item.onOpen}
                     className="group shrink-0 snap-start w-[264px] sm:w-[292px] rounded-[16px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.11] hover:border-white/25 p-3 text-left flex items-center gap-3.5 transition-colors cursor-pointer lum-press"
                   >
-                    <div className="w-[70px] h-[70px] rounded-[12px] overflow-hidden bg-[#141414] border border-white/[0.08] shrink-0">
+                    <div className="relative w-[70px] h-[70px] rounded-[12px] overflow-hidden bg-[#141414] border border-white/[0.08] shrink-0">
                       <img
                         src={item.image}
                         alt={item.title}
@@ -380,43 +338,45 @@ export const ExplorerView: React.FC = () => {
         )}
 
         {/* ===================================================================
-            2. RAIL HORIZONTAL COMPACT : MEMORIES (CONCERTS, COULISSES, PHOTOS)
+            2. ARCHIVES — ENTRÉE PRIORITAIRE & VISIBLE (ÉVÉNEMENTS PASSÉS PUBLICS)
            =================================================================== */}
         <ScrollReveal>
           <section className="space-y-3">
             <div className="flex items-end justify-between gap-4">
               <div>
                 <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#D4AF6A]">
-                  {isEn ? 'CONCERTS · BACKSTAGE · MEDIA' : 'CONCERTS · COULISSES · SOUVENIRS'}
+                  {isEn ? 'PAST EVENTS · PUBLIC RECAPS' : 'ÉVÉNEMENTS PASSÉS · RÉCAPITULATIFS'}
                 </p>
                 <h2 className="mt-0.5 font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight">
-                  Memories
+                  Archives
                 </h2>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <div className="hidden sm:flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => scrollMemoriesRail('left')}
-                    aria-label={isEn ? 'Scroll left' : 'Défiler à gauche'}
-                    className="w-8 h-8 rounded-full bg-[#0E0E0E] border border-white/[0.14] hover:border-white/40 text-white flex items-center justify-center transition-colors cursor-pointer"
-                  >
-                    <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => scrollMemoriesRail('right')}
-                    aria-label={isEn ? 'Scroll right' : 'Défiler à droite'}
-                    className="w-8 h-8 rounded-full bg-[#0E0E0E] border border-white/[0.14] hover:border-white/40 text-white flex items-center justify-center transition-colors cursor-pointer"
-                  >
-                    <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
-                  </button>
-                </div>
+                {archivePreviews.length > 2 && (
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => scrollArchivesRail('left')}
+                      aria-label={isEn ? 'Scroll left' : 'Défiler à gauche'}
+                      className="w-8 h-8 rounded-full bg-[#0E0E0E] border border-white/[0.14] hover:border-white/40 text-white flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => scrollArchivesRail('right')}
+                      aria-label={isEn ? 'Scroll right' : 'Défiler à droite'}
+                      className="w-8 h-8 rounded-full bg-[#0E0E0E] border border-white/[0.14] hover:border-white/40 text-white flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
+                    </button>
+                  </div>
+                )}
 
                 <button
                   type="button"
-                  onClick={() => openConcertMemories(null)}
+                  onClick={() => openArchiveEvent(null)}
                   className="text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white transition-colors cursor-pointer whitespace-nowrap"
                 >
                   {isEn ? 'View all' : 'Tout voir'}
@@ -424,17 +384,17 @@ export const ExplorerView: React.FC = () => {
               </div>
             </div>
 
-            {memoryPreviews.length > 0 && (
+            {archivePreviews.length > 0 ? (
               <div
-                ref={memoriesRailRef}
+                ref={archivesRailRef}
                 className="flex gap-3 sm:gap-4 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-1 -mx-5 px-5 sm:mx-0 sm:px-0"
               >
-                {memoryPreviews.map((poster) => (
+                {archivePreviews.map((poster) => (
                   <button
                     key={poster.id}
                     type="button"
-                    onClick={() => openConcertMemories(poster.albumId)}
-                    className="group shrink-0 snap-start w-[144px] sm:w-[174px] text-left cursor-pointer block lum-press"
+                    onClick={() => openArchiveEvent(poster.id)}
+                    className="group shrink-0 snap-start w-[148px] sm:w-[178px] text-left cursor-pointer block lum-press"
                   >
                     <div className="relative aspect-[3/4] w-full rounded-[15px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/35 transition-colors">
                       <img
@@ -444,7 +404,7 @@ export const ExplorerView: React.FC = () => {
                         loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/15 to-transparent" />
                       <div className="absolute inset-x-3 bottom-2.5">
                         <p className="font-agrandir-extrabold text-xs sm:text-sm uppercase tracking-tight text-white leading-tight truncate group-hover:text-[#D4AF6A] transition-colors">
                           {poster.artist}
@@ -452,152 +412,70 @@ export const ExplorerView: React.FC = () => {
                         <p className="text-[10px] text-[#C8C8C8] truncate mt-0.5">
                           {poster.date}
                         </p>
+                        <p className="text-[10px] text-[#9A9A9A] truncate">
+                          {poster.venue} · {poster.photoCount} photos
+                        </p>
                       </div>
                     </div>
                   </button>
                 ))}
               </div>
+            ) : (
+              <p className="text-xs text-[#9A9A9A] py-4">
+                {isEn
+                  ? 'Past LUMARÉEL concerts will appear here.'
+                  : 'Les événements passés LUMARÉEL apparaîtront ici.'}
+              </p>
             )}
           </section>
         </ScrollReveal>
 
         {/* ===================================================================
-            3. FLUX VERTICAL ÉDITORIAL : EXPÉRIENCES, INVITATIONS & COULISSES
+            2B. BANDEAU ÉDITORIAL COMPACT — LUMARÉEL TV (PORTE D'ENTRÉE UNIQUE)
            =================================================================== */}
         <ScrollReveal>
-          <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Colonne principale : Expériences & Invitations (format vertical éditorial) */}
-            <div className="lg:col-span-7 space-y-3">
-              <div className="flex items-baseline justify-between gap-3">
-                <div>
-                  <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#D4AF6A]">
-                    {isEn ? 'ACCESS · INVITATIONS · MEETS' : 'ACCÈS SPÉCIAUX · INVITATIONS · RENCONTRES'}
-                  </p>
-                  <h2 className="mt-0.5 font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight">
-                    {isEn ? 'Experiences' : 'Expériences'}
-                  </h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage('privileged_access')}
-                  className="text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white transition-colors cursor-pointer shrink-0"
-                >
-                  {isEn ? 'All experiences' : 'Tout voir'}
-                </button>
-              </div>
+          <section aria-label="LUMARÉEL TV">
+            <button
+              type="button"
+              onClick={openLumareelTv}
+              className="group relative w-full rounded-[14px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] hover:border-[#D4AF6A]/45 text-left transition-colors cursor-pointer block lum-press"
+            >
+              <img
+                src={COMMUNITY_MEDIA.backstageSoundcheckImg}
+                alt="LUMARÉEL TV"
+                referrerPolicy="no-referrer"
+                loading="lazy"
+                className="absolute inset-0 w-full h-full object-cover object-center opacity-50 group-hover:scale-[1.03] transition-transform duration-700"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black via-black/85 to-black/35" />
 
-              <div className="divide-y divide-white/[0.10] border-y border-white/[0.10]">
-                {featuredExperiences.map((exp) => {
-                  const statusMeta = getExperienceStatusLabel(exp.status, isEn);
-                  return (
-                    <button
-                      key={exp.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedDiscoverItem(experienceToDiscoverDetail(exp, isEn));
-                        setCurrentPage('discover_detail');
-                      }}
-                      className="w-full py-3.5 flex items-center gap-3.5 text-left group cursor-pointer"
-                    >
-                      <div className="w-[76px] h-[76px] sm:w-[84px] sm:h-[84px] rounded-[14px] overflow-hidden bg-[#0E0E0E] border border-white/[0.10] shrink-0">
-                        <img
-                          src={exp.image}
-                          alt={isEn ? exp.titleEn : exp.titleFr}
-                          referrerPolicy="no-referrer"
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                        />
-                      </div>
-
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.14em] text-[#9A9A9A]">
-                            {isEn ? exp.categoryEn : exp.categoryFr}
-                          </span>
-                          <StatusBadge variant={statusMeta.variant} label={statusMeta.label} />
-                        </div>
-                        <h3 className="font-agrandir-extrabold text-sm sm:text-base text-white leading-snug truncate group-hover:text-[#D4AF6A] transition-colors">
-                          {isEn ? exp.titleEn : exp.titleFr}
-                        </h3>
-                        <p className="text-xs text-[#9A9A9A] line-clamp-1">
-                          {isEn ? exp.shortDescEn : exp.shortDescFr}
-                        </p>
-                      </div>
-
-                      <ChevronRight
-                        className="w-4 h-4 text-[#777] group-hover:text-white shrink-0 transition-colors"
-                        strokeWidth={1.6}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Colonne secondaire : Coulisses & Publications verticales */}
-            {backstageHighlights.length > 0 && (
-              <div className="lg:col-span-5 space-y-3">
-                <div className="flex items-baseline justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A]">
-                      {isEn ? 'INSIDE LUMARÉEL' : 'DANS LES COULISSES'}
-                    </p>
-                    <h2 className="mt-0.5 font-agrandir-extrabold text-xl text-white tracking-tight">
-                      {isEn ? 'Stories & Backstage' : 'Publications & Coulisses'}
-                    </h2>
+              <div className="relative z-10 px-5 py-5 sm:px-7 sm:py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="space-y-1.5 max-w-lg">
+                  <div className="inline-flex items-center gap-1.5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.22em] text-[#D4AF6A]">
+                    <Tv className="w-3.5 h-3.5" strokeWidth={1.7} />
+                    <span>{isEn ? 'EXCLUSIVE STREAMING' : 'STREAMING EXCLUSIF'}</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => openConcertMemories(null)}
-                    className="text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white transition-colors cursor-pointer shrink-0"
-                  >
-                    Memories
-                  </button>
+                  <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight leading-none">
+                    LUMARÉEL TV
+                  </h2>
+                  <p className="text-xs sm:text-sm text-[#C8C8C8] leading-snug">
+                    {isEn
+                      ? 'Originals, filmed concerts, backstage sessions and exclusive artist interviews.'
+                      : 'Originals, concerts filmés, coulisses et interviews exclusives.'}
+                  </p>
                 </div>
 
-                <div className="divide-y divide-white/[0.10] border-y border-white/[0.10]">
-                  {backstageHighlights.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => openMediaItem(item)}
-                      className="w-full py-3.5 flex items-center gap-3.5 text-left group cursor-pointer"
-                    >
-                      <div className="w-[72px] h-[54px] rounded-[11px] overflow-hidden bg-[#0E0E0E] border border-white/[0.10] shrink-0">
-                        <img
-                          src={item.thumbnailUrl || item.url}
-                          alt={isEn ? item.titleEn || item.title : item.title}
-                          referrerPolicy="no-referrer"
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1 space-y-0.5">
-                        <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.14em] text-[#D4AF6A] truncate">
-                          {item.tag || (isEn ? 'Backstage' : 'Coulisses')}
-                          {item.duration ? ` · ${item.duration}` : ''}
-                        </p>
-                        <h3 className="font-agrandir-extrabold text-sm text-white leading-snug line-clamp-1 group-hover:text-[#D4AF6A] transition-colors">
-                          {isEn ? item.titleEn || item.title : item.title}
-                        </h3>
-                        <p className="text-xs text-[#9A9A9A] line-clamp-1">
-                          {isEn ? item.descriptionEn || item.description : item.description}
-                        </p>
-                      </div>
-                      <ChevronRight
-                        className="w-4 h-4 text-[#777] group-hover:text-white shrink-0"
-                        strokeWidth={1.6}
-                      />
-                    </button>
-                  ))}
-                </div>
+                <span className="self-start sm:self-center min-h-[38px] px-4 rounded-full bg-white group-hover:bg-[#D4AF6A] text-black text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 transition-colors shrink-0">
+                  <span>{isEn ? 'Discover' : 'Découvrir'}</span>
+                  <ArrowRight className="w-3.5 h-3.5" strokeWidth={2} />
+                </span>
               </div>
-            )}
+            </button>
           </section>
         </ScrollReveal>
 
         {/* ===================================================================
-            4. BANDEAU HORIZONTAL COMPACT : FLASH & SURPRISES
+            3. FLASH & SURPRISES
            =================================================================== */}
         <ScrollReveal>
           <section className="space-y-3">
@@ -650,7 +528,7 @@ export const ExplorerView: React.FC = () => {
         </ScrollReveal>
 
         {/* ===================================================================
-            5. ENTRÉE COMPACTE : COMMUNAUTÉ (FAIBLE ENCOMBREMENT VISUEL)
+            4. COMMUNAUTÉ (COMPACT & DISCRET)
            =================================================================== */}
         <ScrollReveal>
           <section className="pt-2 border-t border-white/[0.10]">
@@ -687,6 +565,75 @@ export const ExplorerView: React.FC = () => {
                 <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
               </span>
             </button>
+          </section>
+        </ScrollReveal>
+
+        {/* ===================================================================
+            5. ACCÈS SPÉCIAUX, INVITATIONS, RENCONTRES & EXPÉRIENCES (PARTIE INFÉRIEURE)
+           =================================================================== */}
+        <ScrollReveal>
+          <section className="pt-2 border-t border-white/[0.10] space-y-3">
+            <div className="flex items-baseline justify-between gap-3 pt-2">
+              <div>
+                <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A]">
+                  {isEn ? 'ACCESS · INVITATIONS · MEETS' : 'ACCÈS SPÉCIAUX · INVITATIONS · RENCONTRES'}
+                </p>
+                <h2 className="mt-0.5 font-agrandir-extrabold text-base sm:text-lg text-white tracking-tight">
+                  {isEn ? 'Experiences & Invitations' : 'Expériences & Invitations'}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentPage('privileged_access')}
+                className="text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white transition-colors cursor-pointer shrink-0"
+              >
+                {isEn ? 'View all' : 'Tout voir'}
+              </button>
+            </div>
+
+            <div className="divide-y divide-white/[0.08] border-y border-white/[0.08]">
+              {compactExperiences.map((exp) => {
+                const statusMeta = getExperienceStatusLabel(exp.status, isEn);
+                return (
+                  <button
+                    key={exp.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDiscoverItem(experienceToDiscoverDetail(exp, isEn));
+                      setCurrentPage('discover_detail');
+                    }}
+                    className="w-full py-3 flex items-center gap-3 text-left group cursor-pointer"
+                  >
+                    <div className="w-12 h-12 rounded-[11px] overflow-hidden bg-[#0E0E0E] border border-white/[0.10] shrink-0">
+                      <img
+                        src={exp.image}
+                        alt={isEn ? exp.titleEn : exp.titleFr}
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                      />
+                    </div>
+
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.14em] text-[#9A9A9A]">
+                          {isEn ? exp.categoryEn : exp.categoryFr}
+                        </span>
+                        <StatusBadge variant={statusMeta.variant} label={statusMeta.label} />
+                      </div>
+                      <h3 className="font-agrandir-extrabold text-xs sm:text-sm text-white leading-snug truncate group-hover:text-[#D4AF6A] transition-colors">
+                        {isEn ? exp.titleEn : exp.titleFr}
+                      </h3>
+                    </div>
+
+                    <ChevronRight
+                      className="w-4 h-4 text-[#666] group-hover:text-white shrink-0 transition-colors"
+                      strokeWidth={1.6}
+                    />
+                  </button>
+                );
+              })}
+            </div>
           </section>
         </ScrollReveal>
       </div>

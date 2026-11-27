@@ -6,6 +6,9 @@ import {
   EventVisualOverride,
   MediaHubItem,
   MediaPlacement,
+  TV_CATEGORY_META,
+  TvContentCategory,
+  TvPrivacyLevel,
   VisualContextRole,
   VisualOverridesMap,
   deleteMediaHubItem,
@@ -15,11 +18,15 @@ import {
   loadContributorInvites,
   loadMediaHubItems,
   loadVisualOverrides,
+  resolveTvAccessTier,
+  resolveTvCategory,
   saveContributorInvites,
   saveEventVisualOverride,
   subscribeMediaHub,
   upsertMediaHubItem,
 } from '../../../utils/mediaHubStorage';
+import type { TvAccessTier } from '../../../utils/tvAccess';
+import { AdminLumareelTvSubscriptionsPanel } from './AdminLumareelTvSubscriptionsPanel';
 import { selectEventVisual } from '../../../utils/visualSelector';
 import { uploadAdminImage } from '../../../utils/uploadAdminImage';
 import { convertToYouTubeEmbed, readFileAsDataURL } from '../../../utils/mediaUtils';
@@ -39,7 +46,9 @@ import {
   RefreshCw,
   Shield,
   Sparkles,
+  Star,
   Trash2,
+  Tv,
   Upload,
   UserPlus,
   Users,
@@ -52,8 +61,8 @@ interface AdminMediaHubViewProps {
   showToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
 }
 
-type StudioTab = 'library' | 'visuals' | 'contributors';
-type LibraryFilter = 'all' | 'draft' | 'published' | 'backstage' | 'memories';
+type StudioTab = 'library' | 'tv_pass' | 'visuals' | 'contributors';
+type LibraryFilter = 'all' | 'draft' | 'published' | TvContentCategory;
 
 export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
   events,
@@ -85,18 +94,21 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
 
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
-  const [newMediaType, setNewMediaType] = useState<'photo' | 'video'>('photo');
-  const [newPlacement, setNewPlacement] = useState<MediaPlacement>('backstage');
+  const [newMediaType, setNewMediaType] = useState<'photo' | 'video'>('video');
+  const [newPlacement, setNewPlacement] = useState<MediaPlacement>('lumareel_tv');
+  const [newTvCategory, setNewTvCategory] = useState<TvContentCategory>('originals');
+  const [newTvAccessTier, setNewTvAccessTier] = useState<TvAccessTier>('tv_pass');
+  const [newPrivacyLevel, setNewPrivacyLevel] = useState<TvPrivacyLevel>('private');
+  const [newIsFeaturedOnTv, setNewIsFeaturedOnTv] = useState(false);
   const [newEventId, setNewEventId] = useState<string>('');
   const [newArtistName, setNewArtistName] = useState('');
   const [newAlbumTitle, setNewAlbumTitle] = useState('');
-  const [newTag, setNewTag] = useState('Officiel');
+  const [newTag, setNewTag] = useState('Original');
   const [newDuration, setNewDuration] = useState('');
   const [newUrl, setNewUrl] = useState('');
   const [newEmbedUrl, setNewEmbedUrl] = useState('');
   const [newVisualRole, setNewVisualRole] = useState<VisualContextRole>('none');
-  const [newDownloadable, setNewDownloadable] = useState(true);
-  const [newMembersOnly, setNewMembersOnly] = useState(false);
+  const [newDownloadable, setNewDownloadable] = useState(false);
   const [newPublishNow, setNewPublishNow] = useState(true);
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -111,8 +123,7 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
   const filteredItems = useMemo(() => {
     if (libraryFilter === 'draft') return items.filter((i) => i.status === 'draft');
     if (libraryFilter === 'published') return items.filter((i) => i.status === 'published');
-    if (libraryFilter === 'backstage') return items.filter((i) => i.placement === 'backstage');
-    if (libraryFilter === 'memories') return items.filter((i) => i.placement === 'memories');
+    if (libraryFilter !== 'all') return items.filter((i) => resolveTvCategory(i) === libraryFilter);
     return items;
   }, [items, libraryFilter]);
 
@@ -155,24 +166,39 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
     }
 
     const linkedEvent = events.find((ev) => ev.id === newEventId);
+    const legacyAccess =
+      newTvAccessTier === 'free'
+        ? 'public'
+        : newTvAccessTier === 'tv_pass'
+        ? 'members'
+        : newTvAccessTier === 'card'
+        ? 'black_card'
+        : 'specific';
+
     const created: MediaHubItem = {
-      id: `media_admin_${Date.now()}`,
+      id: `media_tv_${Date.now()}`,
       title: newTitle.trim(),
-      description: newDescription.trim() || 'Production officielle LUMARÉEL.',
+      description: newDescription.trim() || 'Production officielle LUMARÉEL TV.',
       mediaType: newMediaType,
       url: finalUrl,
       thumbnailUrl: finalUrl,
       embedUrl: finalEmbed,
       duration: newMediaType === 'video' ? newDuration.trim() || '04:30' : undefined,
-      tag: newTag.trim() || (newPlacement === 'backstage' ? 'Backstage' : 'Officiel'),
+      tag: newTag.trim() || TV_CATEGORY_META[newTvCategory].shortFr,
       placement: newPlacement,
+      tvCategory: newTvCategory,
+      tvAccessTier: newTvAccessTier,
+      privacyLevel: newPrivacyLevel,
+      isFeaturedOnTv: newIsFeaturedOnTv,
+      publishedAt: new Date().toISOString().slice(0, 10),
       albumTitle: newAlbumTitle.trim() || linkedEvent?.title || undefined,
       eventId: linkedEvent?.id || undefined,
       artistName: newArtistName.trim() || linkedEvent?.artist || undefined,
       date: new Date().toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
       status: newPublishNow ? 'published' : 'draft',
       downloadable: newDownloadable,
-      membersOnly: newMembersOnly,
+      membersOnly: newTvAccessTier !== 'free',
+      accessLevel: legacyAccess,
       visualContextRole: newVisualRole,
       submittedByName: 'Administration LUMARÉEL',
       submittedByRole: 'super_admin',
@@ -187,11 +213,12 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
     setNewEmbedUrl('');
     setNewDuration('');
     setNewVisualRole('none');
+    setNewIsFeaturedOnTv(false);
     setShowAddForm(false);
     showToast(
       newPublishNow
-        ? 'Média publié immédiatement sur la plateforme.'
-        : 'Média enregistré en brouillon.',
+        ? 'Contenu publié sur LUMARÉEL TV.'
+        : 'Contenu enregistré en brouillon.',
       'success'
     );
   };
@@ -201,10 +228,42 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
     setItems(next);
     showToast(
       status === 'published'
-        ? 'Média validé et publié.'
+        ? 'Contenu validé et publié sur LUMARÉEL TV.'
         : status === 'rejected'
         ? 'Soumission refusée.'
-        : 'Média repassé en brouillon.',
+        : 'Contenu repassé en brouillon.',
+      'info'
+    );
+  };
+
+  const handleCycleAccessTier = (item: MediaHubItem) => {
+    const order: TvAccessTier[] = ['free', 'tv_pass', 'card', 'vip'];
+    const current = resolveTvAccessTier(item);
+    const nextTier = order[(order.indexOf(current) + 1) % order.length];
+    const nextPrivacy: TvPrivacyLevel =
+      nextTier === 'free' ? 'public' : nextTier === 'tv_pass' ? 'private' : 'restricted';
+    const next = upsertMediaHubItem({
+      ...item,
+      tvAccessTier: nextTier,
+      privacyLevel: nextPrivacy,
+      membersOnly: nextTier !== 'free',
+      accessLevel:
+        nextTier === 'free'
+          ? 'public'
+          : nextTier === 'tv_pass'
+          ? 'members'
+          : nextTier === 'card'
+          ? 'black_card'
+          : 'specific',
+    });
+    setItems(next);
+  };
+
+  const handleToggleFeatured = (item: MediaHubItem) => {
+    const next = upsertMediaHubItem({ ...item, isFeaturedOnTv: !item.isFeaturedOnTv });
+    setItems(next);
+    showToast(
+      !item.isFeaturedOnTv ? 'Mis à la une sur LUMARÉEL TV.' : 'Retiré de la une.',
       'info'
     );
   };
@@ -220,7 +279,7 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
   const handleDeleteItem = (id: string) => {
     const next = deleteMediaHubItem(id);
     setItems(next);
-    showToast('Média supprimé de la médiathèque.', 'info');
+    showToast('Contenu supprimé du catalogue.', 'info');
   };
 
   // ============================================================================
@@ -379,17 +438,17 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
 
   return (
     <div className="space-y-8 text-white font-agrandir-regular">
-      {/* En-tête Studio Médias */}
+      {/* En-tête LUMARÉEL TV & Studio Médias */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/[0.1] pb-6">
         <div>
-          <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-neutral-400 mb-1">
-            ADMINISTRATION MONOCHROME · MÉDIAS
+          <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A] mb-1">
+            ADMINISTRATION CENTRALE · LUMARÉEL TV
           </p>
           <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-tight text-white">
-            Studio Médias & Photographes
+            LUMARÉEL TV &amp; Studio Médias
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-neutral-400 max-w-2xl">
-            Centralisez les contenus Backstage & Memories, arbitrez les dépôts photographes en brouillon et pilotez les visuels principaux par concert.
+            Pilotez le catalogue LUMARÉEL TV (catégories, confidentialité, droits d’accès), les formules et abonnements TV Pass, l’éligibilité des cartes et les dépôts photographes.
           </p>
         </div>
 
@@ -405,7 +464,7 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
             }`}
           >
             <Clapperboard className="w-3.5 h-3.5" />
-            <span>Médiathèque</span>
+            <span>Catalogue TV</span>
             {draftCount > 0 && (
               <span
                 className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] tabular-nums ${
@@ -417,6 +476,19 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
                 {draftCount}
               </span>
             )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('tv_pass')}
+            className={`min-h-[36px] px-4 rounded-full text-xs font-agrandir-semibold inline-flex items-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === 'tv_pass'
+                ? 'bg-[#D4AF6A] text-black font-agrandir-extrabold'
+                : 'text-neutral-400 hover:text-white'
+            }`}
+          >
+            <Tv className="w-3.5 h-3.5" />
+            <span>TV Pass &amp; Accès</span>
           </button>
 
           <button
@@ -448,7 +520,14 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
       </div>
 
       {/* ====================================================================
-          ONGLET 1 : MÉDIATHÈQUE & MODÉRATION
+          ONGLET TV PASS, FORMULES & PERMISSIONS CARD
+         ==================================================================== */}
+      {activeTab === 'tv_pass' && (
+        <AdminLumareelTvSubscriptionsPanel showToast={showToast} />
+      )}
+
+      {/* ====================================================================
+          ONGLET 1 : CATALOGUE LUMARÉEL TV & MODÉRATION
          ==================================================================== */}
       {activeTab === 'library' && (
         <div className="space-y-6">
@@ -459,8 +538,11 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
                   { id: 'all', label: `Tous (${items.length})` },
                   { id: 'draft', label: `En attente (${draftCount})` },
                   { id: 'published', label: `Publiés (${publishedMedia.length})` },
+                  { id: 'originals', label: 'Originals' },
+                  { id: 'concerts_live', label: 'Concerts & Live' },
                   { id: 'backstage', label: 'Backstage' },
-                  { id: 'memories', label: 'Memories' },
+                  { id: 'interviews', label: 'Interviews' },
+                  { id: 'retrospectives', label: 'Rétrospectives' },
                 ] as Array<{ id: LibraryFilter; label: string }>
               ).map((f) => (
                 <button
@@ -541,15 +623,55 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
 
                 <div>
                   <label className="block text-[11px] text-neutral-400 mb-1">
-                    Destination
+                    Catégorie LUMARÉEL TV
                   </label>
                   <select
-                    value={newPlacement}
-                    onChange={(e) => setNewPlacement(e.target.value as MediaPlacement)}
+                    value={newTvCategory}
+                    onChange={(e) => setNewTvCategory(e.target.value as TvContentCategory)}
                     className="w-full min-h-[42px] px-3.5 rounded-xl bg-[#141414] border border-white/[0.12] text-xs text-white focus:outline-none focus:border-white"
                   >
-                    <option value="backstage">BACKSTAGE (Coulisses & Captations)</option>
-                    <option value="memories">MEMORIES (Souvenirs & Photos officielles)</option>
+                    <option value="originals">LUMARÉEL Originals</option>
+                    <option value="concerts_live">Concerts &amp; Live</option>
+                    <option value="backstage">Backstage</option>
+                    <option value="interviews">Interviews</option>
+                    <option value="retrospectives">Rétrospectives</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-neutral-400 mb-1">
+                    Permission d’accès LUMARÉEL TV
+                  </label>
+                  <select
+                    value={newTvAccessTier}
+                    onChange={(e) => {
+                      const tier = e.target.value as TvAccessTier;
+                      setNewTvAccessTier(tier);
+                      setNewPrivacyLevel(
+                        tier === 'free' ? 'public' : tier === 'tv_pass' ? 'private' : 'restricted'
+                      );
+                    }}
+                    className="w-full min-h-[42px] px-3.5 rounded-xl bg-[#141414] border border-white/[0.12] text-xs text-white focus:outline-none focus:border-white"
+                  >
+                    <option value="free">Gratuit (aperçu public)</option>
+                    <option value="tv_pass">TV Pass ou LUMARÉEL Card éligible</option>
+                    <option value="card">LUMARÉEL Card éligible uniquement</option>
+                    <option value="vip">Accès VIP (Card VIP / Billet vérifié)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-neutral-400 mb-1">
+                    Niveau de confidentialité
+                  </label>
+                  <select
+                    value={newPrivacyLevel}
+                    onChange={(e) => setNewPrivacyLevel(e.target.value as TvPrivacyLevel)}
+                    className="w-full min-h-[42px] px-3.5 rounded-xl bg-[#141414] border border-white/[0.12] text-xs text-white focus:outline-none focus:border-white"
+                  >
+                    <option value="public">Public</option>
+                    <option value="private">Privé (Abonnés / Membres)</option>
+                    <option value="restricted">Restreint (Card / VIP)</option>
                   </select>
                 </div>
 
@@ -611,7 +733,7 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
 
                 <div>
                   <label className="block text-[11px] text-neutral-400 mb-1">
-                    {newMediaType === 'video' ? 'Durée (ex: 06:45)' : 'Album Memories'}
+                    {newMediaType === 'video' ? 'Durée (ex: 06:45)' : 'Série / Collection LUMARÉEL TV'}
                   </label>
                   {newMediaType === 'video' ? (
                     <input
@@ -721,11 +843,11 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
                 <label className="inline-flex items-center gap-2 text-xs text-neutral-200 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={newMembersOnly}
-                    onChange={(e) => setNewMembersOnly(e.target.checked)}
-                    className="accent-white"
+                    checked={newIsFeaturedOnTv}
+                    onChange={(e) => setNewIsFeaturedOnTv(e.target.checked)}
+                    className="accent-[#D4AF6A]"
                   />
-                  <span>Réservé aux membres Black Card</span>
+                  <span>Mettre à la une sur LUMARÉEL TV</span>
                 </label>
               </div>
 
@@ -788,15 +910,22 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
                           >
                             {statusBadge.label}
                           </span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-black/75 text-white border border-white/15 uppercase">
-                            {item.placement}
+                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-black/75 text-[#D4AF6A] border border-white/15 uppercase">
+                            {TV_CATEGORY_META[resolveTvCategory(item)].shortFr}
                           </span>
                         </div>
-                        {item.membersOnly && (
-                          <span className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-black/75 border border-white/20 flex items-center justify-center text-white">
-                            <Crown className="w-3.5 h-3.5" />
-                          </span>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleFeatured(item)}
+                          title="Mettre à la une sur LUMARÉEL TV"
+                          className={`absolute top-2.5 right-2.5 w-7 h-7 rounded-full border flex items-center justify-center cursor-pointer transition-colors ${
+                            item.isFeaturedOnTv
+                              ? 'bg-[#D4AF6A] text-black border-[#D4AF6A]'
+                              : 'bg-black/75 text-white/70 border-white/20 hover:text-white'
+                          }`}
+                        >
+                          <Star className="w-3.5 h-3.5" />
+                        </button>
                       </div>
 
                       <div className="p-4 space-y-1.5">
@@ -869,13 +998,20 @@ export const AdminMediaHubView: React.FC<AdminMediaHubViewProps> = ({
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleToggleItemFlag(item, 'membersOnly')}
-                          className={`inline-flex items-center gap-1 cursor-pointer ${
-                            item.membersOnly ? 'text-white font-agrandir-semibold' : 'text-neutral-500'
-                          }`}
+                          onClick={() => handleCycleAccessTier(item)}
+                          title="Changer le niveau d’accès LUMARÉEL TV"
+                          className="inline-flex items-center gap-1 cursor-pointer text-[#D4AF6A] hover:text-white font-agrandir-semibold"
                         >
                           <Lock className="w-3 h-3" />
-                          <span>{item.membersOnly ? 'Black Card' : 'Public'}</span>
+                          <span>
+                            {resolveTvAccessTier(item) === 'free'
+                              ? 'Gratuit'
+                              : resolveTvAccessTier(item) === 'tv_pass'
+                              ? 'TV Pass'
+                              : resolveTvAccessTier(item) === 'card'
+                              ? 'Card'
+                              : 'VIP'}
+                          </span>
                         </button>
                       </div>
                     </div>

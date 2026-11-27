@@ -34,7 +34,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
       case 'orders':
         return 'Commandes & Ventes';
       case 'media':
-        return 'Studio Médias & Photographes';
+        return 'LUMARÉEL TV & Studio Médias';
       case 'archives':
         return 'Archives & CMS Vidéo';
       case 'emails':

@@ -75,7 +75,7 @@ export const HomeFeed: React.FC = () => {
     news,
     archives,
     isLoadingEvents,
-    setSelectedMemoryAlbumId,
+    setSelectedArchiveId,
     setSelectedDiscoverItem,
     setCurrentPage,
     setCheckoutEvent,
@@ -161,14 +161,14 @@ export const HomeFeed: React.FC = () => {
     const latestAlbum = albums[0];
     if (latestAlbum) {
       items.push({
-        id: `hd_mem_${latestAlbum.id}`,
-        tag: 'Memories',
+        id: `hd_arc_${latestAlbum.id}`,
+        tag: 'Archives',
         title: latestAlbum.artist || latestAlbum.title,
-        subtitle: latestAlbum.date || (isEn ? 'Photos & aftermovie' : 'Photos & aftermovie'),
+        subtitle: latestAlbum.date || (isEn ? 'Photos & recap' : 'Photos & récapitulatif'),
         image: latestAlbum.coverImage,
         onOpen: () => {
-          setSelectedMemoryAlbumId(latestAlbum.id);
-          setCurrentPage('memories');
+          setSelectedArchiveId(latestAlbum.id);
+          setCurrentPage('archive');
         },
       });
     }
@@ -212,7 +212,7 @@ export const HomeFeed: React.FC = () => {
     news,
     language,
     isEn,
-    setSelectedMemoryAlbumId,
+    setSelectedArchiveId,
     setSelectedDiscoverItem,
     setCurrentPage,
   ]);

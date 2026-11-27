@@ -80,6 +80,7 @@ export const DesktopTopNav: React.FC = () => {
         'backstage',
         'media_detail',
         'memories',
+        'lumareel_tv',
         'archive',
         'privileged_access',
         'flash_drops',

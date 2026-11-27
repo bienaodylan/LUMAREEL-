@@ -361,12 +361,12 @@ export const ContributorPortalView: React.FC = () => {
                 <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-[#0D0D0D] border border-white/[0.1]">
                   <button
                     type="button"
-                    onClick={() => setPlacement('memories')}
+                    onClick={() => setPlacement('lumareel_tv')}
                     className={`min-h-[36px] rounded-lg text-xs font-agrandir-semibold cursor-pointer ${
-                      placement === 'memories' ? 'bg-white text-black' : 'text-neutral-400'
+                      placement === 'lumareel_tv' || placement === 'memories' ? 'bg-white text-black' : 'text-neutral-400'
                     }`}
                   >
-                    Memories
+                    LUMARÉEL TV
                   </button>
                   <button
                     type="button"
@@ -518,7 +518,7 @@ export const ContributorPortalView: React.FC = () => {
                         {sub.title}
                       </p>
                       <p className="text-[11px] text-neutral-500 truncate">
-                        {sub.placement === 'backstage' ? 'Backstage' : 'Memories'}
+                        {sub.placement === 'backstage' ? 'Backstage' : 'LUMARÉEL TV'}
                         {sub.albumTitle ? ` · ${sub.albumTitle}` : ''}
                       </p>
                     </div>
