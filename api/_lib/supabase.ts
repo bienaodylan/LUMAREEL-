@@ -113,8 +113,9 @@ export async function requireRole(req: VercelRequest, roles: string[]) {
  * CORS strict (évite le wildcard '*' sur les routes authentifiées).
  */
 export function applyCors(req: VercelRequest, res: VercelResponse, methods = 'GET, POST, OPTIONS') {
-  const origin = String(req.headers.origin || '').trim();
-  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+  const headers = req?.headers || {};
+  const origin = String(headers.origin || '').trim();
+  const host = String(headers['x-forwarded-host'] || headers.host || '').split(',')[0].trim();
   const configuredPublic = (process.env.APP_PUBLIC_URL || process.env.APP_URL || '').trim().replace(/\/+$/, '');
 
   if (origin) {
