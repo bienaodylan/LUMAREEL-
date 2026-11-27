@@ -20,6 +20,7 @@ export type PageView =
   | 'card_verify'
   | 'rewards'
   | 'backstage'
+  | 'media_detail'
   | 'flash_drops'
   | 'memories'
   | 'suggestions'
