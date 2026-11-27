@@ -9,6 +9,7 @@ export type PageView =
   | 'splash'
   | 'home'
   | 'discover'
+  | 'event_detail'
   | 'archive'
   | 'client_space'
   | 'profile'
