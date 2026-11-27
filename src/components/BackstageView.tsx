@@ -1,21 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
-import {
-  buildConcertMemoryAlbums,
-  markChallengeCompleted,
-} from '../utils/communityStorage';
+import { markChallengeCompleted } from '../utils/communityStorage';
 import {
   MediaHubItem,
   getPublishedMediaItems,
   subscribeMediaHub,
 } from '../utils/mediaHubStorage';
 import { loadStoredMemberCard } from '../utils/memberCardStorage';
-import { ConcertMemoriesView } from './ConcertMemoriesView';
-import { PageHeader, SegmentedControl } from './ui/EditorialPrimitives';
+import { PageHeader } from './ui/EditorialPrimitives';
 import { ArrowUpRight, Lock, Play } from 'lucide-react';
-
-type BackstageSection = 'coulisses' | 'memories';
 
 /**
  * BACKSTAGE — Destination média monochrome unifiée regroupant Coulisses & Memories.
@@ -25,7 +19,6 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = ({ embedded = fal
   const {
     currentUser,
     events,
-    archives,
     setCurrentPage,
     setSelectedMediaId,
     showToast,
@@ -33,7 +26,6 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = ({ embedded = fal
   } = useApp();
 
   const isEn = language === 'en';
-  const [section, setSection] = useState<BackstageSection>('coulisses');
   const [publishedMedia, setPublishedMedia] = useState<MediaHubItem[]>(() =>
     getPublishedMediaItems()
   );
@@ -56,7 +48,6 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = ({ embedded = fal
     [events]
   );
 
-  const memoryAlbums = useMemo(() => buildConcertMemoryAlbums(archives), [archives]);
 
   const resolveLinkedConcert = (item: MediaHubItem): ConcertEvent | null => {
     if (publishedEvents.length === 0) return null;
@@ -117,24 +108,11 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = ({ embedded = fal
           compact
           eyebrow={isEn ? 'Inside LUMARÉEL' : 'Dans les coulisses'}
           title="BACKSTAGE"
-          action={
-            <SegmentedControl<BackstageSection>
-              value={section}
-              onChange={setSection}
-              layoutId="lumareel-backstage-switch"
-              pill
-              options={[
-                { id: 'coulisses', label: isEn ? 'Behind the Scenes' : 'Coulisses' },
-                { id: 'memories', label: 'Memories' },
-              ]}
-            />
-          }
         />
       )}
 
       {/* VUE 1 : COULISSES */}
-      {section === 'coulisses' && (
-        <div className="space-y-9 sm:space-y-12">
+      <div className="space-y-9 sm:space-y-12">
           {/* MOBILE FIRST-FOLD : Rail horizontal — Miniatures dégagées */}
           <section className="md:hidden">
             <div className="flex overflow-x-auto snap-x snap-mandatory gap-3.5 pb-2 scrollbar-hide -mx-4 px-4">
@@ -179,37 +157,6 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = ({ embedded = fal
               })}
             </div>
           </section>
-
-          {/* MOBILE SUITE : Passerelle Memories */}
-          {memoryAlbums[0] && (
-            <section className="md:hidden">
-              <button
-                type="button"
-                onClick={() => setSection('memories')}
-                className="group w-full text-left cursor-pointer block"
-              >
-                <div className="aspect-[16/9] w-full overflow-hidden bg-[#0E0E0E] border border-white/[0.12]">
-                  <img
-                    src={memoryAlbums[0].coverImage}
-                    alt={memoryAlbums[0].title}
-                    referrerPolicy="no-referrer"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
-                </div>
-                <div className="pt-2.5 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.18em] text-neutral-500">
-                      MEMORIES
-                    </p>
-                    <h3 className="mt-0.5 font-agrandir-extrabold text-base text-white truncate">
-                      {memoryAlbums[0].title}
-                    </h3>
-                  </div>
-                  <ArrowUpRight className="w-4 h-4 text-neutral-400 group-hover:text-white shrink-0" />
-                </div>
-              </button>
-            </section>
-          )}
 
           {/* DESKTOP — GRILLE ÉDITORIALE MINIATURES DÉGAGÉES */}
           {leadItem && (
@@ -340,35 +287,6 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = ({ embedded = fal
               );
             })}
 
-            {memoryAlbums[0] && (
-              <button
-                type="button"
-                onClick={() => setSection('memories')}
-                className={`${
-                  extraItems.length > 0 ? 'md:col-span-7' : 'md:col-span-12'
-                } group text-left cursor-pointer block`}
-              >
-                <div className="aspect-[16/10] w-full overflow-hidden bg-[#0E0E0E] border border-white/[0.12]">
-                  <img
-                    src={memoryAlbums[0].coverImage}
-                    alt={memoryAlbums[0].title}
-                    referrerPolicy="no-referrer"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
-                </div>
-                <div className="pt-3 flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.18em] text-neutral-500">
-                      MEMORIES · {memoryAlbums[0].date}
-                    </p>
-                    <h3 className="mt-0.5 font-agrandir-extrabold text-lg lg:text-xl text-white leading-tight group-hover:text-neutral-300 transition-colors truncate">
-                      {memoryAlbums[0].title}
-                    </h3>
-                  </div>
-                  <ArrowUpRight className="w-4 h-4 text-neutral-500 group-hover:text-white transition-colors shrink-0 mt-1" />
-                </div>
-              </button>
-            )}
           </section>
 
           {/* Grille additionnelle si l'admin a publié davantage de médias Backstage */}
@@ -414,13 +332,7 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = ({ embedded = fal
             </section>
           )}
 
-        </div>
-      )}
-
-      {/* VUE 2 : MEMORIES INTÉGRÉ DANS BACKSTAGE */}
-      {section === 'memories' && (
-        <ConcertMemoriesView embedded />
-      )}
+      </div>
     </div>
   );
 };
