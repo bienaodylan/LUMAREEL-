@@ -7,7 +7,6 @@ import {
   Clapperboard,
   Compass,
   CreditCard,
-  Film,
   Gift,
   Home,
   Mic2,
@@ -43,7 +42,6 @@ export const FloatingAppNavbar: React.FC = () => {
     'backstage',
     'memories',
     'suggestions',
-    'archive',
   ];
   const isClubActive = clubSheetOpen || clubPages.includes(currentPage);
 
@@ -145,12 +143,6 @@ export const FloatingAppNavbar: React.FC = () => {
       label: isEn ? 'Your Voice' : 'Ta Voix',
       sub: isEn ? 'Request artists, venues & event ideas' : 'Proposez des artistes, lieux & idées',
       icon: Mic2,
-    },
-    {
-      page: 'archive',
-      label: 'Archives',
-      sub: isEn ? 'Past LUMARÉEL stage productions' : 'Productions scéniques passées',
-      icon: Film,
     },
   ];
 
