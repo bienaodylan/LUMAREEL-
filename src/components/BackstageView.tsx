@@ -28,7 +28,7 @@ export const BackstageView: React.FC = () => {
     events,
     archives,
     setCurrentPage,
-    setSelectedEventSlug,
+    setCheckoutEvent,
     setSelectedMediaId,
     showToast,
     language,
@@ -90,8 +90,7 @@ export const BackstageView: React.FC = () => {
   };
 
   const handleGoToConcert = (ev: ConcertEvent) => {
-    setSelectedEventSlug(ev.slug);
-    setCurrentPage('concert_detail');
+    setCheckoutEvent(ev);
   };
 
   const leadItem = backstageItems[0];

@@ -5,8 +5,6 @@ import { FloatingAppNavbar } from './components/FloatingAppNavbar';
 import { DesktopTopNav } from './components/DesktopTopNav';
 import { HomeFeed } from './components/HomeFeed';
 import { ExplorerView } from './components/ExplorerView';
-import { ConcertDetailView } from './components/ConcertDetailView';
-import { ArchiveView } from './components/ArchiveView';
 import { MediaDetailView } from './components/MediaDetailView';
 import { ContributorPortalView } from './components/ContributorPortalView';
 import { OrganizersView } from './components/OrganizersView';
@@ -24,6 +22,7 @@ import { PrivilegedAccessView } from './components/PrivilegedAccessView';
 import { FlashDropsView } from './components/FlashDropsView';
 import { ConcertMemoriesView } from './components/ConcertMemoriesView';
 import { SuggestionsView } from './components/SuggestionsView';
+import { DiscoverDetailView } from './components/DiscoverDetailView';
 import { ContactView } from './components/ContactView';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { saveStoredMemberCard } from './utils/memberCardStorage';
@@ -107,8 +106,9 @@ const MainApp: React.FC = () => {
   }, [currentPage]);
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
+  const isFullScreenPage = isAdminOrScanner || currentPage === 'booking';
   const hasMobileTopBar =
-    !isAdminOrScanner &&
+    !isFullScreenPage &&
     ![
       'splash',
       'home',
@@ -119,24 +119,25 @@ const MainApp: React.FC = () => {
       'card',
       'memories',
       'backstage',
+      'archive',
       'rewards',
       'privileged_access',
       'flash_drops',
       'suggestions',
+      'discover_detail',
       'profile',
     ].includes(currentPage);
   const hasBottomNav =
-    !isAdminOrScanner &&
-    !hideBottomNav &&
-    currentPage !== 'concert_detail';
+    !isFullScreenPage &&
+    !hideBottomNav;
 
   return (
     <div className="min-h-screen w-full max-w-full bg-black text-white flex flex-col justify-between selection:bg-[#D4AF6A] selection:text-black font-agrandir-regular relative">
       {/* Indicateur hors-ligne discret pour la PWA */}
       <OfflineIndicator />
 
-      {/* En-tête mobile contextuel + barre horizontale desktop (masqués sur scanner/admin) */}
-      {!isAdminOrScanner && (
+      {/* En-tête mobile contextuel + barre horizontale desktop (masqués sur scanner/admin/réservation) */}
+      {!isFullScreenPage && (
         <>
           <Navbar />
           <DesktopTopNav />
@@ -146,7 +147,7 @@ const MainApp: React.FC = () => {
       {/* Dynamic View Router */}
       <main
         className={`flex-1 w-full max-w-full min-w-0 relative z-10 ${
-          !isAdminOrScanner
+          !isFullScreenPage
             ? `${
                 hasBottomNav
                   ? 'pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))]'
@@ -172,10 +173,10 @@ const MainApp: React.FC = () => {
             {currentPage === 'home' && <HomeFeed />}
             {currentPage === 'discover' && <HomeFeed />}
             {currentPage === 'explore' && <ExplorerView />}
-            {currentPage === 'concert_detail' && <ConcertDetailView />}
+            {currentPage === 'booking' && <CheckoutModal />}
             {currentPage === 'media_detail' && <MediaDetailView />}
             {currentPage === 'contributor_studio' && <ContributorPortalView />}
-            {currentPage === 'archive' && <ArchiveView />}
+            {currentPage === 'archive' && <ConcertMemoriesView />}
             {currentPage === 'organizers' && <OrganizersView />}
             {currentPage === 'client_space' && <CustomerSpace />}
             {currentPage === 'profile' && <ProfileView />}
@@ -188,6 +189,7 @@ const MainApp: React.FC = () => {
             {currentPage === 'flash_drops' && <FlashDropsView />}
             {currentPage === 'memories' && <ConcertMemoriesView />}
             {currentPage === 'suggestions' && <SuggestionsView />}
+            {currentPage === 'discover_detail' && <DiscoverDetailView />}
             {currentPage === 'contact' && <ContactView />}
             {currentPage === 'gate_scanner' && <ScannerView />}
             {currentPage === 'admin' && <AdminDashboard />}
@@ -196,10 +198,9 @@ const MainApp: React.FC = () => {
       </main>
 
       {/* Barre de Navigation Mobile Flottante (5 destinations majeures) */}
-      {!isAdminOrScanner && <FloatingAppNavbar />}
+      {!isFullScreenPage && <FloatingAppNavbar />}
 
       {/* Active Modals */}
-      <CheckoutModal />
       <AuthModal />
 
       {/* Minimal Toast Notification */}

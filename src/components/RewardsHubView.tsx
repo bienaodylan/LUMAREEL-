@@ -44,11 +44,19 @@ interface StoreRewardItem {
   imageUrl?: string;
 }
 
+interface RewardsHubViewProps {
+  embedded?: boolean;
+  forcedMode?: RewardsViewMode;
+}
+
 /**
- * Écrans 08 (Mes points), 09 (Parrainage) et 10 (Rewards Store) —
- * Reproduction fidèle aux maquettes officielles LUMARÉEL (0px cartes, 4px boutons, #D4AF6A).
+ * Espace Avantages, Points de fidélité, Crédits billetterie, Challenges, Rewards Store & Parrainage.
+ * Utilisable en mode intégré dans l'onglet Carte ou en page autonome.
  */
-export const RewardsHubView: React.FC = () => {
+export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
+  embedded = false,
+  forcedMode,
+}) => {
   const {
     currentUser,
     customerOrders,
@@ -62,15 +70,19 @@ export const RewardsHubView: React.FC = () => {
   } = useApp();
   const isEn = language === 'en';
 
-  const [viewMode, setViewMode] = useState<RewardsViewMode>(rewardsInitialMode || 'points');
+  const [viewMode, setViewMode] = useState<RewardsViewMode>(
+    forcedMode || rewardsInitialMode || 'points'
+  );
   const [storeTab, setStoreTab] = useState<StoreCategoryTab>('billets');
   const [pointsState, setPointsState] = useState(() => loadUserPointsState(currentUser));
 
   useEffect(() => {
-    if (rewardsInitialMode) {
+    if (forcedMode) {
+      setViewMode(forcedMode);
+    } else if (rewardsInitialMode) {
       setViewMode(rewardsInitialMode);
     }
-  }, [rewardsInitialMode]);
+  }, [forcedMode, rewardsInitialMode]);
   const [copiedCode, setCopiedCode] = useState(false);
 
   // Modales BottomSheet
@@ -437,8 +449,12 @@ export const RewardsHubView: React.FC = () => {
 
     return (
       <div
-        className="min-h-screen w-full max-w-[1280px] mx-auto px-4 sm:px-8 md:px-10 pb-24 bg-black text-white font-agrandir-regular"
-        style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
+        className={
+          embedded
+            ? 'w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pt-2 pb-16 bg-black text-white font-agrandir-regular'
+            : 'min-h-screen w-full max-w-[1280px] mx-auto px-4 sm:px-8 md:px-10 pb-24 bg-black text-white font-agrandir-regular'
+        }
+        style={embedded ? undefined : { paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
       >
         {/* Barre supérieure : < Mes points | [SOLDE] pts (pilule dorée) */}
         <div className="flex items-center justify-between gap-3 mb-5">
@@ -761,17 +777,23 @@ export const RewardsHubView: React.FC = () => {
 
     return (
       <div
-        className="min-h-screen w-full max-w-[1280px] mx-auto px-4 sm:px-8 md:px-10 pb-24 bg-black text-white font-agrandir-regular"
-        style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
+        className={
+          embedded
+            ? 'w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pt-2 pb-16 bg-black text-white font-agrandir-regular'
+            : 'min-h-screen w-full max-w-[1280px] mx-auto px-4 sm:px-8 md:px-10 pb-24 bg-black text-white font-agrandir-regular'
+        }
+        style={embedded ? undefined : { paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
       >
-        <button
-          type="button"
-          onClick={() => setViewMode('points')}
-          className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-[#9A9A9A] hover:text-white transition-colors cursor-pointer mb-5"
-        >
-          <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
-          <span>{isEn ? 'My points' : 'Mes points'}</span>
-        </button>
+        {!embedded && (
+          <button
+            type="button"
+            onClick={() => setViewMode('points')}
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-[#9A9A9A] hover:text-white transition-colors cursor-pointer mb-5"
+          >
+            <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
+            <span>{isEn ? 'My points' : 'Mes points'}</span>
+          </button>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           {/* Colonne gauche : Hero + Carte code (0px) + Compteurs */}
@@ -1071,30 +1093,69 @@ export const RewardsHubView: React.FC = () => {
   // =========================================================================
   // ÉCRAN 08 : MES POINTS (FIDÈLE 1:1 À LA MAQUETTE 08 — 0px CARTES)
   // =========================================================================
+  const challengesList = [
+    {
+      id: 'challenge_ticket',
+      title: isEn ? 'Book your first concert' : 'Réserver votre premier concert',
+      reward: `+${POINTS_RULES.STANDARD_TICKET} pts`,
+      completed: (customerOrders || []).some((o) => o.paymentStatus === 'completed'),
+      progressLabel: (customerOrders || []).some((o) => o.paymentStatus === 'completed')
+        ? '1/1'
+        : '0/1',
+    },
+    {
+      id: 'challenge_memory',
+      title: isEn ? 'Share a concert memory' : 'Partager un souvenir de concert',
+      reward: `+${POINTS_RULES.APP_CHALLENGE_MEMORY} pts`,
+      completed: pointsState.completedChallenges.includes('challenge_memory'),
+      progressLabel: pointsState.completedChallenges.includes('challenge_memory') ? '1/1' : '0/1',
+    },
+    {
+      id: 'challenge_suggestion',
+      title: isEn ? 'Submit a community idea' : 'Proposer une idée à la communauté',
+      reward: `+${POINTS_RULES.APP_CHALLENGE_SUGGESTION} pts`,
+      completed: pointsState.completedChallenges.includes('challenge_suggestion'),
+      progressLabel: pointsState.completedChallenges.includes('challenge_suggestion') ? '1/1' : '0/1',
+    },
+    {
+      id: 'challenge_referral',
+      title: isEn ? 'Validate 1 friend referral' : 'Valider 1 parrainage (1er achat)',
+      reward: `+${POINTS_RULES.REFERRAL_PURCHASE} pts`,
+      completed: pointsState.referrals.some((r) => r.status === 'purchased'),
+      progressLabel: `${pointsState.referrals.filter((r) => r.status === 'purchased').length}/1`,
+    },
+  ];
+
   return (
     <div
-      className="min-h-screen w-full max-w-[1280px] mx-auto px-4 sm:px-8 md:px-10 pb-24 bg-black text-white font-agrandir-regular"
-      style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
+      className={
+        embedded
+          ? 'w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pt-2 pb-16 bg-black text-white font-agrandir-regular'
+          : 'min-h-screen w-full max-w-[1280px] mx-auto px-4 sm:px-8 md:px-10 pb-24 bg-black text-white font-agrandir-regular'
+      }
+      style={embedded ? undefined : { paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
     >
-      {/* Lien retour < Explorer */}
-      <button
-        type="button"
-        onClick={() => setCurrentPage('explore')}
-        className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-[#9A9A9A] hover:text-white transition-colors cursor-pointer mb-4"
-      >
-        <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
-        <span>{isEn ? 'Explore' : 'Explorer'}</span>
-      </button>
+      {!embedded && (
+        <>
+          <button
+            type="button"
+            onClick={() => setCurrentPage('member_card')}
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-[#9A9A9A] hover:text-white transition-colors cursor-pointer mb-4"
+          >
+            <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
+            <span>{isEn ? 'Card' : 'Carte'}</span>
+          </button>
 
-      {/* En-tête : LUMARÉEL REWARDS / Mes points */}
-      <header className="mb-6">
-        <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-          LUMARÉEL REWARDS
-        </p>
-        <h1 className="mt-1 font-agrandir-extrabold text-[2.25rem] sm:text-5xl text-white tracking-tight leading-none">
-          {isEn ? 'My points' : 'Mes points'}
-        </h1>
-      </header>
+          <header className="mb-6">
+            <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
+              LUMARÉEL REWARDS
+            </p>
+            <h1 className="mt-1 font-agrandir-extrabold text-[2.25rem] sm:text-5xl text-white tracking-tight leading-none">
+              {isEn ? 'My points' : 'Mes points'}
+            </h1>
+          </header>
+        </>
+      )}
 
       <div className="space-y-10 max-w-4xl">
         {/* 1. CARTE SOLDE DISPONIBLE — arrondi 22px */}
@@ -1157,6 +1218,30 @@ export const RewardsHubView: React.FC = () => {
               ? 'Points are a LUMARÉEL loyalty currency. They have no cash value and cannot be withdrawn.'
               : "Les points sont une monnaie de fidélité LUMARÉEL. Ils ne représentent pas de l'argent et ne peuvent pas être retirés."}
           </p>
+
+          {/* Crédits de billetterie (FCFA) — strictement distincts des points */}
+          <div className="rounded-[20px] bg-[#0E0E0E] border border-white/[0.12] p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A]">
+                {isEn ? 'TICKETING CREDIT (FCFA)' : 'CRÉDITS DE BILLETTERIE (FCFA)'}
+              </p>
+              <p className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tabular-nums">
+                {summary.ticketingCreditFcfa.toLocaleString('fr-FR')} FCFA
+              </p>
+              <p className="text-xs text-[#9A9A9A]">
+                {isEn
+                  ? 'Origin: validated referrals & redeemed vouchers · Deductible on ticket checkout (distinct from loyalty points).'
+                  : 'Origine : parrainages validés & bons échangés · Déductible sur vos billets (distinct des points de fidélité).'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setViewMode('store')}
+              className="min-h-[40px] px-4 rounded-full border border-white/20 hover:border-white text-xs font-agrandir-extrabold text-white transition-colors cursor-pointer shrink-0 self-start sm:self-center"
+            >
+              {isEn ? 'Convert points' : 'Obtenir un crédit'}
+            </button>
+          </div>
         </section>
 
         {/* 2. À VOTRE PORTÉE -> Rewards Store — arrondi moyen 10px */}
@@ -1247,56 +1332,41 @@ export const RewardsHubView: React.FC = () => {
           </section>
         </ScrollReveal>
 
-        {/* 3. CATALOGUE VISUEL — COLLECTION REWARDS (ICÔNES CENTRALISÉES B&W, ARRONDI 18px) */}
+        {/* 3. ACCÈS RAPIDES AVANTAGES (SANS DOUBLON COMMUNAUTÉ) */}
         <ScrollReveal>
           <section className="space-y-4">
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white">
-                {isEn ? 'Rewards Collection' : 'Collection Rewards'}
+                {isEn ? 'Member benefits' : 'Mes avantages'}
               </h2>
               <Icons.Catalog size="sm" accent="mono" />
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
                 {
                   id: 'store',
                   Icon: Icons.RewardsStore,
-                  title: 'Rewards Store',
-                  tag: isEn ? 'Redeem' : 'Échanger',
+                  title: isEn ? 'Rewards Store' : 'Récompenses',
+                  tag: isEn ? 'Redeem points' : 'Échanger mes points',
                   onClick: () => setViewMode('store'),
                 },
                 {
                   id: 'privileged',
                   Icon: Icons.PriorityAccess,
-                  title: isEn ? 'Priority Access' : 'Accès privilégié',
-                  tag: isEn ? 'Quotas' : 'Quotas VIP',
+                  title: isEn ? 'Priority Access' : 'Accès privilégiés',
+                  tag: isEn ? 'Reserved quotas' : 'Quotas & expériences',
                   onClick: () => setCurrentPage('privileged_access'),
-                },
-                {
-                  id: 'drops',
-                  Icon: Icons.FlashDrops,
-                  title: 'Flash Drops',
-                  tag: isEn ? 'Limited' : 'Éphémère',
-                  dot: true,
-                  onClick: () => setCurrentPage('flash_drops'),
                 },
                 {
                   id: 'referral',
                   Icon: Icons.Referral,
                   title: isEn ? 'Referral' : 'Parrainage',
-                  tag: '+200 pts',
+                  tag: `+${POINTS_RULES.REFERRAL_PURCHASE} pts`,
                   onClick: () => {
                     setRewardsInitialMode('referral');
                     setViewMode('referral');
                   },
-                },
-                {
-                  id: 'suggestions',
-                  Icon: Icons.Suggestions,
-                  title: isEn ? 'Suggestions' : 'Suggestions',
-                  tag: isEn ? 'Vote' : 'Voter',
-                  onClick: () => setCurrentPage('suggestions'),
                 },
               ].map((tile) => {
                 const Icon = tile.Icon;
@@ -1305,14 +1375,9 @@ export const RewardsHubView: React.FC = () => {
                     key={tile.id}
                     type="button"
                     onClick={tile.onClick}
-                    className="group p-4 rounded-[18px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] hover:border-white/30 text-left flex flex-col justify-between min-h-[136px] transition-colors cursor-pointer lum-press"
+                    className="group p-4 rounded-[18px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] hover:border-white/30 text-left flex flex-col justify-between min-h-[126px] transition-colors cursor-pointer lum-press"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <Icon size="md" accent="mono" className="w-10 h-10" />
-                      {tile.dot && (
-                        <span className="w-2 h-2 rounded-full bg-[#D4AF6A] mt-1 shrink-0" />
-                      )}
-                    </div>
+                    <Icon size="md" accent="mono" className="w-9 h-9" />
                     <div className="pt-3">
                       <p className="font-agrandir-extrabold text-sm text-white group-hover:text-[#D4AF6A] transition-colors leading-tight">
                         {tile.title}
@@ -1322,6 +1387,69 @@ export const RewardsHubView: React.FC = () => {
                   </button>
                 );
               })}
+            </div>
+          </section>
+        </ScrollReveal>
+
+        {/* 3-BIS. CHALLENGES ACTIFS & TERMINÉS */}
+        <ScrollReveal>
+          <section className="space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white">
+                Challenges
+              </h2>
+              <span className="text-xs text-[#9A9A9A] tabular-nums">
+                {challengesList.filter((c) => c.completed).length}/{challengesList.length}{' '}
+                {isEn ? 'completed' : 'terminés'}
+              </span>
+            </div>
+
+            <div className="border-y border-white/[0.12] divide-y divide-white/[0.12]">
+              {challengesList.map((ch) => (
+                <div
+                  key={ch.id}
+                  className={`py-3.5 flex items-center justify-between gap-4 ${
+                    ch.completed ? 'opacity-65' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border ${
+                        ch.completed
+                          ? 'bg-[#0F2A1A] border-[#7FE0A6]/40 text-[#7FE0A6]'
+                          : 'bg-[#0E0E0E] border-white/20 text-[#9A9A9A]'
+                      }`}
+                    >
+                      {ch.completed ? (
+                        <Check className="w-3.5 h-3.5" strokeWidth={2} />
+                      ) : (
+                        <span className="text-[10px] font-mono">{ch.progressLabel}</span>
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-agrandir-extrabold text-sm text-white truncate">
+                        {ch.title}
+                      </p>
+                      <p className="text-[11px] text-[#9A9A9A]">
+                        {ch.completed
+                          ? isEn
+                            ? 'Completed'
+                            : 'Terminé'
+                          : isEn
+                          ? `In progress · ${ch.progressLabel}`
+                          : `Actif · Progression ${ch.progressLabel}`}
+                      </p>
+                    </div>
+                  </div>
+                  <span
+                    className={`text-xs font-agrandir-extrabold tabular-nums shrink-0 ${
+                      ch.completed ? 'text-[#7FE0A6]' : 'text-[#D4AF6A]'
+                    }`}
+                  >
+                    {ch.reward}
+                  </span>
+                </div>
+              ))}
             </div>
           </section>
         </ScrollReveal>

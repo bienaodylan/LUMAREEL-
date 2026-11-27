@@ -2256,6 +2256,58 @@ async function startServer() {
     }
   });
 
+  // OAuth callback bridge (Supabase Google & Apple Sign-In — works in both iframe popups and full-page redirects)
+  app.get(['/auth/callback', '/auth/callback/'], (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Connexion — LUMARÉEL</title>
+  <style>
+    body { margin: 0; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 24px; }
+    .box { max-width: 340px; }
+    .title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .sub { font-size: 12px; color: #9a9a9a; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <div class="title">LUMARÉEL</div>
+    <div class="sub" id="status">Finalisation de la connexion en cours…</div>
+  </div>
+  <script>
+    (function () {
+      try {
+        var searchParams = new URLSearchParams(window.location.search || '');
+        var hashParams = new URLSearchParams((window.location.hash || '').replace(/^#/, ''));
+        var payload = {
+          type: 'LUMAREEL_SUPABASE_OAUTH_CALLBACK',
+          code: searchParams.get('code') || '',
+          accessToken: hashParams.get('access_token') || '',
+          refreshToken: hashParams.get('refresh_token') || '',
+          error: searchParams.get('error') || hashParams.get('error') || '',
+          errorDescription: searchParams.get('error_description') || hashParams.get('error_description') || ''
+        };
+        if (window.opener && !window.opener.closed) {
+          window.opener.postMessage(payload, window.location.origin);
+          setTimeout(function () { window.close(); }, 150);
+          return;
+        }
+        var target = '/' + (window.location.search || '') + (window.location.hash || '');
+        window.location.replace(target);
+      } catch (err) {
+        var el = document.getElementById('status');
+        if (el) el.textContent = 'Vous pouvez fermer cette fenêtre et revenir à LUMARÉEL.';
+      }
+    })();
+  </script>
+</body>
+</html>`);
+  });
+
   // Mount Vite or static build
   if (!isProduction) {
     const { createServer: createViteServer } = await import('vite');

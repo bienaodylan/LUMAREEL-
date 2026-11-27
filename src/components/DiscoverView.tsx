@@ -17,7 +17,7 @@ interface MonthGroup {
 }
 
 export const DiscoverView: React.FC = () => {
-  const { events, setSelectedEventSlug, setCurrentPage, setCheckoutEvent } = useApp();
+  const { events, setCheckoutEvent } = useApp();
 
   const [search, setSearch] = useState('');
   const [selectedCity, setSelectedCity] = useState('all');
@@ -61,8 +61,7 @@ export const DiscoverView: React.FC = () => {
   }, []);
 
   const handleSelectEvent = (event: ConcertEvent) => {
-    setSelectedEventSlug(event.slug);
-    setCurrentPage('concert_detail');
+    setCheckoutEvent(event);
   };
 
   const handleBookNow = (event: ConcertEvent, e: React.MouseEvent) => {
@@ -273,13 +272,13 @@ export const DiscoverView: React.FC = () => {
 
                       </div>
 
-                      {/* Right Action Button : Pill VIEW MORE matching screenshot */}
+                      {/* Right Action Button : Réserver */}
                       <div className="relative z-10 flex items-center justify-end sm:justify-center gap-3 shrink-0 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0">
                         <button
-                          onClick={() => handleSelectEvent(event)}
+                          onClick={(e) => handleBookNow(event, e)}
                           className="px-6 py-3 rounded-full bg-white/10 hover:bg-white text-white hover:text-black border border-white/20 font-agrandir-semibold text-xs tracking-widest uppercase flex items-center gap-2 backdrop-blur-md transition-all shadow-lg cursor-pointer"
                         >
-                          <span>VIEW MORE</span>
+                          <span>RÉSERVER</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                       </div>

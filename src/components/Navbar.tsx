@@ -24,6 +24,7 @@ export const Navbar: React.FC = () => {
       'flash_drops',
       'suggestions',
       'profile',
+      'booking',
       'gate_scanner',
       'admin',
     ].includes(currentPage)
@@ -34,7 +35,6 @@ export const Navbar: React.FC = () => {
   const isEn = language === 'en';
 
   const pageTitleMap: Partial<Record<PageView, string>> = {
-    concert_detail: 'Concert',
     backstage: 'BACKSTAGE',
     media_detail: 'BACKSTAGE',
     archive: 'Archives',

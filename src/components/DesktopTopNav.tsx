@@ -46,7 +46,7 @@ export const DesktopTopNav: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  if (['splash', 'gate_scanner', 'admin'].includes(currentPage)) {
+  if (['splash', 'gate_scanner', 'admin', 'booking'].includes(currentPage)) {
     return null;
   }
 
@@ -62,7 +62,7 @@ export const DesktopTopNav: React.FC = () => {
       id: 'home',
       page: 'home',
       label: isEn ? 'Home' : 'Accueil',
-      active: currentPage === 'home' || currentPage === 'discover' || currentPage === 'concert_detail',
+      active: currentPage === 'home' || currentPage === 'discover',
     },
     {
       id: 'tickets',
@@ -76,11 +76,11 @@ export const DesktopTopNav: React.FC = () => {
       label: isEn ? 'Explore' : 'Explorer',
       active: [
         'explore',
+        'discover_detail',
         'backstage',
         'media_detail',
         'memories',
         'archive',
-        'rewards',
         'privileged_access',
         'flash_drops',
         'suggestions',
@@ -91,7 +91,7 @@ export const DesktopTopNav: React.FC = () => {
       id: 'black_card',
       page: 'member_card',
       label: 'Black Card',
-      active: ['member_card', 'card', 'card_verify'].includes(currentPage),
+      active: ['member_card', 'card', 'card_verify', 'rewards'].includes(currentPage),
     },
     {
       id: 'account',

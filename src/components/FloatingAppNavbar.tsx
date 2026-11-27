@@ -11,7 +11,7 @@ import { motion } from 'framer-motion';
 export const FloatingAppNavbar: React.FC = () => {
   const { currentPage, setCurrentPage, language, hideBottomNav } = useApp();
 
-  if (hideBottomNav || ['splash', 'gate_scanner', 'admin', 'concert_detail'].includes(currentPage)) {
+  if (hideBottomNav || ['splash', 'gate_scanner', 'admin', 'booking'].includes(currentPage)) {
     return null;
   }
 
@@ -45,11 +45,11 @@ export const FloatingAppNavbar: React.FC = () => {
       icon: Compass,
       active: [
         'explore',
+        'discover_detail',
         'backstage',
         'media_detail',
         'memories',
         'archive',
-        'rewards',
         'privileged_access',
         'flash_drops',
         'suggestions',
@@ -61,7 +61,7 @@ export const FloatingAppNavbar: React.FC = () => {
       page: 'member_card',
       label: 'Black Card',
       icon: CreditCard,
-      active: ['member_card', 'card', 'card_verify'].includes(currentPage),
+      active: ['member_card', 'card', 'card_verify', 'rewards'].includes(currentPage),
     },
     {
       id: 'account',

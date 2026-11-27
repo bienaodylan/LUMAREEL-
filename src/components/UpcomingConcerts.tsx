@@ -5,11 +5,10 @@ import { ArrowRight, Ticket } from 'lucide-react';
 import { formatDateLong } from '../utils/dateUtils';
 
 export const UpcomingConcerts: React.FC = () => {
-  const { events, setSelectedEventSlug, setCurrentPage, setCheckoutEvent, language, t } = useApp();
+  const { events, setCheckoutEvent, language, t } = useApp();
 
   const handleSelectEvent = (event: ConcertEvent) => {
-    setSelectedEventSlug(event.slug);
-    setCurrentPage('concert_detail');
+    setCheckoutEvent(event);
   };
 
   const handleBookNow = (event: ConcertEvent, e: React.MouseEvent) => {
@@ -134,19 +133,12 @@ export const UpcomingConcerts: React.FC = () => {
                   {/* Actions with rounded-full buttons */}
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-4 border-t border-white/10">
                     <button
-                      onClick={() => handleSelectEvent(event)}
+                      onClick={(e) => handleBookNow(event, e)}
                       className="px-6 py-3.5 text-xs font-agrandir-semibold tracking-widest uppercase bg-white text-black hover:bg-[#EAEAEA] rounded-full transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-lg"
                     >
-                      <span>{t('upcoming.viewDetails')}</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      onClick={(e) => handleBookNow(event, e)}
-                      className="px-6 py-3.5 text-xs font-agrandir-semibold tracking-widest uppercase border border-white/20 text-[#CCC] hover:text-white hover:border-white rounded-full transition-colors flex items-center justify-center gap-2 cursor-pointer bg-white/5"
-                    >
-                      <Ticket className="w-3.5 h-3.5 text-white" />
+                      <Ticket className="w-3.5 h-3.5 text-black" />
                       <span>{t('upcoming.bookTickets')}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
 

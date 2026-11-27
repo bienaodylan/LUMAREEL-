@@ -44,7 +44,7 @@ export const DesktopSidebar: React.FC = () => {
       icon: Compass,
       active: [
         'explore',
-        'concert_detail',
+        'discover_detail',
         'backstage',
         'media_detail',
         'memories',

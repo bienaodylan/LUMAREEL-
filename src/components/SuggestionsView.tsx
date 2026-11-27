@@ -32,11 +32,11 @@ interface ArtistPollOption {
 }
 
 interface SuggestionStatusMeta {
-  key: 'new' | 'study' | 'retained' | 'preparation' | 'realized' | 'rejected';
+  key: 'received' | 'study' | 'preparation' | 'confirmed' | 'rejected';
   labelFr: string;
   labelEn: string;
   variant: LumareelStatusVariant;
-  stepIndex: number; // 0..4 (or -1 for rejected)
+  stepIndex: number; // 0..3 (or -1 for rejected)
   teamNoteFr: string;
   teamNoteEn: string;
 }
@@ -44,7 +44,7 @@ interface SuggestionStatusMeta {
 const STATUS_SEQUENCE: SuggestionStatusMeta[] = [
   {
     key: 'study',
-    labelFr: "EN COURS D'ÉTUDE",
+    labelFr: 'EN ÉTUDE',
     labelEn: 'UNDER REVIEW',
     variant: 'study',
     stepIndex: 1,
@@ -56,36 +56,27 @@ const STATUS_SEQUENCE: SuggestionStatusMeta[] = [
     labelFr: 'EN PRÉPARATION',
     labelEn: 'IN PREPARATION',
     variant: 'preparation',
-    stepIndex: 3,
-    teamNoteFr: 'Le concept est en cours de production avec nos équipes techniques à Abidjan.',
-    teamNoteEn: 'Currently in active production with our Abidjan teams.',
-  },
-  {
-    key: 'retained',
-    labelFr: 'RETENUE',
-    labelEn: 'SELECTED',
-    variant: 'retained',
     stepIndex: 2,
-    teamNoteFr: 'Idée retenue pour la prochaine saison LUMARÉEL. Merci à toute la communauté.',
-    teamNoteEn: 'Selected for the upcoming LUMARÉEL season. Thank you to the community.',
+    teamNoteFr: 'Le projet est en cours de préparation avec nos équipes de production.',
+    teamNoteEn: 'Currently in preparation with our production teams.',
   },
   {
-    key: 'new',
-    labelFr: 'NOUVELLE',
-    labelEn: 'NEW',
+    key: 'confirmed',
+    labelFr: 'CONFIRMÉE',
+    labelEn: 'CONFIRMED',
+    variant: 'valid',
+    stepIndex: 3,
+    teamNoteFr: 'Proposition confirmée pour la programmation LUMARÉEL. Merci à toute la communauté.',
+    teamNoteEn: 'Confirmed for the upcoming LUMARÉEL lineup. Thank you to the community.',
+  },
+  {
+    key: 'received',
+    labelFr: 'REÇUE',
+    labelEn: 'RECEIVED',
     variant: 'neutral',
     stepIndex: 0,
-    teamNoteFr: 'Votre proposition est bien enregistrée et ouverte aux soutiens de la communauté.',
-    teamNoteEn: 'Your suggestion is live and open for community votes.',
-  },
-  {
-    key: 'realized',
-    labelFr: 'RÉALISÉE',
-    labelEn: 'LIVE',
-    variant: 'valid',
-    stepIndex: 4,
-    teamNoteFr: 'Cette proposition a été concrétisée sur la plateforme LUMARÉEL.',
-    teamNoteEn: 'This idea has been brought to life on LUMARÉEL.',
+    teamNoteFr: 'Votre proposition est bien reçue et ouverte aux votes de la communauté.',
+    teamNoteEn: 'Your proposal has been received and is open for community votes.',
   },
   {
     key: 'rejected',
@@ -93,13 +84,13 @@ const STATUS_SEQUENCE: SuggestionStatusMeta[] = [
     labelEn: 'NOT SELECTED',
     variant: 'rejected',
     stepIndex: -1,
-    teamNoteFr: 'Non retenue pour cette saison en raison de contraintes de calendrier.',
-    teamNoteEn: 'Not selected for this season due to scheduling constraints.',
+    teamNoteFr: 'Non retenue pour cette saison en raison de contraintes de calendrier ou de production.',
+    teamNoteEn: 'Not selected for this season due to scheduling or production constraints.',
   },
 ];
 
-const PROGRESS_STEPS_FR = ['Nouvelle', 'Étude', 'Retenue', 'Préparation', 'Réalisée'];
-const PROGRESS_STEPS_EN = ['New', 'Review', 'Selected', 'Prep', 'Live'];
+const PROGRESS_STEPS_FR = ['Reçue', 'En étude', 'En préparation', 'Confirmée'];
+const PROGRESS_STEPS_EN = ['Received', 'Under review', 'In prep', 'Confirmed'];
 
 const POLL_STORAGE_KEY = 'lumareel_artist_poll_v1';
 
@@ -132,8 +123,8 @@ export const SuggestionsView: React.FC = () => {
   const [suggestions, setSuggestions] = useState<CommunitySuggestion[]>(() => loadSuggestions());
   const [artistPoll, setArtistPoll] = useState<ArtistPollOption[]>(() => loadArtistPoll());
 
-  // Formulaire de proposition + confirmation dédiée + image optionnelle
-  const [formType, setFormType] = useState<'artist_venue' | 'general_event'>('artist_venue');
+  // Formulaire de proposition (Artiste, Concert, Ville, Concept) + confirmation dédiée + image optionnelle
+  const [proposalKind, setProposalKind] = useState<'artist' | 'concert' | 'city' | 'concept'>('artist');
   const [artistName, setArtistName] = useState('');
   const [title, setTitle] = useState('');
   const [cityOrVenue, setCityOrVenue] = useState('');
@@ -207,39 +198,58 @@ export const SuggestionsView: React.FC = () => {
     e.preventDefault();
     const cleanCity = cityOrVenue.trim();
     const cleanDesc = description.trim();
+    const cleanArtist = artistName.trim();
+    const cleanTitle = title.trim();
 
-    if (formType === 'artist_venue') {
-      if (!artistName.trim() || !cleanCity) {
+    if (proposalKind === 'artist' || proposalKind === 'concert') {
+      if (!cleanArtist || !cleanCity) {
         showToast(
           isEn
             ? 'Please enter both the artist name and the city or venue.'
-            : "Indiquez le nom de l'artiste et le lieu souhaité.",
+            : "Indiquez le nom de l'artiste et la ville ou salle souhaitée.",
           'error'
         );
         return;
       }
-    } else if (!title.trim()) {
+    } else if (proposalKind === 'city') {
+      if (!cleanCity) {
+        showToast(
+          isEn ? 'Please enter the city you want to suggest.' : 'Indiquez la ville que vous souhaitez proposer.',
+          'error'
+        );
+        return;
+      }
+    } else if (!cleanTitle) {
       showToast(
-        isEn ? 'Please enter your event idea title.' : "Indiquez un titre pour votre idée.",
+        isEn ? 'Please enter your concept title.' : 'Indiquez un titre pour votre idée.',
         'error'
       );
       return;
     }
 
+    const mappedStorageType: 'artist_venue' | 'general_event' =
+      proposalKind === 'artist' || proposalKind === 'concert' ? 'artist_venue' : 'general_event';
+
+    const generatedTitle =
+      proposalKind === 'artist'
+        ? `${cleanArtist} à ${cleanCity}`
+        : proposalKind === 'concert'
+        ? `Concert ${cleanArtist} — ${cleanCity}`
+        : proposalKind === 'city'
+        ? cleanTitle || `Date LUMARÉEL à ${cleanCity}`
+        : cleanTitle;
+
     const newItem: CommunitySuggestion = {
       id: `sug_${Date.now()}`,
-      type: formType,
-      artistName: formType === 'artist_venue' ? artistName.trim() : undefined,
-      title:
-        formType === 'artist_venue'
-          ? `Faire venir ${artistName.trim()} à ${cleanCity}`
-          : title.trim(),
+      type: mappedStorageType,
+      artistName: mappedStorageType === 'artist_venue' ? cleanArtist : undefined,
+      title: generatedTitle,
       cityOrVenue: cleanCity || 'Abidjan',
       description:
         cleanDesc ||
-        (formType === 'artist_venue'
-          ? `Suggestion communauté pour ${artistName.trim()} à ${cleanCity}.`
-          : title.trim()),
+        (mappedStorageType === 'artist_venue'
+          ? `Suggestion communauté pour ${cleanArtist} à ${cleanCity}.`
+          : generatedTitle),
       authorName: currentUser?.name || (isEn ? 'Member' : 'Membre LUMARÉEL'),
       votes: 1,
       votedByKeys: [voterKey],
@@ -301,21 +311,21 @@ export const SuggestionsView: React.FC = () => {
       className="min-h-screen w-full max-w-[1280px] mx-auto px-4 sm:px-8 md:px-10 pb-24 bg-black text-white font-agrandir-regular"
       style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
     >
-      {/* Lien retour < Mes points */}
+      {/* Lien retour < Discover */}
       <button
         type="button"
-        onClick={() => setCurrentPage('rewards')}
+        onClick={() => setCurrentPage('explore')}
         className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-[#9A9A9A] hover:text-white transition-colors cursor-pointer mb-4"
       >
         <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
-        <span>{isEn ? 'My points' : 'Mes points'}</span>
+        <span>Discover</span>
       </button>
 
       {/* En-tête éditorial */}
       <header className="mb-6 flex items-end justify-between gap-4">
         <div className="space-y-2">
           <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-            {isEn ? 'SUGGESTION BOX' : 'BOÎTE À SUGGESTIONS'}
+            {isEn ? 'COMMUNITY · SUGGESTIONS' : 'COMMUNAUTÉ · SUGGESTIONS'}
           </p>
           <h1 className="font-agrandir-extrabold text-[2.2rem] sm:text-5xl text-white leading-[0.98] tracking-tight max-w-xl">
             {isEn ? (
@@ -549,35 +559,45 @@ export const SuggestionsView: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-1.5 p-1 rounded-full bg-black border border-white/[0.12]">
-                <button
-                  type="button"
-                  onClick={() => setFormType('artist_venue')}
-                  className={`min-h-[40px] px-3 rounded-full text-xs font-agrandir-extrabold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
-                    formType === 'artist_venue'
-                      ? 'bg-[#D4AF6A] text-black'
-                      : 'text-[#9A9A9A] hover:text-white'
-                  }`}
-                >
-                  <Mic2 className="w-3.5 h-3.5" strokeWidth={1.6} />
-                  <span>{isEn ? 'Artist & Venue' : 'Artiste & Lieu'}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormType('general_event')}
-                  className={`min-h-[40px] px-3 rounded-full text-xs font-agrandir-extrabold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
-                    formType === 'general_event'
-                      ? 'bg-[#D4AF6A] text-black'
-                      : 'text-[#9A9A9A] hover:text-white'
-                  }`}
-                >
-                  <Lightbulb className="w-3.5 h-3.5" strokeWidth={1.6} />
-                  <span>{isEn ? 'Event Idea' : 'Concept de soirée'}</span>
-                </button>
+              <div className="space-y-2">
+                <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.16em] text-[#9A9A9A]">
+                  {isEn ? 'Proposal type' : 'Type de proposition'}
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-[16px] bg-black border border-white/[0.12]">
+                  {(
+                    [
+                      { id: 'artist', label: isEn ? 'Artist' : 'Artiste', icon: 'mic' },
+                      { id: 'concert', label: 'Concert', icon: 'mic' },
+                      { id: 'city', label: isEn ? 'City' : 'Ville', icon: 'bulb' },
+                      { id: 'concept', label: isEn ? 'Concept' : 'Concept', icon: 'bulb' },
+                    ] as const
+                  ).map((item) => {
+                    const active = proposalKind === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setProposalKind(item.id)}
+                        className={`min-h-[38px] px-3 rounded-full text-xs font-agrandir-extrabold transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
+                          active
+                            ? 'bg-[#D4AF6A] text-black'
+                            : 'text-[#9A9A9A] hover:text-white'
+                        }`}
+                      >
+                        {item.icon === 'mic' ? (
+                          <Mic2 className="w-3.5 h-3.5" strokeWidth={1.6} />
+                        ) : (
+                          <Lightbulb className="w-3.5 h-3.5" strokeWidth={1.6} />
+                        )}
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {formType === 'artist_venue' ? (
+                {proposalKind === 'artist' || proposalKind === 'concert' ? (
                   <>
                     <div>
                       <label className="block text-xs text-[#9A9A9A] mb-1.5">
@@ -604,11 +624,38 @@ export const SuggestionsView: React.FC = () => {
                       />
                     </div>
                   </>
+                ) : proposalKind === 'city' ? (
+                  <>
+                    <div>
+                      <label className="block text-xs text-[#9A9A9A] mb-1.5">
+                        {isEn ? 'Suggested city' : 'Ville souhaitée'} *
+                      </label>
+                      <input
+                        type="text"
+                        value={cityOrVenue}
+                        onChange={(e) => setCityOrVenue(e.target.value)}
+                        placeholder="Ex : Dakar, Lomé, Cotonou, Paris..."
+                        className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#9A9A9A] mb-1.5">
+                        {isEn ? 'Format or artist wished (optional)' : 'Format ou artiste souhaité (optionnel)'}
+                      </label>
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Ex : Soirée LUMARÉEL Live Session"
+                        className="w-full min-h-[46px] px-4 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
+                      />
+                    </div>
+                  </>
                 ) : (
                   <>
                     <div>
                       <label className="block text-xs text-[#9A9A9A] mb-1.5">
-                        {isEn ? 'Event idea title' : 'Titre de votre idée'} *
+                        {isEn ? 'Concept or idea title' : 'Titre de votre concept'} *
                       </label>
                       <input
                         type="text"
@@ -620,7 +667,7 @@ export const SuggestionsView: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-xs text-[#9A9A9A] mb-1.5">
-                        {isEn ? 'Location (optional)' : 'Lieu suggéré (optionnel)'}
+                        {isEn ? 'City or venue (optional)' : 'Ville ou lieu suggéré (optionnel)'}
                       </label>
                       <input
                         type="text"
@@ -696,6 +743,11 @@ export const SuggestionsView: React.FC = () => {
                   <Send className="w-4 h-4" strokeWidth={1.6} />
                   <span>{isEn ? 'Submit my idea' : 'Envoyer ma suggestion'}</span>
                 </button>
+                <p className="text-[11px] text-[#9A9A9A] text-center leading-relaxed">
+                  {isEn
+                    ? 'Submitting a proposal does not guarantee scheduling — every idea is reviewed by LUMARÉEL.'
+                    : "Proposer une idée ne garantit pas sa réalisation — chaque suggestion est étudiée par LUMARÉEL."}
+                </p>
               </form>
             </>
           )}
@@ -758,10 +810,10 @@ export const SuggestionsView: React.FC = () => {
                       </button>
                     </div>
 
-                    {/* Barre de progression 5 étapes (Nouvelle → Étude → Retenue → Préparation → Réalisée) */}
+                    {/* Barre de progression 4 étapes (Reçue → En étude → En préparation → Confirmée) */}
                     {status.stepIndex >= 0 && (
                       <div className="space-y-2 pt-1">
-                        <div className="grid grid-cols-5 gap-1.5">
+                        <div className="grid grid-cols-4 gap-1.5">
                           {progressSteps.map((stepLabel, sIdx) => {
                             const reached = sIdx <= status.stepIndex;
                             return (

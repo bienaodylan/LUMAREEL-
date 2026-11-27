@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 export const OrganizersView: React.FC = () => {
-  const { events, refreshEvents, showToast, setCurrentPage, setSelectedEventSlug, language, t } = useApp();
+  const { events, refreshEvents, showToast, setCurrentPage, setCheckoutEvent, language, t } = useApp();
   const isEn = language === 'en';
   const locale = isEn ? 'en-US' : 'fr-FR';
 
@@ -618,13 +618,10 @@ export const OrganizersView: React.FC = () => {
 
                   <div className="md:col-span-2 flex items-center justify-end gap-2">
                     <button
-                      onClick={() => {
-                        setSelectedEventSlug(evt.slug);
-                        setCurrentPage('concert_detail');
-                      }}
+                      onClick={() => setCheckoutEvent(evt)}
                       className="px-3 py-1.5 border border-[#333] hover:border-white text-[10px] font-agrandir-semibold uppercase tracking-wider text-white transition-colors"
                     >
-                      {isEn ? 'Preview' : 'Aperçu Fiche'}
+                      {isEn ? 'Book' : 'Réserver'}
                     </button>
                   </div>
                 </div>

@@ -2,18 +2,18 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ConcertEvent } from '../types';
 import { formatDateLong } from '../utils/dateUtils';
+import { buildConcertMemoryAlbums } from '../utils/communityStorage';
 import {
-  COMMUNITY_MEDIA,
-  buildConcertMemoryAlbums,
-} from '../utils/communityStorage';
+  articleToDiscoverDetail,
+  buildLumareelExperiences,
+  experienceToDiscoverDetail,
+} from '../utils/discoverCatalog';
 import {
-  CountdownTimer,
   HeroMedia,
   PosterCard,
   ScrollReveal,
   SkeletonBlock,
 } from './ui/LumareelKit';
-import { Icons } from './ui/Icons';
 import { Bell, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 function getMinPrice(ev: ConcertEvent): number | null {
@@ -23,20 +23,60 @@ function getMinPrice(ev: ConcertEvent): number | null {
   return prices.length > 0 ? Math.min(...prices) : null;
 }
 
+function getTicketingStatus(ev: ConcertEvent, isEn: boolean): {
+  label: string;
+  soldOut: boolean;
+  limited: boolean;
+} {
+  const categories = ev.categories || [];
+  if (categories.length === 0) {
+    return {
+      label: isEn ? 'Ticketing open' : 'Billetterie ouverte',
+      soldOut: false,
+      limited: false,
+    };
+  }
+  const totalQuota = categories.reduce((sum, c) => sum + Number(c.quota || 0), 0);
+  const totalSold = categories.reduce((sum, c) => sum + Number(c.sold || 0), 0);
+  const remaining = Math.max(0, totalQuota - totalSold);
+
+  if (totalQuota > 0 && remaining === 0) {
+    return {
+      label: isEn ? 'Sold out' : 'Complet',
+      soldOut: true,
+      limited: false,
+    };
+  }
+  if (totalQuota > 0 && remaining / totalQuota <= 0.15) {
+    return {
+      label: isEn ? 'Limited seats' : 'Dernières places',
+      soldOut: false,
+      limited: true,
+    };
+  }
+  return {
+    label: isEn ? 'Ticketing open' : 'Billetterie ouverte',
+    soldOut: false,
+    limited: false,
+  };
+}
+
 /**
  * 01 — Accueil LUMARÉEL
- * - En-tête dédiée avec logo officiel LUMARÉEL : masquée au scroll bas, réapparaît au scroll haut.
- * - Première section : bannière plein cadre (edge-to-edge) sans marge latérale ni arrondi.
- * - Concerts à venir : carrousel horizontal unique regroupant tous les concerts (scroll droite -> gauche).
- * - À ne pas manquer : Flash Drop + Souvenirs (aucun bloc Backstage ni bouton Découvrir).
+ * Page strictement événementielle et billetterie :
+ * - En-tête logo dédiée (masquée au scroll bas, réapparaît au scroll haut)
+ * - A. Événement principal (bannière plein cadre, infos clés, statut billetterie, réservation)
+ * - B. Programmation (carrousel horizontal de tous les concerts à venir)
+ * Aucun bloc autonome Communauté, Avantages, Memories, Backstage ou Black Card.
  */
 export const HomeFeed: React.FC = () => {
   const {
     events,
+    news,
     archives,
     isLoadingEvents,
-    setSelectedEventSlug,
     setSelectedMemoryAlbumId,
+    setSelectedDiscoverItem,
     setCurrentPage,
     setCheckoutEvent,
     language,
@@ -45,7 +85,6 @@ export const HomeFeed: React.FC = () => {
   const isEn = language === 'en';
   const [showAlerts, setShowAlerts] = useState(false);
 
-  // En-tête mobile avec logo : se cache en scrollant vers le bas, réapparaît en remontant
   const [headerVisible, setHeaderVisible] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
   const lastScrollYRef = useRef(0);
@@ -82,17 +121,6 @@ export const HomeFeed: React.FC = () => {
     [events]
   );
 
-  const publishedArchives = useMemo(
-    () => (archives || []).filter((a) => a.isPublished !== false),
-    [archives]
-  );
-
-  const memoryAlbums = useMemo(
-    () => buildConcertMemoryAlbums(publishedArchives),
-    [publishedArchives]
-  );
-  const featuredMemory = memoryAlbums[0] || null;
-
   const heroSlides = useMemo(() => {
     const featured = publishedEvents.filter((e) => e.isFeatured);
     return (featured.length > 0 ? featured : publishedEvents).slice(0, 3);
@@ -100,6 +128,10 @@ export const HomeFeed: React.FC = () => {
 
   const [slideIdx, setSlideIdx] = useState(0);
   const activeHero = heroSlides[slideIdx] || publishedEvents[0] || null;
+  const heroStatus = useMemo(
+    () => (activeHero ? getTicketingStatus(activeHero, isEn) : null),
+    [activeHero, isEn]
+  );
 
   useEffect(() => {
     if (heroSlides.length <= 1) return;
@@ -109,15 +141,81 @@ export const HomeFeed: React.FC = () => {
     return () => window.clearInterval(id);
   }, [heroSlides.length]);
 
-  const openConcert = (ev: ConcertEvent) => {
-    setSelectedEventSlug(ev.slug);
-    setCurrentPage('concert_detail');
+  const bookConcert = (ev: ConcertEvent) => {
+    setCheckoutEvent(ev);
   };
 
-  const openSouvenirs = () => {
-    setSelectedMemoryAlbumId(featuredMemory?.id || null);
-    setCurrentPage('memories');
-  };
+  // Petite sélection réelle (2 à 3 éléments max) pour la section discrète « À découvrir »
+  const homeDiscoverItems = useMemo(() => {
+    const items: Array<{
+      id: string;
+      tag: string;
+      title: string;
+      subtitle: string;
+      image: string;
+      onOpen: () => void;
+    }> = [];
+
+    const publishedArchives = (archives || []).filter((a) => a.isPublished !== false);
+    const albums = buildConcertMemoryAlbums(publishedArchives);
+    const latestAlbum = albums[0];
+    if (latestAlbum) {
+      items.push({
+        id: `hd_mem_${latestAlbum.id}`,
+        tag: 'Memories',
+        title: latestAlbum.artist || latestAlbum.title,
+        subtitle: latestAlbum.date || (isEn ? 'Photos & aftermovie' : 'Photos & aftermovie'),
+        image: latestAlbum.coverImage,
+        onOpen: () => {
+          setSelectedMemoryAlbumId(latestAlbum.id);
+          setCurrentPage('memories');
+        },
+      });
+    }
+
+    const availableExp = buildLumareelExperiences(publishedEvents, language).find(
+      (e) => e.status === 'available' || e.status === 'members_only'
+    );
+    if (availableExp) {
+      items.push({
+        id: `hd_exp_${availableExp.id}`,
+        tag: isEn ? 'Experience' : 'Expérience',
+        title: isEn ? availableExp.titleEn : availableExp.titleFr,
+        subtitle: availableExp.dateLabel || (isEn ? 'Limited access' : 'Accès limité'),
+        image: availableExp.image,
+        onOpen: () => {
+          setSelectedDiscoverItem(experienceToDiscoverDetail(availableExp, isEn));
+          setCurrentPage('discover_detail');
+        },
+      });
+    }
+
+    const latestArticle = (news || [])[0];
+    if (latestArticle) {
+      items.push({
+        id: `hd_news_${latestArticle.id}`,
+        tag: latestArticle.category || (isEn ? 'Editorial' : 'Actualité'),
+        title: latestArticle.title,
+        subtitle: latestArticle.summary,
+        image: latestArticle.imageUrl,
+        onOpen: () => {
+          setSelectedDiscoverItem(articleToDiscoverDetail(latestArticle, publishedEvents, isEn));
+          setCurrentPage('discover_detail');
+        },
+      });
+    }
+
+    return items.slice(0, 3);
+  }, [
+    archives,
+    publishedEvents,
+    news,
+    language,
+    isEn,
+    setSelectedMemoryAlbumId,
+    setSelectedDiscoverItem,
+    setCurrentPage,
+  ]);
 
   const scrollConcertsCarousel = (direction: 'left' | 'right') => {
     const el = concertsCarouselRef.current;
@@ -128,6 +226,59 @@ export const HomeFeed: React.FC = () => {
       behavior: 'smooth',
     });
   };
+
+  const renderAlertsPanel = () => (
+    <div className="ml-auto max-w-sm rounded-[20px] bg-[#0E0E0E]/96 backdrop-blur-xl border border-white/[0.12] p-4 shadow-2xl space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
+          {isEn ? 'Event updates' : 'Actualité concerts'}
+        </span>
+        <button
+          type="button"
+          onClick={() => setShowAlerts(false)}
+          aria-label={isEn ? 'Close' : 'Fermer'}
+          className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-[#9A9A9A] hover:text-white cursor-pointer"
+        >
+          <X className="w-4 h-4" strokeWidth={1.6} />
+        </button>
+      </div>
+      <div className="divide-y divide-white/[0.12] text-xs">
+        {activeHero && (
+          <button
+            type="button"
+            onClick={() => {
+              setShowAlerts(false);
+              bookConcert(activeHero);
+            }}
+            className="w-full py-2.5 text-left hover:text-[#D4AF6A] transition-colors cursor-pointer"
+          >
+            <p className="font-agrandir-extrabold text-white">
+              {activeHero.artist || activeHero.title}
+            </p>
+            <p className="text-[#9A9A9A] mt-0.5">
+              {formatDateLong(activeHero.date, language)}
+              {activeHero.venue ? ` · ${activeHero.venue}` : ''}
+            </p>
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            setShowAlerts(false);
+            setCurrentPage('client_space');
+          }}
+          className="w-full py-2.5 text-left hover:text-[#D4AF6A] transition-colors cursor-pointer"
+        >
+          <p className="font-agrandir-extrabold text-white">
+            {isEn ? 'My tickets' : 'Mes billets'}
+          </p>
+          <p className="text-[#9A9A9A] mt-0.5">
+            {isEn ? 'Access your QR passes and bookings.' : 'Accédez à vos QR codes et réservations.'}
+          </p>
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen w-full bg-black text-white font-agrandir-regular">
@@ -174,74 +325,19 @@ export const HomeFeed: React.FC = () => {
           </button>
         </div>
 
-        {/* Panneau d'alertes mobile */}
-        {showAlerts && (
-          <div className="w-full px-5 pb-3">
-            <div className="ml-auto max-w-sm rounded-[20px] bg-[#0E0E0E]/96 backdrop-blur-xl border border-white/[0.12] p-4 shadow-2xl space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-                  {isEn ? 'Alerts & Releases' : 'Alertes & Sorties'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowAlerts(false)}
-                  aria-label={isEn ? 'Close' : 'Fermer'}
-                  className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-[#9A9A9A] hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" strokeWidth={1.6} />
-                </button>
-              </div>
-              <div className="divide-y divide-white/[0.12] text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAlerts(false);
-                    setCurrentPage('flash_drops');
-                  }}
-                  className="w-full py-2.5 text-left hover:text-[#D4AF6A] transition-colors cursor-pointer"
-                >
-                  <p className="font-agrandir-extrabold text-white">
-                    {isEn ? 'Members presale live' : 'Prévente membres en cours'}
-                  </p>
-                  <p className="text-[#9A9A9A] mt-0.5">
-                    {activeHero
-                      ? `${activeHero.artist} — Carré Or & VIP`
-                      : 'Flash Drop LUMARÉEL'}
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAlerts(false);
-                    openSouvenirs();
-                  }}
-                  className="w-full py-2.5 text-left hover:text-[#D4AF6A] transition-colors cursor-pointer"
-                >
-                  <p className="font-agrandir-extrabold text-white">
-                    {isEn ? 'Concert memories available' : 'Souvenirs de concerts en ligne'}
-                  </p>
-                  <p className="text-[#9A9A9A] mt-0.5">
-                    {isEn
-                      ? 'Official photos & aftermovies ready.'
-                      : 'Photos officielles et aftermovies disponibles.'}
-                  </p>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {showAlerts && <div className="w-full px-5 pb-3">{renderAlertsPanel()}</div>}
       </header>
 
       {/* =====================================================================
-          1. HERO — BANNIÈRE PLEIN CADRE SANS MARGE LATÉRALE NI ARRONDIS
+          A. ÉVÉNEMENT PRINCIPAL — BANNIÈRE PLEIN CADRE SANS MARGE NI ARRONDIS
          ===================================================================== */}
       <HeroMedia
         imageUrl={activeHero?.bannerImage || activeHero?.officialPoster}
         alt={activeHero?.artist || activeHero?.title || 'LUMARÉEL'}
-        heightClass="min-h-[560px] sm:min-h-[600px] lg:min-h-[650px]"
+        heightClass="min-h-[520px] sm:min-h-[560px] lg:min-h-[600px]"
         className="w-full rounded-none"
       >
-        {/* Cloche d'alertes desktop (le logo est dans DesktopTopNav au-dessus) */}
+        {/* Cloche desktop */}
         <div className="relative z-20 w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pt-20 md:pt-6 flex items-center justify-end">
           <button
             type="button"
@@ -253,277 +349,251 @@ export const HomeFeed: React.FC = () => {
           </button>
         </div>
 
-        {/* Panneau d'alertes desktop */}
         {showAlerts && (
           <div className="hidden md:block relative z-30 w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 mt-2">
-            <div className="ml-auto max-w-sm rounded-[20px] bg-[#0E0E0E]/96 backdrop-blur-xl border border-white/[0.12] p-4 shadow-2xl space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-                  {isEn ? 'Alerts & Releases' : 'Alertes & Sorties'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowAlerts(false)}
-                  aria-label={isEn ? 'Close' : 'Fermer'}
-                  className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-[#9A9A9A] hover:text-white cursor-pointer"
-                >
-                  <X className="w-4 h-4" strokeWidth={1.6} />
-                </button>
-              </div>
-              <div className="divide-y divide-white/[0.12] text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAlerts(false);
-                    setCurrentPage('flash_drops');
-                  }}
-                  className="w-full py-2.5 text-left hover:text-[#D4AF6A] transition-colors cursor-pointer"
-                >
-                  <p className="font-agrandir-extrabold text-white">
-                    {isEn ? 'Members presale live' : 'Prévente membres en cours'}
-                  </p>
-                  <p className="text-[#9A9A9A] mt-0.5">
-                    {activeHero
-                      ? `${activeHero.artist} — Carré Or & VIP`
-                      : 'Flash Drop LUMARÉEL'}
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAlerts(false);
-                    openSouvenirs();
-                  }}
-                  className="w-full py-2.5 text-left hover:text-[#D4AF6A] transition-colors cursor-pointer"
-                >
-                  <p className="font-agrandir-extrabold text-white">
-                    {isEn ? 'Concert memories available' : 'Souvenirs de concerts en ligne'}
-                  </p>
-                  <p className="text-[#9A9A9A] mt-0.5">
-                    {isEn
-                      ? 'Official photos & aftermovies ready.'
-                      : 'Photos officielles et aftermovies disponibles.'}
-                  </p>
-                </button>
-              </div>
-            </div>
+            {renderAlertsPanel()}
           </div>
         )}
 
-        {/* Contenu principal Hero — Bas gauche */}
-        <div className="relative z-10 w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pt-20 pb-8 sm:pb-12">
+        {/* Hiérarchie textuelle principale — Bas gauche */}
+        <div className="relative z-10 w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pt-16 pb-8 sm:pb-11">
           {isLoadingEvents && !activeHero ? (
             <div className="max-w-xl space-y-3">
               <SkeletonBlock className="h-4 w-28" />
               <SkeletonBlock className="h-14 w-80" />
               <SkeletonBlock className="h-5 w-64" />
             </div>
-          ) : (
-            activeHero && (
-              <div className="max-w-2xl space-y-3.5">
-                <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.26em] text-[#D4AF6A]">
-                  {isEn ? 'FEATURED' : 'À L’AFFICHE'}
-                </p>
-
-                <h1 className="font-agrandir-extrabold text-[2.45rem] sm:text-6xl lg:text-7xl uppercase tracking-tight text-white leading-[0.96]">
-                  {activeHero.artist || activeHero.title}
-                </h1>
-
-                <p className="text-xs sm:text-sm text-[#C8C8C8]">
-                  Concert · {activeHero.venue}, {activeHero.city || 'Abidjan'} —{' '}
-                  {formatDateLong(activeHero.date, language)}
-                </p>
-
-                <div className="pt-2 flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setCheckoutEvent(activeHero)}
-                    className="min-h-[46px] px-7 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs sm:text-sm transition-colors cursor-pointer lum-press"
+          ) : activeHero ? (
+            <div className="max-w-2xl space-y-3">
+              <div className="flex flex-wrap items-center gap-2.5">
+                <span className="text-[11px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#D4AF6A]">
+                  {isEn ? 'NEXT EVENT' : 'PROCHAIN ÉVÉNEMENT'}
+                </span>
+                {heroStatus && (
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em] ${
+                      heroStatus.soldOut
+                        ? 'bg-white/15 text-[#C8C8C8]'
+                        : heroStatus.limited
+                        ? 'bg-[#D4AF6A]/20 text-[#D4AF6A] border border-[#D4AF6A]/40'
+                        : 'bg-[#0F2A1A]/90 text-[#7FE0A6]'
+                    }`}
                   >
-                    {isEn ? 'Book now' : 'Réserver'}
-                  </button>
-                </div>
-
-                {/* Indicateurs de slides */}
-                {heroSlides.length > 1 && (
-                  <div className="pt-3 flex items-center gap-2">
-                    {heroSlides.map((slide, idx) => (
-                      <button
-                        key={slide.id}
-                        type="button"
-                        onClick={() => setSlideIdx(idx)}
-                        aria-label={slide.artist || slide.title}
-                        className={`h-1 rounded-full transition-all cursor-pointer ${
-                          idx === slideIdx
-                            ? 'w-7 bg-white'
-                            : 'w-4 bg-white/25 hover:bg-white/55'
-                        }`}
-                      />
-                    ))}
-                  </div>
+                    {heroStatus.label}
+                  </span>
                 )}
               </div>
-            )
+
+              <h1 className="font-agrandir-extrabold text-[2.4rem] sm:text-6xl lg:text-7xl uppercase tracking-tight text-white leading-[0.96]">
+                {activeHero.artist || activeHero.title}
+              </h1>
+
+              {activeHero.title &&
+                activeHero.artist &&
+                activeHero.title.toLowerCase() !== activeHero.artist.toLowerCase() && (
+                  <p className="text-sm sm:text-base font-agrandir-semibold text-white/90">
+                    {activeHero.title}
+                  </p>
+                )}
+
+              <p className="text-xs sm:text-sm text-[#C8C8C8]">
+                {formatDateLong(activeHero.date, language)}
+                {activeHero.venue
+                  ? ` · ${activeHero.venue}${activeHero.city ? `, ${activeHero.city}` : ''}`
+                  : ''}
+              </p>
+
+              <div className="pt-2 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  disabled={Boolean(heroStatus?.soldOut)}
+                  onClick={() => bookConcert(activeHero)}
+                  className="min-h-[46px] px-7 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] disabled:bg-white/15 disabled:text-[#9A9A9A] text-black font-agrandir-extrabold text-xs sm:text-sm transition-colors cursor-pointer disabled:cursor-not-allowed lum-press"
+                >
+                  {heroStatus?.soldOut
+                    ? isEn
+                      ? 'Sold out'
+                      : 'Complet'
+                    : isEn
+                    ? 'Book tickets'
+                    : 'Réserver'}
+                </button>
+              </div>
+
+              {/* Indicateurs de slides */}
+              {heroSlides.length > 1 && (
+                <div className="pt-3 flex items-center gap-2">
+                  {heroSlides.map((slide, idx) => (
+                    <button
+                      key={slide.id}
+                      type="button"
+                      onClick={() => setSlideIdx(idx)}
+                      aria-label={slide.artist || slide.title}
+                      className={`h-1 rounded-full transition-all cursor-pointer ${
+                        idx === slideIdx
+                          ? 'w-7 bg-white'
+                          : 'w-4 bg-white/25 hover:bg-white/55'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="max-w-lg space-y-2">
+              <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#D4AF6A]">
+                LUMARÉEL
+              </p>
+              <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl text-white leading-tight">
+                {isEn ? 'Next lineup coming soon.' : 'La prochaine programmation arrive bientôt.'}
+              </h1>
+            </div>
           )}
         </div>
       </HeroMedia>
 
-      <div className="w-full max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-10 space-y-12 pt-10 pb-12">
-        {/* ===================================================================
-            2. CONCERTS À VENIR — CARROUSEL HORIZONTAL UNIQUEMENT (TOUS LES CONCERTS)
-           =================================================================== */}
-        {publishedEvents.length > 0 && (
+      {/* =====================================================================
+          B. PROGRAMMATION — CARROUSEL HORIZONTAL DES CONCERTS À VENIR
+         ===================================================================== */}
+      <div className="w-full max-w-[1280px] mx-auto px-4 sm:px-8 lg:px-10 pt-9 pb-14">
+        {publishedEvents.length > 0 ? (
           <ScrollReveal>
             <section className="space-y-4">
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight">
-                  {isEn ? 'Upcoming concerts' : 'Concerts à venir'}
-                </h2>
-
-                <div className="flex items-center gap-2.5">
-                  {publishedEvents.length > 1 && (
-                    <div className="hidden sm:flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => scrollConcertsCarousel('left')}
-                        aria-label={isEn ? 'Scroll left' : 'Défiler vers la gauche'}
-                        className="w-9 h-9 rounded-full bg-[#0E0E0E] hover:bg-white/10 border border-white/[0.14] flex items-center justify-center text-white transition-colors cursor-pointer lum-press"
-                      >
-                        <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => scrollConcertsCarousel('right')}
-                        aria-label={isEn ? 'Scroll right' : 'Défiler vers la droite'}
-                        className="w-9 h-9 rounded-full bg-[#0E0E0E] hover:bg-white/10 border border-white/[0.14] flex items-center justify-center text-white transition-colors cursor-pointer lum-press"
-                      >
-                        <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
-                      </button>
-                    </div>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage('explore')}
-                    className="text-xs sm:text-sm font-agrandir-semibold text-[#9A9A9A] hover:text-white transition-colors cursor-pointer whitespace-nowrap"
-                  >
-                    {isEn ? 'See all' : 'Tout voir'}
-                  </button>
+              <div className="flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#9A9A9A]">
+                    {isEn ? 'LINEUP' : 'PROGRAMMATION'}
+                  </p>
+                  <h2 className="mt-1 font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight">
+                    {isEn ? 'Upcoming concerts' : 'Concerts à venir'}
+                  </h2>
                 </div>
+
+                {publishedEvents.length > 1 && (
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => scrollConcertsCarousel('left')}
+                      aria-label={isEn ? 'Scroll left' : 'Défiler vers la gauche'}
+                      className="w-9 h-9 rounded-full bg-[#0E0E0E] hover:bg-white/10 border border-white/[0.14] flex items-center justify-center text-white transition-colors cursor-pointer lum-press"
+                    >
+                      <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => scrollConcertsCarousel('right')}
+                      aria-label={isEn ? 'Scroll right' : 'Défiler vers la droite'}
+                      className="w-9 h-9 rounded-full bg-[#0E0E0E] hover:bg-white/10 border border-white/[0.14] flex items-center justify-center text-white transition-colors cursor-pointer lum-press"
+                    >
+                      <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
+                    </button>
+                  </div>
+                )}
               </div>
 
-              {/* Carrousel horizontal scrollable droite -> gauche avec tous les concerts */}
               <div
                 ref={concertsCarouselRef}
                 className="flex flex-nowrap overflow-x-auto snap-x snap-mandatory gap-4 pb-2 scrollbar-hide -mx-4 px-4 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0"
               >
                 {publishedEvents.map((ev) => {
                   const minPrice = getMinPrice(ev);
+                  const status = getTicketingStatus(ev, isEn);
                   return (
                     <PosterCard
                       key={ev.id}
                       imageUrl={ev.officialPoster || ev.bannerImage}
                       title={ev.artist || ev.title}
-                      subtitle={`${formatDateLong(ev.date, language)} · ${ev.venue || ev.genre || 'Concert'}`}
+                      subtitle={`${formatDateLong(ev.date, language)}${ev.venue ? ` · ${ev.venue}` : ''}`}
+                      badgeText={status.soldOut || status.limited ? status.label : undefined}
                       priceText={
-                        minPrice
+                        status.soldOut
+                          ? isEn
+                            ? 'Sold out'
+                            : 'Complet'
+                          : minPrice
                           ? `${isEn ? 'from' : 'dès'} ${minPrice.toLocaleString('fr-FR')} FCFA`
                           : undefined
                       }
-                      onClick={() => openConcert(ev)}
-                      className="w-[62vw] sm:w-[240px] md:w-[258px] lg:w-[272px] shrink-0 snap-start"
+                      onClick={() => bookConcert(ev)}
+                      className="w-[62vw] sm:w-[238px] md:w-[254px] lg:w-[268px] shrink-0 snap-start"
                     />
                   );
                 })}
               </div>
             </section>
           </ScrollReveal>
+        ) : (
+          !isLoadingEvents && (
+            <section className="py-10 border-t border-white/[0.12] text-center space-y-2">
+              <p className="font-agrandir-extrabold text-base text-white">
+                {isEn ? 'No upcoming concerts scheduled yet' : 'Aucun concert programmé pour le moment'}
+              </p>
+              <p className="text-xs text-[#9A9A9A]">
+                {isEn
+                  ? 'New dates will be announced right here as soon as ticketing opens.'
+                  : 'Les prochaines dates apparaîtront ici dès l’ouverture de la billetterie.'}
+              </p>
+            </section>
+          )
         )}
 
-        {/* ===================================================================
-            3. À NE PAS MANQUER (FLASH DROP + SOUVENIRS DE CONCERT — ZÉRO BACKSTAGE)
-           =================================================================== */}
-        <ScrollReveal>
-          <section className="space-y-4">
-            <div className="flex items-baseline justify-between gap-4">
-              <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight">
-                {isEn ? 'Do not miss' : 'À ne pas manquer'}
-              </h2>
-            </div>
+        {/* =====================================================================
+            C. À DÉCOUVRIR — PETITE SECTION HORIZONTALE SECONDAIRE (2-3 CONTENUS RÉELS)
+           ===================================================================== */}
+        {homeDiscoverItems.length > 0 && (
+          <ScrollReveal>
+            <section className="mt-10 pt-7 border-t border-white/[0.10] space-y-3">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white tracking-tight">
+                  {isEn ? 'To discover' : 'À découvrir'}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage('explore')}
+                  className="text-xs text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
+                >
+                  Discover
+                </button>
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
-              {/* Carte Flash Drop arrondie */}
-              <button
-                type="button"
-                onClick={() => setCurrentPage('flash_drops')}
-                className="lg:col-span-7 w-full rounded-[20px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] hover:border-white/25 p-5 sm:p-6 text-left group cursor-pointer flex flex-col justify-between gap-4 transition-colors lum-press"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-2 min-w-0">
-                    <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-                      FLASH DROP · {isEn ? 'LIVE NOW' : 'EN COURS'}
-                    </p>
-                    <h3 className="font-agrandir-extrabold text-lg sm:text-2xl text-white leading-snug group-hover:text-[#D4AF6A] transition-colors">
-                      {activeHero
-                        ? `${isEn ? 'Members presale' : 'Prévente membres'} ${activeHero.artist} — Carré Or`
-                        : isEn
-                        ? 'Members presale — Limited seats'
-                        : 'Prévente membres — Carré Or'}
-                    </h3>
-                  </div>
-                  <Icons.FlashDrops size="md" className="w-10 h-10 shrink-0" />
-                </div>
-
-                <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between text-xs sm:text-sm">
-                  <span className="text-[#9A9A9A]">
-                    {isEn ? 'Ends in' : 'Se termine dans'}
-                  </span>
-                  <CountdownTimer
-                    spaced
-                    className="font-agrandir-extrabold text-sm text-white tracking-wider"
-                  />
-                </div>
-              </button>
-
-              {/* Carte Souvenirs de concert arrondie */}
-              <button
-                type="button"
-                onClick={openSouvenirs}
-                className="lg:col-span-5 w-full rounded-[20px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.12] hover:border-white/25 p-4 sm:p-5 flex items-center gap-4 text-left group cursor-pointer transition-colors lum-press"
-              >
-                <div className="w-24 h-24 sm:w-28 sm:h-24 rounded-[14px] overflow-hidden bg-[#141414] border border-white/[0.12] shrink-0">
-                  <img
-                    src={
-                      featuredMemory?.coverImage ||
-                      COMMUNITY_MEDIA.concertMemoriesCrowdImg
-                    }
-                    alt={featuredMemory?.artist || 'Souvenirs de concert'}
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-[1.05] transition-transform duration-500"
-                  />
-                </div>
-                <div className="min-w-0 flex-1 space-y-1.5">
-                  <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#9A9A9A]">
-                    {isEn ? 'MEMORIES' : 'SOUVENIRS'}
-                  </p>
-                  <p className="font-agrandir-extrabold text-sm sm:text-base text-white leading-snug line-clamp-2 group-hover:text-[#D4AF6A] transition-colors">
-                    {featuredMemory
-                      ? `${featuredMemory.artist || featuredMemory.title} — ${
-                          isEn ? 'Photos & Aftermovie' : 'Photos & Aftermovie'
-                        }`
-                      : isEn
-                      ? 'Official concert photos & videos'
-                      : 'Photos officielles et vidéos de concerts'}
-                  </p>
-                  <span className="inline-flex items-center gap-1 text-xs text-[#C8C8C8] group-hover:text-white transition-colors">
-                    <span>{isEn ? 'Open memories' : 'Voir les souvenirs'}</span>
-                    <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.6} />
-                  </span>
-                </div>
-              </button>
-            </div>
-          </section>
-        </ScrollReveal>
+              <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-hide pb-1 -mx-4 px-4 sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0">
+                {homeDiscoverItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={item.onOpen}
+                    className="group shrink-0 snap-start w-[252px] sm:w-[280px] rounded-[15px] bg-[#0E0E0E] hover:bg-[#141414] border border-white/[0.10] hover:border-white/25 p-2.5 text-left flex items-center gap-3 transition-colors cursor-pointer lum-press"
+                  >
+                    <div className="w-14 h-14 rounded-[11px] overflow-hidden bg-[#141414] border border-white/[0.08] shrink-0">
+                      <img
+                        src={item.image}
+                        alt={item.title}
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.16em] text-[#D4AF6A] truncate">
+                        {item.tag}
+                      </p>
+                      <p className="font-agrandir-extrabold text-xs sm:text-sm text-white truncate group-hover:text-[#D4AF6A] transition-colors">
+                        {item.title}
+                      </p>
+                      <p className="text-[11px] text-[#9A9A9A] truncate">
+                        {item.subtitle}
+                      </p>
+                    </div>
+                    <ChevronRight
+                      className="w-4 h-4 text-[#666] group-hover:text-white shrink-0"
+                      strokeWidth={1.6}
+                    />
+                  </button>
+                ))}
+              </div>
+            </section>
+          </ScrollReveal>
+        )}
       </div>
     </div>
   );

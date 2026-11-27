@@ -34,7 +34,7 @@ export const MediaDetailView: React.FC = () => {
     events,
     currentUser,
     setCurrentPage,
-    setSelectedEventSlug,
+    setCheckoutEvent,
     goBack,
     showToast,
     language,
@@ -307,14 +307,11 @@ export const MediaDetailView: React.FC = () => {
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  setSelectedEventSlug(linkedConcert.slug);
-                  setCurrentPage('concert_detail');
-                }}
+                onClick={() => setCheckoutEvent(linkedConcert)}
                 className="w-full min-h-[42px] px-4 rounded-full bg-white text-black hover:bg-neutral-200 text-xs font-agrandir-extrabold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
                 <Ticket className="w-3.5 h-3.5" />
-                <span>{isEn ? 'Open concert page' : 'Voir la page du concert'}</span>
+                <span>{isEn ? 'Book tickets' : 'Réserver'}</span>
               </button>
             </div>
           )}
@@ -342,10 +339,10 @@ export const MediaDetailView: React.FC = () => {
             </h2>
             <button
               type="button"
-              onClick={() => setCurrentPage('backstage')}
+              onClick={() => setCurrentPage('memories')}
               className="text-xs font-agrandir-semibold text-neutral-400 hover:text-white inline-flex items-center gap-1 transition-colors cursor-pointer"
             >
-              <span>{isEn ? 'All Backstage' : 'Tout voir'}</span>
+              <span>{isEn ? 'All Memories' : 'Tout voir'}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>

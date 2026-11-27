@@ -26,6 +26,7 @@ import {
   Camera,
   Check,
   ChevronLeft,
+  ChevronRight,
   Download,
   Film,
   Image as ImageIcon,
@@ -45,7 +46,8 @@ interface ConcertMemoriesViewProps {
   onJumpToBackstage?: () => void;
 }
 
-type AlbumTab = 'official' | 'highlights' | 'videos' | 'participants';
+type AlbumTab = 'official' | 'highlights' | 'videos' | 'coulisses' | 'participants';
+type MemoriesFilter = 'all' | 'concerts' | 'coulisses' | 'photos' | 'videos';
 
 const MAX_INLINE_VIDEO_BYTES = 3.5 * 1024 * 1024;
 
@@ -122,7 +124,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
     previousPage,
     goBack,
     setCurrentPage,
-    setSelectedEventSlug,
+    setCheckoutEvent,
     setSelectedMediaId,
     selectedMemoryAlbumId,
     setSelectedMemoryAlbumId,
@@ -138,18 +140,27 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
     [events]
   );
 
-  const [publishedHubMemories, setPublishedHubMemories] = useState<MediaHubItem[]>(() =>
-    getPublishedMediaItems().filter((m) => m.placement === 'memories')
+  const [allHubMedia, setAllHubMedia] = useState<MediaHubItem[]>(() =>
+    getPublishedMediaItems()
   );
 
   useEffect(() => {
-    const sync = () =>
-      setPublishedHubMemories(
-        getPublishedMediaItems().filter((m) => m.placement === 'memories')
-      );
+    const sync = () => setAllHubMedia(getPublishedMediaItems());
     sync();
     return subscribeMediaHub(sync);
   }, []);
+
+  const publishedHubMemories = useMemo(
+    () => allHubMedia.filter((m) => m.placement === 'memories'),
+    [allHubMedia]
+  );
+
+  const publishedBackstageMedia = useMemo(
+    () => allHubMedia.filter((m) => m.placement === 'backstage'),
+    [allHubMedia]
+  );
+
+  const [indexFilter, setIndexFilter] = useState<MemoriesFilter>('all');
 
   const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(() => {
     if (!selectedMemoryAlbumId) return null;
@@ -158,7 +169,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
   });
   const [albumTab, setAlbumTab] = useState<AlbumTab>('official');
 
-  // Ouvre directement l'Écran 07 lorsqu'un poster concert est cliqué depuis Explorer
+  // Ouvre directement la page Memories du concert lorsqu'un poster concert est cliqué depuis Discover
   useEffect(() => {
     if (selectedMemoryAlbumId) {
       const match = albums.find((a) => a.id === selectedMemoryAlbumId);
@@ -274,6 +285,79 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
     () => albumSharedItems.filter((m) => m.mediaType === 'video'),
     [albumSharedItems]
   );
+
+  // Coulisses associées au concert (ou coulisses générales publiées)
+  const albumCoulissesItems = useMemo(() => {
+    if (!selectedAlbum) return [];
+    const normTitle = selectedAlbum.title.trim().toLowerCase();
+    const normArtist = (selectedAlbum.artist || '').trim().toLowerCase();
+    const matched = publishedBackstageMedia.filter((item) => {
+      if (item.eventId && item.eventId === selectedAlbum.id) return true;
+      const hay = `${item.albumTitle || ''} ${item.artistName || ''} ${item.title}`.toLowerCase();
+      return (normArtist.length >= 3 && hay.includes(normArtist)) || hay.includes(normTitle);
+    });
+    return matched.length > 0 ? matched : publishedBackstageMedia;
+  }, [selectedAlbum, publishedBackstageMedia]);
+
+  // Liste complète de photos pour navigation Précédent / Suivant dans la Lightbox
+  const allIndexPhotos = useMemo(() => {
+    const list: Array<{ url: string; caption: string; filename: string; albumLabel: string }> = [];
+    const seen = new Set<string>();
+    albums.forEach((album) => {
+      album.officialPhotos.forEach((p, idx) => {
+        if (seen.has(p.url)) return;
+        seen.add(p.url);
+        list.push({
+          url: p.url,
+          caption: isEn ? p.captionEn : p.captionFr,
+          filename: `lumareel-${album.id}-photo-${idx + 1}.jpg`,
+          albumLabel: album.artist || album.title,
+        });
+      });
+    });
+    allHubMedia.forEach((item) => {
+      if (item.mediaType !== 'photo' || seen.has(item.url)) return;
+      seen.add(item.url);
+      list.push({
+        url: item.url,
+        caption: isEn && item.titleEn ? item.titleEn : item.title,
+        filename: `lumareel-media-${item.id}.jpg`,
+        albumLabel: item.albumTitle || item.date,
+      });
+    });
+    return list;
+  }, [albums, allHubMedia, isEn]);
+
+  const activeLightboxGallery = useMemo(() => {
+    if (selectedAlbum) {
+      return [
+        ...albumOfficialPhotos.map((p, idx) => ({
+          url: p.url,
+          caption: isEn ? p.captionEn : p.captionFr,
+          filename: `lumareel-${selectedAlbum.id}-photo-${idx + 1}.jpg`,
+        })),
+        ...albumSharedItems
+          .filter((i) => i.mediaType === 'photo')
+          .map((i) => ({
+            url: i.mediaUrl,
+            caption: i.caption || i.authorName,
+            filename: `lumareel-souvenir-${i.id}.jpg`,
+          })),
+      ];
+    }
+    return allIndexPhotos;
+  }, [selectedAlbum, albumOfficialPhotos, albumSharedItems, allIndexPhotos, isEn]);
+
+  const navigateLightbox = (direction: 'prev' | 'next') => {
+    if (!lightboxPhoto || activeLightboxGallery.length <= 1) return;
+    const idx = activeLightboxGallery.findIndex((p) => p.url === lightboxPhoto.url);
+    if (idx === -1) return;
+    const nextIdx =
+      direction === 'next'
+        ? (idx + 1) % activeLightboxGallery.length
+        : (idx - 1 + activeLightboxGallery.length) % activeLightboxGallery.length;
+    setLightboxPhoto(activeLightboxGallery[nextIdx]);
+  };
 
   const handleDownload = async (url: string, filename: string) => {
     const ok = await downloadMediaAsset(url, filename);
@@ -574,13 +658,10 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                   {linkedEvent && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setSelectedEventSlug(linkedEvent.slug);
-                        setCurrentPage('concert_detail');
-                      }}
+                      onClick={() => setCheckoutEvent(linkedEvent)}
                       className="px-3.5 py-1 rounded-full border border-white/25 hover:border-white text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em] text-white cursor-pointer transition-colors"
                     >
-                      {isEn ? 'Concert' : 'Voir le concert'}
+                      {isEn ? 'Book tickets' : 'Réserver'}
                     </button>
                   )}
                 </div>
@@ -749,7 +830,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
               </section>
             )}
 
-            {/* 5. QUATRE ONGLETS SOULIGNÉS : Officielles | Meilleurs moments | Vidéos | Participants */}
+            {/* 5. ONGLETS ADAPTÉS AUX MÉDIAS RÉELLEMENT DISPONIBLES */}
             <Tabs<AlbumTab>
               activeId={albumTab}
               onChange={(next) => {
@@ -760,10 +841,19 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                 }
               }}
               items={[
-                { id: 'official', label: isEn ? 'Official' : 'Officielles' },
-                { id: 'highlights', label: isEn ? 'Highlights' : 'Meilleurs moments' },
-                { id: 'videos', label: isEn ? 'Videos' : 'Vidéos' },
-                { id: 'participants', label: isEn ? 'Attendees' : 'Participants' },
+                ...(albumOfficialPhotos.length > 0
+                  ? [{ id: 'official' as const, label: isEn ? 'Official' : 'Officielles' }]
+                  : []),
+                { id: 'highlights' as const, label: isEn ? 'Highlights' : 'Meilleurs moments' },
+                ...(albumCoulissesItems.length > 0
+                  ? [{ id: 'coulisses' as const, label: isEn ? 'Backstage' : 'Coulisses' }]
+                  : []),
+                ...(albumSharedVideos.length > 0
+                  ? [{ id: 'videos' as const, label: isEn ? 'Videos' : 'Vidéos' }]
+                  : []),
+                ...(albumSharedItems.length > 0 || canShareAndDownload
+                  ? [{ id: 'participants' as const, label: isEn ? 'Community' : 'Participants' }]
+                  : []),
               ]}
             />
 
@@ -1120,6 +1210,58 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
               </section>
             )}
 
+            {/* ONGLET C-BIS : COULISSES */}
+            {albumTab === 'coulisses' && albumCoulissesItems.length > 0 && (
+              <section className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {albumCoulissesItems.map((item) => {
+                    const itemTitle = isEn && item.titleEn ? item.titleEn : item.title;
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMediaId(item.id);
+                          setCurrentPage('media_detail');
+                        }}
+                        className="group text-left cursor-pointer block lum-press"
+                      >
+                        <div className="relative aspect-[16/10] w-full rounded-[16px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
+                          <img
+                            src={item.thumbnailUrl || item.url}
+                            alt={itemTitle}
+                            referrerPolicy="no-referrer"
+                            loading="lazy"
+                            className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                          />
+                          {item.mediaType === 'video' && (
+                            <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                              <span className="w-11 h-11 rounded-full bg-black/65 border border-white/30 flex items-center justify-center text-white">
+                                <Play className="w-4 h-4 ml-0.5 fill-current" strokeWidth={1.6} />
+                              </span>
+                            </div>
+                          )}
+                          {item.duration && (
+                            <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/80 text-[10px] font-mono text-white">
+                              {item.duration}
+                            </span>
+                          )}
+                        </div>
+                        <div className="pt-2.5 space-y-0.5">
+                          <p className="text-sm font-agrandir-extrabold text-white group-hover:text-[#D4AF6A] transition-colors line-clamp-1">
+                            {itemTitle}
+                          </p>
+                          <p className="text-xs text-[#9A9A9A] truncate">
+                            {item.tag || (isEn ? 'Backstage' : 'Coulisses')} · {item.date}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             {/* ONGLET D : PARTICIPANTS (STRICTEMENT LIÉS À CE CONCERT + NOTE MODÉRATION) */}
             {albumTab === 'participants' && (
               <section className="space-y-5">
@@ -1394,7 +1536,7 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
           </div>
         </BottomSheet>
 
-        {/* Lightbox plein écran — 0px image */}
+        {/* Lightbox plein écran avec navigation Précédent / Suivant */}
         {lightboxPhoto && (
           <div
             className="fixed inset-0 z-[95] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
@@ -1444,12 +1586,37 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
                   </button>
                 </div>
               </div>
-              <img
-                src={lightboxPhoto.url}
-                alt={lightboxPhoto.caption}
-                referrerPolicy="no-referrer"
-                className="w-full max-h-[78vh] rounded-[18px] object-contain"
-              />
+
+              <div className="relative flex items-center justify-center">
+                {activeLightboxGallery.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => navigateLightbox('prev')}
+                    aria-label={isEn ? 'Previous photo' : 'Photo précédente'}
+                    className="absolute left-2 sm:left-3 z-10 w-10 h-10 rounded-full bg-black/75 hover:bg-black border border-white/20 text-white flex items-center justify-center cursor-pointer"
+                  >
+                    <ChevronLeft className="w-5 h-5" strokeWidth={1.6} />
+                  </button>
+                )}
+
+                <img
+                  src={lightboxPhoto.url}
+                  alt={lightboxPhoto.caption}
+                  referrerPolicy="no-referrer"
+                  className="w-full max-h-[76vh] rounded-[18px] object-contain"
+                />
+
+                {activeLightboxGallery.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => navigateLightbox('next')}
+                    aria-label={isEn ? 'Next photo' : 'Photo suivante'}
+                    className="absolute right-2 sm:right-3 z-10 w-10 h-10 rounded-full bg-black/75 hover:bg-black border border-white/20 text-white flex items-center justify-center cursor-pointer"
+                  >
+                    <ChevronRight className="w-5 h-5" strokeWidth={1.6} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -1458,130 +1625,415 @@ export const ConcertMemoriesView: React.FC<ConcertMemoriesViewProps> = ({
   }
 
   // =========================================================================
-  // VUE INDEX SOUVENIRS — MINIATURES PROPRES, 0px
+  // VUE INDEX MEMORIES — CENTRALISATION COMPLÈTE (CONCERTS · COULISSES · PHOTOS · VIDÉOS)
   // =========================================================================
+  const allVideoItems = allHubMedia.filter((m) => m.mediaType === 'video');
+  const filterTabs: Array<{ id: MemoriesFilter; label: string }> = [
+    { id: 'all', label: isEn ? 'All' : 'Tout' },
+    { id: 'concerts', label: 'Concerts' },
+    { id: 'coulisses', label: isEn ? 'Backstage' : 'Coulisses' },
+    { id: 'photos', label: 'Photos' },
+    { id: 'videos', label: isEn ? 'Videos' : 'Vidéos' },
+  ];
+
   return (
     <div
       className={
         embedded
           ? 'w-full text-white font-agrandir-regular'
-          : 'min-h-screen w-full max-w-[1280px] mx-auto px-4 sm:px-8 md:px-10 pt-5 sm:pt-10 pb-24 text-white font-agrandir-regular'
+          : 'min-h-screen w-full max-w-[1280px] mx-auto px-4 sm:px-8 md:px-10 pb-24 text-white font-agrandir-regular'
       }
+      style={embedded ? undefined : { paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
     >
       {!embedded && (
-        <header className="mb-7 space-y-1.5">
-          <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#D4AF6A]">
-            {isEn ? 'CONCERT MEMORIES' : 'SOUVENIRS DE CONCERT'}
-          </p>
-          <h1 className="text-[2.25rem] sm:text-5xl font-agrandir-extrabold tracking-tight leading-none text-white">
-            {isEn ? 'Memories' : 'Souvenirs'}
-          </h1>
-        </header>
+        <div className="mb-6 space-y-4">
+          <button
+            type="button"
+            onClick={() => setCurrentPage('explore')}
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
+            <span>Discover</span>
+          </button>
+
+          <header className="space-y-1.5">
+            <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#D4AF6A]">
+              {isEn ? 'CONCERTS · BACKSTAGE · ARCHIVES' : 'CONCERTS · COULISSES · SOUVENIRS'}
+            </p>
+            <h1 className="text-[2.25rem] sm:text-5xl font-agrandir-extrabold tracking-tight leading-none text-white">
+              Memories
+            </h1>
+          </header>
+
+          {/* Filtres internes : Tout · Concerts · Coulisses · Photos · Vidéos */}
+          <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
+            {filterTabs.map((tab) => {
+              const active = indexFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setIndexFilter(tab.id)}
+                  className={`min-h-[36px] px-4 rounded-full text-xs whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                    active
+                      ? 'bg-white text-black font-agrandir-extrabold'
+                      : 'border border-white/20 text-[#C8C8C8] hover:border-white/50 hover:text-white'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
 
-      {albums.length > 0 ? (
-        <div className="space-y-12">
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
-            {albums.map((album) => (
-              <button
-                key={album.id}
-                type="button"
-                onClick={() => {
-                  setSelectedAlbumId(album.id);
-                  setAlbumTab('official');
-                  if (typeof window !== 'undefined') {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }
-                }}
-                className="group text-left cursor-pointer block lum-press"
-              >
-                <div className="aspect-[3/4] sm:aspect-[16/10] w-full rounded-[18px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
-                  <img
-                    src={album.coverImage}
-                    alt={album.title}
-                    referrerPolicy="no-referrer"
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                  />
-                </div>
-                <div className="pt-3 space-y-0.5">
-                  <h2 className="text-base font-agrandir-extrabold text-white group-hover:text-[#D4AF6A] transition-colors line-clamp-1">
-                    {album.title}
-                  </h2>
-                  <p className="text-xs text-[#9A9A9A] truncate">
-                    {album.date} · {album.venue}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </section>
-
-          {publishedHubMemories.length > 0 && (
-            <section className="pt-8 border-t border-white/[0.12]">
-              <h2 className="text-base sm:text-lg font-agrandir-extrabold text-white mb-5">
-                {isEn ? 'Official captures' : 'Clichés officiels'}
+      <div className="space-y-12">
+        {/* 1. CONCERTS & ARCHIVES ÉVÉNEMENTS */}
+        {(indexFilter === 'all' || indexFilter === 'concerts') && (
+          <section className="space-y-4">
+            {indexFilter === 'all' && (
+              <h2 className="text-lg sm:text-xl font-agrandir-extrabold text-white">
+                {isEn ? 'Concerts & events' : 'Concerts & événements'}
               </h2>
+            )}
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-                {publishedHubMemories.map((item) => {
+            {albums.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
+                {albums.map((album) => (
+                  <button
+                    key={album.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedAlbumId(album.id);
+                      setAlbumTab('official');
+                      if (typeof window !== 'undefined') {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
+                    }}
+                    className="group text-left cursor-pointer block lum-press"
+                  >
+                    <div className="relative aspect-[3/4] sm:aspect-[16/10] w-full rounded-[18px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
+                      <img
+                        src={album.coverImage}
+                        alt={album.title}
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                      <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-black/75 border border-white/[0.14] text-[10px] font-agrandir-semibold text-white">
+                        {album.officialPhotos.length} photos · Aftermovie
+                      </span>
+                    </div>
+                    <div className="pt-3 space-y-0.5">
+                      <h3 className="text-base font-agrandir-extrabold text-white group-hover:text-[#D4AF6A] transition-colors line-clamp-1">
+                        {album.artist || album.title}
+                      </h3>
+                      <p className="text-xs text-[#9A9A9A] truncate">
+                        {album.date} · {album.venue}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="py-14 px-6 text-center rounded-[20px] bg-[#0E0E0E] border border-white/[0.12] max-w-md mx-auto">
+                <Camera className="mx-auto mb-3 h-7 w-7 text-[#D4AF6A]" strokeWidth={1.6} />
+                <p className="text-sm font-agrandir-extrabold text-white">
+                  {isEn ? 'Concert memories coming soon' : 'Souvenirs de concerts à venir'}
+                </p>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* 2. COULISSES (EX-BACKSTAGE CENTRALISÉ DANS MEMORIES) */}
+        {(indexFilter === 'all' || indexFilter === 'coulisses') && (
+          <section className={indexFilter === 'all' ? 'pt-8 border-t border-white/[0.12] space-y-4' : 'space-y-4'}>
+            {indexFilter === 'all' && (
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="text-lg sm:text-xl font-agrandir-extrabold text-white">
+                  {isEn ? 'Backstage & behind the scenes' : 'Coulisses'}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setIndexFilter('coulisses')}
+                  className="text-xs text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
+                >
+                  {isEn ? 'See all' : 'Tout voir'}
+                </button>
+              </div>
+            )}
+
+            {publishedBackstageMedia.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {publishedBackstageMedia.map((item) => {
                   const title = isEn && item.titleEn ? item.titleEn : item.title;
-                  const canDownloadCapture =
-                    item.downloadable &&
-                    item.mediaType === 'photo' &&
-                    isMemorySharingWindowOpen(item.date);
-
                   return (
-                    <article key={item.id} className="group">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedMediaId(item.id);
-                          setCurrentPage('media_detail');
-                        }}
-                        className="block w-full aspect-[4/3] rounded-[16px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] cursor-pointer"
-                      >
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedMediaId(item.id);
+                        setCurrentPage('media_detail');
+                      }}
+                      className="group text-left cursor-pointer block lum-press"
+                    >
+                      <div className="relative aspect-[16/10] w-full rounded-[16px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
                         <img
                           src={item.thumbnailUrl || item.url}
                           alt={title}
                           referrerPolicy="no-referrer"
+                          loading="lazy"
                           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                         />
-                      </button>
-
-                      <div className="pt-2.5 flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <h3 className="text-xs sm:text-sm font-agrandir-extrabold text-white line-clamp-1">
-                            {title}
-                          </h3>
-                          <p className="text-[11px] text-[#9A9A9A] truncate">
-                            {item.albumTitle || item.date}
-                          </p>
-                        </div>
-                        {canDownloadCapture && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleDownload(item.url, `lumareel-memory-${item.id}.jpg`)
-                            }
-                            aria-label={isEn ? 'Download photo' : 'Télécharger'}
-                            className="w-8 h-8 rounded-full border border-white/[0.16] hover:border-[#D4AF6A] text-[#C8C8C8] hover:text-[#D4AF6A] flex items-center justify-center transition-colors cursor-pointer shrink-0"
-                          >
-                            <Download className="w-3.5 h-3.5" strokeWidth={1.6} />
-                          </button>
+                        {item.mediaType === 'video' && (
+                          <div className="absolute inset-0 bg-black/25 flex items-center justify-center">
+                            <span className="w-11 h-11 rounded-full bg-black/65 border border-white/30 flex items-center justify-center text-white">
+                              <Play className="w-4 h-4 ml-0.5 fill-current" strokeWidth={1.6} />
+                            </span>
+                          </div>
+                        )}
+                        {item.duration && (
+                          <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/80 text-[10px] font-mono text-white">
+                            {item.duration}
+                          </span>
                         )}
                       </div>
-                    </article>
+                      <div className="pt-2.5 space-y-0.5">
+                        <h3 className="text-sm font-agrandir-extrabold text-white group-hover:text-[#D4AF6A] transition-colors line-clamp-1">
+                          {title}
+                        </h3>
+                        <p className="text-xs text-[#9A9A9A] truncate">
+                          {item.tag || (isEn ? 'Backstage' : 'Coulisses')} · {item.date}
+                        </p>
+                      </div>
+                    </button>
                   );
                 })}
               </div>
-            </section>
-          )}
-        </div>
-      ) : (
-        <div className="py-16 px-6 text-center max-w-md mx-auto">
-          <Camera className="mx-auto mb-4 h-7 w-7 text-[#D4AF6A]" strokeWidth={1.6} />
-          <h2 className="text-lg font-agrandir-extrabold">
-            {isEn ? 'Memories coming soon' : 'Souvenirs à venir'}
-          </h2>
+            ) : (
+              <p className="py-10 text-center text-xs text-[#9A9A9A] rounded-[18px] bg-[#0E0E0E] border border-white/[0.12]">
+                {isEn
+                  ? 'No backstage content published yet.'
+                  : 'Aucun contenu coulisses publié pour le moment.'}
+              </p>
+            )}
+          </section>
+        )}
+
+        {/* 3. PHOTOS (GALERIE UNIFIÉE) */}
+        {(indexFilter === 'all' || indexFilter === 'photos') && allIndexPhotos.length > 0 && (
+          <section className={indexFilter === 'all' ? 'pt-8 border-t border-white/[0.12] space-y-4' : 'space-y-4'}>
+            {indexFilter === 'all' && (
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 className="text-lg sm:text-xl font-agrandir-extrabold text-white">
+                  {isEn ? 'Official photos' : 'Photos officielles'}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setIndexFilter('photos')}
+                  className="text-xs text-[#9A9A9A] hover:text-white transition-colors cursor-pointer"
+                >
+                  {isEn ? 'See all' : 'Tout voir'}
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+              {(indexFilter === 'all' ? allIndexPhotos.slice(0, 8) : allIndexPhotos).map((photo, idx) => (
+                <button
+                  key={`${photo.url}_${idx}`}
+                  type="button"
+                  onClick={() => setLightboxPhoto(photo)}
+                  className="group relative aspect-square rounded-[14px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] hover:border-white/30 cursor-pointer block"
+                >
+                  <img
+                    src={photo.url}
+                    alt={photo.caption}
+                    referrerPolicy="no-referrer"
+                    loading="lazy"
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 p-2.5 bg-gradient-to-t from-black/80 to-transparent text-left">
+                    <p className="text-[11px] font-agrandir-semibold text-white truncate">
+                      {photo.albumLabel}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 4. VIDÉOS (AFTERMOVIES + VIDÉOS COULISSES) */}
+        {indexFilter === 'videos' && (
+          <section className="space-y-5">
+            {albums.length > 0 || allVideoItems.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {albums.map((album) => (
+                  <button
+                    key={`vid_album_${album.id}`}
+                    type="button"
+                    onClick={() => {
+                      setSelectedAlbumId(album.id);
+                      setAlbumTab('official');
+                      setIsVideoPlaying(true);
+                      if (typeof window !== 'undefined') {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
+                    }}
+                    className="group text-left cursor-pointer block lum-press"
+                  >
+                    <div className="relative aspect-[16/9] w-full rounded-[16px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
+                      <img
+                        src={album.coverImage}
+                        alt={album.title}
+                        referrerPolicy="no-referrer"
+                        loading="lazy"
+                        className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <span className="w-12 h-12 rounded-full bg-black/65 border border-white/30 flex items-center justify-center text-white">
+                          <Play className="w-5 h-5 ml-0.5 fill-current" strokeWidth={1.6} />
+                        </span>
+                      </div>
+                      <span className="absolute bottom-2.5 left-2.5 px-2.5 py-0.5 rounded-full bg-black/80 text-[10px] font-agrandir-semibold text-[#D4AF6A]">
+                        Aftermovie
+                      </span>
+                    </div>
+                    <div className="pt-2.5 space-y-0.5">
+                      <h3 className="text-sm font-agrandir-extrabold text-white group-hover:text-[#D4AF6A] transition-colors line-clamp-1">
+                        {album.artist || album.title}
+                      </h3>
+                      <p className="text-xs text-[#9A9A9A] truncate">
+                        {album.date} · {album.venue}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+
+                {allVideoItems.map((item) => {
+                  const title = isEn && item.titleEn ? item.titleEn : item.title;
+                  return (
+                    <button
+                      key={`vid_hub_${item.id}`}
+                      type="button"
+                      onClick={() => {
+                        setSelectedMediaId(item.id);
+                        setCurrentPage('media_detail');
+                      }}
+                      className="group text-left cursor-pointer block lum-press"
+                    >
+                      <div className="relative aspect-[16/9] w-full rounded-[16px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/30 transition-colors">
+                        <img
+                          src={item.thumbnailUrl || item.url}
+                          alt={title}
+                          referrerPolicy="no-referrer"
+                          loading="lazy"
+                          className="h-full w-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                          <span className="w-12 h-12 rounded-full bg-black/65 border border-white/30 flex items-center justify-center text-white">
+                            <Play className="w-5 h-5 ml-0.5 fill-current" strokeWidth={1.6} />
+                          </span>
+                        </div>
+                        {item.duration && (
+                          <span className="absolute bottom-2.5 right-2.5 px-2 py-0.5 rounded-full bg-black/80 text-[10px] font-mono text-white">
+                            {item.duration}
+                          </span>
+                        )}
+                      </div>
+                      <div className="pt-2.5 space-y-0.5">
+                        <h3 className="text-sm font-agrandir-extrabold text-white group-hover:text-[#D4AF6A] transition-colors line-clamp-1">
+                          {title}
+                        </h3>
+                        <p className="text-xs text-[#9A9A9A] truncate">
+                          {item.tag || (isEn ? 'Backstage' : 'Coulisses')} · {item.date}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="py-10 text-center text-xs text-[#9A9A9A] rounded-[18px] bg-[#0E0E0E] border border-white/[0.12]">
+                {isEn ? 'No videos published yet.' : 'Aucune vidéo publiée pour le moment.'}
+              </p>
+            )}
+          </section>
+        )}
+      </div>
+
+      {/* Lightbox plein écran sur l'index Photos */}
+      {lightboxPhoto && (
+        <div
+          className="fixed inset-0 z-[95] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <div className="max-w-4xl w-full space-y-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-xs sm:text-sm text-[#C8C8C8] truncate">
+                {lightboxPhoto.caption}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleShareItem({
+                      title: lightboxPhoto.caption || 'LUMARÉEL Memories',
+                      assetUrl: lightboxPhoto.url,
+                      filename: lightboxPhoto.filename,
+                    })
+                  }
+                  className="min-h-[38px] px-4 rounded-full border border-white/25 hover:border-white text-white text-xs font-agrandir-semibold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Share2 className="w-3.5 h-3.5" strokeWidth={1.6} />
+                  <span>{isEn ? 'Share' : 'Partager'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLightboxPhoto(null)}
+                  aria-label={isEn ? 'Close' : 'Fermer'}
+                  className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center cursor-pointer"
+                >
+                  <X className="w-4 h-4" strokeWidth={1.6} />
+                </button>
+              </div>
+            </div>
+
+            <div className="relative flex items-center justify-center">
+              {activeLightboxGallery.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => navigateLightbox('prev')}
+                  aria-label={isEn ? 'Previous photo' : 'Photo précédente'}
+                  className="absolute left-2 sm:left-3 z-10 w-10 h-10 rounded-full bg-black/75 hover:bg-black border border-white/20 text-white flex items-center justify-center cursor-pointer"
+                >
+                  <ChevronLeft className="w-5 h-5" strokeWidth={1.6} />
+                </button>
+              )}
+
+              <img
+                src={lightboxPhoto.url}
+                alt={lightboxPhoto.caption}
+                referrerPolicy="no-referrer"
+                className="w-full max-h-[76vh] rounded-[18px] object-contain"
+              />
+
+              {activeLightboxGallery.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => navigateLightbox('next')}
+                  aria-label={isEn ? 'Next photo' : 'Photo suivante'}
+                  className="absolute right-2 sm:right-3 z-10 w-10 h-10 rounded-full bg-black/75 hover:bg-black border border-white/20 text-white flex items-center justify-center cursor-pointer"
+                >
+                  <ChevronRight className="w-5 h-5" strokeWidth={1.6} />
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -139,6 +139,7 @@ export const CheckoutModal: React.FC = () => {
     refreshCustomerOrders,
     refreshEvents,
     setCurrentPage,
+    goBack,
     addLocalOrder,
     setIsAuthModalOpen,
     language,
@@ -249,6 +250,12 @@ export const CheckoutModal: React.FC = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [checkoutEvent, step]);
+
+  useEffect(() => {
+    if (!checkoutEvent) {
+      goBack();
+    }
+  }, [checkoutEvent, goBack]);
 
   if (!checkoutEvent) return null;
 
@@ -513,13 +520,18 @@ export const CheckoutModal: React.FC = () => {
     }
   };
 
-  const handleClose = () => {
+  const resetCheckoutState = () => {
     setCheckoutEvent(null);
     setCreatedOrder(null);
     setIssuedTickets([]);
     setStep(1);
     setPaymetrustTx(null);
     setPendingOrderRef('');
+  };
+
+  const handleClose = () => {
+    resetCheckoutState();
+    goBack();
   };
 
   const handleStepBack = () => {
@@ -540,7 +552,7 @@ export const CheckoutModal: React.FC = () => {
   };
 
   const handleGoToCustomerTickets = () => {
-    handleClose();
+    resetCheckoutState();
     setCurrentPage('client_space');
   };
 
@@ -550,22 +562,24 @@ export const CheckoutModal: React.FC = () => {
     COUNTRIES_CATALOG.find((c) => c.dialCode === paymentDialCode) || COUNTRIES_CATALOG[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/90 backdrop-blur-md overflow-hidden">
-      <div className="relative w-full max-w-xl bg-[#090909] border-t sm:border border-white/[0.14] rounded-t-[16px] sm:rounded-[12px] shadow-[0_24px_80px_rgba(0,0,0,0.95)] text-white h-[94dvh] sm:h-auto sm:max-h-[88vh] flex flex-col font-agrandir-regular overflow-hidden">
-        {/* ========================================================================= */}
-        {/* EN-TÊTE ARCHITECTURAL & RAIL D'ÉTAPES (NOIR & BLANC + ACCENT OR DISCRET)  */}
-        {/* ========================================================================= */}
-        <header className="shrink-0 px-5 sm:px-6 pt-3 sm:pt-5 pb-4 border-b border-white/[0.1] bg-[#090909] z-20">
-          <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-3 sm:hidden" />
-
+    <div className="min-h-screen w-full bg-black text-white flex flex-col font-agrandir-regular">
+      {/* ========================================================================= */}
+      {/* EN-TÊTE PLEINE PAGE AVEC BOUTON RETOUR & RAIL D'ÉTAPES                    */}
+      {/* ========================================================================= */}
+      <header
+        className="sticky top-0 z-30 border-b border-white/[0.1] bg-black/95 backdrop-blur-xl"
+        style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))' }}
+      >
+        <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 pb-4">
           <div className="flex items-center justify-between gap-3 mb-4">
             <button
               type="button"
               onClick={handleStepBack}
               aria-label={t('checkout.back')}
-              className="w-9 h-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] flex items-center justify-center text-white transition-colors cursor-pointer shrink-0"
+              className="inline-flex items-center gap-2 min-h-[38px] px-3 -ml-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-xs font-agrandir-semibold text-white transition-colors cursor-pointer shrink-0"
             >
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.7} />
+              <ArrowLeft className="w-4 h-4 shrink-0" strokeWidth={1.7} />
+              <span>{isEn ? 'Back' : 'Retour'}</span>
             </button>
 
             <div className="flex flex-col items-center justify-center text-center min-w-0">
@@ -585,14 +599,11 @@ export const CheckoutModal: React.FC = () => {
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={handleClose}
-              aria-label={t('nav.close')}
-              className="w-9 h-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] flex items-center justify-center text-[#C8C8C8] hover:text-white transition-colors cursor-pointer shrink-0"
-            >
-              <X className="w-4 h-4" strokeWidth={1.7} />
-            </button>
+            <div className="min-w-[74px] flex justify-end shrink-0">
+              <span className="text-[11px] font-mono text-[#9A9A9A] tabular-nums">
+                0{step} / 04
+              </span>
+            </div>
           </div>
 
           {/* Rail 4 étapes sobre et éditorial */}
@@ -632,12 +643,13 @@ export const CheckoutModal: React.FC = () => {
               );
             })}
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* ========================================================================= */}
-        {/* CORPS DU TUNNEL                                                           */}
-        {/* ========================================================================= */}
-        <div className="px-5 sm:px-6 py-5 flex-1 overflow-y-auto overscroll-contain min-h-0">
+      {/* ========================================================================= */}
+      {/* CORPS DE LA PAGE DE RÉSERVATION                                           */}
+      {/* ========================================================================= */}
+      <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 py-6 flex-1 min-h-0">
           {/* ===================================================================== */}
           {/* ÉTAPE 1 : SÉLECTION DES BILLETS                                       */}
           {/* ===================================================================== */}
@@ -1378,11 +1390,12 @@ export const CheckoutModal: React.FC = () => {
           )}
         </div>
 
-        {/* ========================================================================= */}
-        {/* BARRE FIXE BASSE (ÉTAPES 1 & 2)                                           */}
-        {/* ========================================================================= */}
-        {step < 3 && (
-          <footer className="shrink-0 z-30 border-t border-white/[0.12] bg-[#090909] px-5 sm:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      {/* ========================================================================= */}
+      {/* BARRE FIXE BASSE (ÉTAPES 1 & 2)                                           */}
+      {/* ========================================================================= */}
+      {step < 3 && (
+        <footer className="sticky bottom-0 z-30 border-t border-white/[0.12] bg-black/95 backdrop-blur-xl py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="w-full max-w-2xl mx-auto px-4 sm:px-6">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
                 <span className="text-[10px] font-mono uppercase tracking-widest text-[#9A9A9A] block">
@@ -1450,8 +1463,9 @@ export const CheckoutModal: React.FC = () => {
                 </button>
               </div>
             )}
-          </footer>
-        )}
+          </div>
+        </footer>
+      )}
 
         {/* SUBMODAL : APERÇU EMAIL DE CONFIRMATION */}
         {showEmailPreview && createdOrder && (
@@ -1586,7 +1600,6 @@ export const CheckoutModal: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 };

@@ -27,7 +27,7 @@ const AdminDashboardContent: React.FC = () => {
     deleteArchive, 
     showToast, 
     setCurrentPage, 
-    setSelectedEventSlug 
+    setCheckoutEvent 
   } = useApp();
 
   // Navigation State (Shopify 3-Level Architecture)
@@ -186,8 +186,12 @@ const AdminDashboardContent: React.FC = () => {
   };
 
   const handlePreviewPublic = (slug: string) => {
-    setSelectedEventSlug(slug);
-    setCurrentPage('concert_detail');
+    const target = events.find((e) => e.slug === slug);
+    if (target) {
+      setCheckoutEvent(target);
+    } else {
+      setCurrentPage('home');
+    }
   };
 
   return (

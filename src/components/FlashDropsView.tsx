@@ -11,7 +11,7 @@ import {
   saveUserPointsState,
 } from '../utils/communityStorage';
 import { formatDateLong } from '../utils/dateUtils';
-import { CountdownTimer, StatusBadge } from './ui/LumareelKit';
+import { StatusBadge } from './ui/LumareelKit';
 import { Icons } from './ui/Icons';
 import { Bell, BellRing, ChevronLeft, Copy, Ticket } from 'lucide-react';
 
@@ -68,6 +68,9 @@ export const FlashDropsView: React.FC = () => {
 
   const todayKey = new Date().toISOString().slice(0, 10);
   const alreadyClaimedToday = pointsState.lastSurpriseClaimDate === todayKey;
+  const flashPassAlreadyClaimed = pointsState.redeemedRewards.some(
+    (r) => r.title === 'Pass Flash — Balances & Lounge'
+  );
 
   const liveEventDrops = useMemo(() => {
     const published = (events || []).filter((ev) => ev.status !== 'draft');
@@ -229,14 +232,14 @@ export const FlashDropsView: React.FC = () => {
       className="min-h-screen w-full max-w-[1280px] mx-auto px-4 sm:px-8 md:px-10 pb-24 bg-black text-white font-agrandir-regular"
       style={{ paddingTop: 'max(1.25rem, env(safe-area-inset-top, 0px))' }}
     >
-      {/* Lien retour < Mes points */}
+      {/* Lien retour < Discover */}
       <button
         type="button"
-        onClick={() => setCurrentPage('rewards')}
+        onClick={() => setCurrentPage('explore')}
         className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-[#9A9A9A] hover:text-white transition-colors cursor-pointer mb-4"
       >
         <ChevronLeft className="w-4 h-4" strokeWidth={1.6} />
-        <span>{isEn ? 'My points' : 'Mes points'}</span>
+        <span>Discover</span>
       </button>
 
       {/* Titre massif 2 lignes */}
@@ -297,10 +300,24 @@ export const FlashDropsView: React.FC = () => {
 
           {/* Carte Mystery Drop avec bordure dorée — arrondi 22px + animation de révélation */}
           <section className="rounded-[22px] bg-gradient-to-b from-[#17120A] via-[#0E0D0A] to-[#0A0A0A] border border-[#D4AF6A]/45 p-5 sm:p-7 space-y-6 max-w-xl">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-                DROP #04
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
+                  DROP #04
+                </span>
+                <StatusBadge
+                  variant={alreadyClaimedToday ? 'neutral' : 'valid'}
+                  label={
+                    alreadyClaimedToday
+                      ? isEn
+                        ? 'CLAIMED'
+                        : 'EXPIRÉ'
+                      : isEn
+                      ? 'ACTIVE'
+                      : 'ACTIF'
+                  }
+                />
+              </div>
               <span className="text-xs font-agrandir-extrabold text-white">
                 {isEn ? 'Gifted · active members' : 'Offert · membres actifs'}
               </span>
@@ -342,15 +359,6 @@ export const FlashDropsView: React.FC = () => {
                     ? `Available until ${formattedToday} · 14 left`
                     : `Disponible jusqu'au ${formattedToday} · 14 restants`}
                 </p>
-                {!revealedSurprise && !alreadyClaimedToday && (
-                  <div className="pt-1">
-                    <CountdownTimer
-                      initialSeconds={3 * 3600 + 27 * 60 + 44}
-                      spaced
-                      className="text-xs text-[#D4AF6A]"
-                    />
-                  </div>
-                )}
               </motion.div>
             </AnimatePresence>
 
@@ -394,10 +402,13 @@ export const FlashDropsView: React.FC = () => {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors truncate">
-                      {isEn ? 'VIP Lounge Experience' : 'Expérience Lounge VIP'}
-                    </p>
+                  <div className="min-w-0 space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <p className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors truncate">
+                        {isEn ? 'VIP Lounge Experience' : 'Expérience Lounge VIP'}
+                      </p>
+                      <StatusBadge variant="valid" label={isEn ? 'ACTIVE' : 'ACTIF'} />
+                    </div>
                     <p className="text-xs text-[#9A9A9A] truncate">
                       {isEn
                         ? `Until ${tomorrow} · 6 left`
@@ -411,13 +422,7 @@ export const FlashDropsView: React.FC = () => {
               </div>
 
               <div className="py-4 flex items-center justify-between gap-4">
-                <button
-                  type="button"
-                  onClick={() =>
-                    primaryEvent ? handleBookEvent(primaryEvent) : setCurrentPage('rewards')
-                  }
-                  className="flex items-center gap-3.5 min-w-0 flex-1 text-left group cursor-pointer"
-                >
+                <div className="flex items-center gap-3.5 min-w-0 flex-1 text-left">
                   <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-[#141414] border border-white/[0.12] shrink-0">
                     <img
                       src={
@@ -429,15 +434,21 @@ export const FlashDropsView: React.FC = () => {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors truncate">
-                      Cadeau {primaryEvent?.artist || 'DOPELYM'}
-                    </p>
+                  <div className="min-w-0 space-y-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-agrandir-extrabold text-sm sm:text-base text-white truncate">
+                        Cadeau {primaryEvent?.artist || 'DOPELYM'}
+                      </p>
+                      <StatusBadge
+                        variant="study"
+                        label={isEn ? 'COMING SOON' : 'BIENTÔT DISPONIBLE'}
+                      />
+                    </div>
                     <p className="text-xs text-[#9A9A9A] truncate">
                       {isEn ? 'Linked to 2026 edition' : "Lié à l'édition 2026"}
                     </p>
                   </div>
-                </button>
+                </div>
 
                 <div className="flex items-center gap-2 shrink-0">
                   <button
@@ -469,12 +480,15 @@ export const FlashDropsView: React.FC = () => {
                         className="w-full h-full object-cover grayscale"
                       />
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-agrandir-extrabold text-sm sm:text-base text-[#C8C8C8] truncate">
-                        Billet offert — {secondaryEvent.artist || secondaryEvent.title}
-                      </p>
+                    <div className="min-w-0 space-y-0.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-agrandir-extrabold text-sm sm:text-base text-[#C8C8C8] truncate">
+                          Billet offert — {secondaryEvent.artist || secondaryEvent.title}
+                        </p>
+                        <StatusBadge variant="neutral" label={isEn ? 'EXPIRED' : 'EXPIRÉ'} />
+                      </div>
                       <p className="text-xs text-[#9A9A9A]">
-                        {isEn ? 'Ended' : 'Terminé'}
+                        {isEn ? 'Operation ended' : 'Opération terminée'}
                       </p>
                     </div>
                   </div>
@@ -521,11 +535,26 @@ export const FlashDropsView: React.FC = () => {
           {/* Offre Flash POINTS dédiée */}
           <article className="rounded-[20px] bg-[#0E0E0E] border border-[#D4AF6A]/40 p-5 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <StatusBadge variant="points" label="POINTS" />
-              <div className="flex items-center gap-2 text-xs text-[#C8C8C8]">
-                <span className="text-[#9A9A9A]">{isEn ? 'Ends in' : 'Fin dans'}</span>
-                <CountdownTimer initialSeconds={1 * 3600 + 48 * 60 + 22} className="text-[#D4AF6A]" />
+              <div className="flex items-center gap-2">
+                <StatusBadge variant="points" label="POINTS" />
+                <StatusBadge
+                  variant={flashPassAlreadyClaimed ? 'neutral' : 'valid'}
+                  label={
+                    flashPassAlreadyClaimed
+                      ? isEn
+                        ? 'CLAIMED'
+                        : 'OBTENU'
+                      : isEn
+                      ? 'ACTIVE'
+                      : 'ACTIF'
+                  }
+                />
               </div>
+              {!flashPassAlreadyClaimed && (
+                <span className="text-xs text-[#C8C8C8] tabular-nums">
+                  {isEn ? `Until ${tomorrow}` : `Jusqu'au ${tomorrow}`}
+                </span>
+              )}
             </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -550,13 +579,15 @@ export const FlashDropsView: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => handleRedeemPointsFlash('Pass Flash — Balances & Lounge', 650)}
-                className="min-h-[42px] px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs whitespace-nowrap cursor-pointer shrink-0 lum-press"
-              >
-                {isEn ? 'Redeem 650 pts' : 'Échanger · 650 pts'}
-              </button>
+              {!flashPassAlreadyClaimed && (
+                <button
+                  type="button"
+                  onClick={() => handleRedeemPointsFlash('Pass Flash — Balances & Lounge', 650)}
+                  className="min-h-[42px] px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs whitespace-nowrap cursor-pointer shrink-0 lum-press"
+                >
+                  {isEn ? 'Redeem 650 pts' : 'Échanger · 650 pts'}
+                </button>
+              )}
             </div>
 
             <div className="space-y-1.5 pt-1">
@@ -588,23 +619,19 @@ export const FlashDropsView: React.FC = () => {
                     className="rounded-[20px] bg-[#0E0E0E] border border-white/[0.12] p-5 space-y-4"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <StatusBadge variant="paid" label={isEn ? 'PAID' : 'PAYANT'} />
-                      <div className="flex items-center gap-2 text-xs">
-                        <span className="text-[#9A9A9A]">{isEn ? 'Ends in' : 'Fin dans'}</span>
-                        <CountdownTimer
-                          initialSeconds={(idx + 2) * 3600 + 19 * 60 + 11}
-                          className="text-white"
-                        />
+                      <div className="flex items-center gap-2">
+                        <StatusBadge variant="paid" label={isEn ? 'PAID' : 'PAYANT'} />
+                        <StatusBadge variant="valid" label={isEn ? 'ACTIVE' : 'ACTIF'} />
                       </div>
+                      <span className="text-xs text-[#C8C8C8] tabular-nums">
+                        {formatDateLong(event.date, language)}
+                      </span>
                     </div>
 
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <button
                         type="button"
-                        onClick={() => {
-                          setSelectedEventSlug(event.slug);
-                          setCurrentPage('concert_detail');
-                        }}
+                        onClick={() => setCheckoutEvent(event)}
                         className="flex items-center gap-3.5 text-left min-w-0 flex-1 cursor-pointer group"
                       >
                         <div className="w-16 h-16 rounded-[14px] overflow-hidden bg-[#141414] border border-white/[0.12] shrink-0">
