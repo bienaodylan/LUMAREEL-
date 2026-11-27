@@ -335,13 +335,13 @@ export const CheckoutModal: React.FC = () => {
   };
 
   const handleTriggerPayment = async () => {
-    if (!currentUser || !currentUser.emailVerified) {
+    if (!currentUser) {
       setIsAuthModalOpen(true);
       showToast(
         isEn
-          ? 'Sign in with a verified email to purchase tickets.'
-          : 'Connectez-vous avec un e-mail vérifié pour acheter des billets.',
-        'error'
+          ? 'Sign in or create an account to complete your ticket booking.'
+          : 'Connectez-vous ou créez un compte pour finaliser votre réservation.',
+        'info'
       );
       return;
     }
@@ -390,6 +390,7 @@ export const CheckoutModal: React.FC = () => {
           quantity: totalQuantity,
           items: selectedItems,
           paymentProvider: paymentMethod,
+          eventSnapshot: checkoutEvent,
         }),
       });
       const orderData = await orderRes.json();
@@ -425,8 +426,32 @@ export const CheckoutModal: React.FC = () => {
         );
       }
 
-      setPaymetrustTx(initData.transaction);
+      const tx = initData.transaction;
+      if (tx.mode === 'live' && tx.paymentUrl) {
+        setPaymetrustTx(tx);
+        setStep(4);
+        return;
+      }
+
+      // Mode effectif de test : validation immédiate du règlement et émission réelle des billets certifiés
+      const confirmRes = await fetch('/api/payments/paymetrust/confirm-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference: tx.reference }),
+      });
+      const confirmData = await confirmRes.json();
+      if (!confirmRes.ok || !confirmData?.success || !confirmData?.fulfillment?.order) {
+        throw new Error(
+          confirmData?.error ||
+            (isEn ? 'Unable to confirm payment.' : 'Impossible de valider le paiement.')
+        );
+      }
+
       setStep(4);
+      applyConfirmedOrder(
+        confirmData.fulfillment.order,
+        confirmData.fulfillment.tickets || confirmData.fulfillment.order.tickets || []
+      );
     } catch (err: any) {
       showToast(err?.message || t('checkout.errUnexpected'), 'error');
     } finally {
@@ -570,8 +595,8 @@ export const CheckoutModal: React.FC = () => {
         className="sticky top-0 z-30 border-b border-white/[0.1] bg-black/95 backdrop-blur-xl"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))' }}
       >
-        <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 pb-4">
-          <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 pb-3.5">
+          <div className="flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={handleStepBack}
@@ -599,49 +624,7 @@ export const CheckoutModal: React.FC = () => {
               )}
             </div>
 
-            <div className="min-w-[74px] flex justify-end shrink-0">
-              <span className="text-[11px] font-mono text-[#9A9A9A] tabular-nums">
-                0{step} / 04
-              </span>
-            </div>
-          </div>
-
-          {/* Rail 4 étapes sobre et éditorial */}
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              { num: 1, label: isEn ? 'Tickets' : 'Billets' },
-              { num: 2, label: isEn ? 'Details' : 'Infos' },
-              { num: 3, label: isEn ? 'Payment' : 'Paiement' },
-              { num: 4, label: isEn ? 'Ready' : 'Confirmé' },
-            ].map((s) => {
-              const isActive = step === s.num;
-              const isDone = step > s.num;
-              return (
-                <div key={s.num} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[10px] font-agrandir-semibold uppercase tracking-[0.12em]">
-                    <span
-                      className={`font-mono ${
-                        isActive ? 'text-[#D4AF6A]' : isDone ? 'text-white' : 'text-[#666]'
-                      }`}
-                    >
-                      0{s.num}
-                    </span>
-                    <span
-                      className={`hidden sm:inline truncate ${
-                        isActive ? 'text-white' : isDone ? 'text-[#C8C8C8]' : 'text-[#666]'
-                      }`}
-                    >
-                      {s.label}
-                    </span>
-                  </div>
-                  <div
-                    className={`h-[2px] w-full rounded-full transition-colors duration-300 ${
-                      isActive ? 'bg-[#D4AF6A]' : isDone ? 'bg-white' : 'bg-white/[0.12]'
-                    }`}
-                  />
-                </div>
-              );
-            })}
+            <div className="min-w-[74px] shrink-0" aria-hidden="true" />
           </div>
         </div>
       </header>

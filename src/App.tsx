@@ -26,11 +26,21 @@ import { SuggestionsView } from './components/SuggestionsView';
 import { DiscoverDetailView } from './components/DiscoverDetailView';
 import { ContactView } from './components/ContactView';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { AppSplashScreen } from './components/AppSplashScreen';
 import { saveStoredMemberCard } from './utils/memberCardStorage';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const MainApp: React.FC = () => {
-  const { currentPage, setCurrentPage, toast, showToast, refreshCustomerOrders, refreshEvents, language, hideBottomNav } = useApp();
+  const { currentPage, setCurrentPage, toast, showToast, refreshCustomerOrders, refreshEvents, language, hideBottomNav, platformSettings } = useApp();
+  const [showSplash, setShowSplash] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const search = window.location.search || '';
+    const pathname = window.location.pathname || '';
+    if (search.includes('payment_status=') || pathname.includes('/auth/callback')) {
+      return false;
+    }
+    return true;
+  });
 
   // Vérification automatique au retour de la page de paiement PayMeTrust (?payment_status=...&ref=PMT-...)
   useEffect(() => {
@@ -138,6 +148,16 @@ const MainApp: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full max-w-full bg-black text-white flex flex-col justify-between selection:bg-[#D4AF6A] selection:text-black font-agrandir-regular relative">
+      {/* Splash page d'ouverture avec barre d'évolution et logo actuel en bas */}
+      <AnimatePresence>
+        {showSplash && (
+          <AppSplashScreen
+            logoUrl={platformSettings?.logoUrl || '/assets/logo-lumareel.png'}
+            onFinish={() => setShowSplash(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Indicateur hors-ligne discret pour la PWA */}
       <OfflineIndicator />
 

@@ -53,10 +53,10 @@ const CARD_COPY = {
     footnote: "Adhésion ouverte · paiement Mobile Money ou carte · conditions d'adhésion",
     memberLabel: 'MEMBRE',
     yourNamePlaceholder: 'VOTRE NOM',
-    // Wizard (4 steps: Name -> Contact/Delivery -> Payment -> Confirmation)
-    wizHeader: (s: number) => `ADHÉSION · ÉTAPE ${s} / 4`,
+    // Tunnel d'adhésion (étapes masquées)
+    wizHeader: () => 'ADHÉSION BLACK CARD',
     wizTitle: 'LUMARÉEL Black Card',
-    wiz1Title: '1. Votre nom complet',
+    wiz1Title: 'Votre nom complet',
     wiz1Sub: 'Gravé sur votre carte physique NFC et lié à votre statut membre.',
     wiz1Label: 'Nom complet *',
     wiz1Plan: 'Formule choisie',
@@ -64,7 +64,7 @@ const CARD_COPY = {
     wiz1PlanDesc: 'Carte numérique immédiate + carte physique NFC (statut membre, hors paiement)',
     wiz1Valid: 'Adhésion',
     wiz1Next: 'Continuer',
-    wiz2Title: '2. Coordonnées & remise',
+    wiz2Title: 'Coordonnées & remise',
     wiz2Sub: 'Pour activer votre statut membre et vous remettre votre carte NFC.',
     wiz2Email: 'E-mail *',
     wiz2Phone: 'Téléphone *',
@@ -72,7 +72,7 @@ const CARD_COPY = {
     wiz2Address: 'Quartier / Adresse *',
     wiz2Back: 'Retour',
     wiz2Next: 'Continuer',
-    wiz3Title: '3. Règlement de l’adhésion',
+    wiz3Title: 'Règlement de l’adhésion',
     wiz3Sub: 'Votre statut membre et votre carte numérique s’activent dès validation.',
     wiz3Methods: [
       { id: 'wave', label: 'Wave', desc: '0% frais' },
@@ -139,9 +139,9 @@ const CARD_COPY = {
     footnote: 'Open membership · Mobile Money or card payment · membership terms apply',
     memberLabel: 'MEMBER',
     yourNamePlaceholder: 'YOUR NAME',
-    wizHeader: (s: number) => `MEMBERSHIP · STEP ${s} / 4`,
+    wizHeader: () => 'BLACK CARD MEMBERSHIP',
     wizTitle: 'LUMARÉEL Black Card',
-    wiz1Title: '1. Your Full Name',
+    wiz1Title: 'Your Full Name',
     wiz1Sub: 'Linked to your member account and engraved on your physical NFC card.',
     wiz1Label: 'Full name *',
     wiz1Plan: 'Selected Plan',
@@ -149,7 +149,7 @@ const CARD_COPY = {
     wiz1PlanDesc: 'Instant digital card + physical NFC card (status card, non-payment)',
     wiz1Valid: 'Membership',
     wiz1Next: 'Continue',
-    wiz2Title: '2. Contact & Handover',
+    wiz2Title: 'Contact & Handover',
     wiz2Sub: 'Used to activate your status and coordinate physical NFC card handover.',
     wiz2Email: 'Email *',
     wiz2Phone: 'Mobile Phone *',
@@ -157,7 +157,7 @@ const CARD_COPY = {
     wiz2Address: 'District / Address *',
     wiz2Back: 'Back',
     wiz2Next: 'Continue',
-    wiz3Title: '3. Membership Payment',
+    wiz3Title: 'Membership Payment',
     wiz3Sub: 'Your LUMARÉEL Black Card activates immediately upon confirmation.',
     wiz3Methods: [
       { id: 'wave', label: 'Wave', desc: '0% fee' },
@@ -393,13 +393,13 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
   const handleCompleteAdmission = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !currentUser.emailVerified) {
+    if (!currentUser) {
       setIsAuthModalOpen(true);
       showToast(
         language === 'en'
-          ? 'Sign in with a verified email to join the Black Card circle.'
-          : 'Connectez-vous avec un e-mail vérifié pour adhérer à la Black Card.',
-        'error'
+          ? 'Sign in or create an account to join the Black Card circle.'
+          : 'Connectez-vous ou créez un compte pour adhérer à la Black Card.',
+        'info'
       );
       return;
     }
@@ -718,7 +718,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 className="fixed bottom-24 right-4 z-[90] min-h-[44px] px-4 rounded-full bg-[#D4AF6A] text-black font-agrandir-extrabold text-xs shadow-2xl flex items-center gap-2 cursor-pointer"
               >
                 <span>{c.wizTitle}</span>
-                <span className="font-mono">({wizardStep}/4)</span>
               </motion.button>
             )}
 
@@ -739,16 +738,16 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 24 }}
                   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  className="relative w-full max-w-xl max-h-[90dvh] sm:max-h-[86vh] flex flex-col overflow-hidden bg-[#090909] rounded-t-[16px] sm:rounded-[12px] border-t sm:border border-white/[0.14] shadow-[0_24px_80px_rgba(0,0,0,0.95)] text-left touch-auto"
+                  className="relative w-full max-w-xl max-h-[90dvh] sm:max-h-[86vh] flex flex-col overflow-hidden bg-[#090909] rounded-t-[24px] sm:rounded-[20px] border-t sm:border border-white/[0.14] shadow-[0_24px_80px_rgba(0,0,0,0.95)] text-left touch-auto"
                 >
-                  {/* En-tête fixe signature */}
+                  {/* En-tête fixe sobre sans numéros d'étapes */}
                   <div className="shrink-0 px-5 sm:px-6 pt-3 sm:pt-5 pb-4 border-b border-white/[0.1] bg-[#090909]">
                     <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-3 sm:hidden" />
 
-                    <div className="flex items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#D4AF6A] block">
-                          BLACK CARD · 0{wizardStep}/04
+                          {c.wizHeader()}
                         </span>
                         <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white uppercase mt-0.5 truncate">
                           {c.wizTitle}
@@ -773,56 +772,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                           <X className="w-4 h-4" strokeWidth={1.6} />
                         </button>
                       </div>
-                    </div>
-
-                    {/* Rail 4 étapes aligné avec le tunnel billetterie */}
-                    <div className="grid grid-cols-4 gap-2">
-                      {[
-                        { num: 1, label: isEn ? 'Identity' : 'Titulaire' },
-                        { num: 2, label: isEn ? 'NFC Box' : 'Remise NFC' },
-                        { num: 3, label: isEn ? 'Payment' : 'Règlement' },
-                        { num: 4, label: isEn ? 'Circle' : 'Cercle' },
-                      ].map((s) => {
-                        const isActive = wizardStep === s.num;
-                        const isDone = wizardStep > s.num;
-                        return (
-                          <div key={s.num} className="space-y-1.5">
-                            <div className="flex items-center justify-between text-[10px] font-agrandir-semibold uppercase tracking-[0.12em]">
-                              <span
-                                className={`font-mono ${
-                                  isActive
-                                    ? 'text-[#D4AF6A]'
-                                    : isDone
-                                    ? 'text-white'
-                                    : 'text-[#666]'
-                                }`}
-                              >
-                                0{s.num}
-                              </span>
-                              <span
-                                className={`hidden sm:inline truncate ${
-                                  isActive
-                                    ? 'text-white'
-                                    : isDone
-                                    ? 'text-[#C8C8C8]'
-                                    : 'text-[#666]'
-                                }`}
-                              >
-                                {s.label}
-                              </span>
-                            </div>
-                            <div
-                              className={`h-[2px] w-full rounded-full transition-colors duration-300 ${
-                                isActive
-                                  ? 'bg-[#D4AF6A]'
-                                  : isDone
-                                  ? 'bg-white'
-                                  : 'bg-white/[0.12]'
-                              }`}
-                            />
-                          </div>
-                        );
-                      })}
                     </div>
                   </div>
 

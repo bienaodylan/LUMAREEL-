@@ -523,7 +523,7 @@ async function startServer() {
   // 5. Checkout & Ticketing Orders
   app.post('/api/orders/checkout', (req: Request, res: Response) => {
     try {
-      const { customerId, customerName, customerEmail, customerPhone, eventId, categoryId, quantity, items, paymentProvider } = req.body;
+      const { customerId, customerName, customerEmail, customerPhone, eventId, categoryId, quantity, items, paymentProvider, eventSnapshot } = req.body;
       if (!customerEmail || !eventId || (!categoryId && (!Array.isArray(items) || items.length === 0))) {
         return res.status(400).json({ success: false, error: 'Données de commande incomplètes.' });
       }
@@ -538,6 +538,7 @@ async function startServer() {
         quantity: Number(quantity || 1),
         paymentProvider: paymentProvider || 'paymetrust',
         items,
+        eventSnapshot,
       });
 
       if (!result.success) {
