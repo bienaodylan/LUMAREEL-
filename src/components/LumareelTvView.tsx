@@ -94,7 +94,7 @@ const TvHorizontalShelf: React.FC<HorizontalShelfProps> = ({
   };
 
   return (
-    <section className="space-y-3">
+    <section id="lumareel-tv-catalogue" className="space-y-3">
       <div className="flex items-end justify-between gap-4">
         <div>
           {kicker && (
@@ -817,7 +817,9 @@ export const LumareelTvView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => {
-                  if (plans.length > 0) {
+                  if (entitlement.hasAccess) {
+                    document.getElementById('lumareel-tv-catalogue')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  } else if (plans.length > 0) {
                     plansSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
                   } else {
                     openSubscribeFlow();
@@ -826,7 +828,7 @@ export const LumareelTvView: React.FC = () => {
                 className="min-h-[40px] sm:min-h-[44px] w-full sm:w-auto justify-center px-4 sm:px-6 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-[11px] sm:text-sm font-agrandir-extrabold inline-flex items-center gap-2 transition-colors cursor-pointer lum-press"
               >
                 <Tv className="w-4 h-4" strokeWidth={1.8} />
-                <span>{isEn ? 'Subscribe to TV Pass' : 'S’abonner à LUMARÉEL TV'}</span>
+                <span>{entitlement.hasAccess ? (isEn ? 'Explore the catalogue' : 'Explorer le catalogue') : (isEn ? 'Subscribe to TV Pass' : 'S’abonner à LUMARÉEL TV')}</span>
               </button>
 
               <button
