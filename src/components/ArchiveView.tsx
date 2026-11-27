@@ -49,6 +49,7 @@ interface ArchiveEventEntry {
   youtubeEmbedUrl: string;
   duration?: string;
   photos: string[];
+  isDemo: boolean;
 }
 
 type SouvenirTabId = 'official' | 'highlights' | 'videos' | 'participants';
@@ -98,6 +99,7 @@ function mergePublicArchives(
       youtubeEmbedUrl: item.youtubeEmbedUrl || matchedAlbum?.recapEmbedUrl || '',
       duration: item.duration || matchedAlbum?.recapDuration,
       photos,
+      isDemo: Boolean(item.isDemo),
     });
   }
 
@@ -122,6 +124,7 @@ function mergePublicArchives(
       youtubeEmbedUrl: album.recapEmbedUrl,
       duration: album.recapDuration,
       photos,
+      isDemo: false,
     });
   }
 
@@ -1415,6 +1418,12 @@ export const ArchiveView: React.FC = () => {
         )}
       </div>
 
+      {entries.some((entry) => entry.isDemo) && (
+        <div className="mb-5 rounded-xl border border-[#D4AF6A]/25 bg-[#D4AF6A]/[0.06] px-4 py-3 text-[11px] leading-relaxed text-[#D8C49F]">
+          Aperçu de démonstration : ces fiches servent à visualiser la présentation des archives. Remplacez-les par vos archives officielles depuis l’administration.
+        </div>
+      )}
+
       {filteredEntries.length === 0 ? (
         <div className="py-14 px-6 text-center rounded-[18px] bg-[#0E0E0E] border border-white/[0.12] max-w-md mx-auto space-y-2">
           <Film className="w-7 h-7 text-[#D4AF6A] mx-auto" strokeWidth={1.6} />
@@ -1423,53 +1432,40 @@ export const ArchiveView: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="divide-y divide-white/[0.10] border-y border-white/[0.10]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           {filteredEntries.map((ev) => (
             <button
               key={ev.id}
               type="button"
               onClick={() => openRecap(ev.id)}
-              className="w-full py-4 flex items-center gap-4 text-left group cursor-pointer"
+              className="group min-w-0 overflow-hidden rounded-[16px] border border-white/[0.10] bg-[#0B0B0B] text-left cursor-pointer transition-colors hover:border-white/30"
             >
-              <div className="w-[74px] sm:w-[88px] aspect-[3/4] rounded-[13px] overflow-hidden bg-[#0E0E0E] border border-white/[0.12] group-hover:border-white/35 shrink-0 transition-colors">
+              <div className="relative aspect-[16/9] overflow-hidden bg-[#111]">
                 <img
                   src={ev.coverImage}
                   alt={ev.title}
                   referrerPolicy="no-referrer"
                   loading="lazy"
-                  className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                 />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent" />
+                <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+                  {ev.isDemo && <span className="rounded-full border border-[#D4AF6A]/50 bg-black/70 px-2.5 py-1 text-[9px] font-agrandir-extrabold uppercase tracking-[0.14em] text-[#D4AF6A]">Aperçu</span>}
+                </div>
+                <span className="absolute bottom-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-black transition-transform group-hover:translate-x-0.5">
+                  <ChevronRight className="h-4 w-4" strokeWidth={1.7} />
+                </span>
               </div>
-
-              <div className="min-w-0 flex-1 space-y-1">
-                <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.16em] text-[#D4AF6A] truncate">
-                  {ev.dateLabel}
-                </p>
-                <h2 className="font-agrandir-extrabold text-base sm:text-lg text-white group-hover:text-[#D4AF6A] transition-colors truncate">
-                  {ev.artist}
-                </h2>
-                <p className="text-xs text-[#9A9A9A] truncate">
-                  {ev.venue}
-                  {ev.city ? `, ${ev.city}` : ''}
-                </p>
-                <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] text-[#C8C8C8]">
-                  <span className="inline-flex items-center gap-1">
-                    <ImageIcon className="w-3 h-3 text-[#9A9A9A]" strokeWidth={1.6} />
-                    <span>{ev.photos.length} photos</span>
-                  </span>
-                  {ev.youtubeEmbedUrl && (
-                    <span className="inline-flex items-center gap-1">
-                      <Play className="w-3 h-3 text-[#D4AF6A]" strokeWidth={1.6} />
-                      <span>{isEn ? 'Recap video' : 'Récap vidéo'}</span>
-                    </span>
-                  )}
+              <div className="space-y-2 p-4">
+                <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.16em] text-[#D4AF6A]">{ev.dateLabel}</p>
+                <h2 className="line-clamp-1 font-agrandir-extrabold text-base text-white transition-colors group-hover:text-[#D4AF6A]">{ev.artist}</h2>
+                <p className="line-clamp-2 text-xs leading-relaxed text-[#C8C8C8]">{ev.title}</p>
+                <p className="truncate text-[11px] text-[#858585]">{ev.venue}{ev.city ? `, ${ev.city}` : ''}</p>
+                <div className="flex flex-wrap items-center gap-3 pt-1 text-[10px] text-[#AFAFAF]">
+                  <span className="inline-flex items-center gap-1"><ImageIcon className="h-3 w-3 text-[#9A9A9A]" strokeWidth={1.6} />{ev.photos.length} photos</span>
+                  {ev.youtubeEmbedUrl && <span className="inline-flex items-center gap-1"><Play className="h-3 w-3 text-[#D4AF6A]" strokeWidth={1.6} />{isEn ? 'Recap video' : 'Vidéo récap'}</span>}
                 </div>
               </div>
-
-              <ChevronRight
-                className="w-4 h-4 text-[#777] group-hover:text-white shrink-0 transition-colors"
-                strokeWidth={1.6}
-              />
             </button>
           ))}
         </div>
