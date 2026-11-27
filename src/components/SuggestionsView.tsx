@@ -133,8 +133,8 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = ({ embedded = f
             ? 'Shape the next LUMARÉEL shows: request the artists and venues you want to see live, pitch event concepts, and vote on community favorites.'
             : 'Façonnez les prochains spectacles LUMARÉEL : proposez les artistes et salles que vous rêvez de voir sur scène, soumettez vos idées d’événements et votez pour vos envies.'}
         </p>
-      </header
-      )}>
+      </header>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Colonne gauche : Formulaire de proposition */}
