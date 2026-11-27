@@ -26,7 +26,7 @@ type ArchiveYearFilter = 'all' | '2026' | '2025' | 'concerts';
  * 02 — Explorer (page complète dédiée, 0px sur les cartes/visuels).
  * A Expériences (Backstage, Souvenirs, Flash Drops),
  * B Communauté (Points & Parrainage, Boîte à suggestions),
- * C Pour aller plus loin (Archives filtrables + Actualités).
+ * C Pour aller plus loin (Archives filtrables).
  */
 export const ExplorerView: React.FC = () => {
   const {
@@ -116,24 +116,6 @@ export const ExplorerView: React.FC = () => {
 
   const primaryEvent = publishedEvents[0];
   const secondaryEvent = publishedEvents[1] || publishedEvents[0];
-
-  const newsItems = useMemo(() => {
-    if (news && news.length > 0) return news.slice(0, 3);
-    return [
-      {
-        id: 'ann_1',
-        category: 'ANNONCE',
-        title: primaryEvent
-          ? `${primaryEvent.title} — Billetterie officielle ouverte`
-          : 'Nouvelle saison live LUMARÉEL à Abidjan',
-      },
-      {
-        id: 'ann_2',
-        category: 'COLLABORATION',
-        title: 'Partenariats scéniques & productions 2026',
-      },
-    ];
-  }, [news, primaryEvent]);
 
   return (
     <div
@@ -377,7 +359,7 @@ export const ExplorerView: React.FC = () => {
         </ScrollReveal>
 
         {/* ===================================================================
-            C · POUR ALLER PLUS LOIN (ARCHIVES FILTRABLES + ACTUALITÉS)
+            C · POUR ALLER PLUS LOIN (ARCHIVES FILTRABLES)
            =================================================================== */}
         <ScrollReveal>
           <section id="explorer-section-plus" className="scroll-mt-24 space-y-8">
@@ -461,38 +443,6 @@ export const ExplorerView: React.FC = () => {
               )}
             </div>
 
-            {/* Actualités / Annonces */}
-            <div className="space-y-3 pt-2">
-              <h2 className="font-agrandir-extrabold text-2xl text-white tracking-tight">
-                {isEn ? 'News & Announcements' : 'Actualités'}
-              </h2>
-              <div className="border-t border-white/[0.12] divide-y divide-white/[0.12]">
-                {newsItems.map((item, idx) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      if (idx === 0 && primaryEvent) {
-                        setSelectedEventSlug(primaryEvent.slug);
-                        setCurrentPage('concert_detail');
-                      } else {
-                        setCurrentPage('organizers');
-                      }
-                    }}
-                    className="w-full py-4 text-left group cursor-pointer block"
-                  >
-                    <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-                      {item.category || (idx === 0 ? 'ANNONCE' : 'COLLABORATION')}
-                    </p>
-                    <p className="mt-1 font-agrandir-extrabold text-sm sm:text-base text-white group-hover:text-[#D4AF6A] transition-colors">
-                      {item.title}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </section>
-        </ScrollReveal>
       </div>
     </div>
   );
