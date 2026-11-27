@@ -5,7 +5,6 @@ import {
   SharedConcertMemory,
   buildConcertMemoryAlbums,
   loadSharedMemories,
-  markChallengeCompleted,
   saveSharedMemory,
 } from '../utils/communityStorage';
 import {
@@ -146,11 +145,10 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = ({ embedded
       setUploadPreviewUrl('');
       if (fileInputRef.current) fileInputRef.current.value = '';
 
-      const challengeUnlocked = markChallengeCompleted(currentUser, 'challenge_memory');
       showToast(
-        challengeUnlocked
-          ? (isEn ? 'Memory shared! +100 challenge points added.' : 'Souvenir partagé ! +100 points défi ajoutés.')
-          : (isEn ? 'Your concert memory is now live on this event page.' : 'Votre souvenir est publié sur la page de l’événement.'),
+        isEn
+          ? 'Your concert memory is now live on this event page.'
+          : 'Votre souvenir est publié sur la page de l’événement.',
         'success'
       );
     } finally {
