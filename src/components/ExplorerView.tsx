@@ -441,7 +441,8 @@ export const ExplorerView: React.FC = () => {
                 </p>
               )}
             </div>
-
+          </section>
+        </ScrollReveal>
       </div>
     </div>
   );
