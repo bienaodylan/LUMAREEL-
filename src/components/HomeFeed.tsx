@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import { ConcertEvent } from '../types';
 import { ChevronLeft, ChevronRight, ArrowUpRight, CreditCard, Gift, Clapperboard, Camera, Mic2, Instagram, Facebook } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export const HomeFeed: React.FC = () => {
     language,
     setCheckoutEvent,
   } = useApp();
+  const { isStandalone } = usePWAInstall();
   const isEn = language === 'en';
 
   // Keep the existing event records intact; only present upcoming, non-draft productions here.
@@ -73,7 +75,6 @@ export const HomeFeed: React.FC = () => {
     return parsed.toLocaleDateString(isEn ? 'en-GB' : 'fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
   };
   const handleBuyTickets = (event: ConcertEvent) => {
-    // The existing checkout flow is opened directly, without changing the event record.
     const buyEvent = event;
     setCheckoutEvent(buyEvent);
   };
@@ -84,50 +85,90 @@ export const HomeFeed: React.FC = () => {
   };
 
   const quickAccessItems = [
-    { id: 'black-card', title: 'LUMARÉEL BLACK CARD', subtitle: 'Votre accès privilégié à LUMARÉEL', page: 'member_card' as const, icon: CreditCard },
-    { id: 'gift', title: 'GIFTS, POINTS & PARRAINAGE', subtitle: 'Surprises, ventes flash, points & 500 F CFA par ami', page: 'flash_drops' as const, icon: Gift },
-    { id: 'backstage', title: 'BACKSTAGE', subtitle: 'Balances, sessions studio & contenus exclusifs', page: 'backstage' as const, icon: Clapperboard },
-    { id: 'memories', title: 'MES MOMENTS', subtitle: 'Photos officielles, récaps & souvenirs partagés', page: 'memories' as const, icon: Camera },
-    { id: 'voice', title: 'TA VOIX', subtitle: 'Proposez vos artistes, lieux & idées d’événements', page: 'suggestions' as const, icon: Mic2 },
+    { id: 'black-card', title: 'LUMARÉEL BLACK CARD', subtitle: isEn ? 'Privileged access to LUMARÉEL' : 'Accès privilégié au Club', page: 'member_card' as const, icon: CreditCard },
+    { id: 'gift', title: isEn ? 'GIFT POINTS & REFERRALS' : 'GIFT POINTS & PARRAINAGE', subtitle: isEn ? 'Rewards, surprises, flash sales & 500 FCFA per friend' : 'Récompenses, surprises, ventes flash & 500 F CFA par ami', page: 'rewards' as const, icon: Gift },
+    { id: 'backstage', title: 'BACKSTAGE', subtitle: isEn ? 'Ballon, studio sessions & exclusive content' : 'Ballon, sessions studio & contenus exclusifs', page: 'backstage' as const, icon: Clapperboard },
+    { id: 'memories', title: isEn ? 'MY MOMENTS' : 'MES MOMENTS', subtitle: isEn ? 'Official photos, recaps & shared memories' : 'Photos officielles, récaps & souvenirs partagés', page: 'memories' as const, icon: Camera },
+    { id: 'voice', title: isEn ? 'YOUR VOICE' : 'TA VOIX', subtitle: isEn ? 'Suggest artists, venues & event ideas' : 'Proposez vos artistes, lieux & idées d’événements', page: 'suggestions' as const, icon: Mic2 },
   ];
 
   return (
-    <div className="home-editorial w-full min-h-screen max-w-full overflow-x-clip bg-[#050505] pb-0 text-white">
-      <section id="home-upcoming-events" className="home-events w-full pt-[calc(4.1rem+env(safe-area-inset-top,0px))] sm:pt-7">
-        <div className="mb-3 flex items-center justify-between border-b border-white/15 px-4 pb-2.5 sm:px-7 lg:px-10">
-          <h2 className="text-lg font-agrandir-extrabold uppercase tracking-[-0.025em] sm:text-2xl">ÉVÉNEMENTS</h2>
-          <button type="button" onClick={handleViewAll} className="inline-flex min-h-9 items-center gap-2 text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em] text-white transition-opacity hover:opacity-65">
-            VOIR TOUT <ArrowUpRight className="h-4 w-4" />
+    <div
+      className={`home-editorial w-full max-w-full overflow-x-clip bg-[#050505] text-white flex flex-col justify-between h-[100dvh] overflow-y-hidden sm:h-auto sm:min-h-screen sm:overflow-y-visible ${
+        isStandalone ? 'pb-[calc(4.6rem+env(safe-area-inset-bottom,0px))] sm:pb-0' : 'pb-[env(safe-area-inset-bottom,0px)] sm:pb-0'
+      }`}
+    >
+      <section
+        id="home-upcoming-events"
+        className="home-events w-full shrink-0 pt-[calc(3.55rem+env(safe-area-inset-top,0px))] sm:pt-7"
+      >
+        <div className="mb-2 flex items-center justify-between border-b border-white/15 px-4 pb-1.5 sm:mb-3 sm:px-7 sm:pb-2.5 lg:px-10">
+          <h2 className="text-[15px] font-agrandir-extrabold uppercase tracking-[-0.025em] sm:text-2xl">
+            {isEn ? 'EVENTS' : 'ÉVÉNEMENTS'}
+          </h2>
+          <button
+            type="button"
+            onClick={handleViewAll}
+            className="inline-flex min-h-8 items-center gap-1.5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.12em] text-white transition-opacity hover:opacity-65 cursor-pointer sm:min-h-9 sm:gap-2"
+          >
+            {isEn ? 'VIEW ALL' : 'VOIR TOUT'} <ArrowUpRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
         </div>
 
         {activeSlides.length > 0 ? (
           <>
             <div className="hidden justify-end gap-2 px-7 pb-2 md:flex lg:px-10">
-              <button type="button" onClick={() => scrollToSlide((currentSlideIndex - 1 + activeSlides.length) % activeSlides.length)} aria-label="Événement précédent" className="flex h-9 w-9 items-center justify-center border border-white/25 text-white hover:bg-white hover:text-black"><ChevronLeft className="h-4 w-4" /></button>
-              <button type="button" onClick={() => scrollToSlide((currentSlideIndex + 1) % activeSlides.length)} aria-label="Événement suivant" className="flex h-9 w-9 items-center justify-center border border-white/25 text-white hover:bg-white hover:text-black"><ChevronRight className="h-4 w-4" /></button>
+              <button type="button" onClick={() => scrollToSlide((currentSlideIndex - 1 + activeSlides.length) % activeSlides.length)} aria-label="Événement précédent" className="flex h-9 w-9 items-center justify-center border border-white/25 text-white hover:bg-white hover:text-black cursor-pointer"><ChevronLeft className="h-4 w-4" /></button>
+              <button type="button" onClick={() => scrollToSlide((currentSlideIndex + 1) % activeSlides.length)} aria-label="Événement suivant" className="flex h-9 w-9 items-center justify-center border border-white/25 text-white hover:bg-white hover:text-black cursor-pointer"><ChevronRight className="h-4 w-4" /></button>
             </div>
-            <div ref={featuredRowRef} onScroll={handleContainerScroll} className="home-events-track flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-4 pb-3 pt-1 sm:gap-4 sm:px-7 lg:gap-5 lg:px-10" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            <div
+              ref={featuredRowRef}
+              onScroll={handleContainerScroll}
+              className="home-events-track flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-4 pb-1.5 pt-0.5 sm:gap-4 sm:px-7 sm:pb-3 sm:pt-1 lg:gap-5 lg:px-10"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
               {activeSlides.map((event, index) => (
                 <div
                   key={event.id}
                   ref={(element) => { cardRefs.current[index] = element; }}
-                  className="home-event-card w-[78vw] max-w-[390px] shrink-0 snap-start bg-transparent text-left sm:w-[42vw] lg:w-[30vw]"
+                  className="home-event-card w-[68vw] max-w-[280px] shrink-0 snap-start bg-transparent text-left sm:w-[42vw] sm:max-w-[390px] lg:w-[30vw]"
                 >
-                  <button type="button" onClick={() => handleViewDetails(event)} className="home-event-media group block w-full overflow-hidden rounded-[18px] bg-[#111] text-left" aria-label={`${event.artist} — ${isEn ? 'Event details' : 'Détails du concert'}`}>
+                  <button
+                    type="button"
+                    onClick={() => handleViewDetails(event)}
+                    className="home-event-media group block w-full overflow-hidden rounded-[14px] sm:rounded-[18px] bg-[#111] text-left cursor-pointer"
+                    aria-label={`${event.artist} — ${isEn ? 'Event details' : 'Détails du concert'}`}
+                  >
                     <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#111]">
-                      <img src={event.officialPoster || event.bannerImage} alt={event.title || event.artist} referrerPolicy="no-referrer" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+                      <img
+                        src={event.officialPoster || event.bannerImage}
+                        alt={event.title || event.artist}
+                        referrerPolicy="no-referrer"
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                      />
                     </div>
                   </button>
-                  <div className="pt-3">
-                    <h3 className="truncate text-base font-agrandir-extrabold uppercase leading-tight tracking-[-0.02em] text-white sm:text-xl">{event.artist} EN CONCERT</h3>
-                    <p className="mt-1 truncate text-[11px] font-agrandir-semibold text-white/65 sm:text-xs">{event.venue}{event.city ? ` · ${event.city}` : ''} · {formatEventDate(event.date)}</p>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => handleBuyTickets(event)} className="home-event-action inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-white px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.08em] text-black transition-colors hover:bg-white/85 sm:text-[10px]">
+                  <div className="pt-2 sm:pt-3">
+                    <h3 className="truncate text-sm font-agrandir-extrabold uppercase leading-tight tracking-[-0.02em] text-white sm:text-xl">
+                      {event.artist} EN CONCERT
+                    </h3>
+                    <p className="mt-0.5 truncate text-[10px] font-agrandir-semibold text-white/60 sm:mt-1 sm:text-xs">
+                      {event.venue}{event.city ? ` · ${event.city}` : ''} · {formatEventDate(event.date)}
+                    </p>
+                    <div className="mt-2 grid grid-cols-2 gap-1.5 sm:mt-3 sm:gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleBuyTickets(event)}
+                        className="home-event-action inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-[10px] bg-white px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.08em] text-black transition-colors hover:bg-white/85 cursor-pointer sm:min-h-11 sm:gap-2 sm:text-[10px]"
+                      >
                         <span aria-hidden="true">▣</span> {isEn ? 'Buy tickets' : 'Acheter tickets'}
                       </button>
-                      <button type="button" onClick={() => handleViewDetails(event)} className="home-event-action inline-flex min-h-11 items-center justify-center rounded-[10px] border border-white/35 px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.06em] text-white transition-colors hover:bg-white hover:text-black sm:text-[10px]">
-                        {isEn ? 'Concert details' : 'Détails du concert'}
+                      <button
+                        type="button"
+                        onClick={() => handleViewDetails(event)}
+                        className="home-event-action inline-flex min-h-[38px] items-center justify-center rounded-[10px] border border-white/30 px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.06em] text-white transition-colors hover:bg-white hover:text-black cursor-pointer sm:min-h-11 sm:text-[10px]"
+                      >
+                        {isEn ? 'Details' : 'Détails'}
                       </button>
                     </div>
                   </div>
@@ -136,38 +177,62 @@ export const HomeFeed: React.FC = () => {
             </div>
           </>
         ) : (
-          <div className="px-4 py-8 text-xs uppercase tracking-wider text-white/50">{isEn ? 'No upcoming events at the moment.' : 'Aucun événement à venir pour le moment.'}</div>
+          <div className="px-4 py-6 text-xs uppercase tracking-wider text-white/50 sm:px-7 lg:px-10">
+            {isEn ? 'No upcoming events at the moment.' : 'Aucun événement à venir pour le moment.'}
+          </div>
         )}
       </section>
 
-      <section className="home-quick-access mx-auto mt-6 w-full px-2 sm:px-7 lg:px-10" aria-label={isEn ? "Quick access" : "Accès rapide"}>
-        <div className="overflow-hidden rounded-[26px] border border-white/15 bg-[#0b0b0b] px-3 sm:px-6">
+      <section
+        className="home-quick-access mx-auto mt-2 w-full shrink-0 px-3 sm:mt-6 sm:px-7 lg:px-10"
+        aria-label={isEn ? 'Quick access' : 'Accès rapide'}
+      >
+        <div className="overflow-hidden rounded-[20px] border border-white/12 bg-[#0b0b0b] px-3 sm:rounded-[26px] sm:border-white/15 sm:px-6">
           {quickAccessItems.map((item, index) => {
             const Icon = item.icon;
             return (
-              <button key={item.id} type="button" onClick={() => setCurrentPage(item.page)} className="group flex min-h-[82px] w-full items-center gap-3 border-b border-white/10 py-3 text-left last:border-b-0 sm:min-h-[94px] sm:gap-4 sm:py-3.5">
-                <span className={"flex h-[48px] w-[48px] shrink-0 items-center justify-center rounded-[16px] border " + (index === 0 ? "border-white/25 bg-white/[0.09]" : "border-white/10 bg-[#171717]") + " sm:h-[54px] sm:w-[54px]"}>
-                  <Icon className="h-5 w-5 text-white/85 sm:h-[22px] sm:w-[22px]" strokeWidth={1.8} />
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setCurrentPage(item.page)}
+                className="group flex min-h-[44px] w-full items-center gap-3 border-b border-white/[0.08] py-1.5 text-left last:border-b-0 cursor-pointer sm:min-h-[84px] sm:gap-4 sm:border-white/10 sm:py-3.5"
+              >
+                <span
+                  className={
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] border ' +
+                    (index === 0 ? 'border-white/25 bg-white/[0.09]' : 'border-white/10 bg-[#171717]') +
+                    ' sm:h-[52px] sm:w-[52px] sm:rounded-[16px]'
+                  }
+                >
+                  <Icon className="h-4 w-4 text-white/85 sm:h-[21px] sm:w-[21px]" strokeWidth={1.8} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[11px] font-agrandir-extrabold uppercase tracking-[0.08em] text-white sm:text-sm">{item.title}</span>
-                  <span className="mt-0.5 block text-[10px] leading-snug text-neutral-400 sm:text-xs">{item.subtitle}</span>
+                  <span className="block truncate text-[11px] font-agrandir-extrabold uppercase tracking-[0.08em] text-white sm:text-sm">
+                    {item.title}
+                  </span>
+                  <span className="mt-0.5 hidden text-xs leading-snug text-neutral-400 sm:block">
+                    {item.subtitle}
+                  </span>
                 </span>
-                <ChevronRight className="h-5 w-5 shrink-0 text-neutral-500 transition-transform group-hover:translate-x-1 group-hover:text-white" />
+                <ChevronRight className="h-4 w-4 shrink-0 text-neutral-500 transition-transform group-hover:translate-x-1 group-hover:text-white sm:h-5 sm:w-5" />
               </button>
             );
           })}
         </div>
       </section>
 
-      <footer className="mx-auto mt-8 flex w-full max-w-6xl flex-col items-center gap-4 border-t border-white/10 px-5 py-7 text-center sm:flex-row sm:justify-between sm:px-10">
-        <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">© {new Date().getFullYear()} LUMARÉEL</p>
-        <div className="flex items-center gap-5 text-neutral-400">
-          <a href="https://www.instagram.com/lumareelco/" target="_blank" rel="noreferrer" aria-label="Instagram LUMARÉEL" className="transition-colors hover:text-white"><Instagram className="h-5 w-5" /></a>
-          <a href="https://www.facebook.com/share/19oZK7vQvR/?mibextid=wwXIfr" target="_blank" rel="noreferrer" aria-label="Facebook LUMARÉEL" className="transition-colors hover:text-white"><Facebook className="h-5 w-5" /></a>
-          <a href="https://www.tiktok.com/@lumareelco" target="_blank" rel="noreferrer" aria-label="TikTok LUMARÉEL" className="text-[11px] font-agrandir-extrabold uppercase tracking-wider transition-colors hover:text-white">TikTok</a><a href="https://www.snapchat.com/add/lumareelco" target="_blank" rel="noreferrer" aria-label="Snapchat LUMARÉEL" className="text-[11px] font-agrandir-extrabold uppercase tracking-wider transition-colors hover:text-white">Snapchat</a>
+      <footer className="mx-auto mt-1.5 flex w-full max-w-6xl shrink-0 items-center justify-between gap-3 border-t border-white/10 px-4 py-2.5 text-center sm:mt-8 sm:px-10 sm:py-7">
+        <p className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 sm:text-[10px]">
+          © {new Date().getFullYear()} LUMARÉEL
+        </p>
+        <div className="flex items-center gap-3.5 text-neutral-400 sm:gap-5">
+          <a href="https://www.instagram.com/lumareelco/" target="_blank" rel="noreferrer" aria-label="Instagram LUMARÉEL" className="transition-colors hover:text-white"><Instagram className="h-4 w-4 sm:h-5 sm:w-5" /></a>
+          <a href="https://www.facebook.com/share/19oZK7vQvR/?mibextid=wwXIfr" target="_blank" rel="noreferrer" aria-label="Facebook LUMARÉEL" className="transition-colors hover:text-white"><Facebook className="h-4 w-4 sm:h-5 sm:w-5" /></a>
+          <a href="https://www.tiktok.com/@lumareelco" target="_blank" rel="noreferrer" aria-label="TikTok LUMARÉEL" className="text-[10px] font-agrandir-extrabold uppercase tracking-wider transition-colors hover:text-white sm:text-[11px]">TikTok</a>
+          <a href="https://www.snapchat.com/add/lumareelco" target="_blank" rel="noreferrer" aria-label="Snapchat LUMARÉEL" className="text-[10px] font-agrandir-extrabold uppercase tracking-wider transition-colors hover:text-white sm:text-[11px]">Snapchat</a>
         </div>
       </footer>
     </div>
   );
 };
+

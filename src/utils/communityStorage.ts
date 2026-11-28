@@ -301,6 +301,15 @@ export function computeUserPointsSummary(
   };
 }
 
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+function parseConcertDateToDayEndMs(dateStr?: string): number | null {
+  if (!dateStr) return null;
+  const isoDay = String(dateStr).slice(0, 10);
+  const ms = new Date(`${isoDay}T23:59:59`).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
 export function isMemorySharingWindowOpen(dateStr?: string): boolean {
   const concertDayEndMs = parseConcertDateToDayEndMs(dateStr);
   if (concertDayEndMs === null) return false;

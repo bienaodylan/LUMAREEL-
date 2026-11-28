@@ -70,13 +70,13 @@ export const DesktopSidebar: React.FC = () => {
               type="button"
               onClick={() => go(page)}
               aria-current={active ? 'page' : undefined}
-              className={`group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-left text-[14px] leading-snug transition-colors hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] cursor-pointer ${
-                active ? 'font-bold text-[#D4AF37]' : ''
+              className={`group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-left text-[14px] leading-snug transition-colors hover:bg-[#f2f2f2] dark:hover:bg-[#161616] cursor-pointer ${
+                active ? 'font-bold text-black bg-[#f2f2f2] dark:bg-white/[0.08] dark:text-white' : 'text-neutral-400'
               }`}
             >
               <Icon
                 size={20}
-                strokeWidth={active ? 2.4 : 1.85}
+                strokeWidth={active ? 2.3 : 1.75}
                 fill={active && page === 'home' ? 'currentColor' : 'none'}
                 className="shrink-0 transition-transform group-hover:scale-105"
               />
@@ -100,13 +100,13 @@ export const DesktopSidebar: React.FC = () => {
                 type="button"
                 onClick={() => go(page)}
                 aria-current={active ? 'page' : undefined}
-                className={`group flex min-h-10 items-center gap-3 rounded-lg px-3 py-1.5 text-left text-[13.5px] leading-snug transition-colors hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] cursor-pointer ${
-                  active ? 'font-bold text-[#D4AF37]' : 'text-neutral-300'
+                className={`group flex min-h-10 items-center gap-3 rounded-lg px-3 py-1.5 text-left text-[13.5px] leading-snug transition-colors hover:bg-[#f2f2f2] dark:hover:bg-[#161616] cursor-pointer ${
+                  active ? 'font-bold text-black bg-[#f2f2f2] dark:bg-white/[0.08] dark:text-white' : 'text-neutral-400'
                 }`}
               >
                 <Icon
                   size={18}
-                  strokeWidth={active ? 2.3 : 1.8}
+                  strokeWidth={active ? 2.2 : 1.75}
                   className="shrink-0 transition-transform group-hover:scale-105"
                 />
                 <span className="min-w-0 truncate">{label}</span>

@@ -5,12 +5,14 @@ import { PWAInstallButton } from './PWAInstallButton';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft,
+  Camera,
   ChevronRight,
   Clapperboard,
   CreditCard,
   Gift,
   Home,
   Menu,
+  Mic2,
   Shield,
   Ticket,
   User,
@@ -85,8 +87,8 @@ export const Navbar: React.FC = () => {
     member_card: 'LUMARÉEL Black Card',
     card: 'LUMARÉEL Black Card',
     profile: t('nav.account'),
-    rewards: 'LUMARÉEL CLUB',
-    flash_drops: 'GIFT',
+    rewards: isEn ? 'Gift Points & Referrals' : 'Gift Points & Parrainage',
+    flash_drops: isEn ? 'Gift Points & Referrals' : 'Gift Points & Parrainage',
     backstage: 'Backstage',
     memories: isEn ? 'My Moments' : 'Mes Moments',
     suggestions: isEn ? 'Your Voice' : 'Ta Voix',
@@ -98,14 +100,22 @@ export const Navbar: React.FC = () => {
     label: string;
     page: PageView;
     icon: React.ComponentType<{ className?: string }>;
-    isGold?: boolean;
   }> = [
     { label: t('nav.home'), page: 'home', icon: Home },
     { label: t('nav.orders'), page: 'client_space', icon: Ticket },
-    { label: 'LUMARÉEL CLUB', page: 'rewards', icon: Clapperboard },
     { label: 'LUMARÉEL Black Card', page: 'member_card', icon: CreditCard },
-    { label: 'GIFT', page: 'flash_drops', icon: Gift },
     { label: t('nav.account'), page: 'profile', icon: User },
+  ];
+
+  const clubDrawerItems: Array<{
+    label: string;
+    page: PageView;
+    icon: React.ComponentType<{ className?: string }>;
+  }> = [
+    { label: isEn ? 'Gift Points & Referrals' : 'Gift Points & Parrainage', page: 'rewards', icon: Gift },
+    { label: 'Backstage', page: 'backstage', icon: Clapperboard },
+    { label: isEn ? 'My Moments' : 'Mes Moments', page: 'memories', icon: Camera },
+    { label: isEn ? 'Your Voice' : 'Ta Voix', page: 'suggestions', icon: Mic2 },
   ];
 
   const isSuperAdmin =
@@ -285,12 +295,41 @@ export const Navbar: React.FC = () => {
                         key={item.page}
                         type="button"
                         onClick={() => navigateFromDrawer(item.page)}
-                        className={`w-full min-h-[46px] px-3.5 py-2.5 rounded-2xl flex items-center justify-between gap-3 text-left transition-colors cursor-pointer ${
+                        className={`w-full min-h-[44px] px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-left transition-colors cursor-pointer ${
                           isActive
                             ? 'bg-white text-black font-agrandir-extrabold'
-                            : item.isGold
-                            ? 'bg-[#D4AF37]/10 text-[#D4AF37] hover:bg-[#D4AF37]/18 font-agrandir-bold'
                             : 'text-neutral-200 hover:bg-white/8 font-agrandir-semibold'
+                        }`}
+                      >
+                        <span className="flex items-center gap-3 text-sm min-w-0">
+                          <Icon className="w-4 h-4 shrink-0" />
+                          <span className="truncate">{item.label}</span>
+                        </span>
+                        <ChevronRight className="w-4 h-4 opacity-50 shrink-0" />
+                      </button>
+                    );
+                  })}
+                </nav>
+
+                {/* Club LUMARÉEL */}
+                <nav className="space-y-1 pt-3 border-t border-white/10">
+                  <div className="px-3 pb-1 text-[10px] font-agrandir-bold tracking-[0.18em] text-neutral-500 uppercase">
+                    {isEn ? 'LUMARÉEL Club' : 'Club LUMARÉEL'}
+                  </div>
+                  {clubDrawerItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive =
+                      currentPage === item.page ||
+                      (item.page === 'rewards' && currentPage === 'flash_drops');
+                    return (
+                      <button
+                        key={item.page}
+                        type="button"
+                        onClick={() => navigateFromDrawer(item.page)}
+                        className={`w-full min-h-[44px] px-3.5 py-2 rounded-xl flex items-center justify-between gap-3 text-left transition-colors cursor-pointer ${
+                          isActive
+                            ? 'bg-white text-black font-agrandir-extrabold'
+                            : 'text-neutral-300 hover:bg-white/8 font-agrandir-semibold'
                         }`}
                       >
                         <span className="flex items-center gap-3 text-sm min-w-0">

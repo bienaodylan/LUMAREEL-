@@ -129,7 +129,11 @@ const MainApp: React.FC = () => {
     currentPage === 'member_card' ||
     currentPage === 'card' ||
     currentPage === 'profile';
-  const hasVisibleMobileHeader = !isAdminOrScanner && (!isStandalone || isHomePage || !isStandaloneRootTab);
+  const hasVisibleMobileHeader =
+    !isAdminOrScanner &&
+    currentPage !== 'backstage' &&
+    currentPage !== 'event_detail' &&
+    (!isStandalone || isHomePage || !isStandaloneRootTab);
 
   return (
     <div className="min-h-screen w-full max-w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative">
