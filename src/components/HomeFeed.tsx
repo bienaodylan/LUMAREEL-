@@ -114,7 +114,7 @@ export const HomeFeed: React.FC = () => {
                   ref={(element) => { cardRefs.current[index] = element; }}
                   className="home-event-card w-[78vw] max-w-[390px] shrink-0 snap-start bg-transparent text-left sm:w-[42vw] lg:w-[30vw]"
                 >
-                  <button type="button" onClick={() => handleViewDetails(event)} className="group block w-full overflow-hidden bg-[#111] text-left" aria-label={`${event.artist} — ${isEn ? 'Event details' : 'Détails du concert'}`}>
+                  <button type="button" onClick={() => handleViewDetails(event)} className="home-event-media group block w-full overflow-hidden rounded-[18px] bg-[#111] text-left" aria-label={`${event.artist} — ${isEn ? 'Event details' : 'Détails du concert'}`}>
                     <div className="relative aspect-[16/9] w-full overflow-hidden bg-[#111]">
                       <img src={event.officialPoster || event.bannerImage} alt={event.title || event.artist} referrerPolicy="no-referrer" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
                     </div>
@@ -123,10 +123,10 @@ export const HomeFeed: React.FC = () => {
                     <h3 className="truncate text-base font-agrandir-extrabold uppercase leading-tight tracking-[-0.02em] text-white sm:text-xl">{event.artist} EN CONCERT</h3>
                     <p className="mt-1 truncate text-[11px] font-agrandir-semibold text-white/65 sm:text-xs">{event.venue}{event.city ? ` · ${event.city}` : ''} · {formatEventDate(event.date)}</p>
                     <div className="mt-3 grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => handleBuyTickets(event)} className="inline-flex min-h-11 items-center justify-center gap-2 bg-white px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.08em] text-black transition-colors hover:bg-white/85 sm:text-[10px]">
+                      <button type="button" onClick={() => handleBuyTickets(event)} className="home-event-action inline-flex min-h-11 items-center justify-center gap-2 rounded-[10px] bg-white px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.08em] text-black transition-colors hover:bg-white/85 sm:text-[10px]">
                         <span aria-hidden="true">▣</span> {isEn ? 'Buy tickets' : 'Acheter tickets'}
                       </button>
-                      <button type="button" onClick={() => handleViewDetails(event)} className="inline-flex min-h-11 items-center justify-center border border-white/35 px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.06em] text-white transition-colors hover:bg-white hover:text-black sm:text-[10px]">
+                      <button type="button" onClick={() => handleViewDetails(event)} className="home-event-action inline-flex min-h-11 items-center justify-center rounded-[10px] border border-white/35 px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.06em] text-white transition-colors hover:bg-white hover:text-black sm:text-[10px]">
                         {isEn ? 'Concert details' : 'Détails du concert'}
                       </button>
                     </div>
