@@ -338,6 +338,9 @@ class JekoPayService {
    */
   public async initiatePayment(params: JekoPayInitParams): Promise<JekoPayTransaction> {
     await this.ready;
+    if (!this.hasSupabaseStore && process.env.NODE_ENV === 'production') {
+      throw new Error('Paiement indisponible : le stockage sécurisé Supabase des transactions n’est pas configuré.');
+    }
     const now = new Date().toISOString();
     const txId = `jeko_${crypto.randomBytes(8).toString('hex')}`;
     const cleanPhone = (params.customerPhone || '').replace(/\s+/g, '');
