@@ -140,8 +140,8 @@ export const HomeFeed: React.FC = () => {
         )}
       </section>
 
-      <section className="home-quick-access mx-auto mt-6 w-full px-4 sm:px-7 lg:px-10" aria-label={isEn ? "Quick access" : "Accès rapide"}>
-        <div className="overflow-hidden rounded-[26px] border border-white/15 bg-[#0b0b0b] px-4 sm:px-6">
+      <section className="home-quick-access mx-auto mt-6 w-full px-2 sm:px-7 lg:px-10" aria-label={isEn ? "Quick access" : "Accès rapide"}>
+        <div className="overflow-hidden rounded-[26px] border border-white/15 bg-[#0b0b0b] px-3 sm:px-6">
           {quickAccessItems.map((item, index) => {
             const Icon = item.icon;
             return (
