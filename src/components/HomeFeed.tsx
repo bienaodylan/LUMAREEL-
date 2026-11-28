@@ -14,8 +14,6 @@ import {
   Heart,
   Instagram,
   Mic2,
-  Search,
-  X,
 } from 'lucide-react';
 
 const getEventTimestamp = (event: ConcertEvent) => {
@@ -232,43 +230,14 @@ export const HomeFeed: React.FC = () => {
           : 'pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] sm:pb-0'
       }`}
     >
-      <div className="w-full flex-1 flex flex-col">
-        {/* BARRE DE RECHERCHE — entre l'en-tête et la première section */}
-        <div className="w-full px-4 pt-[calc(4.15rem+env(safe-area-inset-top,0px))] pb-3 sm:px-7 sm:pt-7 sm:pb-4 lg:px-10 space-y-2.5">
-          {homeCms?.announcementActive && homeCms.announcementBanner && (
+      <div className="w-full flex-1 flex flex-col pt-[calc(4.2rem+env(safe-area-inset-top,0px))] sm:pt-7">
+        {homeCms?.announcementActive && homeCms.announcementBanner && (
+          <div className="w-full px-4 pb-2.5 sm:px-7 lg:px-10">
             <div className="w-full max-w-2xl rounded-xl border border-black/10 dark:border-white/15 bg-black/[0.04] dark:bg-white/[0.06] px-3.5 py-2 text-xs font-agrandir-semibold text-[#111111] dark:text-white/90">
               {homeCms.announcementBanner}
             </div>
-          )}
-          <label className="relative flex items-center w-full max-w-2xl">
-            <Search
-              className="pointer-events-none absolute left-3.5 h-4 w-4 text-[#86868B] dark:text-white/45"
-              strokeWidth={1.9}
-            />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={
-                isEn
-                  ? homeCms?.searchPlaceholderEn || 'Search a concert, an artist, a venue...'
-                  : homeCms?.searchPlaceholderFr || 'Rechercher un concert, un artiste, un lieu...'
-              }
-              aria-label={isEn ? 'Search' : 'Rechercher'}
-              className="w-full h-11 rounded-2xl border border-black/[0.08] dark:border-white/[0.11] bg-black/[0.04] dark:bg-white/[0.07] pl-10 pr-10 text-[14px] text-[#111111] dark:text-white placeholder:text-[#86868B] dark:placeholder:text-white/45 outline-none focus:border-black/25 dark:focus:border-white/30 transition-colors"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                aria-label={isEn ? 'Clear search' : 'Effacer la recherche'}
-                className="absolute right-2.5 w-7 h-7 rounded-full bg-black/[0.07] dark:bg-white/12 flex items-center justify-center text-[#48484A] dark:text-white/80 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </label>
-        </div>
+          </div>
+        )}
 
         {/* SECTION ÉVÉNEMENTS — Premier événement aligné sur la même marge que la navigation rapide + aperçu du prochain concert */}
         <section id="home-upcoming-events" className="home-events w-full shrink-0">
