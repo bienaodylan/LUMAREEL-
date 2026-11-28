@@ -5,23 +5,23 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/api/payments/paymetrust/initiate",
+      "source": "/api/payments/jekopay/initiate",
       "destination": "/api/payments?route=initiate"
     },
     {
-      "source": "/api/payments/paymetrust/confirm-preview",
+      "source": "/api/payments/jekopay/confirm-preview",
       "destination": "/api/payments?route=confirm-preview"
     },
     {
-      "source": "/api/payments/paymetrust/config",
+      "source": "/api/payments/jekopay/config",
       "destination": "/api/payments?route=config"
     },
     {
-      "source": "/api/payments/paymetrust/webhook",
+      "source": "/api/payments/jekopay/webhook",
       "destination": "/api/payments?route=webhook"
     },
     {
-      "source": "/api/payments/paymetrust/verify/:reference",
+      "source": "/api/payments/jekopay/verify/:reference",
       "destination": "/api/payments?route=verify&reference=:reference"
     },
     {

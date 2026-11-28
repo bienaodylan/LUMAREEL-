@@ -421,9 +421,48 @@ export const LumareelTvView: React.FC = () => {
 
     setIsSubmittingSub(true);
     try {
-      // Souscription fictive front-end : activation immédiate du TV Pass
-      await new Promise((resolve) => setTimeout(resolve, 450));
-      const txReference = `PMT-TV-${Date.now().toString(36).toUpperCase()}`;
+      const initRes = await fetch('/api/payments/jekopay/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'tv_pass',
+          planId: chosenPlan.id,
+          channel: selectedChannel,
+          customerName: currentUser.name,
+          customerEmail: currentUser.email,
+          customerPhone: subscriberPhone.trim(),
+          userId: currentUser.id,
+        }),
+      });
+      const initData = await initRes.json().catch(() => null);
+      if (!initRes.ok || !initData?.success || !initData?.transaction) {
+        throw new Error(
+          initData?.error ||
+            (isEn ? 'Unable to connect to JekoPay.' : 'Impossible de joindre JekoPay.')
+        );
+      }
+
+      const tx = initData.transaction;
+      if (tx.mode === 'live' && typeof tx.paymentUrl === 'string' && /^https:\/\//i.test(tx.paymentUrl)) {
+        window.location.href = tx.paymentUrl;
+        return;
+      }
+
+      // Mode prévisualisation (clés JekoPay non encore définies côté serveur)
+      const confirmRes = await fetch('/api/payments/jekopay/confirm-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference: tx.reference }),
+      });
+      const confirmData = await confirmRes.json().catch(() => null);
+      if (!confirmRes.ok || !confirmData?.success) {
+        throw new Error(
+          confirmData?.error ||
+            (isEn ? 'Payment validation required via JekoPay.' : 'Validation du paiement requise via JekoPay.')
+        );
+      }
+
+      const txReference = String(tx.reference || `JEKO-TV-${Date.now().toString(36).toUpperCase()}`);
       const savedSub = saveLocalTvSubscription(currentUser.email, chosenPlan, txReference);
       const refreshed = await fetchTvEntitlement(currentUser.email);
       setEntitlement(
@@ -456,9 +495,9 @@ export const LumareelTvView: React.FC = () => {
         'success'
       );
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch {
+    } catch (err: any) {
       showToast(
-        isEn ? 'Unable to activate TV Pass.' : 'Impossible d’activer le TV Pass.',
+        err?.message || (isEn ? 'Unable to activate TV Pass.' : 'Impossible d’activer le TV Pass.'),
         'error'
       );
     } finally {

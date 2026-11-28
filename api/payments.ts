@@ -27,17 +27,18 @@ const VALID_CHANNELS = new Set([
   'card',
 ]);
 
-const PAYMETRUST_CHANNEL_MAP: Record<string, string> = {
-  wave: 'WAVE_CI',
-  orange_money: 'OM_CI',
-  mtn_momo: 'MOMO_CI',
-  moov_money: 'FLOOZ_CI',
-  djamo: 'CARD',
-  card: 'CARD',
+const JEKOPAY_METHOD_MAP: Record<string, string> = {
+  wave: 'wave',
+  orange_money: 'orange',
+  mtn_momo: 'mtn',
+  moov_money: 'moov',
+  djamo: 'djamo',
+  card: 'card',
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PMT_REF_REGEX = /^PMT-[A-Z0-9_-]{4,64}$/i;
+const PAYMENT_REF_REGEX = /^(JEKO|PMT)-[A-Z0-9_-]{4,64}$/i;
+let cachedJekoStoreId: string | null = null;
 
 function resolvePublicBaseUrl(req: VercelRequest): string {
   const explicit = (
@@ -55,6 +56,14 @@ function resolvePublicBaseUrl(req: VercelRequest): string {
 }
 
 function parseJsonBody(req: VercelRequest): { raw: string; parsed: any } {
+  if (Buffer.isBuffer(req.body)) {
+    const raw = req.body.toString('utf8');
+    try {
+      return { raw, parsed: raw ? JSON.parse(raw) : {} };
+    } catch {
+      return { raw, parsed: {} };
+    }
+  }
   if (typeof req.body === 'string') {
     const raw = req.body;
     try {
@@ -74,24 +83,66 @@ function safeEqual(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
-function verifyPayMeTrustSignature(rawBody: string, signatureHeader: string, envName: string): boolean {
-  const webhookSecret = (process.env.PAYMETRUST_WEBHOOK_SECRET || '').trim();
+function verifyJekoPaySignature(rawBody: string, signatureHeader: string, _envName: string): boolean {
+  const webhookSecret = (process.env.JEKOPAY_WEBHOOK_SECRET || '').trim();
   if (!webhookSecret) {
-    // En production, un webhook non signé est toujours refusé
-    return envName !== 'production';
+    // Refuser systématiquement tout webhook si le secret n'est pas configuré
+    return false;
   }
-  if (!signatureHeader) return false;
-  const cleaned = signatureHeader.replace(/^sha256=/i, '').trim();
-  const expected = crypto.createHmac('sha256', webhookSecret).update(rawBody).digest('hex');
+  if (!signatureHeader || !rawBody) return false;
+  const cleaned = signatureHeader.replace(/^sha256=/i, '').trim().toLowerCase();
+  const expected = crypto
+    .createHmac('sha256', webhookSecret)
+    .update(rawBody, 'utf8')
+    .digest('hex')
+    .toLowerCase();
   return safeEqual(cleaned, expected);
 }
 
-function normalizePayMeTrustStatus(raw: unknown): 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'PENDING' {
+function normalizeJekoPayStatus(raw: unknown): 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'PENDING' {
   const val = String(raw ?? '').trim().toUpperCase();
-  if (['SUCCESS', 'SUCCEEDED', 'COMPLETED', 'PAID', 'OK', '200', '00'].includes(val)) return 'SUCCESS';
+  if (['SUCCESS', 'SUCCEEDED', 'COMPLETED', 'PAID', 'OK', '200', '00', 'TRANSACTION_COMPLETED'].includes(val)) {
+    return 'SUCCESS';
+  }
   if (['FAILED', 'ERROR', 'DECLINED', 'REJECTED', 'EXPIRED'].includes(val)) return 'FAILED';
   if (['CANCELLED', 'CANCELED', 'ABORTED'].includes(val)) return 'CANCELLED';
   return 'PENDING';
+}
+
+async function resolveJekoStoreId(
+  apiBase: string,
+  apiKeyId: string,
+  apiKeySecret: string
+): Promise<string> {
+  const explicitStore = (process.env.JEKOPAY_STORE_ID || '').trim();
+  if (explicitStore) return explicitStore;
+  if (cachedJekoStoreId) return cachedJekoStoreId;
+
+  const res = await fetch(`${apiBase}/partner_api/stores`, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      'X-API-KEY-ID': apiKeyId,
+      'X-API-KEY': apiKeySecret,
+    },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.message || data?.error || `Impossible de récupérer le storeId JekoPay (${res.status}).`);
+  }
+  const stores = Array.isArray(data)
+    ? data
+    : Array.isArray(data?.data)
+      ? data.data
+      : Array.isArray(data?.stores)
+        ? data.stores
+        : [];
+  const firstId = stores[0]?.id || stores[0]?.storeId || data?.id || data?.storeId;
+  if (!firstId || typeof firstId !== 'string') {
+    throw new Error('Aucun storeId JekoPay trouvé. Définissez JEKOPAY_STORE_ID côté serveur.');
+  }
+  cachedJekoStoreId = firstId;
+  return firstId;
 }
 
 function mapCardRowToFrontend(row: any) {
@@ -296,7 +347,7 @@ async function issueOrGetSupabaseBlackCard(
         order_reference: params.orderReference,
         amount: Number(params.amount || plan.price || 50000),
         currency: 'XOF',
-        payment_provider: params.channel || 'paymetrust',
+        payment_provider: params.channel || 'jekopay',
         provider_transaction_id: params.providerTxId || params.orderReference,
         payment_status: 'completed',
         paid_at: new Date().toISOString(),
@@ -382,11 +433,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const route = String(Array.isArray(req.query.route) ? req.query.route[0] : req.query.route || '').trim();
-  const envName = (process.env.PAYMETRUST_ENV || 'sandbox').toLowerCase() === 'production' ? 'production' : 'sandbox';
-  const apiKey = (process.env.PAYMETRUST_API_KEY || '').trim();
-  const secretKey = (process.env.PAYMETRUST_SECRET_KEY || '').trim();
-  const merchantId = (process.env.PAYMETRUST_MERCHANT_ID || '').trim();
-  const isLiveConfigured = Boolean(apiKey && secretKey);
+  const envName = (process.env.JEKOPAY_ENV || 'production').toLowerCase() === 'sandbox' ? 'sandbox' : 'production';
+  const apiKeyId = (process.env.JEKOPAY_API_KEY_ID || '').trim();
+  const apiKeySecret = (process.env.JEKOPAY_API_KEY_SECRET || '').trim();
+  const apiBase = (process.env.JEKOPAY_BASE_URL || 'https://api.jeko.africa').trim().replace(/\/+$/, '');
+  const isLiveConfigured = Boolean(apiKeyId && apiKeySecret);
   const db = serviceDb();
 
   // ==========================================================================
@@ -460,12 +511,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // ==========================================================================
-  // 2. Public PayMeTrust Config (zero secrets)
+  // 2. Public JekoPay Config (zero secrets)
   // ==========================================================================
   if (route === 'config') {
     return res.status(200).json({
       success: true,
-      provider: 'paymetrust',
+      provider: 'jekopay',
       configured: isLiveConfigured,
       environment: envName,
       currency: 'XOF',
@@ -474,6 +525,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         { id: 'orange_money', label: 'Orange Money', type: 'mobile_money' },
         { id: 'mtn_momo', label: 'MTN MoMo', type: 'mobile_money' },
         { id: 'moov_money', label: 'Moov Money', type: 'mobile_money' },
+        { id: 'djamo', label: 'Djamo', type: 'mobile_money' },
         { id: 'card', label: 'Visa / Mastercard', type: 'card' },
       ],
     });
@@ -492,9 +544,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       readiness: {
         supabasePublicConfigured: isSupabasePublicConfigured(),
         supabaseServiceKeyConfigured: isSupabaseServiceConfigured(),
-        paymetrustConfigured: isLiveConfigured,
-        paymetrustWebhookSecretConfigured: Boolean((process.env.PAYMETRUST_WEBHOOK_SECRET || '').trim()),
-        paymetrustEnvironment: envName,
+        jekopayConfigured: isLiveConfigured,
+        jekopayApiKeyIdConfigured: Boolean(apiKeyId),
+        jekopayWebhookSecretConfigured: Boolean((process.env.JEKOPAY_WEBHOOK_SECRET || '').trim()),
+        jekopayStoreIdConfigured: Boolean((process.env.JEKOPAY_STORE_ID || '').trim() || cachedJekoStoreId),
+        jekopayEnvironment: envName,
         resendConfigured: isResendConfigured(),
         resendFrom: getResendFromAddress(),
         adminApiKeyConfigured: Boolean((process.env.ADMIN_API_KEY || '').trim()),
@@ -691,7 +745,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // ==========================================================================
-  // 7. Initiate PayMeTrust Payment (Live or Awaiting Keys)
+  // 7. Initiate JekoPay Payment (Live or Awaiting Keys)
   // ==========================================================================
   if (route === 'initiate') {
     if (req.method !== 'POST') {
@@ -731,16 +785,71 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const amount = kind === 'membership_card' ? 50000 : Number(body.amount || 0);
-      if (amount <= 0) {
+      if (!Number.isFinite(amount) || amount <= 0) {
         return res.status(400).json({ success: false, error: 'Montant de paiement invalide.' });
       }
 
       const reference =
         kind === 'membership_card'
-          ? `PMT-CARD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`
-          : `PMT-${String(orderId || crypto.randomBytes(4).toString('hex')).toUpperCase()}`;
+          ? `JEKO-CARD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`
+          : `JEKO-${String(orderId || crypto.randomBytes(4).toString('hex')).toUpperCase()}`;
 
-      // Persister la commande en attente dans Supabase avant redirection PayMeTrust
+      let jekoPaymentRequestId = reference;
+      let paymentUrl: string | undefined;
+
+      if (isLiveConfigured) {
+        const baseUrl = resolvePublicBaseUrl(req);
+        const storeId = await resolveJekoStoreId(apiBase, apiKeyId, apiKeySecret);
+        const jekoMethod = JEKOPAY_METHOD_MAP[safeChannel] || 'wave';
+
+        // JekoPay expects amountCents in centimes (for XOF: 1 FCFA = 100 centimes)
+        const amountCents = Math.round(amount) * 100;
+
+        const initRes = await fetch(`${apiBase}/partner_api/payment_requests`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            'X-API-KEY-ID': apiKeyId,
+            'X-API-KEY': apiKeySecret,
+          },
+          body: JSON.stringify({
+            storeId,
+            amountCents,
+            currency: 'XOF',
+            reference,
+            paymentDetails: {
+              type: 'redirect',
+              data: {
+                paymentMethod: jekoMethod,
+                successUrl: `${baseUrl}/?payment_status=success&ref=${encodeURIComponent(reference)}`,
+                errorUrl: `${baseUrl}/?payment_status=cancelled&ref=${encodeURIComponent(reference)}`,
+              },
+            },
+          }),
+        });
+        const initText = await initRes.text();
+        const initData = initText ? JSON.parse(initText) : {};
+        const rawRedirect =
+          initData?.redirectUrl ||
+          initData?.redirect_url ||
+          initData?.paymentUrl ||
+          initData?.data?.redirectUrl;
+
+        if (!initRes.ok || typeof rawRedirect !== 'string' || !/^https:\/\//i.test(rawRedirect)) {
+          return res.status(502).json({
+            success: false,
+            error: initData?.message || initData?.error || 'Impossible d’initialiser le paiement JekoPay.',
+          });
+        }
+
+        paymentUrl = rawRedirect;
+        if (initData?.id) {
+          jekoPaymentRequestId = String(initData.id);
+        }
+      }
+
+      // Persister la commande en attente dans Supabase avant redirection JekoPay
       if (db && kind === 'membership_card') {
         try {
           const resolvedUid = await ensureSupabaseUserId(db, cleanEmail, cleanName, userId);
@@ -752,7 +861,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 amount: Math.round(amount),
                 currency: 'XOF',
                 payment_provider: safeChannel,
-                provider_transaction_id: reference,
+                provider_transaction_id: jekoPaymentRequestId,
                 payment_status: 'pending',
                 metadata: {
                   planId,
@@ -760,6 +869,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   customerEmail: cleanEmail,
                   customerPhone: cleanPhone,
                   shippingAddress: shippingAddress || null,
+                  jekoPaymentRequestId,
                 },
               },
               { onConflict: 'order_reference' }
@@ -770,73 +880,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      if (isLiveConfigured) {
-        const baseUrl = resolvePublicBaseUrl(req);
-        const apiBase =
-          (process.env.PAYMETRUST_BASE_URL || '').trim().replace(/\/+$/, '') ||
-          (envName === 'production' ? 'https://api.paymetrust.net/v1' : 'https://api.sandbox.paymetrust.net/v1');
-
-        const authRes = await fetch(`${apiBase}/auth/token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            api_key: apiKey,
-            secret_key: secretKey,
-            ...(merchantId ? { merchant_id: merchantId } : {}),
-          }),
-        });
-        const authText = await authRes.text();
-        const authData = authText ? JSON.parse(authText) : {};
-        const token = authData?.access_token || authData?.token || authData?.data?.access_token;
-
-        if (!authRes.ok || !token) {
-          return res.status(502).json({
-            success: false,
-            error: authData?.message || 'Authentification PayMeTrust indisponible.',
-          });
-        }
-
-        const initRes = await fetch(`${apiBase}/payment/initiate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            amount: Math.round(amount),
-            currency: 'XOF',
-            reference,
-            description:
-              kind === 'membership_card'
-                ? 'LUMARÉEL Black Card — 3 Ans'
-                : String(body.description || 'Commande billets LUMARÉEL CO.'),
-            channel: PAYMETRUST_CHANNEL_MAP[safeChannel] || 'WAVE_CI',
-            customer: { name: cleanName || 'Client LUMARÉEL', email: cleanEmail, phone: cleanPhone },
-            notify_url: `${baseUrl}/api/payments/paymetrust/webhook`,
-            return_url: `${baseUrl}/?payment_status=success&ref=${encodeURIComponent(reference)}`,
-            cancel_url: `${baseUrl}/?payment_status=cancelled&ref=${encodeURIComponent(reference)}`,
-            metadata: { kind, orderId, planId, userId, shippingAddress },
-          }),
-        });
-        const initText = await initRes.text();
-        const initData = initText ? JSON.parse(initText) : {};
-        const paymentUrl = initData?.payment_url || initData?.checkout_url || initData?.data?.payment_url;
-
-        if (!initRes.ok || !paymentUrl) {
-          return res.status(502).json({
-            success: false,
-            error: initData?.message || 'Impossible d’initialiser le paiement PayMeTrust.',
-          });
-        }
-
+      if (isLiveConfigured && paymentUrl) {
         return res.status(200).json({
           success: true,
           transaction: {
-            id: `pmt_${crypto.randomBytes(6).toString('hex')}`,
+            id: `jeko_${crypto.randomBytes(6).toString('hex')}`,
             reference,
+            providerTransactionId: jekoPaymentRequestId,
             status: 'PENDING',
-            amount,
+            amount: Math.round(amount),
             currency: 'XOF',
             channel: safeChannel,
             paymentUrl,
@@ -849,10 +901,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({
         success: true,
         transaction: {
-          id: `pmt_${crypto.randomBytes(6).toString('hex')}`,
+          id: `jeko_${crypto.randomBytes(6).toString('hex')}`,
           reference,
           status: 'INITIATED',
-          amount,
+          amount: Math.round(amount),
           currency: 'XOF',
           channel: safeChannel,
           mode: 'awaiting_keys',
@@ -862,13 +914,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (error: any) {
       return res.status(500).json({
         success: false,
-        error: error?.message || 'Impossible d’initialiser le paiement.',
+        error: error?.message || 'Impossible d’initialiser le paiement JekoPay.',
       });
     }
   }
 
   // ==========================================================================
-  // 8. Live PayMeTrust Webhook (HMAC-SHA256 verified + idempotent Supabase fulfillment + Resend email)
+  // 8. Live JekoPay Webhook (/api/payments/jekopay/webhook — Jeko-Signature HMAC-SHA256)
   // ==========================================================================
   if (route === 'webhook') {
     if (req.method !== 'POST') {
@@ -876,25 +928,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const { raw, parsed: payload } = parseJsonBody(req);
     const sigHeader = String(
-      req.headers['x-paymetrust-signature'] ||
+      req.headers['jeko-signature'] ||
+        req.headers['x-jeko-signature'] ||
         req.headers['x-webhook-signature'] ||
-        req.headers['x-signature'] ||
         ''
     );
 
-    if (!verifyPayMeTrustSignature(raw, sigHeader, envName)) {
-      return res.status(401).json({ success: false, error: 'Signature webhook invalide.' });
+    if (!verifyJekoPaySignature(raw, sigHeader, envName)) {
+      return res.status(401).json({ success: false, error: 'Signature webhook JekoPay invalide.' });
     }
 
     const reference = String(
-      payload?.reference || payload?.order_ref || payload?.data?.reference || ''
+      payload?.reference || payload?.merchantReference || payload?.data?.reference || ''
     ).trim();
-    if (!PMT_REF_REGEX.test(reference)) {
+    if (!PAYMENT_REF_REGEX.test(reference)) {
       return res.status(400).json({ success: false, error: 'Référence de transaction invalide.' });
     }
 
-    const status = normalizePayMeTrustStatus(payload?.status ?? payload?.code ?? payload?.data?.status);
-    const providerTxId = String(payload?.transaction_id || payload?.tx_id || reference);
+    const status = normalizeJekoPayStatus(
+      payload?.status ?? payload?.transaction?.status ?? payload?.data?.status ?? req.headers['jeko-event']
+    );
+    const providerTxId = String(payload?.transaction?.id || payload?.id || reference);
 
     if (!db) {
       return res.status(200).json({
@@ -908,7 +962,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
       // A. Webhook pour LUMARÉEL Black Card
-      if (reference.toUpperCase().startsWith('PMT-CARD-')) {
+      const isCardRef =
+        reference.toUpperCase().startsWith('JEKO-CARD-') ||
+        reference.toUpperCase().startsWith('PMT-CARD-');
+
+      if (isCardRef) {
         const { data: orderRow } = await db
           .from('membership_orders')
           .select('*')
@@ -929,7 +987,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               orderReference: reference,
               providerTxId,
               amount: Number(orderRow?.amount || 50000),
-              channel: orderRow?.payment_provider || 'paymetrust',
+              channel: orderRow?.payment_provider || 'jekopay',
               shippingAddress: meta.shippingAddress,
             });
 
@@ -955,10 +1013,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // B. Webhook pour commande de billets de concert
+      const strippedRef = reference.replace(/^(JEKO|PMT)-/i, '');
       const { data: orderRow } = await db
         .from('orders')
         .select('*')
-        .or(`payment_ref.eq.${reference},reference.eq.${reference}`)
+        .or(`payment_ref.eq.${reference},reference.eq.${reference},reference.eq.${strippedRef}`)
         .maybeSingle();
 
       if (orderRow) {
@@ -1001,23 +1060,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ success: true, reference, status });
     } catch (err: any) {
       console.error('[webhook] Processing error:', err);
-      return res.status(500).json({ success: false, error: 'Erreur traitement webhook.' });
+      return res.status(500).json({ success: false, error: 'Erreur traitement webhook JekoPay.' });
     }
   }
 
   // ==========================================================================
-  // 9. Verify Transaction Status on Return from PayMeTrust
+  // 9. Verify Transaction Status on Return from JekoPay
   // ==========================================================================
   if (route === 'verify') {
     const refParam = String(
       Array.isArray(req.query.reference) ? req.query.reference[0] : req.query.reference || ''
     ).trim();
 
-    if (!PMT_REF_REGEX.test(refParam)) {
+    if (!PAYMENT_REF_REGEX.test(refParam)) {
       return res.status(400).json({ success: false, error: 'Référence invalide.' });
     }
 
-    const isCard = refParam.toUpperCase().startsWith('PMT-CARD-');
+    const isCard =
+      refParam.toUpperCase().startsWith('JEKO-CARD-') ||
+      refParam.toUpperCase().startsWith('PMT-CARD-');
+    let jekoLookupId = refParam;
 
     if (db) {
       if (isCard) {
@@ -1026,6 +1088,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .select('*')
           .eq('order_reference', refParam)
           .maybeSingle();
+
+        if (orderRow?.provider_transaction_id) {
+          jekoLookupId = String(orderRow.provider_transaction_id);
+        }
 
         if (orderRow?.payment_status === 'completed') {
           const { data: cardRow } = await db
@@ -1047,11 +1113,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           });
         }
       } else {
+        const strippedRef = refParam.replace(/^(JEKO|PMT)-/i, '');
         const { data: orderRow } = await db
           .from('orders')
           .select('*')
-          .or(`payment_ref.eq.${refParam},reference.eq.${refParam}`)
+          .or(`payment_ref.eq.${refParam},reference.eq.${refParam},reference.eq.${strippedRef}`)
           .maybeSingle();
+
+        if (orderRow?.payment_ref && !orderRow.payment_ref.startsWith('JEKO-')) {
+          jekoLookupId = String(orderRow.payment_ref);
+        }
 
         if (orderRow?.payment_status === 'completed') {
           return res.status(200).json({
@@ -1067,67 +1138,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Si mode live et encore en attente, interroger PayMeTrust directement
+    // Si mode live et encore en attente, interroger JekoPay directement (GET /partner_api/payment_requests/{id})
     if (isLiveConfigured) {
       try {
-        const apiBase =
-          (process.env.PAYMETRUST_BASE_URL || '').trim().replace(/\/+$/, '') ||
-          (envName === 'production' ? 'https://api.paymetrust.net/v1' : 'https://api.sandbox.paymetrust.net/v1');
-
-        const authRes = await fetch(`${apiBase}/auth/token`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            api_key: apiKey,
-            secret_key: secretKey,
-            ...(merchantId ? { merchant_id: merchantId } : {}),
-          }),
-        });
-        const authData = await authRes.json().catch(() => ({}));
-        const token = authData?.access_token || authData?.token || authData?.data?.access_token;
-
-        if (token) {
-          const statusRes = await fetch(`${apiBase}/payment/status/${encodeURIComponent(refParam)}`, {
-            headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
-          });
-          const statusData = await statusRes.json().catch(() => ({}));
-          const normalized = normalizePayMeTrustStatus(statusData?.status ?? statusData?.data?.status);
-
-          if (normalized === 'SUCCESS' && db && isCard) {
-            const { data: orderRow } = await db
-              .from('membership_orders')
-              .select('*')
-              .eq('order_reference', refParam)
-              .maybeSingle();
-            const meta = (orderRow?.metadata || {}) as Record<string, any>;
-            const card = meta.customerEmail
-              ? await issueOrGetSupabaseBlackCard(db, {
-                  email: meta.customerEmail,
-                  name: meta.customerName || 'MEMBRE LUMARÉEL',
-                  phone: meta.customerPhone,
-                  userId: orderRow?.user_id,
-                  orderReference: refParam,
-                  providerTxId: statusData?.transaction_id || refParam,
-                  amount: Number(orderRow?.amount || 50000),
-                  channel: orderRow?.payment_provider || 'paymetrust',
-                  shippingAddress: meta.shippingAddress,
-                })
-              : null;
-
-            return res.status(200).json({
-              success: true,
-              transaction: { reference: refParam, status: 'SUCCESS', paidAt: new Date().toISOString() },
-              fulfillment: card ? { kind: 'membership_card', card } : null,
-            });
+        const statusRes = await fetch(
+          `${apiBase}/partner_api/payment_requests/${encodeURIComponent(jekoLookupId)}`,
+          {
+            method: 'GET',
+            headers: {
+              Accept: 'application/json',
+              'X-API-KEY-ID': apiKeyId,
+              'X-API-KEY': apiKeySecret,
+            },
           }
+        );
+        const statusData = await statusRes.json().catch(() => ({}));
+        const normalized = normalizeJekoPayStatus(
+          statusData?.status ?? statusData?.transaction?.status ?? statusData?.data?.status
+        );
+
+        if (normalized === 'SUCCESS' && db && isCard) {
+          const { data: orderRow } = await db
+            .from('membership_orders')
+            .select('*')
+            .eq('order_reference', refParam)
+            .maybeSingle();
+          const meta = (orderRow?.metadata || {}) as Record<string, any>;
+          const card = meta.customerEmail
+            ? await issueOrGetSupabaseBlackCard(db, {
+                email: meta.customerEmail,
+                name: meta.customerName || 'MEMBRE LUMARÉEL',
+                phone: meta.customerPhone,
+                userId: orderRow?.user_id,
+                orderReference: refParam,
+                providerTxId: statusData?.transaction?.id || statusData?.id || refParam,
+                amount: Number(orderRow?.amount || 50000),
+                channel: orderRow?.payment_provider || 'jekopay',
+                shippingAddress: meta.shippingAddress,
+              })
+            : null;
 
           return res.status(200).json({
             success: true,
-            transaction: { reference: refParam, status: normalized },
+            transaction: { reference: refParam, status: 'SUCCESS', paidAt: new Date().toISOString() },
+            fulfillment: card ? { kind: 'membership_card', card } : null,
           });
         }
+
+        return res.status(200).json({
+          success: true,
+          transaction: { reference: refParam, status: normalized },
+        });
       } catch (err) {
-        console.warn('[verify] PayMeTrust lookup failed:', err);
+        console.warn('[verify] JekoPay lookup failed:', err);
       }
     }
 
@@ -1144,16 +1207,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
       return res.status(405).json({ success: false, error: 'Méthode non autorisée.' });
     }
-    if (isLiveConfigured || envName === 'production') {
+    if (isLiveConfigured || process.env.NODE_ENV === 'production') {
       return res.status(403).json({
         success: false,
-        error: 'Mode live actif : la validation passe uniquement par PayMeTrust.',
+        error: 'Mode live actif : la validation passe uniquement par JekoPay.',
       });
     }
     try {
       const { parsed: body } = parseJsonBody(req);
       const payload = route === 'confirm-preview' ? body.previewPayload || body : body;
-      const reference = String(body.reference || `PMT-CARD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`);
+      const reference = String(body.reference || `JEKO-CARD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`);
 
       const cleanEmail = String(payload?.customerEmail || payload?.email || '').trim().toLowerCase();
       const cleanName = String(payload?.customerName || payload?.fullName || 'MEMBRE LUMARÉEL').trim();
@@ -1231,9 +1294,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const verifiedEmail = (auth?.user?.email || String(order.customerEmail)).trim().toLowerCase();
-      // En mode live / production, seul le webhook PayMeTrust signé peut passer une commande à 'completed'
+      // En mode live / production, seul le webhook JekoPay signé peut passer une commande à 'completed'
       const safePaymentStatus =
-        isLiveConfigured || envName === 'production'
+        isLiveConfigured || process.env.NODE_ENV === 'production'
           ? 'pending'
           : order.paymentStatus === 'completed'
           ? 'completed'
@@ -1259,7 +1322,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             total_amount: Number(order.totalAmount || 0),
             currency: order.currency || 'FCFA',
             payment_status: safePaymentStatus,
-            payment_provider: order.paymentProvider || 'paymetrust',
+            payment_provider: order.paymentProvider || 'jekopay',
             payment_ref: order.paymentRef || order.reference,
             created_at: order.createdAt || new Date().toISOString(),
             paid_at: safePaymentStatus === 'completed' ? order.paidAt || new Date().toISOString() : null,

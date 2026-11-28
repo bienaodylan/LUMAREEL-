@@ -23,9 +23,10 @@ import {
 } from 'lucide-react';
 import { generatePersonalizedTicketEmail } from '../utils/emailTemplate';
 import { formatDateLong } from '../utils/dateUtils';
+import { getAuthHeaders } from '../lib/apiClient';
 
 type CheckoutStep = 1 | 2 | 3 | 4;
-type PaymentOption = 'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'card';
+type PaymentOption = 'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'djamo' | 'card';
 type CountryOption = 'CI' | 'SN' | 'ML' | 'BF' | 'INT';
 
 export interface CountryOptionItem {
@@ -122,6 +123,13 @@ const PAYMENT_OPERATORS: Array<{
     logo: 'https://cdn.simpleicons.org/moov/0065B3',
   },
   {
+    id: 'djamo',
+    labelFr: 'Djamo',
+    labelEn: 'Djamo',
+    sub: 'App · Visa',
+    logo: null,
+  },
+  {
     id: 'card',
     labelFr: 'Carte bancaire',
     labelEn: 'Bank Card',
@@ -195,8 +203,8 @@ export const CheckoutModal: React.FC = () => {
     setIsCountryDrawerOpen(false);
   };
 
-  // Étape 4 : Passerelle PayMeTrust & Résultat
-  const [paymetrustTx, setPaymetrustTx] = useState<{
+  // Étape 4 : Passerelle JekoPay & Résultat
+  const [jekopayTx, setJekopayTx] = useState<{
     id: string;
     reference: string;
     status: string;
@@ -223,7 +231,7 @@ export const CheckoutModal: React.FC = () => {
       setQuantities(initial);
       setStep(1);
       setLockSeconds(20 * 60);
-      setPaymetrustTx(null);
+      setJekopayTx(null);
       setPendingOrderRef('');
       setIsPaymentCountryDropdownOpen(false);
     }
@@ -378,7 +386,7 @@ export const CheckoutModal: React.FC = () => {
       : '';
 
     setIsSubmitting(true);
-    const buildClientFallbackOrder = (): { order: Order; tickets: Ticket[] } => {
+    const buildPendingClientOrder = (): Order => {
       const nowIso = new Date().toISOString();
       const orderId = `ord_${Date.now().toString(36)}`;
       const reference = `LMR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
@@ -413,7 +421,7 @@ export const CheckoutModal: React.FC = () => {
       });
 
       const primaryCat = categories.find((c) => c.id === selectedItems[0].categoryId) || categories[0];
-      const order: Order = {
+      return {
         id: orderId,
         reference,
         customerId: currentUser.id,
@@ -434,22 +442,114 @@ export const CheckoutModal: React.FC = () => {
         totalAmount: finalTotalAmount,
         currency: 'FCFA',
         paymentProvider: paymentMethod,
-        paymentStatus: 'completed',
-        paymentRef: `PMT-${reference}`,
+        paymentStatus: 'pending',
+        paymentRef: `JEKO-${reference}`,
         createdAt: nowIso,
-        paidAt: nowIso,
         tickets: issued,
       };
-      return { order, tickets: issued };
     };
 
     try {
-      // Paiement fictif front-end : validation fluide et émission immédiate des billets certifiés
-      await new Promise((resolve) => setTimeout(resolve, 480));
-      const fictiveOrder = buildClientFallbackOrder();
-      setPendingOrderRef(fictiveOrder.order.reference);
+      const authHeaders = await getAuthHeaders({ 'Content-Type': 'application/json' });
+
+      // 1. Créer la commande en attente côté serveur (Express /api/orders/checkout ou Vercel /api/orders)
+      let pendingOrderId = '';
+      let pendingRef = '';
+      let pendingAmount = finalTotalAmount;
+
+      const checkoutRes = await fetch('/api/orders/checkout', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          customerId: currentUser.id,
+          customerName: customerName.trim(),
+          customerEmail: customerEmail.trim().toLowerCase(),
+          customerPhone: customerFullPhone,
+          eventId: checkoutEvent.id,
+          categoryId: selectedItems[0].categoryId,
+          quantity: totalQuantity,
+          items: selectedItems,
+          paymentProvider: paymentMethod,
+          eventSnapshot: {
+            id: checkoutEvent.id,
+            title: checkoutEvent.title,
+            date: checkoutEvent.date,
+            time: checkoutEvent.time,
+            venue: checkoutEvent.venue,
+            categories: checkoutEvent.categories,
+          },
+        }),
+      });
+
+      if (checkoutRes.ok) {
+        const checkoutData = await checkoutRes.json();
+        if (!checkoutData?.success || !checkoutData?.order) {
+          throw new Error(
+            checkoutData?.error ||
+              (isEn ? 'Unable to create booking.' : 'Impossible de créer la réservation.')
+          );
+        }
+        pendingOrderId = checkoutData.order.id;
+        pendingRef = checkoutData.order.reference;
+        pendingAmount = Number(checkoutData.order.totalAmount || finalTotalAmount);
+      } else if (checkoutRes.status === 404) {
+        // Environnement Vercel Serverless : persister la commande en attente sur /api/orders
+        const clientPending = buildPendingClientOrder();
+        const vercelOrderRes = await fetch('/api/orders', {
+          method: 'POST',
+          headers: authHeaders,
+          body: JSON.stringify(clientPending),
+        });
+        const vercelOrderData = await vercelOrderRes.json().catch(() => null);
+        if (!vercelOrderRes.ok || !vercelOrderData?.success) {
+          throw new Error(
+            vercelOrderData?.error ||
+              (isEn ? 'Unable to save booking.' : 'Impossible d’enregistrer la réservation.')
+          );
+        }
+        pendingOrderId = clientPending.id;
+        pendingRef = clientPending.reference;
+        pendingAmount = clientPending.totalAmount;
+      } else {
+        const errData = await checkoutRes.json().catch(() => null);
+        throw new Error(
+          errData?.error ||
+            (isEn ? 'Unable to initialize order.' : 'Impossible d’initialiser la commande.')
+        );
+      }
+
+      // 2. Initialiser le paiement auprès de la passerelle JekoPay
+      const initRes = await fetch('/api/payments/jekopay/initiate', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          kind: 'ticket_order',
+          orderId: pendingOrderId,
+          amount: pendingAmount,
+          channel: paymentMethod,
+          customerName: customerName.trim(),
+          customerEmail: customerEmail.trim().toLowerCase(),
+          customerPhone: customerFullPhone,
+          userId: currentUser.id,
+        }),
+      });
+
+      const initData = await initRes.json().catch(() => null);
+      if (!initRes.ok || !initData?.success || !initData?.transaction) {
+        throw new Error(
+          initData?.error ||
+            (isEn ? 'Unable to connect to JekoPay.' : 'Impossible de joindre JekoPay.')
+        );
+      }
+
+      const tx = initData.transaction;
+      setPendingOrderRef(pendingRef || tx.reference);
+      setJekopayTx(tx);
       setStep(4);
-      applyConfirmedOrder(fictiveOrder.order, fictiveOrder.tickets);
+
+      if (tx.mode === 'live' && typeof tx.paymentUrl === 'string' && /^https:\/\//i.test(tx.paymentUrl)) {
+        window.location.href = tx.paymentUrl;
+      }
     } catch (err: any) {
       showToast(err?.message || t('checkout.errUnexpected'), 'error');
     } finally {
@@ -461,7 +561,7 @@ export const CheckoutModal: React.FC = () => {
     setCreatedOrder(order);
     setIssuedTickets(tickets);
     addLocalOrder(order);
-    setPaymetrustTx(null);
+    setJekopayTx(null);
     showToast(
       isEn
         ? 'Payment confirmed! Certified tickets issued.'
@@ -472,14 +572,14 @@ export const CheckoutModal: React.FC = () => {
     refreshCustomerOrders();
   };
 
-  const handleConfirmPayMeTrustPreview = async () => {
-    if (!paymetrustTx) return;
+  const handleConfirmJekoPayPreview = async () => {
+    if (!jekopayTx) return;
     setGatewayProcessing(true);
     try {
-      const res = await fetch('/api/payments/paymetrust/confirm-preview', {
+      const res = await fetch('/api/payments/jekopay/confirm-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference: paymetrustTx.reference }),
+        body: JSON.stringify({ reference: jekopayTx.reference }),
       });
       const data = await res.json();
       if (!res.ok || !data?.success || !data?.fulfillment?.order) {
@@ -499,12 +599,12 @@ export const CheckoutModal: React.FC = () => {
     }
   };
 
-  const handleVerifyPayMeTrustStatus = async () => {
-    if (!paymetrustTx) return;
+  const handleVerifyJekoPayStatus = async () => {
+    if (!jekopayTx) return;
     setGatewayProcessing(true);
     try {
       const res = await fetch(
-        `/api/payments/paymetrust/verify/${encodeURIComponent(paymetrustTx.reference)}`
+        `/api/payments/jekopay/verify/${encodeURIComponent(jekopayTx.reference)}`
       );
       const data = await res.json();
       if (!res.ok || !data?.success) {
@@ -531,8 +631,8 @@ export const CheckoutModal: React.FC = () => {
       } else {
         showToast(
           isEn
-            ? 'Payment still pending on PayMeTrust. Confirm on your phone then retry.'
-            : 'Paiement en attente sur PayMeTrust. Validez sur votre téléphone puis réessayez.',
+            ? 'Payment still pending on JekoPay. Confirm on your phone then retry.'
+            : 'Paiement en attente sur JekoPay. Validez sur votre téléphone puis réessayez.',
           'info'
         );
       }
@@ -548,7 +648,7 @@ export const CheckoutModal: React.FC = () => {
     setCreatedOrder(null);
     setIssuedTickets([]);
     setStep(1);
-    setPaymetrustTx(null);
+    setJekopayTx(null);
     setPendingOrderRef('');
   };
 
@@ -564,8 +664,8 @@ export const CheckoutModal: React.FC = () => {
     } else if (step === 3) {
       setStep(2);
     } else if (step === 4) {
-      if (paymetrustTx && !createdOrder) {
-        setPaymetrustTx(null);
+      if (jekopayTx && !createdOrder) {
+        setJekopayTx(null);
         setStep(3);
       } else {
         handleClose();
@@ -932,7 +1032,7 @@ export const CheckoutModal: React.FC = () => {
           )}
 
           {/* ===================================================================== */}
-          {/* ÉTAPE 3 : RÈGLEMENT PAYMETRUST                                        */}
+          {/* ÉTAPE 3 : RÈGLEMENT JEKOPAY                                           */}
           {/* ===================================================================== */}
           {step === 3 && (
             <div className="space-y-5">
@@ -989,6 +1089,10 @@ export const CheckoutModal: React.FC = () => {
                                 e.currentTarget.style.display = 'none';
                               }}
                             />
+                          ) : op.id === 'djamo' ? (
+                            <span className="inline-flex items-center justify-center h-6 px-2 rounded-[4px] bg-[#1E6BFF] text-white font-agrandir-extrabold text-[11px] tracking-tight">
+                              djamo
+                            </span>
                           ) : (
                             <>
                               <img
@@ -1104,25 +1208,25 @@ export const CheckoutModal: React.FC = () => {
                   <div className="space-y-1 text-xs">
                     <p className="font-agrandir-extrabold text-white">
                       {isEn
-                        ? 'Encrypted card checkout via PayMeTrust'
-                        : 'Paiement par carte chiffré via PayMeTrust'}
+                        ? 'Encrypted card checkout via JekoPay'
+                        : 'Paiement par carte chiffré via JekoPay'}
                     </p>
                     <p className="text-[#9A9A9A] leading-relaxed">
                       {isEn
-                        ? 'Your card details are entered directly on PayMeTrust. LUMARÉEL never stores your card number.'
-                        : 'Vos informations bancaires sont saisies directement sur PayMeTrust. LUMARÉEL ne stocke jamais votre carte.'}
+                        ? 'Your card details are entered directly on JekoPay. LUMARÉEL never stores your card number.'
+                        : 'Vos informations bancaires sont saisies directement sur JekoPay. LUMARÉEL ne stocke jamais votre carte.'}
                     </p>
                   </div>
                 </div>
               )}
 
-              {/* Sécurité PayMeTrust + CTA */}
+              {/* Sécurité JekoPay + CTA */}
               <div className="pt-2 space-y-3">
                 <div className="flex items-center justify-between text-[11px] text-[#9A9A9A]">
                   <span className="inline-flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5 text-[#D4AF6A]" strokeWidth={1.7} />
                     <span>
-                      {isEn ? 'Secured by PayMeTrust' : 'Transaction sécurisée par PayMeTrust'}
+                      {isEn ? 'Secured by JekoPay' : 'Transaction sécurisée par JekoPay'}
                     </span>
                   </span>
                   <span className="font-mono text-white">SSL · 256-bit</span>
@@ -1138,7 +1242,7 @@ export const CheckoutModal: React.FC = () => {
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
                       <span>
-                        {isEn ? 'Connecting to PayMeTrust...' : 'Connexion à PayMeTrust...'}
+                        {isEn ? 'Connecting to JekoPay...' : 'Connexion à JekoPay...'}
                       </span>
                     </>
                   ) : (
@@ -1155,12 +1259,12 @@ export const CheckoutModal: React.FC = () => {
           )}
 
           {/* ===================================================================== */}
-          {/* ÉTAPE 4 : CONFIRMATION PAYMETRUST & BILLETS CERTIFIÉS                 */}
+          {/* ÉTAPE 4 : CONFIRMATION JEKOPAY & BILLETS CERTIFIÉS                    */}
           {/* ===================================================================== */}
           {step === 4 && (
             <div>
-              {/* CAS A : PASSERELLE PAYMETRUST ACTIVE */}
-              {paymetrustTx && !createdOrder && (
+              {/* CAS A : PASSERELLE JEKOPAY ACTIVE */}
+              {jekopayTx && !createdOrder && (
                 <div className="py-2 space-y-5 text-center">
                   <div className="p-5 sm:p-6 rounded-[12px] bg-[#0E0E0E] border border-white/[0.14] max-w-md mx-auto relative overflow-hidden">
                     <div className="absolute top-0 inset-x-0 h-[2px] bg-[#D4AF6A]" />
@@ -1174,16 +1278,16 @@ export const CheckoutModal: React.FC = () => {
                     </div>
 
                     <p className="text-[10px] uppercase tracking-[0.22em] text-[#D4AF6A] font-mono font-bold mb-1">
-                      PAYMETRUST · {paymetrustTx.channel.replace('_', ' ').toUpperCase()}
+                      JEKOPAY · {jekopayTx.channel.replace('_', ' ').toUpperCase()}
                     </p>
 
                     <h3 className="font-agrandir-extrabold text-xl uppercase tracking-tight text-white mb-4">
-                      {paymetrustTx.mode === 'live'
+                      {jekopayTx.mode === 'live'
                         ? isEn
-                          ? 'Finalize on PayMeTrust'
-                          : 'Finalisez sur PayMeTrust'
+                          ? 'Finalize on JekoPay'
+                          : 'Finalisez sur JekoPay'
                         : isEn
-                        ? 'PayMeTrust Checkout Ready'
+                        ? 'JekoPay Checkout Ready'
                         : 'Validation du règlement'}
                     </h3>
 
@@ -1195,13 +1299,13 @@ export const CheckoutModal: React.FC = () => {
                       <div className="flex justify-between gap-2">
                         <span className="text-[#9A9A9A]">{t('checkout.amountToConfirm')}</span>
                         <strong className="text-[#D4AF6A] font-mono tabular-nums">
-                          {paymetrustTx.amount.toLocaleString('fr-FR')} F CFA
+                          {jekopayTx.amount.toLocaleString('fr-FR')} F CFA
                         </strong>
                       </div>
                       <div className="flex justify-between gap-2">
                         <span className="text-[#9A9A9A]">{t('checkout.orderRef')}</span>
                         <span className="text-white font-mono">
-                          {pendingOrderRef || paymetrustTx.reference}
+                          {pendingOrderRef || jekopayTx.reference}
                         </span>
                       </div>
                       {paymentMethod !== 'card' && paymentPhoneNumber && (
@@ -1214,23 +1318,25 @@ export const CheckoutModal: React.FC = () => {
                       )}
                     </div>
 
-                    {paymetrustTx.mode === 'live' && paymetrustTx.paymentUrl ? (
+                    {jekopayTx.mode === 'live' && jekopayTx.paymentUrl ? (
                       <div className="space-y-2.5">
                         <button
                           type="button"
                           onClick={() => {
-                            window.location.href = paymetrustTx.paymentUrl!;
+                            if (/^https:\/\//i.test(jekopayTx.paymentUrl!)) {
+                              window.location.href = jekopayTx.paymentUrl!;
+                            }
                           }}
                           className="w-full min-h-[48px] rounded-[8px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer"
                         >
                           <Lock className="w-4 h-4" />
                           <span>
-                            {isEn ? 'Open PayMeTrust Payment' : 'Payer sur PayMeTrust'}
+                            {isEn ? 'Open JekoPay Payment' : 'Payer sur JekoPay'}
                           </span>
                         </button>
                         <button
                           type="button"
-                          onClick={handleVerifyPayMeTrustStatus}
+                          onClick={handleVerifyJekoPayStatus}
                           disabled={gatewayProcessing}
                           className="w-full min-h-[44px] rounded-[8px] border border-white/25 hover:border-white text-white font-agrandir-bold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                         >
@@ -1253,7 +1359,7 @@ export const CheckoutModal: React.FC = () => {
                         </p>
                         <button
                           type="button"
-                          onClick={handleConfirmPayMeTrustPreview}
+                          onClick={handleConfirmJekoPayPreview}
                           disabled={gatewayProcessing}
                           className="w-full min-h-[48px] rounded-[8px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                         >
@@ -1279,7 +1385,7 @@ export const CheckoutModal: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        setPaymetrustTx(null);
+                        setJekopayTx(null);
                         setStep(3);
                       }}
                       className="w-full mt-2.5 min-h-[42px] rounded-[8px] border border-white/[0.12] hover:border-white/30 text-xs font-agrandir-semibold text-[#9A9A9A] hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
@@ -1292,7 +1398,7 @@ export const CheckoutModal: React.FC = () => {
               )}
 
               {/* CAS B : BILLETS ÉMIS */}
-              {!paymetrustTx && createdOrder && (
+              {!jekopayTx && createdOrder && (
                 <div className="text-center py-2 space-y-5">
                   <div className="w-12 h-12 rounded-full bg-[#0F2A1A] border border-[#7FE0A6]/40 flex items-center justify-center mx-auto text-[#7FE0A6]">
                     <CheckCircle2 className="w-6 h-6" strokeWidth={1.7} />

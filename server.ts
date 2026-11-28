@@ -8,7 +8,7 @@ import crypto from 'crypto';
 import QRCode from 'qrcode';
 import { db } from './src/server/db';
 import { membershipService } from './src/server/membershipService';
-import { paymetrustService, PayMeTrustChannel } from './src/server/paymetrustService';
+import { jekopayService, JekoPayChannel } from './src/server/jekopayService';
 import { lumareelTvService } from './src/server/tvService';
 import { ecosystemService } from './src/server/ecosystemService';
 import {
@@ -664,7 +664,7 @@ async function startServer() {
         eventId,
         categoryId: categoryId || items?.[0]?.categoryId,
         quantity: Number(quantity || 1),
-        paymentProvider: paymentProvider || 'paymetrust',
+        paymentProvider: paymentProvider || 'jekopay',
         items,
         eventSnapshot,
       });
@@ -680,7 +680,7 @@ async function startServer() {
   });
 
   // ============================================================================
-  // PAYMETRUST PAYMENT GATEWAY ARCHITECTURE (Mobile Money CI & Cartes)
+  // JEKOPAY PAYMENT GATEWAY ARCHITECTURE (Mobile Money CI & Cartes — api.jeko.africa)
   // ============================================================================
   const resolvePublicBaseUrl = (req: Request): string => {
     const configured = (process.env.APP_PUBLIC_URL || '').trim().replace(/\/+$/, '');
@@ -690,8 +690,8 @@ async function startServer() {
     return `${proto}://${host}`;
   };
 
-  const fulfillPayMeTrustTransaction = (reference: string, providerTxId?: string) => {
-    const tx = paymetrustService.getTransaction(reference);
+  const fulfillJekoPayTransaction = (reference: string, providerTxId?: string) => {
+    const tx = jekopayService.getTransaction(reference);
     if (!tx) return null;
 
     if (tx.kind === 'ticket_order') {
@@ -781,24 +781,26 @@ async function startServer() {
     return null;
   };
 
-  // Public PayMeTrust readiness & supported channels (zero secrets exposed)
-  app.get('/api/payments/paymetrust/config', (_req: Request, res: Response) => {
-    res.json({ success: true, ...paymetrustService.getPublicConfig() });
+  // Public JekoPay readiness & supported channels (zero secrets exposed)
+  app.get('/api/payments/jekopay/config', (_req: Request, res: Response) => {
+    res.json({ success: true, ...jekopayService.getPublicConfig() });
   });
 
   // Admin-only launch readiness summary (booleans only, zero secrets exposed)
   app.get('/api/payments/readiness', async (req: Request, res: Response) => {
     const admin = await requireMemberAdmin(req, res, ['super_admin']);
     if (!admin) return;
-    const cfg = paymetrustService.getPublicConfig();
+    const cfg = jekopayService.getPublicConfig();
     return res.json({
       success: true,
       readiness: {
         supabasePublicConfigured: Boolean(process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY),
         supabaseServiceKeyConfigured: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
-        paymetrustConfigured: cfg.configured,
-        paymetrustWebhookSecretConfigured: Boolean(process.env.PAYMETRUST_WEBHOOK_SECRET),
-        paymetrustEnvironment: cfg.environment,
+        jekopayConfigured: cfg.configured,
+        jekopayApiKeyIdConfigured: Boolean(process.env.JEKOPAY_API_KEY_ID),
+        jekopayWebhookSecretConfigured: jekopayService.hasWebhookSecret(),
+        jekopayStoreIdConfigured: jekopayService.hasStoreId(),
+        jekopayEnvironment: cfg.environment,
         resendConfigured: isResendConfigured(),
         resendFrom: getResendFromAddress(),
         adminApiKeyConfigured: Boolean(process.env.ADMIN_API_KEY),
@@ -822,8 +824,8 @@ async function startServer() {
     return res.status(result.sent ? 200 : 400).json({ success: result.sent, ...result });
   });
 
-  // Initiate PayMeTrust payment (server-authoritative amount lookup)
-  app.post('/api/payments/paymetrust/initiate', async (req: Request, res: Response) => {
+  // Initiate JekoPay payment (server-authoritative amount lookup)
+  app.post('/api/payments/jekopay/initiate', async (req: Request, res: Response) => {
     try {
       const {
         kind = 'ticket_order',
@@ -837,8 +839,8 @@ async function startServer() {
         userId,
       } = req.body || {};
 
-      const validChannels: PayMeTrustChannel[] = ['wave', 'orange_money', 'mtn_momo', 'moov_money', 'djamo', 'card'];
-      const safeChannel: PayMeTrustChannel = validChannels.includes(channel) ? channel : 'wave';
+      const validChannels: JekoPayChannel[] = ['wave', 'orange_money', 'mtn_momo', 'moov_money', 'djamo', 'card'];
+      const safeChannel: JekoPayChannel = validChannels.includes(channel) ? channel : 'wave';
       const baseUrl = resolvePublicBaseUrl(req);
 
       let amount = 0;
@@ -859,7 +861,7 @@ async function startServer() {
           return res.status(404).json({ success: false, error: 'Commande introuvable.' });
         }
         amount = order.totalAmount;
-        reference = `PMT-${order.reference}`;
+        reference = `JEKO-${order.reference}`;
         description = `LUMARÉEL — ${order.eventTitle} (${order.quantity} billet${order.quantity > 1 ? 's' : ''})`;
         resolvedOrderId = order.id;
         resolvedName = resolvedName || order.customerName;
@@ -872,11 +874,11 @@ async function startServer() {
         const activePlans = membershipService.getPlans();
         const plan = planId ? membershipService.getPlanById(String(planId)) : activePlans[0];
         if (!plan) {
-          return res.status(404).json({ success: false, error: 'Formule Black Card introuvable.' });
+          return res.status(404).json({ success: false, error: 'Formule LUMARÉEL Black Card introuvable.' });
         }
         amount = plan.price;
         resolvedOrderId = `mb_${crypto.randomBytes(6).toString('hex')}`;
-        reference = `PMT-CARD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+        reference = `JEKO-CARD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
         description = `LUMARÉEL Black Card — ${plan.name}`;
         metadata = {
           planId: plan.id,
@@ -900,7 +902,7 @@ async function startServer() {
         }
         amount = tvPlan.price;
         resolvedOrderId = `tvord_${crypto.randomBytes(6).toString('hex')}`;
-        reference = `PMT-TV-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+        reference = `JEKO-TV-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
         description = `${tvPlan.name} (${tvPlan.durationDays} jours)`;
         lumareelTvService.createPendingSubscription({
           userId: userId ? String(userId) : undefined,
@@ -917,7 +919,7 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'Type de transaction invalide.' });
       }
 
-      const tx = await paymetrustService.initiatePayment({
+      const tx = await jekopayService.initiatePayment({
         kind,
         orderId: resolvedOrderId,
         reference,
@@ -927,7 +929,7 @@ async function startServer() {
         customerName: resolvedName || 'Client LUMARÉEL',
         customerEmail: resolvedEmail,
         customerPhone: resolvedPhone,
-        notifyUrl: `${baseUrl}/api/payments/paymetrust/webhook`,
+        notifyUrl: `${baseUrl}/api/payments/jekopay/webhook`,
         returnUrl: `${baseUrl}/?payment_status=success&ref=${encodeURIComponent(reference)}`,
         cancelUrl: `${baseUrl}/?payment_status=cancelled&ref=${encodeURIComponent(reference)}`,
         metadata,
@@ -938,6 +940,7 @@ async function startServer() {
         transaction: {
           id: tx.id,
           reference: tx.reference,
+          providerTransactionId: tx.providerTransactionId,
           status: tx.status,
           amount: tx.amount,
           currency: tx.currency,
@@ -948,25 +951,25 @@ async function startServer() {
         },
       });
     } catch (error: any) {
-      console.error('[PAYMETRUST INITIATE ERROR]', error);
+      console.error('[JEKOPAY INITIATE ERROR]', error);
       return res.status(502).json({
         success: false,
-        error: error.message || 'Impossible d’initialiser le paiement PayMeTrust.',
+        error: error.message || 'Impossible d’initialiser le paiement JekoPay.',
       });
     }
   });
 
-  // Verify PayMeTrust transaction status & fulfill order if confirmed
-  app.get('/api/payments/paymetrust/verify/:reference', async (req: Request, res: Response) => {
+  // Verify JekoPay transaction status & fulfill order if confirmed
+  app.get('/api/payments/jekopay/verify/:reference', async (req: Request, res: Response) => {
     try {
-      const tx = await paymetrustService.verifyTransactionStatus(req.params.reference);
+      const tx = await jekopayService.verifyTransactionStatus(req.params.reference);
       if (!tx) {
-        return res.status(404).json({ success: false, error: 'Transaction PayMeTrust introuvable.' });
+        return res.status(404).json({ success: false, error: 'Transaction JekoPay introuvable.' });
       }
 
       let fulfillment: any = null;
       if (tx.status === 'SUCCESS') {
-        fulfillment = fulfillPayMeTrustTransaction(tx.reference, tx.providerTransactionId || tx.reference);
+        fulfillment = fulfillJekoPayTransaction(tx.reference, tx.providerTransactionId || tx.reference);
       }
 
       return res.json({
@@ -988,13 +991,13 @@ async function startServer() {
     }
   });
 
-  // Preview-only confirmation when PayMeTrust API keys have not been added yet (strictly disabled in production or once keys are configured)
-  app.post('/api/payments/paymetrust/confirm-preview', (req: Request, res: Response) => {
+  // Preview-only confirmation when JekoPay API keys have not been added yet (strictly disabled in production or once keys are configured)
+  app.post('/api/payments/jekopay/confirm-preview', (req: Request, res: Response) => {
     try {
-      if (paymetrustService.isConfigured() || (process.env.PAYMETRUST_ENV || 'sandbox').toLowerCase() === 'production') {
+      if (jekopayService.isConfigured() || isProduction) {
         return res.status(403).json({
           success: false,
-          error: 'Mode live actif : la validation passe uniquement par PayMeTrust.',
+          error: 'Mode live actif : la validation passe uniquement par JekoPay.',
         });
       }
 
@@ -1003,16 +1006,16 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'Référence de transaction requise.' });
       }
 
-      const tx = paymetrustService.updateTransactionStatus(
+      const tx = jekopayService.updateTransactionStatus(
         String(reference),
         'SUCCESS',
-        `pmt_preview_${Date.now()}`
+        `jeko_preview_${Date.now()}`
       );
       if (!tx) {
         return res.status(404).json({ success: false, error: 'Transaction introuvable.' });
       }
 
-      const fulfillment = fulfillPayMeTrustTransaction(tx.reference, tx.providerTransactionId);
+      const fulfillment = fulfillJekoPayTransaction(tx.reference, tx.providerTransactionId);
       return res.json({
         success: true,
         transaction: tx,
@@ -1023,38 +1026,48 @@ async function startServer() {
     }
   });
 
-  // Authentic PayMeTrust Webhook (notify_url) with timing-safe HMAC verification & idempotent fulfillment
-  app.post('/api/payments/paymetrust/webhook', (req: Request, res: Response) => {
+  // Authentic JekoPay Webhook (/api/payments/jekopay/webhook) with timing-safe HMAC-SHA256 verification (Jeko-Signature) & idempotent fulfillment
+  app.post('/api/payments/jekopay/webhook', (req: Request, res: Response) => {
     try {
       const signature = String(
-        req.headers['x-paymetrust-signature'] ||
-          req.headers['x-signature'] ||
+        req.headers['jeko-signature'] ||
+          req.headers['x-jeko-signature'] ||
           req.headers['x-webhook-signature'] ||
           ''
       );
       const rawBody = (req as any).rawBody || JSON.stringify(req.body || {});
 
-      if (!paymetrustService.verifyWebhookSignature(rawBody, signature)) {
-        return res.status(401).json({ success: false, error: 'Signature webhook PayMeTrust invalide.' });
+      if (!jekopayService.verifyWebhookSignature(rawBody, signature)) {
+        return res.status(401).json({ success: false, error: 'Signature webhook JekoPay invalide.' });
       }
 
       const payload = req.body || {};
-      const reference = String(payload.reference || payload.merchant_reference || payload.order_id || '').trim();
-      const providerTxId = payload.transaction_id ? String(payload.transaction_id) : undefined;
-      const normalizedStatus = paymetrustService.normalizeStatus(payload.status ?? payload.code);
+      const reference = String(
+        payload.reference || payload.merchantReference || payload.data?.reference || ''
+      ).trim();
+      const providerTxId = String(
+        payload.transaction?.id || payload.id || payload.transactionId || ''
+      ).trim() || undefined;
+      const rawStatus =
+        payload.status ??
+        payload.transaction?.status ??
+        payload.data?.status ??
+        req.headers['jeko-event'];
+      const normalizedStatus = jekopayService.normalizeStatus(rawStatus);
 
-      if (!reference) {
+      if (!reference && !providerTxId) {
         return res.status(400).json({ success: false, error: 'Référence manquante dans la notification.' });
       }
 
-      const updated = paymetrustService.updateTransactionStatus(reference, normalizedStatus, providerTxId);
+      const lookupKey = reference || providerTxId || '';
+      const updated = jekopayService.updateTransactionStatus(lookupKey, normalizedStatus, providerTxId);
       if (updated && normalizedStatus === 'SUCCESS') {
-        fulfillPayMeTrustTransaction(updated.reference, providerTxId || updated.reference);
+        fulfillJekoPayTransaction(updated.reference, providerTxId || updated.reference);
       }
 
       return res.status(200).json({ received: true, status: normalizedStatus });
     } catch (error: any) {
-      console.error('[PAYMETRUST WEBHOOK ERROR]', error);
+      console.error('[JEKOPAY WEBHOOK ERROR]', error);
       return res.status(500).json({ success: false, error: error.message });
     }
   });
@@ -1067,7 +1080,7 @@ async function startServer() {
     try {
       const plans = lumareelTvService.getActivePlans();
       const cardEligibility = lumareelTvService.getCardEligibilityConfig();
-      const paymentConfig = paymetrustService.getPublicConfig();
+      const paymentConfig = jekopayService.getPublicConfig();
       return res.json({
         success: true,
         plans,
@@ -1119,7 +1132,7 @@ async function startServer() {
       return res.json({
         success: true,
         entitlement,
-        paymentReady: paymetrustService.isConfigured(),
+        paymentReady: jekopayService.isConfigured(),
       });
     } catch (error: any) {
       return res.status(500).json({ success: false, error: error.message });
@@ -1135,8 +1148,8 @@ async function startServer() {
         subscriptions: lumareelTvService.getAllSubscriptions(),
         cardEligibility: lumareelTvService.getCardEligibilityConfig(),
         membershipPlans: membershipService.getPlans(),
-        paymentReady: paymetrustService.isConfigured(),
-        paymentEnvironment: paymetrustService.getPublicConfig().environment,
+        paymentReady: jekopayService.isConfigured(),
+        paymentEnvironment: jekopayService.getPublicConfig().environment,
       });
     } catch (error: any) {
       return res.status(500).json({ success: false, error: error.message });

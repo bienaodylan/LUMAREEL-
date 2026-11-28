@@ -39,7 +39,7 @@ export function publicDb(): SupabaseClient {
 
 /**
  * Client serveur privilégié (SUPABASE_SERVICE_ROLE_KEY) utilisé uniquement côté backend
- * pour les webhooks PayMeTrust, l'émission atomique de cartes/billets et les journaux d'e-mails.
+ * pour les webhooks JekoPay, l'émission atomique de cartes/billets et les journaux d'e-mails.
  * Retourne null si la clé de service n'est pas encore renseignée dans les variables Vercel.
  */
 export function serviceDb(): SupabaseClient | null {

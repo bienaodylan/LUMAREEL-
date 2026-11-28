@@ -36,7 +36,7 @@ interface AdminTvSubscriptionRow {
   planId: string;
   planName: string;
   status: TvSubscriptionStatus;
-  source: 'paymetrust' | 'admin_grant';
+  source: 'jekopay' | 'admin_grant';
   paymentReference?: string;
   amountPaid?: number;
   currency?: string;
@@ -280,13 +280,13 @@ export const AdminLumareelTvSubscriptionsPanel: React.FC<
           <div className="text-xs">
             <p className="font-agrandir-extrabold text-white">
               {paymentReady
-                ? 'Passerelle PayMeTrust active pour LUMARÉEL TV Pass'
-                : 'Paiement en ligne PayMeTrust non configuré (zéro simulation active)'}
+                ? 'Passerelle JekoPay active pour LUMARÉEL TV Pass'
+                : 'Paiement en ligne JekoPay non configuré (zéro simulation active)'}
             </p>
             <p className="text-neutral-300 mt-0.5">
               {paymentReady
-                ? 'Les souscriptions au TV Pass sont confirmées uniquement après retour vérifié ou webhook HMAC PayMeTrust.'
-                : 'Définissez PAYMETRUST_API_KEY, PAYMETRUST_SECRET_KEY et PAYMETRUST_WEBHOOK_SECRET côté serveur pour activer le paiement en ligne. En attendant, seuls les titulaires de carte éligible ou les attributions administrateur ont accès.'}
+                ? 'Les souscriptions au TV Pass sont confirmées uniquement après retour vérifié ou webhook HMAC JekoPay.'
+                : 'Définissez JEKOPAY_API_KEY_ID, JEKOPAY_API_KEY_SECRET et JEKOPAY_WEBHOOK_SECRET côté serveur pour activer le paiement en ligne. En attendant, seuls les titulaires de carte éligible ou les attributions administrateur ont accès.'}
             </p>
           </div>
         </div>
@@ -625,7 +625,7 @@ export const AdminLumareelTvSubscriptionsPanel: React.FC<
                     </span>
                   </div>
                   <p className="text-[11px] text-neutral-400">
-                    {sub.planName} · Source : {sub.source === 'paymetrust' ? 'PayMeTrust' : 'Admin'}
+                    {sub.planName} · Source : {sub.source === 'jekopay' ? 'JekoPay' : 'Admin'}
                     {sub.expiresAt
                       ? ` · Expire le ${new Date(sub.expiresAt).toLocaleDateString('fr-FR')}`
                       : ''}

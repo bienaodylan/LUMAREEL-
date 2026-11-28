@@ -1098,8 +1098,8 @@ class LumareelDatabase {
       totalAmount,
       currency: primaryCat.currency || 'FCFA',
       paymentStatus: 'pending',
-      paymentProvider: params.paymentProvider || 'paymetrust',
-      paymentRef: `pmt_init_${crypto.randomBytes(8).toString('hex')}`,
+      paymentProvider: params.paymentProvider || 'jekopay',
+      paymentRef: `jeko_init_${crypto.randomBytes(8).toString('hex')}`,
       items: resolvedItems,
       createdAt: new Date().toISOString(),
     };

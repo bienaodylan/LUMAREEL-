@@ -43,7 +43,7 @@ export interface TvSubscription {
   planId: string;
   planName: string;
   status: TvSubscriptionStatus;
-  source: 'paymetrust' | 'admin_grant';
+  source: 'jekopay' | 'admin_grant';
   paymentReference?: string;
   providerTransactionId?: string;
   amountPaid?: number;
@@ -368,7 +368,7 @@ class LumareelTvService {
       planId: plan.id,
       planName: plan.name,
       status: 'pending_payment',
-      source: 'paymetrust',
+      source: 'jekopay',
       paymentReference: params.paymentReference,
       amountPaid: plan.price,
       currency: plan.currency,
@@ -384,7 +384,7 @@ class LumareelTvService {
 
   /**
    * Idempotently activates a TV Pass subscription ONLY after real verified payment
-   * (PayMeTrust webhook or PayMeTrust verify endpoint returning SUCCESS).
+   * (JekoPay webhook or JekoPay verify endpoint returning SUCCESS).
    */
   public activateSubscriptionFromPayment(
     paymentReference: string,

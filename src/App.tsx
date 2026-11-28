@@ -32,13 +32,13 @@ const MainApp: React.FC = () => {
   const { currentPage, setCurrentPage, checkoutEvent, setCheckoutEvent, toast, showToast, refreshCustomerOrders, refreshEvents, language } = useApp();
   const { isStandalone } = usePWAInstall();
 
-  // Vérification automatique au retour de la page de paiement PayMeTrust (?payment_status=...&ref=PMT-...)
+  // Vérification automatique au retour de la page de paiement JekoPay (?payment_status=...&ref=JEKO-...)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     const paymentStatus = params.get('payment_status');
     const ref = params.get('ref');
-    if (!paymentStatus || !ref || !ref.startsWith('PMT-')) return;
+    if (!paymentStatus || !ref || (!ref.startsWith('JEKO-') && !ref.startsWith('PMT-'))) return;
 
     const cleanUrl = () => {
       try {
@@ -51,8 +51,8 @@ const MainApp: React.FC = () => {
     if (paymentStatus === 'cancelled') {
       showToast(
         language === 'en'
-          ? 'PayMeTrust payment was cancelled.'
-          : 'Le paiement PayMeTrust a été annulé.',
+          ? 'JekoPay payment was cancelled.'
+          : 'Le paiement JekoPay a été annulé.',
         'info'
       );
       cleanUrl();
@@ -62,28 +62,31 @@ const MainApp: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/payments/paymetrust/verify/${encodeURIComponent(ref)}`);
+        const res = await fetch(`/api/payments/jekopay/verify/${encodeURIComponent(ref)}`);
         const data = await res.json();
         if (cancelled) return;
 
         if (res.ok && data?.success && data?.transaction?.status === 'SUCCESS') {
           await Promise.all([refreshCustomerOrders(), refreshEvents()]);
-          const isCard = ref.startsWith('PMT-CARD-');
+          const isCard = ref.startsWith('JEKO-CARD-') || ref.startsWith('PMT-CARD-');
+          const isTvPass = ref.startsWith('JEKO-TV-') || ref.startsWith('PMT-TV-');
           if (isCard && data?.fulfillment?.card) {
             saveStoredMemberCard(data.fulfillment.card);
           }
           showToast(
             isCard
-              ? (language === 'en' ? 'LUMARÉEL Black Card confirmed! Your card is ready.' : 'Paiement confirmé ! Ta carte LUMARÉEL est prête.')
+              ? (language === 'en' ? 'LUMARÉEL Black Card confirmed! Your card is ready.' : 'Paiement confirmé ! Ta LUMARÉEL Black Card est prête.')
+              : isTvPass
+              ? (language === 'en' ? 'LUMARÉEL TV Pass confirmed! Your access is active.' : 'Paiement confirmé ! Ton LUMARÉEL TV Pass est actif.')
               : (language === 'en' ? 'Payment confirmed! Your tickets are available.' : 'Paiement confirmé ! Tes billets sont dispos.'),
             'success'
           );
-          setCurrentPage(isCard ? 'member_card' : 'client_space');
+          setCurrentPage(isCard ? 'member_card' : isTvPass ? 'backstage' : 'client_space');
         } else {
           showToast(
             language === 'en'
-              ? 'Payment is being confirmed by PayMeTrust…'
-              : 'Paiement en cours de confirmation par PayMeTrust…',
+              ? 'Payment is being confirmed by JekoPay…'
+              : 'Paiement en cours de confirmation par JekoPay…',
             'info'
           );
         }

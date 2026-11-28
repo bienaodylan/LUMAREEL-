@@ -119,6 +119,7 @@ export const DEFAULT_TV_PAYMENT_CHANNELS: Array<{ id: string; label: string; typ
   { id: 'orange_money', label: 'Orange Money', type: 'mobile_money' },
   { id: 'mtn_momo', label: 'MTN MoMo', type: 'mobile_money' },
   { id: 'moov_money', label: 'Moov Money', type: 'mobile_money' },
+  { id: 'djamo', label: 'Djamo', type: 'mobile_money' },
   { id: 'card', label: 'Visa / Mastercard', type: 'card' },
 ];
 
@@ -269,8 +270,8 @@ export async function fetchTvPlans(): Promise<TvPlansResponse> {
       cardAccessEnabled: true,
     },
     paymentReady: true,
-    paymentProvider: 'paymetrust',
-    paymentEnvironment: 'sandbox',
+    paymentProvider: 'jekopay',
+    paymentEnvironment: 'production',
     channels: DEFAULT_TV_PAYMENT_CHANNELS,
   };
 }

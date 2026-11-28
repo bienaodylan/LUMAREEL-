@@ -81,7 +81,7 @@ export const LumareelCardOrderPage: React.FC<LumareelCardOrderPageProps> = ({
   const [applicantCity, setApplicantCity] = useState('Abidjan');
   const [applicantAddress, setApplicantAddress] = useState('Cocody');
   const [paymentMethod, setPaymentMethod] = useState<
-    'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'card'
+    'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'djamo' | 'card'
   >('wave');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [issuedResult, setIssuedResult] = useState<{
@@ -121,6 +121,7 @@ export const LumareelCardOrderPage: React.FC<LumareelCardOrderPageProps> = ({
     { id: 'orange_money', label: 'Orange Money', desc: 'Mobile' },
     { id: 'mtn_momo', label: 'MTN MoMo', desc: isEn ? 'Instant' : 'Rapide' },
     { id: 'moov_money', label: 'Moov Money', desc: 'Flooz' },
+    { id: 'djamo', label: 'Djamo', desc: 'App / Visa' },
     { id: 'card', label: isEn ? 'Bank Card' : 'Carte Bancaire', desc: 'Visa / MC' },
   ] as const;
 
@@ -238,31 +239,72 @@ export const LumareelCardOrderPage: React.FC<LumareelCardOrderPageProps> = ({
             : 'Retrait au guichet dédié au prochain concert'
           : applicantAddress.trim() || 'Remise en main propre';
 
-      try {
-        const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
-        const res = await fetch('/api/membership/order', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
+      const shippingAddress = {
+        street: handoverAddress,
+        city: applicantCity.trim() || 'Abidjan',
+        country: 'Côte d’Ivoire',
+      };
+
+      const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
+      const initRes = await fetch('/api/payments/jekopay/initiate', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          kind: 'membership_card',
+          planId,
+          channel: paymentMethod,
+          customerName: cleanName,
+          customerEmail: cleanEmail,
+          customerPhone: applicantPhone.trim(),
+          userId: currentUser.id,
+          shippingAddress,
+        }),
+      });
+      const initData = await initRes.json().catch(() => null);
+
+      if (!initRes.ok || !initData?.success || !initData?.transaction) {
+        throw new Error(
+          initData?.error ||
+            (isEn
+              ? 'Unable to initiate JekoPay payment right now.'
+              : 'Impossible d’initialiser le paiement JekoPay pour le moment.')
+        );
+      }
+
+      const tx = initData.transaction;
+      if (tx.mode === 'live' && typeof tx.paymentUrl === 'string' && /^https:\/\//i.test(tx.paymentUrl)) {
+        window.location.href = tx.paymentUrl;
+        return;
+      }
+
+      // Mode prévisualisation (clés JekoPay non encore définies côté serveur)
+      const confirmRes = await fetch('/api/payments/jekopay/confirm-preview', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          reference: tx.reference,
+          previewPayload: {
             planId,
             customerName: cleanName,
             customerEmail: cleanEmail,
             customerPhone: applicantPhone.trim(),
-            paymentMethod,
-            shippingAddress: {
-              street: handoverAddress,
-              city: applicantCity.trim() || 'Abidjan',
-              country: 'Côte d’Ivoire',
-            },
-          }),
-        });
-        const data = await res.json().catch(() => null);
-        if (res.ok && data?.success && data?.card) {
-          issuedCard = data.card as MembershipCard;
-          qrDataUrl = String(data.qrDataUrl || '');
-        }
-      } catch {
-        // Fallback local si backend indisponible
+            channel: paymentMethod,
+            userId: currentUser.id,
+            shippingAddress,
+          },
+        }),
+      });
+      const confirmData = await confirmRes.json().catch(() => null);
+      if (confirmRes.ok && confirmData?.success && confirmData?.fulfillment?.card) {
+        issuedCard = confirmData.fulfillment.card as MembershipCard;
+        qrDataUrl = String(confirmData.fulfillment.qrDataUrl || '');
+      } else if (!confirmRes.ok) {
+        throw new Error(
+          confirmData?.error ||
+            (isEn
+              ? 'Payment validation required via JekoPay.'
+              : 'La validation du paiement doit passer par JekoPay.')
+        );
       }
 
       if (!issuedCard) {
@@ -931,8 +973,8 @@ export const LumareelCardOrderPage: React.FC<LumareelCardOrderPageProps> = ({
                     <ShieldCheck className="w-4 h-4 shrink-0 text-black/70" strokeWidth={1.75} />
                     <span>
                       {isEn
-                        ? 'Instant activation in your LUMARÉEL space upon validation. Not a bank card.'
-                        : 'Activation immédiate dans ton espace LUMARÉEL dès validation. Carte membre dédiée (non bancaire).'}
+                        ? 'Secured via JekoPay. Instant activation in your LUMARÉEL space upon validation. Not a bank card.'
+                        : 'Paiement sécurisé via JekoPay. Activation immédiate dans ton espace LUMARÉEL dès validation. Carte membre dédiée (non bancaire).'}
                     </span>
                   </div>
 

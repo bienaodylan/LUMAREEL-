@@ -198,7 +198,7 @@ export const SplashHero: React.FC = () => {
                 <span className="text-[#d4af37] font-agrandir-semibold text-[10px] tracking-widest uppercase block mb-1">
                   TRANSACTIONS SÉCURISÉES
                 </span>
-                <p className="text-white font-agrandir-semibold">PayMeTrust &amp; Mobile Money</p>
+                <p className="text-white font-agrandir-semibold">JekoPay &amp; Mobile Money</p>
                 <p className="text-[#777] text-[11px]">Paiement instantané mobile &amp; cartes</p>
               </div>
             </div>

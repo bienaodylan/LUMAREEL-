@@ -394,7 +394,7 @@ export const CustomerSpace: React.FC = () => {
                                   {order.eventTitle}
                                 </h3>
                                 <p className="text-xs text-black/55 dark:text-[#9A9A9A]">
-                                  {order.quantity} × {order.categoryName} · {order.paymentMethod || 'PayMeTrust'}
+                                  {order.quantity} × {order.categoryName} · {order.paymentMethod || 'JekoPay'}
                                 </p>
                               </div>
                               <div className="flex sm:flex-col items-center sm:items-end justify-between gap-1 shrink-0">
