@@ -91,8 +91,81 @@ class JekoPayService {
   private transactions: Map<string, JekoPayTransaction> = new Map();
   private cachedStoreId: string | null = null;
 
+  private ready: Promise<void>;
+
   constructor() {
     this.loadFromDisk();
+    this.ready = this.loadFromSupabase();
+  }
+
+  private get supabaseUrl(): string {
+    return (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim().replace(/\\/$/, '');
+  }
+
+  private get supabaseServiceKey(): string {
+    return (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || '').trim();
+  }
+
+  private get hasSupabaseStore(): boolean {
+    return Boolean(this.supabaseUrl && this.supabaseServiceKey);
+  }
+
+  private async loadFromSupabase(): Promise<void> {
+    if (!this.hasSupabaseStore) return;
+    try {
+      const response = await fetch(`${this.supabaseUrl}/rest/v1/jekopay_transactions?select=payload&order=created_at.desc`, {
+        headers: { apikey: this.supabaseServiceKey, Authorization: `Bearer ${this.supabaseServiceKey}` },
+      });
+      if (!response.ok) throw new Error(`Supabase transaction load failed (${response.status})`);
+      const rows = await response.json();
+      if (Array.isArray(rows)) {
+        for (const row of rows) {
+          const tx = row?.payload as JekoPayTransaction | undefined;
+          if (tx?.reference) this.transactions.set(tx.reference, tx);
+        }
+      }
+    } catch (err) {
+      console.error('[JekoPay] Persistent transaction store unavailable:', err);
+    }
+  }
+
+  private async persistTransaction(tx: JekoPayTransaction): Promise<void> {
+    if (!this.hasSupabaseStore) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('Stockage de transactions indisponible : configurez SUPABASE_SERVICE_ROLE_KEY.');
+      }
+      this.saveToDisk();
+      return;
+    }
+    const row = {
+      reference: tx.reference,
+      provider_transaction_id: tx.providerTransactionId || null,
+      status: tx.status,
+      kind: tx.kind,
+      amount: tx.amount,
+      currency: tx.currency,
+      environment: tx.environment,
+      mode: tx.mode,
+      payload: tx,
+      created_at: tx.createdAt,
+      updated_at: tx.updatedAt,
+      paid_at: tx.paidAt || null,
+    };
+    const response = await fetch(`${this.supabaseUrl}/rest/v1/jekopay_transactions?on_conflict=reference`, {
+      method: 'POST',
+      headers: {
+        apikey: this.supabaseServiceKey,
+        Authorization: `Bearer ${this.supabaseServiceKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'resolution=merge-duplicates',
+      },
+      body: JSON.stringify(row),
+    });
+    if (!response.ok) {
+      const safeText = await response.text().catch(() => '');
+      console.error('[JekoPay] Transaction persistence failed:', response.status, safeText.slice(0, 300));
+      throw new Error('Impossible de sauvegarder la transaction dans Supabase.');
+    }
   }
 
   private get environment(): 'sandbox' | 'production' {
@@ -264,6 +337,7 @@ class JekoPayService {
    * - When credentials are not yet configured: records a structured pending transaction (`mode: 'awaiting_keys'`) for non-production preview testing.
    */
   public async initiatePayment(params: JekoPayInitParams): Promise<JekoPayTransaction> {
+    await this.ready;
     const now = new Date().toISOString();
     const txId = `jeko_${crypto.randomBytes(8).toString('hex')}`;
     const cleanPhone = (params.customerPhone || '').replace(/\s+/g, '');
@@ -293,7 +367,7 @@ class JekoPayService {
         updatedAt: now,
       };
       this.transactions.set(awaitingTx.reference, awaitingTx);
-      this.saveToDisk();
+      await this.persistTransaction(awaitingTx);
       return awaitingTx;
     }
 
@@ -370,7 +444,7 @@ class JekoPayService {
     };
 
     this.transactions.set(tx.reference, tx);
-    this.saveToDisk();
+    await this.persistTransaction(tx);
     return tx;
   }
 
@@ -403,7 +477,7 @@ class JekoPayService {
           if (normalized === 'SUCCESS' && !tx.paidAt) {
             tx.paidAt = tx.updatedAt;
           }
-          this.saveToDisk();
+          await this.persistTransaction(tx);
         }
       }
     } catch (err) {
@@ -438,11 +512,12 @@ class JekoPayService {
     return crypto.timingSafeEqual(a, b);
   }
 
-  public updateTransactionStatus(
+  public async updateTransactionStatus(
     referenceOrProviderId: string,
     status: JekoPayTransactionStatus,
     providerTransactionId?: string
-  ): JekoPayTransaction | null {
+  ): Promise<JekoPayTransaction | null> {
+    await this.ready;
     const tx = this.getTransaction(referenceOrProviderId);
     if (!tx) return null;
 
@@ -457,7 +532,7 @@ class JekoPayService {
     if (status === 'SUCCESS' && !tx.paidAt) {
       tx.paidAt = tx.updatedAt;
     }
-    this.saveToDisk();
+    await this.persistTransaction(tx);
     return tx;
   }
 }
