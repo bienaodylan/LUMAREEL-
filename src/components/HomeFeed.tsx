@@ -84,7 +84,8 @@ export const HomeFeed: React.FC = () => {
     setCurrentSlideIndex(index);
     const containerRect = container.getBoundingClientRect();
     const cardRect = card.getBoundingClientRect();
-    const offset = cardRect.left - containerRect.left - 16;
+    const padLeft = parseFloat(window.getComputedStyle(container).paddingLeft) || 16;
+    const offset = cardRect.left - containerRect.left - padLeft;
     container.scrollBy({ left: offset, behavior: 'smooth' });
     window.setTimeout(() => {
       isProgrammaticScroll.current = false;
@@ -245,9 +246,9 @@ export const HomeFeed: React.FC = () => {
           </label>
         </div>
 
-        {/* SECTION ÉVÉNEMENTS — Premier événement large + aperçu du prochain concert pour l'intuition de scroll */}
+        {/* SECTION ÉVÉNEMENTS — Premier événement aligné sur la même marge que la navigation rapide + aperçu du prochain concert */}
         <section id="home-upcoming-events" className="home-events w-full shrink-0">
-          <div className="mb-2.5 flex items-center justify-between border-b border-black/[0.09] dark:border-white/15 px-4 pb-2 sm:mb-3.5 sm:px-7 sm:pb-2.5 lg:px-10">
+          <div className="mx-4 mb-2.5 flex items-center justify-between border-b border-black/[0.09] dark:border-white/15 pb-2 sm:mx-7 sm:mb-3.5 sm:pb-2.5 lg:mx-10">
             <h2 className="text-[15px] font-agrandir-extrabold uppercase tracking-[-0.025em] sm:text-2xl">
               {isEn ? 'EVENTS' : 'ÉVÉNEMENTS'}
             </h2>
@@ -287,7 +288,7 @@ export const HomeFeed: React.FC = () => {
               <div
                 ref={featuredRowRef}
                 onScroll={handleContainerScroll}
-                className="home-events-track flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-4 pb-2 pt-0.5 sm:gap-5 sm:px-7 sm:pb-3 sm:pt-1 lg:gap-6 lg:px-10"
+                className="home-events-track flex snap-x snap-mandatory scroll-pl-4 scroll-pr-4 items-start gap-3 overflow-x-auto px-4 pb-2 pt-0.5 sm:scroll-pl-7 sm:scroll-pr-7 sm:gap-5 sm:px-7 sm:pb-3 sm:pt-1 lg:scroll-pl-10 lg:scroll-pr-10 lg:gap-6 lg:px-10"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
                 {activeSlides.map((event, index) => {
@@ -396,7 +397,7 @@ export const HomeFeed: React.FC = () => {
 
         {/* ACCÈS RAPIDE CLUB */}
         <section
-          className="home-quick-access mx-auto mt-4 w-full shrink-0 px-3.5 sm:mt-7 sm:px-7 lg:px-10"
+          className="home-quick-access mx-auto mt-4 w-full shrink-0 px-4 sm:mt-7 sm:px-7 lg:px-10"
           aria-label={isEn ? 'Quick access' : 'Accès rapide'}
         >
           <div className="overflow-hidden rounded-[22px] border border-black/[0.08] dark:border-white/12 bg-white dark:bg-[#0b0b0b] px-3.5 sm:rounded-[26px] sm:border-black/[0.09] dark:sm:border-white/15 sm:px-6 transition-colors">

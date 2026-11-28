@@ -255,8 +255,7 @@
 .home-editorial .home-hero-frame,
 .home-editorial .home-quick-tile,
 .home-editorial .home-club > div,
-.home-editorial .home-events article > div:first-child,
-.home-editorial button {
+.home-editorial .home-events article > div:first-child {
   border-radius: 0 !important;
 }
 .home-editorial .home-quick-track {
