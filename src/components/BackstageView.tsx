@@ -37,7 +37,7 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = () => {
         const storage = item.storage_path && allowed
           ? await supabase.storage.from('club-media').createSignedUrl(item.storage_path, 900)
           : null;
-        const thumb = item.thumbnail_path && allowed
+        const thumb = item.thumbnail_path
           ? await supabase.storage.from('club-media').createSignedUrl(item.thumbnail_path, 900)
           : null;
         const sourceUrl = storage?.data?.signedUrl || (allowed ? item.external_url || '' : '');
