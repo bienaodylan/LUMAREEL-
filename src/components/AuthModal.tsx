@@ -12,46 +12,6 @@ import { isValidRealEmail } from './CheckoutModal';
 import { User } from '../types';
 import { supabase } from '../lib/supabaseClient';
 
-const LOCAL_ACCOUNTS_KEY = 'lumareel_effective_accounts_v1';
-
-interface LocalAccountRecord {
-  id: string;
-  email: string;
-  name: string;
-  password: string;
-  provider?: 'email' | 'google' | 'apple';
-  createdAt: string;
-}
-
-function loadLocalAccounts(): LocalAccountRecord[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(LOCAL_ACCOUNTS_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalAccount(account: LocalAccountRecord): void {
-  if (typeof window === 'undefined') return;
-  try {
-    const existing = loadLocalAccounts().filter(
-      (a) => a.email.toLowerCase() !== account.email.toLowerCase()
-    );
-    localStorage.setItem(LOCAL_ACCOUNTS_KEY, JSON.stringify([account, ...existing]));
-  } catch {
-    // ignore storage errors
-  }
-}
-
-function findLocalAccount(email: string): LocalAccountRecord | undefined {
-  const clean = email.trim().toLowerCase();
-  return loadLocalAccounts().find((a) => a.email.toLowerCase() === clean);
-}
-
 function buildEffectiveUser(params: {
   id?: string;
   email: string;
@@ -62,7 +22,7 @@ function buildEffectiveUser(params: {
   const cleanEmail = params.email.trim().toLowerCase();
   const isSuperAdmin = cleanEmail === 'bienaodylan428@gmail.com';
   return {
-    id: params.id || `usr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    id: params.id || '',
     email: cleanEmail,
     name: params.name.trim() || cleanEmail.split('@')[0] || 'Membre LUMARÉEL',
     role: isSuperAdmin ? 'super_admin' : params.role || 'customer',
@@ -100,8 +60,7 @@ const AppleLogo: React.FC = () => (
 
 /**
  * Page pleine écran d'inscription & connexion LUMARÉEL (remplace l'ancienne fenêtre modale).
- * Fonctionne en mode effectif avec Supabase et bascule proprement en compte actif si la
- * confirmation e-mail ou le fournisseur OAuth n'est pas encore activé côté serveur.
+ * Authentification exclusivement gérée par Supabase Auth ; aucune identité locale n'est créée.
  */
 export const AuthModal: React.FC = () => {
   const {
