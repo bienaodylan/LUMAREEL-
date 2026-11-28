@@ -143,11 +143,11 @@ export const FloatingAppNavbar: React.FC = () => {
               <button type="button" onClick={() => setClubOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#242424] text-white" aria-label="Fermer"><X className="h-4 w-4" /></button>
             </div>
             {[
-              { title: "Points & Parrainage", subtitle: "Points fidélité · 500 F CFA par ami", icon: Award, page: "rewards" as PageView },
+              { title: "Gift Points & Parrainage", subtitle: "Fidélité · 500 F en Gift Points par ami", icon: Award, page: "rewards" as PageView },
               { title: "BACKSTAGE", subtitle: "Balances & contenus exclusifs", icon: Film, page: "backstage" as PageView },
               { title: "Ventes Flash & Surprises", subtitle: "Offres éclair & récompenses surprises", icon: Zap, page: "flash_drops" as PageView },
               { title: "Souvenirs de concerts", subtitle: "Photos officielles, récaps & partages", icon: Camera, page: "memories" as PageView },
-              { title: "Boîte à suggestions", subtitle: "Proposez des artistes, lieux & idées", icon: Lightbulb, page: "suggestions" as PageView },
+              { title: "Ta Voix", subtitle: "Artistes · lieux · idées d’événements", icon: Lightbulb, page: "suggestions" as PageView },
             ].map((item) => {
               const Icon = item.icon;
               return <button key={item.title} type="button" onClick={() => { setClubOpen(false); setCurrentPage(item.page); }} className="flex min-h-[68px] w-full items-center gap-3 border-b border-white/[0.07] py-2.5 text-left last:border-0">
