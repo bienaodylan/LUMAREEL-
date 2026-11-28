@@ -5,7 +5,7 @@ import { ArrowLeft, Download, Film, Images, MapPin, Play, Share2, X } from 'luci
 
 type Album = { id: string; event_id: string; title: string; description: string; cover_path: string | null; recap_url: string | null; recap_duration: string | null; event?: { title: string; artist: string; date: string; city: string; venue: string } | null };
 type Photo = { id: string; album_id: string; storage_path: string; thumbnail_path: string | null; caption: string; media_type: 'image' | 'video'; downloadable: boolean; sort_order: number };
-type DisplayPhoto = Photo & { url: string; downloadUrl: string };
+type DisplayPhoto = Photo & { url: string; sourceUrl: string; downloadUrl: string };
 
 export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
   const { currentUser, setIsAuthModalOpen, showToast, language } = useApp();
@@ -35,9 +35,9 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
         const previewPath = photo.thumbnail_path || photo.storage_path;
         const [preview, full] = await Promise.all([
           supabase.storage.from('club-media').createSignedUrl(previewPath, 900),
-          photo.downloadable ? supabase.storage.from('club-media').createSignedUrl(photo.storage_path, 900) : Promise.resolve({ data: null, error: null }),
+          supabase.storage.from('club-media').createSignedUrl(photo.storage_path, 900),
         ]);
-        return { ...photo, url: preview.data?.signedUrl || '', downloadUrl: full.data?.signedUrl || '' };
+        return { ...photo, url: preview.data?.signedUrl || '', sourceUrl: full.data?.signedUrl || '', downloadUrl: photo.downloadable ? (full.data?.signedUrl || '') : '' };
       }));
       setPhotos(mapped);
     } catch (err: any) {
@@ -93,7 +93,7 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
         </section>
       )}
 
-      {selectedPhoto && <div className="fixed inset-0 z-[110] bg-black/95 flex items-center justify-center p-3 sm:p-8"><div className="w-full max-w-5xl"><div className="mb-3 flex justify-end gap-2"><button onClick={() => void download(selectedPhoto)} disabled={!selectedPhoto.downloadable} className="h-10 px-4 border border-white/20 inline-flex items-center gap-2 text-xs disabled:opacity-30"><Download size={14}/>{isEn ? 'Download' : 'Télécharger'}</button><button onClick={() => setSelectedPhoto(null)} aria-label="Fermer" className="h-10 w-10 border border-white/20 flex items-center justify-center"><X size={17}/></button></div>{selectedPhoto.media_type === 'video' ? <video src={selectedPhoto.downloadUrl || selectedPhoto.url} controls playsInline className="max-h-[78vh] w-full"/> : <img src={selectedPhoto.url} alt={selectedPhoto.caption} className="max-h-[78vh] w-full object-contain"/>}<p className="mt-3 text-center text-sm text-neutral-400">{selectedPhoto.caption}</p></div></div>}
+      {selectedPhoto && <div className="fixed inset-0 z-[110] bg-black/95 flex items-center justify-center p-3 sm:p-8"><div className="w-full max-w-5xl"><div className="mb-3 flex justify-end gap-2"><button onClick={() => void download(selectedPhoto)} disabled={!selectedPhoto.downloadable} className="h-10 px-4 border border-white/20 inline-flex items-center gap-2 text-xs disabled:opacity-30"><Download size={14}/>{isEn ? 'Download' : 'Télécharger'}</button><button onClick={() => setSelectedPhoto(null)} aria-label="Fermer" className="h-10 w-10 border border-white/20 flex items-center justify-center"><X size={17}/></button></div>{selectedPhoto.media_type === 'video' ? <video src={selectedPhoto.sourceUrl || selectedPhoto.url} controls playsInline className="max-h-[78vh] w-full"/> : <img src={selectedPhoto.url} alt={selectedPhoto.caption} className="max-h-[78vh] w-full object-contain"/>}<p className="mt-3 text-center text-sm text-neutral-400">{selectedPhoto.caption}</p></div></div>}
       {recapOpen && selectedAlbum?.recap_url && <div className="fixed inset-0 z-[110] bg-black/95 flex items-center justify-center p-3 sm:p-8"><div className="w-full max-w-5xl"><button onClick={() => setRecapOpen(false)} className="mb-3 ml-auto flex h-10 w-10 items-center justify-center border border-white/20"><X size={17}/></button><div className="aspect-video">{/\.(mp4|webm)(\?|$)/i.test(selectedAlbum.recap_url) ? <video src={selectedAlbum.recap_url} controls playsInline className="h-full w-full"/> : <iframe src={selectedAlbum.recap_url} title={selectedAlbum.title} className="h-full w-full border-0" allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen/>}</div></div></div>}
     </div>
   );
