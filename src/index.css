@@ -293,3 +293,29 @@
     transition: none !important;
   }
 }
+
+
+/* Mobile app-like interaction: prevent iOS focus zoom without disabling user pinch zoom. */
+@media (max-width: 767px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  input,
+  textarea,
+  select,
+  [contenteditable="true"],
+  [role="textbox"] {
+    font-size: 16px !important;
+  }
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"] {
+    font-size: inherit !important;
+  }
+  button,
+  a,
+  [role="button"] {
+    touch-action: manipulation;
+  }
+}
