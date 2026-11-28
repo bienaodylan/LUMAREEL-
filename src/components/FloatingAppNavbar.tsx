@@ -114,9 +114,9 @@ export const FloatingAppNavbar: React.FC = () => {
     <>
       {/* Barre de navigation flottante façon Instagram : icônes épurées + pilule uniquement derrière l'élément actif */}
       {clubOpen && (
-        <div className="fixed inset-0 z-[80] flex items-end justify-center md:items-center" role="dialog" aria-modal="true" aria-label="LUMARÉEL Club">
-          <button type="button" className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => setClubOpen(false)} aria-label="Fermer le Club" />
-          <motion.section initial={{ y: 36, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 36, opacity: 0 }} className="relative z-10 mb-[calc(5.6rem+env(safe-area-inset-bottom,0px))] max-h-[78svh] w-[calc(100%-2rem)] max-w-[520px] overflow-y-auto rounded-[28px] border border-white/15 bg-[#101010] px-5 pb-5 pt-5 shadow-2xl md:mb-0">
+        <div className="fixed inset-0 z-[40] flex items-end justify-center md:items-center" role="dialog" aria-modal="true" aria-label="LUMARÉEL Club">
+          <button type="button" className="absolute inset-x-0 top-0 bottom-[calc(5.4rem+env(safe-area-inset-bottom,0px))] bg-black/75 backdrop-blur-md" onClick={() => setClubOpen(false)} aria-label="Fermer le Club" />
+          <motion.section initial={{ y: 36, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 36, opacity: 0 }} className="relative z-[45] mb-[calc(6.1rem+env(safe-area-inset-bottom,0px))] max-h-[calc(100svh-9rem-env(safe-area-inset-bottom,0px))] w-[calc(100%-2rem)] max-w-[520px] overflow-y-auto rounded-[28px] border border-white/15 bg-[#101010] px-5 pb-5 pt-5 shadow-2xl md:mb-0">
             <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-4">
               <h2 className="text-[13px] font-agrandir-extrabold uppercase tracking-[0.18em] text-white">LUMARÉEL CLUB</h2>
               <button type="button" onClick={() => setClubOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#242424] text-white" aria-label="Fermer"><X className="h-5 w-5" /></button>
