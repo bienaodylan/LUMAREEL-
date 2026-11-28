@@ -37,7 +37,7 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
         const previewPath = photo.thumbnail_path || photo.storage_path;
         const [preview, full] = await Promise.all([
           supabase.storage.from('club-media').createSignedUrl(previewPath, 900),
-          supabase.storage.from('club-media').createSignedUrl(photo.storage_path, 900),
+          photo.downloadable ? supabase.storage.from('club-media').createSignedUrl(photo.storage_path, 900) : Promise.resolve({ data: null, error: null }),
         ]);
         const fullUrl = full.data?.signedUrl || '';
         const previewUrl = preview.data?.signedUrl || '';
@@ -82,7 +82,7 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
       const blob = await response.blob();
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a'); link.href = objectUrl; link.download = `lumareel-${photo.id}`; link.click();
-      URL.revokeObjectURL(objectUrl);
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
       showToast(isEn ? 'Photo downloaded.' : 'Photo téléchargée.', 'success');
     } catch { showToast(isEn ? 'Unable to download this photo.' : 'Impossible de télécharger cette photo.', 'error'); }
   };
