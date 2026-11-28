@@ -207,6 +207,11 @@
 }
 
 
+
+/* Event cards use the same softened geometry as the quick-access panel. */
+.home-editorial .home-event-media { border-radius: 18px !important; }
+.home-editorial .home-event-action { border-radius: 10px !important; }
+
 /* Homepage editorial system — mobile-first, monochrome, sharp edges, isolated horizontal rails */
 /* Git-to-Vercel preview sync checkpoint: mobile homepage updates. */
 .home-editorial {
