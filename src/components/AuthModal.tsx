@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { isValidRealEmail } from './CheckoutModal';
 import { User } from '../types';
+import { supabase } from '../lib/supabaseClient';
 
 const LOCAL_ACCOUNTS_KEY = 'lumareel_effective_accounts_v1';
 
@@ -160,38 +161,25 @@ export const AuthModal: React.FC = () => {
     );
   };
 
-  const handleConfirmSocialEffective = (e: React.FormEvent) => {
+  const handleConfirmSocialEffective = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!socialConfirmProvider) return;
-    const cleanEmail = socialEmail.trim().toLowerCase();
-    const cleanName = socialName.trim();
-    if (!cleanEmail || !isValidRealEmail(cleanEmail)) {
-      showToast(t('auth.invalidEmail'), 'error');
-      return;
-    }
-    const existing = findLocalAccount(cleanEmail);
-    const resolvedName = cleanName || existing?.name || cleanEmail.split('@')[0];
-    const user = buildEffectiveUser({
-      id: existing?.id,
-      email: cleanEmail,
-      name: resolvedName,
-      createdAt: existing?.createdAt,
-    });
-    saveLocalAccount({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      password: existing?.password || '',
-      provider: socialConfirmProvider,
-      createdAt: user.createdAt || new Date().toISOString(),
-    });
-    completeUserLogin(user);
+    await handleOAuthSignIn(socialConfirmProvider);
   };
 
   const handleOAuthSignIn = async (provider: 'google' | 'apple') => {
     if (isLoading || oauthLoading) return;
-    // Mode fictif front-end : ouverture directe du panneau de confirmation Google / Apple
-    openInlineSocialFlow(provider);
+    setOauthLoading(provider);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: window.location.origin },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      setOauthLoading(null);
+      showToast(err?.message || (isEn ? 'Social sign-in is unavailable.' : 'La connexion sociale est indisponible.'), 'error');
+    }
   };
 
   const handlePasswordReset = async () => {
@@ -202,9 +190,17 @@ export const AuthModal: React.FC = () => {
     }
 
     setIsResettingPassword(true);
-    await new Promise((resolve) => setTimeout(resolve, 350));
-    showToast(t('auth.resetSent'), 'success');
-    setIsResettingPassword(false);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+        redirectTo: window.location.origin,
+      });
+      if (error) throw error;
+      showToast(t('auth.resetSent'), 'success');
+    } catch (err: any) {
+      showToast(err?.message || t('auth.loginFailed'), 'error');
+    } finally {
+      setIsResettingPassword(false);
+    }
   };
 
   const isValidNameInput = (value: string) => {
@@ -242,52 +238,65 @@ export const AuthModal: React.FC = () => {
 
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 350));
+      let authUser: any = null;
+      let authSession: any = null;
 
       if (mode === 'register') {
-        const existing = findLocalAccount(cleanEmail);
-        const authenticatedUser = buildEffectiveUser({
-          id: existing?.id,
+        const { data, error } = await supabase.auth.signUp({
           email: cleanEmail,
-          name: cleanName,
-          createdAt: existing?.createdAt,
-        });
-
-        saveLocalAccount({
-          id: authenticatedUser.id,
-          email: authenticatedUser.email,
-          name: authenticatedUser.name,
           password,
-          provider: 'email',
-          createdAt: authenticatedUser.createdAt || new Date().toISOString(),
+          options: {
+            data: { name: cleanName },
+            emailRedirectTo: window.location.origin,
+          },
         });
-
-        completeUserLogin(authenticatedUser);
-        return;
+        if (error) throw error;
+        authUser = data.user;
+        authSession = data.session;
+        if (!authSession) {
+          setIsAuthModalOpen(false);
+          showToast(
+            isEn
+              ? 'Account created. Check your email to confirm your address, then sign in.'
+              : 'Compte créé. Vérifiez votre e-mail pour confirmer votre adresse, puis connectez-vous.',
+            'success'
+          );
+          return;
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password,
+        });
+        if (error) throw error;
+        authUser = data.user;
+        authSession = data.session;
       }
 
-      // MODE CONNEXION FICTIF FRONT-END
-      const localMatch = findLocalAccount(cleanEmail);
-      if (localMatch && localMatch.password && localMatch.password !== password) {
-        throw new Error(isEn ? 'Incorrect password.' : 'Mot de passe incorrect.');
+      if (!authUser?.id || !authSession) {
+        throw new Error(isEn ? 'Authentication could not be confirmed.' : 'La connexion n’a pas pu être confirmée.');
       }
 
+      const resolvedEmail = (authUser.email || cleanEmail).toLowerCase();
+      const resolvedName = String(authUser.user_metadata?.name || cleanName || resolvedEmail.split('@')[0]);
       const authenticatedUser = buildEffectiveUser({
-        id: localMatch?.id,
-        email: cleanEmail,
-        name: localMatch?.name || cleanEmail.split('@')[0],
-        createdAt: localMatch?.createdAt,
+        id: authUser.id,
+        email: resolvedEmail,
+        name: resolvedName,
+        createdAt: authUser.created_at,
       });
 
-      if (!localMatch) {
-        saveLocalAccount({
-          id: authenticatedUser.id,
-          email: authenticatedUser.email,
-          name: authenticatedUser.name,
-          password,
-          provider: 'email',
-          createdAt: authenticatedUser.createdAt || new Date().toISOString(),
+      const referralCode = new URLSearchParams(window.location.search).get('ref');
+      if (referralCode) {
+        const { error: referralError } = await supabase.rpc('club_apply_referral_code', {
+          p_code: referralCode,
         });
+        if (referralError && !referralError.message.includes('REFERRAL_ALREADY_APPLIED')) {
+          console.info('[Club referral]', referralError.message);
+        }
+        const url = new URL(window.location.href);
+        url.searchParams.delete('ref');
+        window.history.replaceState(window.history.state, '', url.toString());
       }
 
       completeUserLogin(authenticatedUser);
