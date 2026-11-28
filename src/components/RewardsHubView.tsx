@@ -78,7 +78,7 @@ export const RewardsHubView: React.FC<{ initialTab?: 'gifts' | 'points' | 'excha
   const earned = useMemo(() => points.reduce((sum, row) => sum + Math.max(row.points, 0), 0), [points]);
   const used = useMemo(() => Math.abs(points.reduce((sum, row) => sum + Math.min(row.points, 0), 0)), [points]);
   const pending = referrals.filter((item) => item.status === 'pending').length;
-  const pendingPoints = pending * 500;
+  const pendingPoints = referrals.filter((item) => item.status === 'pending').reduce((sum, item) => sum + item.reward_points, 0);
   const validated = referrals.filter((item) => item.status === 'validated').length;
   const shareUrl = referralCode && typeof window !== 'undefined' ? `${window.location.origin}/?ref=${encodeURIComponent(referralCode)}` : '';
 
