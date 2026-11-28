@@ -25,13 +25,6 @@ import {
   useReducedMotion,
 } from 'framer-motion';
 
-import arrivalEmptyStageImg from '../assets/images/vip_lounge_empty_stage_1795099845090.jpg';
-import frontRowConcertImg from '../assets/images/black_card_concerts_crowd_1794694902084.jpg';
-import loungeRefreshmentImg from '../assets/images/black_card_hero_night_tall_1794694902515.jpg';
-import presaleBeamsImg from '../assets/images/backstage_stage_beams_1795857146120.jpg';
-import meetGreetArtistImg from '../assets/images/backstage_artist_dressing_1795857144421.jpg';
-import concertClimaxImg from '../assets/images/concert_memories_crowd_1795735706315.jpg';
-
 const CARD_FRONT_IMG = '/assets/aistudio/IMG_6112_896cf3ce.png';
 const CARD_BACK_IMG = '/assets/aistudio/IMG_6111_952dcd49.png';
 
@@ -99,6 +92,21 @@ const CARD_COPY = {
     perkPartnerTitle: 'Réduction sur les articles de nos partenaires',
     perkPartnerDesc:
       'L’univers LUMARÉEL se prolonge au-delà du concert, avec des tarifs préférentiels sur les articles de nos marques et boutiques partenaires.',
+
+    // Scène produit des 7 avantages
+    perksKicker: 'Sept privilèges. Une seule carte.',
+    hlParking: 'Votre place vous attend.',
+    hlQueue: 'Pas de file. Jamais.',
+    hlVip: 'Au premier rang.',
+    hlDrink: 'Le temps de savourer.',
+    hlPresale: 'Avant tout le monde.',
+    hlMeet: 'Au plus près des artistes.',
+    hlPartner: 'Au-delà du concert.',
+
+    // Le portefeuille
+    walletTitle: 'Elle trouve sa place.',
+    walletTitleAfter: 'Toujours avec vous.',
+    walletSub: 'Glissez-la dans votre portefeuille. À l’entrée, présentez-la. C’est tout.',
 
     // Climax émotionnel
     climaxTitle: 'La carte. L’entrée. Les premiers rangs.',
@@ -234,6 +242,19 @@ const CARD_COPY = {
     perkPartnerTitle: 'Discounts on partner items',
     perkPartnerDesc:
       'The LUMARÉEL universe extends beyond concert night with preferential rates across our partner brands and shops.',
+
+    perksKicker: 'Seven privileges. One card.',
+    hlParking: 'Your spot is waiting.',
+    hlQueue: 'No line. Ever.',
+    hlVip: 'Front row.',
+    hlDrink: 'Time to savor it.',
+    hlPresale: 'Before everyone else.',
+    hlMeet: 'Closer to the artists.',
+    hlPartner: 'Beyond the concert.',
+
+    walletTitle: 'It finds its place.',
+    walletTitleAfter: 'Always with you.',
+    walletSub: 'Slip it into your wallet. At the door, show it. That’s it.',
 
     climaxTitle: 'The card. The entrance. The front row.',
     climaxSub: 'Simply present your Black Card and step into the night.',
@@ -624,46 +645,214 @@ const VolumetricBlackCard: React.FC<VolumetricBlackCardProps> = ({
   );
 };
 
-/**
- * Full-bleed photographic frame with scroll-driven cinematic scale/parallax.
- */
-const CinematicImageFrame: React.FC<{
-  src: string;
-  alt: string;
-  aspectClass?: string;
+/* ===================================================================== */
+/* LUMIÈRE DE SCÈNE — effets 100 % produit (aucune photo)                 */
+/* ===================================================================== */
+
+/** Trame de points qui reprend le motif halftone imprimé sur la carte. */
+const HalftoneField: React.FC<{
+  x?: MotionValue<number>;
+  y?: MotionValue<number>;
+  tone?: 'light' | 'dark';
   className?: string;
-  parallaxAmount?: number;
-}> = ({ src, alt, aspectClass = 'aspect-[16/10]', className = '', parallaxAmount = 26 }) => {
+}> = ({ x, y, tone = 'light', className = '' }) => {
+  const fx = useMotionValue(50);
+  const fy = useMotionValue(45);
+  const mx = x ?? fx;
+  const my = y ?? fy;
+  const mask = useMotionTemplate`radial-gradient(38% 42% at ${mx}% ${my}%, #000 0%, rgba(0,0,0,0.35) 45%, transparent 75%)`;
+  const dot = tone === 'light' ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.13)';
+  return (
+    <motion.div
+      aria-hidden="true"
+      className={`pointer-events-none absolute inset-0 ${className}`}
+      style={{
+        backgroundImage: `radial-gradient(circle, ${dot} 1.15px, transparent 1.7px)`,
+        backgroundSize: '15px 15px',
+        WebkitMaskImage: mask,
+        maskImage: mask,
+      }}
+    />
+  );
+};
+
+/** Faisceau de projecteur zénithal + halo au sol, piloté par MotionValues. */
+const StageBeam: React.FC<{
+  x: MotionValue<number> | number;
+  intensity?: MotionValue<number> | number;
+  width?: number;
+}> = ({ x, intensity = 1, width = 22 }) => {
+  const fallback = useMotionValue(typeof x === 'number' ? x : 50);
+  const bx = typeof x === 'number' ? fallback : x;
+  const cone = useMotionTemplate`conic-gradient(from 180deg at ${bx}% -12%, transparent ${180 - width}deg, rgba(255,255,255,0.2) ${180 - width * 0.35}deg, rgba(255,255,255,0.34) 180deg, rgba(255,255,255,0.2) ${180 + width * 0.35}deg, transparent ${180 + width}deg)`;
+  const pool = useMotionTemplate`radial-gradient(34% 10% at ${bx}% 86%, rgba(255,255,255,0.24) 0%, transparent 70%)`;
+  const halo = useMotionTemplate`radial-gradient(30% 26% at ${bx}% 50%, rgba(255,255,255,0.07) 0%, transparent 70%)`;
+  return (
+    <motion.div aria-hidden="true" className="pointer-events-none absolute inset-0" style={{ opacity: intensity }}>
+      <motion.div className="absolute inset-0 blur-[14px]" style={{ background: cone }} />
+      <motion.div className="absolute inset-0" style={{ background: pool }} />
+      <motion.div className="absolute inset-0" style={{ background: halo }} />
+    </motion.div>
+  );
+};
+
+/** Poussière lumineuse en suspension dans le faisceau. */
+const DUST = Array.from({ length: 22 }, (_, i) => ({
+  left: (i * 37) % 100,
+  top: 8 + ((i * 53) % 80),
+  size: 1 + ((i * 7) % 3) * 0.6,
+  dur: 7 + ((i * 13) % 9),
+  delay: (i * 0.7) % 6,
+}));
+
+const LightDust: React.FC = () => {
   const prefersReducedMotion = useReducedMotion();
-  const frameRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: frameRef,
-    offset: ['start end', 'end start'],
-  });
-  const y = useTransform(
-    scrollYProgress,
-    [0, 1],
-    prefersReducedMotion ? [0, 0] : [-parallaxAmount, parallaxAmount]
+  if (prefersReducedMotion) return null;
+  return (
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+      {DUST.map((d, i) => (
+        <motion.span
+          key={i}
+          className="absolute rounded-full bg-white"
+          style={{ left: `${d.left}%`, top: `${d.top}%`, width: d.size, height: d.size }}
+          animate={{ y: [0, -40, 0], opacity: [0, 0.55, 0] }}
+          transition={{ duration: d.dur, delay: d.delay, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      ))}
+    </div>
   );
-  const scale = useTransform(
-    scrollYProgress,
-    [0, 0.55, 1],
-    prefersReducedMotion ? [1, 1, 1] : [1.1, 1.03, 1.0]
+};
+
+/** Un avantage = un plan. Fondu + léger travelling vertical. */
+const PerkBeat: React.FC<{
+  progress: MotionValue<number>;
+  index: number;
+  total: number;
+  headline: string;
+  title: string;
+  desc: string;
+}> = ({ progress, index, total, headline, title, desc }) => {
+  const s = index / total;
+  const e = (index + 1) / total;
+  const f = 0.22 / total;
+  const isFirst = index === 0;
+  const isLast = index === total - 1;
+  const opacity = useTransform(
+    progress,
+    [s, s + f, e - f, e],
+    [isFirst ? 1 : 0, 1, 1, isLast ? 1 : 0]
   );
+  const y = useTransform(progress, [s, s + f, e - f, e], [isFirst ? 0 : 26, 0, 0, isLast ? 0 : -26]);
+  const blur = useTransform(progress, [s, s + f, e - f, e], [isFirst ? 0 : 8, 0, 0, isLast ? 0 : 8]);
+  const filter = useMotionTemplate`blur(${blur}px)`;
+  return (
+    <motion.div style={{ opacity, y, filter }} className="absolute inset-0 flex flex-col items-center text-center">
+      <h2 className="font-agrandir-extrabold text-[2.1rem] sm:text-6xl lg:text-[4.4rem] leading-[1.02] tracking-[-0.035em] text-white text-balance">
+        {headline}
+      </h2>
+      <div className="mt-auto max-w-md">
+        <h3 className="font-agrandir-semibold text-sm sm:text-base text-white">{title}</h3>
+        <p className="mt-1.5 text-xs sm:text-sm text-white/55 leading-relaxed text-balance">{desc}</p>
+      </div>
+    </motion.div>
+  );
+};
+
+const PerkDot: React.FC<{ progress: MotionValue<number>; index: number; total: number }> = ({
+  progress,
+  index,
+  total,
+}) => {
+  const s = index / total;
+  const e = (index + 1) / total;
+  const width = useTransform(progress, [s - 0.001, s, e, e + 0.001], [6, 22, 22, 6]);
+  const opacity = useTransform(progress, [s - 0.001, s, e, e + 0.001], [0.3, 1, 1, 0.3]);
+  return <motion.span style={{ width, opacity }} className="block h-[6px] rounded-full bg-white" />;
+};
+
+/**
+ * Porte-cartes en cuir rendu en CSS : la vraie Black Card y glisse au scroll.
+ * Le dos du porte-cartes est derrière la carte, la poche devant.
+ */
+const WalletInsert: React.FC<{
+  progress: MotionValue<number>;
+  frontImageUrl: string;
+  alt: string;
+}> = ({ progress, frontImageUrl, alt }) => {
+  const cardY = useTransform(progress, [0.08, 0.62, 0.7], ['-96%', '-6%', '0%']);
+  const cardRotate = useTransform(progress, [0.08, 0.5, 0.66], [-9, -2, 0]);
+  const cardRotateX = useTransform(progress, [0.08, 0.6], [18, 0]);
+  const shadowOpacity = useTransform(progress, [0.08, 0.66], [0.15, 0.55]);
+  const sheenX = useTransform(progress, [0.2, 0.9], [-30, 140]);
+  const leatherSheen = useMotionTemplate`linear-gradient(105deg, transparent calc(${sheenX}% - 20%), rgba(255,255,255,0.09) ${sheenX}%, transparent calc(${sheenX}% + 20%))`;
+  const clickScale = useTransform(progress, [0.62, 0.68, 0.74], [1, 1.018, 1]);
 
   return (
-    <div
-      ref={frameRef}
-      className={`relative overflow-hidden bg-[#101012] ${aspectClass} ${className}`}
-    >
-      <motion.img
-        src={src}
-        alt={alt}
-        referrerPolicy="no-referrer"
-        style={{ y, scale }}
-        className="w-full h-full object-cover will-change-transform"
-      />
-    </div>
+    <motion.div style={{ scale: clickScale }} className="relative w-full" >
+      <div className="relative w-full" style={{ aspectRatio: '100 / 74', perspective: '1400px' }}>
+        {/* Ombre portée sur la table */}
+        <div className="absolute -bottom-6 left-[6%] right-[6%] h-10 rounded-[50%] bg-black/35 blur-2xl" />
+
+        {/* Dos du porte-cartes */}
+        <div
+          className="absolute inset-0 rounded-[22px] sm:rounded-[26px] overflow-hidden"
+          style={{
+            background:
+              'radial-gradient(120% 90% at 30% 10%, #2a2622 0%, #171513 55%, #0d0c0b 100%)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 30px 60px rgba(0,0,0,0.35)',
+          }}
+        >
+          <div className="absolute inset-[10px] rounded-[16px] border border-dashed border-white/[0.09]" />
+        </div>
+
+        {/* La carte */}
+        <motion.div
+          className="absolute left-[7%] right-[7%] top-[6%] z-10"
+          style={{ y: cardY, rotate: cardRotate, rotateX: cardRotateX, transformStyle: 'preserve-3d' }}
+        >
+          <motion.div
+            className="absolute inset-0 rounded-[10px] bg-black blur-xl translate-y-4"
+            style={{ opacity: shadowOpacity }}
+          />
+          <div
+            className="relative w-full rounded-[10px] overflow-hidden ring-1 ring-white/15"
+            style={{ aspectRatio: '85.6 / 53.98' }}
+          >
+            <img src={frontImageUrl} alt={alt} draggable={false} className="w-full h-full object-cover" />
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)' }}
+            />
+          </div>
+        </motion.div>
+
+        {/* Poche avant */}
+        <div
+          className="absolute left-0 right-0 bottom-0 z-20 h-[58%] rounded-b-[22px] sm:rounded-b-[26px] rounded-t-[4px] overflow-hidden"
+          style={{
+            background: 'linear-gradient(180deg, #221f1c 0%, #161412 60%, #0f0e0d 100%)',
+            boxShadow:
+              'inset 0 1.5px 0 rgba(255,255,255,0.1), 0 -10px 24px rgba(0,0,0,0.45)',
+          }}
+        >
+          {/* Grain cuir */}
+          <div
+            className="absolute inset-0 opacity-[0.35] mix-blend-overlay"
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08) 0.6px, transparent 1px), radial-gradient(circle at 70% 60%, rgba(0,0,0,0.5) 0.6px, transparent 1px)',
+              backgroundSize: '5px 5px, 7px 7px',
+            }}
+          />
+          <div className="absolute inset-x-[10px] bottom-[10px] top-[12px] rounded-b-[16px] border border-dashed border-white/[0.1] border-t-0" />
+          {/* Marquage à chaud */}
+          <span className="absolute bottom-[18%] left-1/2 -translate-x-1/2 font-agrandir-semibold text-[9px] sm:text-[11px] tracking-[0.42em] text-white/[0.16] whitespace-nowrap">
+            LUMARÉEL
+          </span>
+          <motion.div className="absolute inset-0" style={{ background: leatherSheen }} />
+        </div>
+      </div>
+    </motion.div>
   );
 };
 
@@ -685,8 +874,8 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   // Scroll targets
   const heroRef = useRef<HTMLElement>(null);
   const choreographyRef = useRef<HTMLElement>(null);
-  const nightStageRef = useRef<HTMLElement>(null);
-  const climaxRef = useRef<HTMLElement>(null);
+  const perksRef = useRef<HTMLElement>(null);
+  const walletRef = useRef<HTMLElement>(null);
 
   // Live CMS state connected to Admin Black Card CMS (/api/cms/public)
   const [cmsConfig, setCmsConfig] = useState<{
@@ -742,6 +931,17 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const bPresale = getBenefit('presale_access', c.perkPresaleTitle, c.perkPresaleDesc);
   const bMeet = getBenefit('meet_and_greet', c.perkMeetTitle, c.perkMeetDesc);
   const bPartner = getBenefit('partner_discount', c.perkPartnerTitle, c.perkPartnerDesc);
+
+  // Ordre narratif d’une soirée : arrivée → entrée → scène → pause → avant/après
+  const perkBeats = [
+    { headline: c.hlParking, ...bParking },
+    { headline: c.hlQueue, ...bQueue },
+    { headline: c.hlVip, ...bVip },
+    { headline: c.hlDrink, ...bDrink },
+    { headline: c.hlPresale, ...bPresale },
+    { headline: c.hlMeet, ...bMeet },
+    { headline: c.hlPartner, ...bPartner },
+  ];
 
   const heroTitleText = (isEn ? cmsConfig?.heroTitleEn : cmsConfig?.heroTitleFr) || c.heroTitle;
   const heroSubText = (isEn ? cmsConfig?.heroSubEn : cmsConfig?.heroSubFr) || c.heroSub;
@@ -820,53 +1020,41 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const beat3Opacity = useTransform(choreoProgress, [0.76, 0.84, 0.97, 1], [0, 1, 1, 1]);
   const beat3Y = useTransform(choreoProgress, [0.76, 0.84, 1], [16, 0, 0]);
 
-  // 3. Second Sticky Scroll Stage — La Soirée avec la Black Card (maintains Apple launch craft through all 7 perks)
-  const { scrollYProgress: rawNightProgress } = useScroll({
-    target: nightStageRef,
+  // 3. Scène sticky des 7 avantages — produit seul, lumière de scène
+  const { scrollYProgress: rawPerksProgress } = useScroll({
+    target: perksRef,
     offset: ['start start', 'end end'],
   });
-  const nightProgress = useSpring(rawNightProgress, {
-    stiffness: 90,
-    damping: 26,
-    mass: 0.35,
+  const perksProgress = useSpring(rawPerksProgress, { stiffness: 90, damping: 26, mass: 0.35 });
+  const PERK_TOTAL = 7;
+  const perkStops = Array.from({ length: PERK_TOTAL }, (_, i) => (i + 0.5) / PERK_TOTAL);
+  const perksRotateY = useTransform(perksProgress, [0, ...perkStops, 1], [-20, -16, 14, -10, 18, -12, 188, 360, 360]);
+  const perksRotateX = useTransform(perksProgress, [0, ...perkStops, 1], [12, 10, -6, 8, -4, 6, -6, 2, 0]);
+  const perksRotateZ = useTransform(perksProgress, [0, ...perkStops, 1], [-3, -2, 2, -1, 1.5, -1.5, 1, 0, 0]);
+  const perksScale = useTransform(perksProgress, [0, ...perkStops, 1], [0.92, 0.94, 1, 1.05, 1, 1.02, 1.04, 1, 1]);
+  const perksSheen = useTransform(perksProgress, [0, 1], [-40, 150]);
+  const perksBeamX = useTransform(perksProgress, [0, ...perkStops, 1], [28, 30, 70, 50, 34, 66, 50, 50, 50]);
+  const perksHalftoneX = useTransform(perksProgress, [0, 1], [15, 85]);
+  const perksBeamIntensity = useTransform(perksProgress, [0, 0.04, 0.96, 1], [0.4, 1, 1, 1]);
+
+  // 4. Le portefeuille — la carte glisse dans la poche
+  const { scrollYProgress: rawWalletProgress } = useScroll({
+    target: walletRef,
+    offset: ['start start', 'end end'],
   });
+  const walletProgress = useSpring(rawWalletProgress, { stiffness: 110, damping: 24, mass: 0.3 });
+  const walletLineOneOpacity = useTransform(walletProgress, [0, 0.12, 0.55, 0.64], [0, 1, 1, 0]);
+  const walletLineTwoOpacity = useTransform(walletProgress, [0.66, 0.76, 1], [0, 1, 1]);
+  const walletLineTwoY = useTransform(walletProgress, [0.66, 0.76], [18, 0]);
 
-  // Living Black Card companion rotating gently as each moment of the evening unfolds
-  const nightCardRotateY = useTransform(nightProgress, [0, 0.33, 0.66, 1], [-14, 10, -12, 8]);
-  const nightCardRotateX = useTransform(nightProgress, [0, 0.5, 1], [8, -4, 6]);
-  const nightCardSheen = useTransform(nightProgress, [0, 1], [-20, 130]);
-  const nightProgressBar = useTransform(nightProgress, [0, 1], [0.04, 1]);
-
-  // 4 Seamless photographic crossfades + subtle iris zoom inside sticky viewport
-  const act1Opacity = useTransform(nightProgress, [0, 0.04, 0.23, 0.28], [1, 1, 1, 0]);
-  const act1Scale = useTransform(nightProgress, [0, 0.28], [1.06, 1.0]);
-  const act2Opacity = useTransform(nightProgress, [0.23, 0.29, 0.48, 0.54], [0, 1, 1, 0]);
-  const act2Scale = useTransform(nightProgress, [0.23, 0.54], [1.08, 1.0]);
-  const act3Opacity = useTransform(nightProgress, [0.49, 0.55, 0.74, 0.8], [0, 1, 1, 0]);
-  const act3Scale = useTransform(nightProgress, [0.49, 0.8], [1.08, 1.0]);
-  const act4Opacity = useTransform(nightProgress, [0.75, 0.81, 0.98, 1], [0, 1, 1, 1]);
-  const act4Scale = useTransform(nightProgress, [0.75, 1], [1.08, 1.0]);
-
-  const act1TextY = useTransform(nightProgress, [0, 0.23, 0.28], [0, 0, -18]);
-  const act2TextY = useTransform(nightProgress, [0.23, 0.29, 0.48, 0.54], [18, 0, 0, -18]);
-  const act3TextY = useTransform(nightProgress, [0.49, 0.55, 0.74, 0.8], [18, 0, 0, -18]);
-  const act4TextY = useTransform(nightProgress, [0.75, 0.81, 1], [18, 0, 0]);
-
-  // 4. Climax image zoom-out + floating card emergence
-  const { scrollYProgress: climaxProgress } = useScroll({
-    target: climaxRef,
-    offset: ['start end', 'end start'],
+  // 5. Finale — un seul faisceau, la carte seule
+  const finaleInView = useRef<HTMLElement>(null);
+  const { scrollYProgress: finaleProgress } = useScroll({
+    target: finaleInView,
+    offset: ['start end', 'center center'],
   });
-  const climaxScale = useTransform(
-    climaxProgress,
-    [0, 1],
-    prefersReducedMotion ? [1, 1] : [1.14, 1.0]
-  );
-  const climaxCardY = useTransform(
-    climaxProgress,
-    [0, 1],
-    prefersReducedMotion ? [0, 0] : [28, -24]
-  );
+  const finaleBeam = useTransform(finaleProgress, [0, 1], [0, 1]);
+  const finaleCardY = useTransform(finaleProgress, [0, 1], prefersReducedMotion ? [0, 0] : [60, 0]);
 
   // Données de formule existantes (conservées intactes)
   const [, setEdition] = useState<MembershipEdition | null>(null);
@@ -1461,168 +1649,75 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       )}
 
       {/* =================================================================== */}
-      {/* SCÈNE STICKY IMMERSIVE — UNE SOIRÉE AVEC LA BLACK CARD              */}
-      {/* Chorégraphie continue au scroll : la carte guide les 7 expériences  */}
+      {/* LES 7 AVANTAGES — LE PRODUIT SEUL SOUS LA LUMIÈRE                   */}
+      {/* Un avantage par plan, la carte tourne, le projecteur la suit.       */}
       {/* =================================================================== */}
       {prefersReducedMotion ? (
-        <section ref={nightStageRef} className="w-full bg-[#050505] text-white py-24 px-5 sm:px-8 space-y-16">
-          <div className="max-w-[1120px] mx-auto space-y-12">
-            <h2 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-[-0.028em]">
-              {c.arrivalStatement}
-            </h2>
-            <div className="grid md:grid-cols-2 gap-10 border-t border-white/12 pt-8">
-              <div><h3 className="font-agrandir-extrabold text-xl">{bParking.title}</h3><p className="mt-2 text-sm text-white/65">{bParking.desc}</p></div>
-              <div><h3 className="font-agrandir-extrabold text-xl">{bQueue.title}</h3><p className="mt-2 text-sm text-white/65">{bQueue.desc}</p></div>
-              <div><h3 className="font-agrandir-extrabold text-xl">{bVip.title}</h3><p className="mt-2 text-sm text-white/65">{bVip.desc}</p></div>
-              <div><h3 className="font-agrandir-extrabold text-xl">{bDrink.title}</h3><p className="mt-2 text-sm text-white/65">{bDrink.desc}</p></div>
-              <div><h3 className="font-agrandir-extrabold text-xl">{bPresale.title}</h3><p className="mt-2 text-sm text-white/65">{bPresale.desc}</p></div>
-              <div><h3 className="font-agrandir-extrabold text-xl">{bMeet.title}</h3><p className="mt-2 text-sm text-white/65">{bMeet.desc}</p></div>
-              <div className="md:col-span-2"><h3 className="font-agrandir-extrabold text-xl">{bPartner.title}</h3><p className="mt-2 text-sm text-white/65">{bPartner.desc}</p></div>
+        <section ref={perksRef} className="w-full bg-black text-white py-24 px-5 sm:px-8">
+          <div className="max-w-[960px] mx-auto">
+            <div className="max-w-[320px] mx-auto mb-16">
+              <VolumetricBlackCard
+                manualFlipped={stageManualFlip}
+                onToggleFlip={() => setStageManualFlip((prev) => !prev)}
+                shadowTone="dark"
+                frontImageUrl={cardFrontUrl}
+                backImageUrl={cardBackUrl}
+                ariaLabel={c.flipHint}
+                frontAlt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto'}
+                backAlt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso'}
+              />
+            </div>
+            <div className="divide-y divide-white/10 border-y border-white/10">
+              {perkBeats.map((p) => (
+                <div key={p.title} className="py-8 grid sm:grid-cols-2 gap-3">
+                  <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-[-0.025em]">{p.headline}</h2>
+                  <div>
+                    <h3 className="font-agrandir-semibold text-base">{p.title}</h3>
+                    <p className="mt-1.5 text-sm text-white/60">{p.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
       ) : (
-        <section ref={nightStageRef} className="relative w-full h-[360vh] bg-[#050505] text-white">
+        <section ref={perksRef} className="relative w-full h-[640vh] sm:h-[700vh] bg-black text-white">
           <div className="sticky top-0 h-[100svh] w-full overflow-hidden bg-black">
-            {/* Crossfading full-bleed photographic scenes driven directly by scroll */}
-            <motion.div style={{ opacity: act1Opacity }} className="absolute inset-0">
-              <motion.img
-                src={arrivalEmptyStageImg}
-                alt={bParking.title}
-                style={{ scale: act1Scale }}
-                className="w-full h-full object-cover will-change-transform"
-              />
-            </motion.div>
-            <motion.div style={{ opacity: act2Opacity }} className="absolute inset-0">
-              <motion.img
-                src={frontRowConcertImg}
-                alt={bVip.title}
-                style={{ scale: act2Scale }}
-                className="w-full h-full object-cover will-change-transform"
-              />
-            </motion.div>
-            <motion.div style={{ opacity: act3Opacity }} className="absolute inset-0">
-              <motion.img
-                src={presaleBeamsImg}
-                alt={bPresale.title}
-                style={{ scale: act3Scale }}
-                className="w-full h-full object-cover will-change-transform"
-              />
-            </motion.div>
-            <motion.div style={{ opacity: act4Opacity }} className="absolute inset-0">
-              <motion.img
-                src={meetGreetArtistImg}
-                alt={bMeet.title}
-                style={{ scale: act4Scale }}
-                className="w-full h-full object-cover will-change-transform"
-              />
-            </motion.div>
+            <HalftoneField x={perksHalftoneX} tone="light" className="opacity-60" />
+            <StageBeam x={perksBeamX} intensity={perksBeamIntensity} />
+            <LightDust />
 
-            {/* Studio vignette for crisp editorial typography contrast */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/92 via-black/48 to-black/38"
-            />
+            <div className="relative z-10 h-full w-full max-w-[1100px] mx-auto px-5 sm:px-8 pt-[11vh] pb-[7vh] flex flex-col items-center">
+              <span className="text-[10px] sm:text-[11px] font-agrandir-semibold uppercase tracking-[0.3em] text-white/45">
+                {c.perksKicker}
+              </span>
 
-            {/* Foreground stage: narrative on the left + floating Black Card thread on the right */}
-            <div className="relative z-10 h-full w-full max-w-[1180px] mx-auto px-5 sm:px-8 py-12 sm:py-16 flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] sm:text-[11px] font-agrandir-semibold uppercase tracking-[0.28em] text-white/50">
-                  {c.brandSignature}
-                </span>
-                <div className="w-28 sm:w-40 h-[1.5px] bg-white/15 overflow-hidden rounded-full">
-                  <motion.div
-                    style={{ scaleX: nightProgressBar, transformOrigin: 'left center' }}
-                    className="h-full w-full bg-white"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-end my-auto">
-                {/* Crossfading storytelling copy for all 7 real benefits */}
-                <div className="lg:col-span-7 relative min-h-[290px] sm:min-h-[310px]">
-                  {/* Act 1: Parking réservé + Accès prioritaire */}
-                  <motion.div
-                    style={{ opacity: act1Opacity, y: act1TextY }}
-                    className="absolute inset-0 flex flex-col justify-end space-y-6"
-                  >
-                    <h2 className="font-agrandir-extrabold text-[1.95rem] sm:text-5xl leading-[1.03] tracking-[-0.028em] text-white text-balance">
-                      {c.arrivalStatement}
-                    </h2>
-                    <div className="grid sm:grid-cols-2 gap-5 pt-5 border-t border-white/15">
-                      <div>
-                        <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white">{bParking.title}</h3>
-                        <p className="mt-1.5 text-xs sm:text-sm text-white/70 leading-relaxed">{bParking.desc}</p>
-                      </div>
-                      <div>
-                        <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white">{bQueue.title}</h3>
-                        <p className="mt-1.5 text-xs sm:text-sm text-white/70 leading-relaxed">{bQueue.desc}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  {/* Act 2: Placement VIP premiers rangs */}
-                  <motion.div
-                    style={{ opacity: act2Opacity, y: act2TextY }}
-                    className="absolute inset-0 flex flex-col justify-end space-y-6"
-                  >
-                    <h2 className="font-agrandir-extrabold text-[1.95rem] sm:text-5xl leading-[1.03] tracking-[-0.028em] text-white text-balance">
-                      {c.stageStatement}
-                    </h2>
-                    <div className="pt-5 border-t border-white/15 max-w-xl">
-                      <h3 className="font-agrandir-extrabold text-lg sm:text-2xl text-white">{bVip.title}</h3>
-                      <p className="mt-2 text-sm sm:text-base text-white/75 leading-relaxed">{bVip.desc}</p>
-                    </div>
-                  </motion.div>
-
-                  {/* Act 3: Rafraîchissement offert + Accès aux préventes */}
-                  <motion.div
-                    style={{ opacity: act3Opacity, y: act3TextY }}
-                    className="absolute inset-0 flex flex-col justify-end space-y-6"
-                  >
-                    <h2 className="font-agrandir-extrabold text-[1.95rem] sm:text-5xl leading-[1.03] tracking-[-0.028em] text-white text-balance">
-                      {c.presaleStatement}
-                    </h2>
-                    <div className="grid sm:grid-cols-2 gap-5 pt-5 border-t border-white/15">
-                      <div>
-                        <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white">{bPresale.title}</h3>
-                        <p className="mt-1.5 text-xs sm:text-sm text-white/70 leading-relaxed">{bPresale.desc}</p>
-                      </div>
-                      <div>
-                        <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white">{bDrink.title}</h3>
-                        <p className="mt-1.5 text-xs sm:text-sm text-white/70 leading-relaxed">{bDrink.desc}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  {/* Act 4: Meet & Greet + Réductions partenaires */}
-                  <motion.div
-                    style={{ opacity: act4Opacity, y: act4TextY }}
-                    className="absolute inset-0 flex flex-col justify-end space-y-6"
-                  >
-                    <h2 className="font-agrandir-extrabold text-[1.95rem] sm:text-5xl leading-[1.03] tracking-[-0.028em] text-white text-balance">
-                      {c.meetStatement}
-                    </h2>
-                    <div className="grid sm:grid-cols-2 gap-5 pt-5 border-t border-white/15">
-                      <div>
-                        <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white">{bMeet.title}</h3>
-                        <p className="mt-1.5 text-xs sm:text-sm text-white/70 leading-relaxed">{bMeet.desc}</p>
-                      </div>
-                      <div>
-                        <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white">{bPartner.title}</h3>
-                        <p className="mt-1.5 text-xs sm:text-sm text-white/70 leading-relaxed">{bPartner.desc}</p>
-                      </div>
-                    </div>
-                  </motion.div>
+              <div className="relative mt-5 sm:mt-7 w-full flex-1 flex flex-col items-center">
+                {/* Texte : titre en haut, détail en bas, la carte au milieu */}
+                <div className="absolute inset-0">
+                  {perkBeats.map((p, i) => (
+                    <PerkBeat
+                      key={p.title}
+                      progress={perksProgress}
+                      index={i}
+                      total={PERK_TOTAL}
+                      headline={p.headline}
+                      title={p.title}
+                      desc={p.desc}
+                    />
+                  ))}
                 </div>
 
-                {/* Living 3D Black Card continuous thread */}
-                <div className="hidden lg:flex lg:col-span-5 justify-end">
-                  <div className="w-full max-w-[330px]">
+                <div className="relative flex-1 w-full flex items-center justify-center pointer-events-none">
+                  <motion.div
+                    style={{ scale: perksScale }}
+                    className="w-full max-w-[270px] sm:max-w-[400px] lg:max-w-[440px] mt-14 sm:mt-20 mb-16 pointer-events-auto"
+                  >
                     <VolumetricBlackCard
-                      rotateYBase={nightCardRotateY}
-                      rotateXBase={nightCardRotateX}
-                      sheenX={nightCardSheen}
+                      rotateYBase={perksRotateY}
+                      rotateXBase={perksRotateX}
+                      rotateZBase={perksRotateZ}
+                      sheenX={perksSheen}
                       manualFlipped={stageManualFlip}
                       onToggleFlip={() => setStageManualFlip((prev) => !prev)}
                       shadowTone="dark"
@@ -1632,97 +1727,114 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                       frontAlt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto'}
                       backAlt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso'}
                     />
-                  </div>
+                  </motion.div>
                 </div>
               </div>
 
-              <div className="h-2" />
+              <div className="mt-6 flex items-center gap-1.5">
+                {perkBeats.map((p, i) => (
+                  <PerkDot key={p.title} progress={perksProgress} index={i} total={PERK_TOTAL} />
+                ))}
+              </div>
             </div>
           </div>
         </section>
       )}
 
       {/* =================================================================== */}
-      {/* RESPIRATION LOUNGE — LA PAUSE EN BLANC                              */}
+      {/* LE PORTEFEUILLE — LA CARTE GLISSE DANS LA POCHE                     */}
       {/* =================================================================== */}
-      <section className="w-full bg-white text-[#111111] py-20 sm:py-32 px-5 sm:px-8">
-        <div className="w-full max-w-[1120px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-center">
-          <div className="lg:col-span-6 lg:order-2">
-            <CinematicImageFrame
-              src={loungeRefreshmentImg}
-              alt={bDrink.title}
-              aspectClass="aspect-[4/5]"
-              className="rounded-[18px] sm:rounded-[22px] max-h-[580px] w-full"
-              parallaxAmount={24}
+      {prefersReducedMotion ? (
+        <section ref={walletRef} className="w-full bg-[#efebe4] text-[#111111] py-24 px-5 sm:px-8">
+          <div className="max-w-[960px] mx-auto text-center">
+            <h2 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-[-0.03em] text-balance">{c.walletTitle}</h2>
+            <p className="mt-4 text-base sm:text-lg text-black/60">{c.walletSub}</p>
+          </div>
+        </section>
+      ) : (
+        <section ref={walletRef} className="relative w-full h-[260vh] bg-[#efebe4] text-[#111111]">
+          <div className="sticky top-0 h-[100svh] w-full overflow-hidden flex flex-col items-center justify-center px-5 sm:px-8">
+            {/* Lumière de fenêtre douce, venue du haut gauche */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  'radial-gradient(60% 55% at 28% 18%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 70%), radial-gradient(70% 50% at 50% 100%, rgba(0,0,0,0.06) 0%, transparent 70%)',
+              }}
             />
+            <HalftoneField tone="dark" className="opacity-50" />
+
+            <div className="relative z-10 w-full max-w-[960px] mx-auto flex flex-col items-center">
+              <div className="relative h-[80px] sm:h-[72px] w-full text-center">
+                <motion.div style={{ opacity: walletLineOneOpacity }} className="absolute inset-0">
+                  <h2 className="font-agrandir-extrabold text-[2rem] sm:text-6xl leading-[1.02] tracking-[-0.035em] text-balance">
+                    {c.walletTitle}
+                  </h2>
+                </motion.div>
+                <motion.div style={{ opacity: walletLineTwoOpacity, y: walletLineTwoY }} className="absolute inset-0">
+                  <h2 className="font-agrandir-extrabold text-[2rem] sm:text-6xl leading-[1.02] tracking-[-0.035em] text-balance">
+                    {c.walletTitleAfter}
+                  </h2>
+                </motion.div>
+              </div>
+
+              <div className="mt-24 sm:mt-[22vh] w-full max-w-[280px] sm:max-w-[360px]">
+                <WalletInsert
+                  progress={walletProgress}
+                  frontImageUrl={cardFrontUrl}
+                  alt={isEn ? 'LUMARÉEL Black Card in a wallet' : 'LUMARÉEL Black Card dans un portefeuille'}
+                />
+              </div>
+
+              <p className="mt-10 sm:mt-12 text-sm sm:text-lg text-black/55 max-w-md text-center text-balance">
+                {c.walletSub}
+              </p>
+            </div>
           </div>
-          <div className="lg:col-span-6 lg:order-1 space-y-6">
-            <MaskedReveal>
-              <h2 className="font-agrandir-extrabold text-[2rem] sm:text-5xl leading-[1.05] tracking-[-0.026em] text-[#111111] text-balance">
-                {c.loungeStatement}
-              </h2>
-            </MaskedReveal>
-            <p className="text-base sm:text-lg text-black/62 leading-relaxed max-w-md">
-              {bDrink.desc}
-            </p>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* =================================================================== */}
-      {/* POINT D’ORGUE VISUEL — LA SCÈNE, LE PUBLIC & LA CARTE               */}
+      {/* FINALE — UN SEUL FAISCEAU, LA CARTE SEULE                           */}
       {/* =================================================================== */}
       <section
-        ref={climaxRef}
-        className="relative w-full min-h-[68vh] sm:min-h-[82vh] bg-black overflow-hidden flex items-end"
+        ref={finaleInView}
+        className="relative w-full min-h-[92svh] bg-black overflow-hidden flex flex-col items-center justify-center px-5 sm:px-8 py-24"
       >
-        <motion.img
-          src={concertClimaxImg}
-          alt={climaxTitleText}
-          referrerPolicy="no-referrer"
-          style={{ scale: climaxScale }}
-          className="absolute inset-0 w-full h-full object-cover will-change-transform"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/92 via-black/38 to-black/18"
-        />
+        <StageBeam x={50} intensity={finaleBeam} width={16} />
+        <HalftoneField tone="light" className="opacity-40" />
+        <LightDust />
 
-        <div className="relative z-10 w-full max-w-[1120px] mx-auto px-5 sm:px-8 py-16 sm:py-24 grid grid-cols-1 md:grid-cols-12 gap-10 items-end">
-          <div className="md:col-span-7 space-y-3">
-            <MaskedReveal>
-              <h2 className="font-agrandir-extrabold text-3xl sm:text-5xl lg:text-[3.6rem] leading-[1.03] tracking-[-0.028em] text-white text-balance">
-                {climaxTitleText}
-              </h2>
-            </MaskedReveal>
-            <motion.p
-              initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.4 }}
-              transition={{ duration: 0.75, delay: 0.14, ease: EASE_CINEMA }}
-              className="text-sm sm:text-lg text-white/75 leading-relaxed max-w-lg"
-            >
-              {climaxSubText}
-            </motion.p>
-          </div>
+        <motion.div style={{ y: finaleCardY }} className="relative z-10 w-full max-w-[280px] sm:max-w-[380px]">
+          <VolumetricBlackCard
+            manualFlipped={offerFlipped}
+            onToggleFlip={() => setOfferFlipped((prev) => !prev)}
+            shadowTone="dark"
+            enableFloat
+            frontImageUrl={cardFrontUrl}
+            backImageUrl={cardBackUrl}
+            ariaLabel={c.flipHint}
+            frontAlt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto'}
+            backAlt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso'}
+          />
+        </motion.div>
 
-          <motion.div
-            style={{ y: climaxCardY }}
-            className="md:col-span-5 flex md:justify-end"
+        <div className="relative z-10 mt-16 text-center">
+          <MaskedReveal>
+            <h2 className="font-agrandir-extrabold text-3xl sm:text-5xl lg:text-[3.6rem] leading-[1.03] tracking-[-0.03em] text-white text-balance">
+              {climaxTitleText}
+            </h2>
+          </MaskedReveal>
+          <motion.p
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: 0.75, delay: 0.14, ease: EASE_CINEMA }}
+            className="mt-4 text-sm sm:text-lg text-white/60 leading-relaxed max-w-lg mx-auto"
           >
-            <div className="w-full max-w-[260px] sm:max-w-[300px]">
-              <VolumetricBlackCard
-                manualFlipped={offerFlipped}
-                onToggleFlip={() => setOfferFlipped((prev) => !prev)}
-                shadowTone="dark"
-                frontImageUrl={cardFrontUrl}
-                backImageUrl={cardBackUrl}
-                ariaLabel={c.flipHint}
-                frontAlt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto'}
-                backAlt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso'}
-              />
-            </div>
-          </motion.div>
+            {climaxSubText}
+          </motion.p>
         </div>
       </section>
 
