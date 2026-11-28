@@ -771,90 +771,46 @@ const PerkDot: React.FC<{ progress: MotionValue<number>; index: number; total: n
 };
 
 /**
- * Porte-cartes en cuir rendu en CSS : la vraie Black Card y glisse au scroll.
- * Le dos du porte-cartes est derrière la carte, la poche devant.
+ * Porte-cartes en cuir rendu en CSS, en deux couches :
+ * le dos passe derrière la carte, la poche passe devant.
  */
-const WalletInsert: React.FC<{
-  progress: MotionValue<number>;
-  frontImageUrl: string;
-  alt: string;
-}> = ({ progress, frontImageUrl, alt }) => {
-  const cardY = useTransform(progress, [0.08, 0.62, 0.7], ['-96%', '-6%', '0%']);
-  const cardRotate = useTransform(progress, [0.08, 0.5, 0.66], [-9, -2, 0]);
-  const cardRotateX = useTransform(progress, [0.08, 0.6], [18, 0]);
-  const shadowOpacity = useTransform(progress, [0.08, 0.66], [0.15, 0.55]);
-  const sheenX = useTransform(progress, [0.2, 0.9], [-30, 140]);
-  const leatherSheen = useMotionTemplate`linear-gradient(105deg, transparent calc(${sheenX}% - 20%), rgba(255,255,255,0.09) ${sheenX}%, transparent calc(${sheenX}% + 20%))`;
-  const clickScale = useTransform(progress, [0.62, 0.68, 0.74], [1, 1.018, 1]);
+const WalletBack: React.FC = () => (
+  <div className="absolute inset-0">
+    <div className="absolute -bottom-6 left-[6%] right-[6%] h-10 rounded-[50%] bg-black/35 blur-2xl" />
+    <div
+      className="absolute inset-0 rounded-[22px] sm:rounded-[26px] overflow-hidden"
+      style={{
+        background: 'radial-gradient(120% 90% at 30% 10%, #2a2622 0%, #171513 55%, #0d0c0b 100%)',
+        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 30px 60px rgba(0,0,0,0.35)',
+      }}
+    >
+      <div className="absolute inset-[10px] rounded-[16px] border border-dashed border-white/[0.09]" />
+    </div>
+  </div>
+);
 
-  return (
-    <motion.div style={{ scale: clickScale }} className="relative w-full" >
-      <div className="relative w-full" style={{ aspectRatio: '100 / 74', perspective: '1400px' }}>
-        {/* Ombre portée sur la table */}
-        <div className="absolute -bottom-6 left-[6%] right-[6%] h-10 rounded-[50%] bg-black/35 blur-2xl" />
-
-        {/* Dos du porte-cartes */}
-        <div
-          className="absolute inset-0 rounded-[22px] sm:rounded-[26px] overflow-hidden"
-          style={{
-            background:
-              'radial-gradient(120% 90% at 30% 10%, #2a2622 0%, #171513 55%, #0d0c0b 100%)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 30px 60px rgba(0,0,0,0.35)',
-          }}
-        >
-          <div className="absolute inset-[10px] rounded-[16px] border border-dashed border-white/[0.09]" />
-        </div>
-
-        {/* La carte */}
-        <motion.div
-          className="absolute left-[7%] right-[7%] top-[6%] z-10"
-          style={{ y: cardY, rotate: cardRotate, rotateX: cardRotateX, transformStyle: 'preserve-3d' }}
-        >
-          <motion.div
-            className="absolute inset-0 rounded-[10px] bg-black blur-xl translate-y-4"
-            style={{ opacity: shadowOpacity }}
-          />
-          <div
-            className="relative w-full rounded-[10px] overflow-hidden ring-1 ring-white/15"
-            style={{ aspectRatio: '85.6 / 53.98' }}
-          >
-            <img src={frontImageUrl} alt={alt} draggable={false} className="w-full h-full object-cover" />
-            <div
-              className="pointer-events-none absolute inset-0"
-              style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.3)' }}
-            />
-          </div>
-        </motion.div>
-
-        {/* Poche avant */}
-        <div
-          className="absolute left-0 right-0 bottom-0 z-20 h-[58%] rounded-b-[22px] sm:rounded-b-[26px] rounded-t-[4px] overflow-hidden"
-          style={{
-            background: 'linear-gradient(180deg, #221f1c 0%, #161412 60%, #0f0e0d 100%)',
-            boxShadow:
-              'inset 0 1.5px 0 rgba(255,255,255,0.1), 0 -10px 24px rgba(0,0,0,0.45)',
-          }}
-        >
-          {/* Grain cuir */}
-          <div
-            className="absolute inset-0 opacity-[0.35] mix-blend-overlay"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08) 0.6px, transparent 1px), radial-gradient(circle at 70% 60%, rgba(0,0,0,0.5) 0.6px, transparent 1px)',
-              backgroundSize: '5px 5px, 7px 7px',
-            }}
-          />
-          <div className="absolute inset-x-[10px] bottom-[10px] top-[12px] rounded-b-[16px] border border-dashed border-white/[0.1] border-t-0" />
-          {/* Marquage à chaud */}
-          <span className="absolute bottom-[18%] left-1/2 -translate-x-1/2 font-agrandir-semibold text-[9px] sm:text-[11px] tracking-[0.42em] text-white/[0.16] whitespace-nowrap">
-            LUMARÉEL
-          </span>
-          <motion.div className="absolute inset-0" style={{ background: leatherSheen }} />
-        </div>
-      </div>
-    </motion.div>
-  );
-};
+const WalletPocket: React.FC = () => (
+  <div
+    className="absolute left-0 right-0 bottom-0 h-[58%] rounded-b-[22px] sm:rounded-b-[26px] rounded-t-[4px] overflow-hidden"
+    style={{
+      background: 'linear-gradient(180deg, #221f1c 0%, #161412 60%, #0f0e0d 100%)',
+      boxShadow: 'inset 0 1.5px 0 rgba(255,255,255,0.1), 0 -10px 24px rgba(0,0,0,0.45)',
+    }}
+  >
+    <div
+      className="absolute inset-0 opacity-[0.35] mix-blend-overlay"
+      style={{
+        backgroundImage:
+          'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.08) 0.6px, transparent 1px), radial-gradient(circle at 70% 60%, rgba(0,0,0,0.5) 0.6px, transparent 1px)',
+        backgroundSize: '5px 5px, 7px 7px',
+      }}
+    />
+    <div className="absolute inset-x-[10px] bottom-[10px] top-[12px] rounded-b-[16px] border border-dashed border-white/[0.1] border-t-0" />
+    <span className="absolute bottom-[18%] left-1/2 -translate-x-1/2 font-agrandir-semibold text-[9px] sm:text-[11px] tracking-[0.42em] text-white/[0.16] whitespace-nowrap">
+      LUMARÉEL
+    </span>
+  </div>
+);
 
 export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = ({
   onGoToWallet,
@@ -867,15 +823,10 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const prefersReducedMotion = useReducedMotion();
 
   // Interactive flip states
-  const [heroFlipped, setHeroFlipped] = useState(false);
-  const [stageManualFlip, setStageManualFlip] = useState(false);
-  const [offerFlipped, setOfferFlipped] = useState(false);
+  const [cardFlipped, setCardFlipped] = useState(false);
 
   // Scroll targets
-  const heroRef = useRef<HTMLElement>(null);
-  const choreographyRef = useRef<HTMLElement>(null);
-  const perksRef = useRef<HTMLElement>(null);
-  const walletRef = useRef<HTMLElement>(null);
+  const journeyRef = useRef<HTMLElement>(null);
 
   // Live CMS state connected to Admin Black Card CMS (/api/cms/public)
   const [cmsConfig, setCmsConfig] = useState<{
@@ -932,6 +883,9 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const bMeet = getBenefit('meet_and_greet', c.perkMeetTitle, c.perkMeetDesc);
   const bPartner = getBenefit('partner_discount', c.perkPartnerTitle, c.perkPartnerDesc);
 
+  const frontAlt = isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto';
+  const backAlt = isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso';
+
   // Ordre narratif d’une soirée : arrivée → entrée → scène → pause → avant/après
   const perkBeats = [
     { headline: c.hlParking, ...bParking },
@@ -949,112 +903,90 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const climaxSubText = (isEn ? cmsConfig?.climaxSubEn : cmsConfig?.climaxSubFr) || c.climaxSub;
   const ctaOrderText = (isEn ? cmsConfig?.ctaOrderEn : cmsConfig?.ctaOrderFr) || c.ctaOrder;
 
-  // 1. Hero subtle exit depth on scroll
-  const { scrollYProgress: heroProgress } = useScroll({
-    target: heroRef,
-    offset: ['start start', 'end start'],
-  });
-  const heroCardScale = useTransform(
-    heroProgress,
-    [0, 1],
-    prefersReducedMotion ? [1, 1] : [1, 0.9]
-  );
-  const heroCardY = useTransform(
-    heroProgress,
-    [0, 1],
-    prefersReducedMotion ? [0, 0] : [0, -48]
-  );
-  const heroTextOpacity = useTransform(
-    heroProgress,
-    [0, 0.55],
-    prefersReducedMotion ? [1, 1] : [1, 0]
-  );
-
-  // 2. Sticky Scroll-Driven 3D Choreography
-  const { scrollYProgress: rawChoreoProgress } = useScroll({
-    target: choreographyRef,
+  // =====================================================================
+  // UNE SEULE CARTE, UN SEUL PLAN-SÉQUENCE
+  // Entrée → retournement (noir → blanc) → 7 avantages → portefeuille.
+  // Toute la chorégraphie est pilotée par la progression d’une seule section.
+  // =====================================================================
+  const { scrollYProgress: rawJourney } = useScroll({
+    target: journeyRef,
     offset: ['start start', 'end end'],
   });
-  const choreoProgress = useSpring(rawChoreoProgress, {
-    stiffness: 95,
-    damping: 26,
-    mass: 0.35,
-  });
+  const jp = useSpring(rawJourney, { stiffness: 100, damping: 28, mass: 0.35 });
 
-  // Seamless Dark -> Luminous White environment transition
-  const lightCanvasOpacity = useTransform(choreoProgress, [0.02, 0.2], [0, 1]);
-  const darkTextOpacity = useTransform(choreoProgress, [0.08, 0.22], [1, 0]);
-  const lightTextOpacity = useTransform(choreoProgress, [0.14, 0.26], [0, 1]);
-
-  // 3D Multi-axis scroll choreography (Front angle -> Dead-on -> 180° Verso -> Sculptural return)
-  const choreoRotateY = useTransform(
-    choreoProgress,
-    [0, 0.22, 0.38, 0.56, 0.72, 0.92, 1],
-    [-22, 0, 14, 180, 186, 354, 360]
-  );
-  const choreoRotateX = useTransform(
-    choreoProgress,
-    [0, 0.24, 0.52, 0.78, 1],
-    [12, 2, -5, 6, 0]
-  );
-  const choreoRotateZ = useTransform(
-    choreoProgress,
-    [0, 0.3, 0.55, 0.82, 1],
-    [-2.5, 0, 1.5, -1.2, 0]
-  );
-  const choreoScale = useTransform(
-    choreoProgress,
-    [0, 0.25, 0.55, 0.85, 1],
-    [0.9, 1.03, 1.1, 1.04, 0.98]
-  );
-  const choreoSheenX = useTransform(choreoProgress, [0, 1], [-35, 145]);
-  const choreoBarScaleX = useTransform(choreoProgress, [0, 1], [0.05, 1]);
-
-  // 3 Crossfading narrative beats below the 3D card during sticky scrub
-  const beat1Opacity = useTransform(choreoProgress, [0.04, 0.14, 0.31, 0.39], [0, 1, 1, 0]);
-  const beat1Y = useTransform(choreoProgress, [0.04, 0.14, 0.31, 0.39], [16, 0, 0, -14]);
-
-  const beat2Opacity = useTransform(choreoProgress, [0.4, 0.49, 0.68, 0.76], [0, 1, 1, 0]);
-  const beat2Y = useTransform(choreoProgress, [0.4, 0.49, 0.68, 0.76], [16, 0, 0, -14]);
-
-  const beat3Opacity = useTransform(choreoProgress, [0.76, 0.84, 0.97, 1], [0, 1, 1, 1]);
-  const beat3Y = useTransform(choreoProgress, [0.76, 0.84, 1], [16, 0, 0]);
-
-  // 3. Scène sticky des 7 avantages — produit seul, lumière de scène
-  const { scrollYProgress: rawPerksProgress } = useScroll({
-    target: perksRef,
-    offset: ['start start', 'end end'],
-  });
-  const perksProgress = useSpring(rawPerksProgress, { stiffness: 90, damping: 26, mass: 0.35 });
+  // Repères de phases
+  const P0 = 0.31; // début des avantages
+  const P1 = 0.74; // fin des avantages
   const PERK_TOTAL = 7;
-  const perkStops = Array.from({ length: PERK_TOTAL }, (_, i) => (i + 0.5) / PERK_TOTAL);
-  const perksRotateY = useTransform(perksProgress, [0, ...perkStops, 1], [-20, -16, 14, -10, 18, -12, 188, 360, 360]);
-  const perksRotateX = useTransform(perksProgress, [0, ...perkStops, 1], [12, 10, -6, 8, -4, 6, -6, 2, 0]);
-  const perksRotateZ = useTransform(perksProgress, [0, ...perkStops, 1], [-3, -2, 2, -1, 1.5, -1.5, 1, 0, 0]);
-  const perksScale = useTransform(perksProgress, [0, ...perkStops, 1], [0.92, 0.94, 1, 1.05, 1, 1.02, 1.04, 1, 1]);
-  const perksSheen = useTransform(perksProgress, [0, 1], [-40, 150]);
-  const perksBeamX = useTransform(perksProgress, [0, ...perkStops, 1], [28, 30, 70, 50, 34, 66, 50, 50, 50]);
-  const perksHalftoneX = useTransform(perksProgress, [0, 1], [15, 85]);
-  const perksBeamIntensity = useTransform(perksProgress, [0, 0.04, 0.96, 1], [0.4, 1, 1, 1]);
+  const perkSpan = (P1 - P0) / PERK_TOTAL;
+  const perkCenters = Array.from({ length: PERK_TOTAL }, (_, i) => P0 + (i + 0.5) * perkSpan);
 
-  // 4. Le portefeuille — la carte glisse dans la poche
-  const { scrollYProgress: rawWalletProgress } = useScroll({
-    target: walletRef,
-    offset: ['start start', 'end end'],
-  });
-  const walletProgress = useSpring(rawWalletProgress, { stiffness: 110, damping: 24, mass: 0.3 });
-  const walletLineOneOpacity = useTransform(walletProgress, [0, 0.12, 0.55, 0.64], [0, 1, 1, 0]);
-  const walletLineTwoOpacity = useTransform(walletProgress, [0.66, 0.76, 1], [0, 1, 1]);
-  const walletLineTwoY = useTransform(walletProgress, [0.66, 0.76], [18, 0]);
+  // Orientation de la carte
+  const cardRotY = useTransform(
+    jp,
+    [0, 0.09, 0.14, 0.2, 0.25, 0.3, ...perkCenters, 0.78, 1],
+    [-14, 0, 0, 180, 180, 360, 344, 374, 350, 378, 348, 548, 720, 720, 720]
+  );
+  const cardRotX = useTransform(
+    jp,
+    [0, 0.09, 0.3, ...perkCenters, 0.78, 1],
+    [10, 2, 0, 10, -6, 8, -4, 6, -6, 2, 0, 0]
+  );
+  const cardRotZ = useTransform(
+    jp,
+    [0, 0.09, 0.3, ...perkCenters, 0.8, 0.93, 1],
+    [-2, 0, 0, -2, 2, -1, 1.5, -1.5, 1, 0, -7, 0, 0]
+  );
+  const cardSheen = useTransform(
+    jp,
+    [0, 0.3, 0.301, P1, P1 + 0.001, 1],
+    [-40, 150, -40, 150, -40, 150]
+  );
 
-  // 5. Finale — un seul faisceau, la carte seule
-  const finaleInView = useRef<HTMLElement>(null);
-  const { scrollYProgress: finaleProgress } = useScroll({
-    target: finaleInView,
-    offset: ['start end', 'center center'],
-  });
-  const finaleBeam = useTransform(finaleProgress, [0, 1], [0, 1]);
-  const finaleCardY = useTransform(finaleProgress, [0, 1], prefersReducedMotion ? [0, 0] : [60, 0]);
+  // Placement de l’ensemble carte + portefeuille dans le cadre
+  const rigYv = useTransform(jp, [0, 0.09, 0.13, 0.3, 0.33, P1, 0.8, 1], [-11, -11, -7, -7, 1, 1, -10, -10]);
+  const rigY = useMotionTemplate`${rigYv}vh`;
+  const rigScale = useTransform(jp, [0, 0.09, 0.13, 0.3, 0.33, P1, 0.8, 1], [1, 1, 1.06, 1.06, 0.96, 0.96, 0.8, 0.8]);
+
+  // La carte se soulève puis plonge dans la poche
+  const cardSlideV = useTransform(jp, [0, 0.8, 0.86, 0.96, 1], [0, 0, -24, 69.5, 69.5]);
+  const cardSlide = useMotionTemplate`${cardSlideV}%`;
+
+  // Le portefeuille monte dans le cadre
+  const walletYv = useTransform(jp, [0.75, 0.85], [70, 0]);
+  const walletY = useMotionTemplate`${walletYv}vh`;
+  const walletOpacity = useTransform(jp, [0.75, 0.8], [0, 1]);
+
+  // Environnements
+  const heroLayerOpacity = useTransform(jp, [0, 0.05, 0.09], [1, 1, 0]);
+  const heroLayerY = useTransform(jp, [0, 0.09], [0, -30]);
+  const whiteOpacity = useTransform(jp, [0.1, 0.15, 0.28, 0.32], [0, 1, 1, 0]);
+  const perkFxOpacity = useTransform(jp, [0.29, 0.33, 0.72, 0.76], [0, 1, 1, 0]);
+  const beigeOpacity = useTransform(jp, [0.73, 0.79], [0, 1]);
+
+  // Les trois temps du retournement
+  const beat1Opacity = useTransform(jp, [0.12, 0.15, 0.18, 0.2], [0, 1, 1, 0]);
+  const beat2Opacity = useTransform(jp, [0.19, 0.21, 0.24, 0.26], [0, 1, 1, 0]);
+  const beat3Opacity = useTransform(jp, [0.25, 0.27, 0.29, 0.31], [0, 1, 1, 0]);
+
+  // Les avantages
+  const perksGroupOpacity = useTransform(jp, [0.3, 0.32, 0.73, 0.75], [0, 1, 1, 0]);
+  const perkProgress = useTransform(jp, [P0, P1], [0, 1]);
+  const beamX = useTransform(jp, [P0, ...perkCenters, P1], [30, 30, 70, 50, 34, 66, 50, 50, 50]);
+  const halftoneX = useTransform(jp, [P0, P1], [15, 85]);
+
+  // Le portefeuille
+  const walletLine1Opacity = useTransform(jp, [0.77, 0.8, 0.87, 0.89], [0, 1, 1, 0]);
+  const walletLine2Opacity = useTransform(jp, [0.9, 0.93, 1], [0, 1, 1]);
+  const walletLine2Y = useTransform(jp, [0.9, 0.93], [16, 0]);
+
+  const scrollToJourney = (fraction: number) => {
+    const el = journeyRef.current;
+    if (!el || typeof window === 'undefined') return;
+    const top = el.getBoundingClientRect().top + window.scrollY;
+    const travel = el.offsetHeight - window.innerHeight;
+    window.scrollTo({ top: top + travel * fraction, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+  };
 
   // Données de formule existantes (conservées intactes)
   const [, setEdition] = useState<MembershipEdition | null>(null);
@@ -1361,315 +1293,35 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     }
   };
 
-  const scrollToChoreography = () => {
-    choreographyRef.current?.scrollIntoView({
-      behavior: prefersReducedMotion ? 'auto' : 'smooth',
-      block: 'start',
-    });
-  };
 
   return (
     <div className="w-full overflow-x-clip bg-black text-white font-agrandir-regular">
       {/* =================================================================== */}
-      {/* OUVERTURE CINÉMATOGRAPHIQUE — LA BLACK CARD AU CENTRE               */}
-      {/* =================================================================== */}
-      <section
-        ref={heroRef}
-        className="relative w-full min-h-[calc(100svh-4.25rem)] bg-black text-white flex flex-col items-center justify-center px-5 sm:px-8 pt-10 sm:pt-14 pb-16 sm:pb-24 overflow-hidden"
-      >
-        {/* Faisceau de lumière studio zénithal, discret et maîtrisé */}
-        <motion.div
-          aria-hidden="true"
-          initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.88 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1.4, ease: EASE_CINEMA }}
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(58% 46% at 50% 42%, rgba(255,255,255,0.095) 0%, rgba(255,255,255,0.025) 42%, rgba(0,0,0,0) 74%)',
-          }}
-        />
-
-        <div className="relative z-10 w-full max-w-[960px] mx-auto flex flex-col items-center text-center">
-          {/* Signature marque discrète */}
-          <motion.span
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: EASE_CINEMA }}
-            className="text-[11px] sm:text-xs font-agrandir-semibold uppercase tracking-[0.28em] text-white/55"
-          >
-            {c.brandSignature}
-          </motion.span>
-
-          {/* LA CARTE — Pièce maîtresse 3D volumétrique */}
-          <motion.div
-            initial={
-              prefersReducedMotion
-                ? false
-                : { opacity: 0, y: 42, scale: 0.9, rotateX: 16 }
-            }
-            animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
-            transition={{ duration: 1.15, delay: 0.12, ease: EASE_CINEMA }}
-            style={{ y: heroCardY, scale: heroCardScale }}
-            className="mt-8 sm:mt-11 w-full max-w-[330px] sm:max-w-[460px] lg:max-w-[540px]"
-          >
-            <VolumetricBlackCard
-              manualFlipped={heroFlipped}
-              onToggleFlip={() => setHeroFlipped((prev) => !prev)}
-              shadowTone="dark"
-              enableFloat
-              openingSweep
-              frontImageUrl={cardFrontUrl}
-              backImageUrl={cardBackUrl}
-              ariaLabel={
-                isEn ? 'Turn the LUMARÉEL Black Card' : 'Retourner la LUMARÉEL Black Card'
-              }
-              frontAlt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto'}
-              backAlt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso'}
-            />
-          </motion.div>
-
-          {/* Texte minimal et précis sous la carte */}
-          <motion.div
-            style={{ opacity: heroTextOpacity }}
-            className="mt-10 sm:mt-12 flex flex-col items-center"
-          >
-            <div className="overflow-hidden">
-              <motion.h1
-                initial={prefersReducedMotion ? false : { y: '105%', opacity: 0 }}
-                animate={{ y: '0%', opacity: 1 }}
-                transition={{ duration: 0.9, delay: 0.3, ease: EASE_CINEMA }}
-                className="font-agrandir-extrabold text-[2.15rem] sm:text-5xl lg:text-[3.85rem] leading-[1.03] tracking-[-0.03em] text-white text-balance"
-              >
-                {heroTitleText}
-              </motion.h1>
-            </div>
-
-            <motion.p
-              initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.85, delay: 0.45, ease: EASE_CINEMA }}
-              className="mt-4 text-sm sm:text-lg text-white/62 leading-relaxed max-w-xl text-balance"
-            >
-              {heroSubText}
-            </motion.p>
-
-            {/* Un seul point d’action clair */}
-            <motion.div
-              initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.58, ease: EASE_CINEMA }}
-              className="mt-7 sm:mt-8"
-            >
-              {hasActiveCard ? (
-                <button
-                  type="button"
-                  onClick={() => onGoToWallet?.()}
-                  className="min-h-[50px] px-8 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-sm sm:text-[15px] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer lum-press whitespace-nowrap"
-                >
-                  <span>{c.ctaViewMyCard}</span>
-                  <ArrowRight className="w-4 h-4" strokeWidth={2} />
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={scrollToChoreography}
-                  className="min-h-[50px] px-8 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-sm sm:text-[15px] inline-flex items-center justify-center gap-2.5 transition-colors cursor-pointer lum-press whitespace-nowrap"
-                >
-                  <span>{c.heroCta}</span>
-                  <ArrowDown className="w-4 h-4" strokeWidth={2} />
-                </button>
-              )}
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* =================================================================== */}
-      {/* CHORÉGRAPHIE 3D AU SCROLL — L’OBJET PHYSIQUE (Sticky Storytelling)  */}
+      {/* PLAN-SÉQUENCE — UNE SEULE CARTE DU DÉBUT À LA POCHE                 */}
       {/* =================================================================== */}
       {prefersReducedMotion ? (
-        /* Version épurée et accessible si prefers-reduced-motion est actif */
-        <section
-          ref={choreographyRef}
-          className="w-full bg-white text-[#111111] py-20 sm:py-28 px-5 sm:px-8"
-        >
-          <div className="w-full max-w-[960px] mx-auto flex flex-col items-center text-center">
-            <h2 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-[-0.025em] text-[#111111] text-balance">
-              {c.beat1Title}
-            </h2>
-            <p className="mt-4 text-base sm:text-lg text-black/60 max-w-xl">{c.beat3Sub}</p>
-
-            <div className="mt-12 w-full max-w-[330px] sm:max-w-[460px]">
+        <section ref={journeyRef} className="w-full bg-black text-white px-5 sm:px-8 pt-14 pb-24">
+          <div className="max-w-[960px] mx-auto flex flex-col items-center text-center">
+            <span className="text-[11px] font-agrandir-semibold uppercase tracking-[0.28em] text-white/55">
+              {c.brandSignature}
+            </span>
+            <div className="mt-10 w-full max-w-[420px]">
               <VolumetricBlackCard
-                manualFlipped={stageManualFlip}
-                onToggleFlip={() => setStageManualFlip((prev) => !prev)}
-                shadowTone="light"
-                ariaLabel={c.flipHint}
-                frontAlt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto'}
-                backAlt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso'}
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setStageManualFlip((prev) => !prev)}
-              className="mt-10 min-h-[44px] px-5 rounded-full border border-black/15 text-xs sm:text-sm font-agrandir-semibold text-[#111111] inline-flex items-center gap-2 cursor-pointer"
-            >
-              <RotateCw className="w-3.5 h-3.5" strokeWidth={1.7} />
-              <span>{stageManualFlip ? c.sideFront : c.sideBack}</span>
-            </button>
-          </div>
-        </section>
-      ) : (
-        /* Scène sticky pilotée par le scroll : Noir -> Blanc + Rotation 3D Recto -> Verso -> Retour */
-        <section
-          ref={choreographyRef}
-          className="relative w-full h-[230vh] sm:h-[265vh] bg-black"
-        >
-          <div className="sticky top-0 h-[100svh] w-full overflow-hidden flex flex-col items-center justify-center px-5 sm:px-8">
-            {/* Transition lumineuse fluide du noir absolu au blanc galerie */}
-            <motion.div
-              aria-hidden="true"
-              style={{ opacity: lightCanvasOpacity }}
-              className="pointer-events-none absolute inset-0 bg-white"
-            />
-
-            {/* Halo subtil en arrière-plan pour la profondeur */}
-            <motion.div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0"
-              style={{
-                opacity: lightCanvasOpacity,
-                background:
-                  'radial-gradient(50% 42% at 50% 45%, rgba(0,0,0,0.035) 0%, rgba(255,255,255,0) 70%)',
-              }}
-            />
-
-            <div className="relative z-10 w-full max-w-[960px] mx-auto flex flex-col items-center">
-              {/* Carte 3D pilotée en temps réel par la progression du scroll */}
-              <motion.div
-                style={{ scale: choreoScale }}
-                className="w-full max-w-[300px] sm:max-w-[440px] lg:max-w-[500px]"
-              >
-                <VolumetricBlackCard
-                  rotateYBase={choreoRotateY}
-                  rotateXBase={choreoRotateX}
-                  rotateZBase={choreoRotateZ}
-                  sheenX={choreoSheenX}
-                  manualFlipped={stageManualFlip}
-                  onToggleFlip={() => setStageManualFlip((prev) => !prev)}
-                  shadowTone="light"
-                  frontImageUrl={cardFrontUrl}
-                  backImageUrl={cardBackUrl}
-                  ariaLabel={c.flipHint}
-                  frontAlt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto'}
-                  backAlt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso'}
-                />
-              </motion.div>
-
-              {/* 3 temps narratifs qui se succèdent sans jamais casser le cadre */}
-              <div className="relative mt-11 sm:mt-14 w-full max-w-2xl h-[108px] sm:h-[116px] text-center">
-                {/* Temps 1 */}
-                <motion.div
-                  style={{ opacity: beat1Opacity, y: beat1Y }}
-                  className="absolute inset-0 flex flex-col items-center justify-start"
-                >
-                  <motion.h2
-                    style={{ opacity: darkTextOpacity }}
-                    className="absolute top-0 font-agrandir-extrabold text-2xl sm:text-4xl tracking-[-0.025em] text-white text-balance"
-                  >
-                    {c.beat1Title}
-                  </motion.h2>
-                  <motion.h2
-                    style={{ opacity: lightTextOpacity }}
-                    className="font-agrandir-extrabold text-2xl sm:text-4xl tracking-[-0.025em] text-[#111111] text-balance"
-                  >
-                    {c.beat1Title}
-                  </motion.h2>
-                  <motion.p
-                    style={{ opacity: lightTextOpacity }}
-                    className="mt-2.5 text-sm sm:text-base text-black/58 leading-relaxed max-w-md"
-                  >
-                    {c.beat1Sub}
-                  </motion.p>
-                </motion.div>
-
-                {/* Temps 2 — Révélation du Verso réel */}
-                <motion.div
-                  style={{ opacity: beat2Opacity, y: beat2Y }}
-                  className="absolute inset-0 flex flex-col items-center justify-start"
-                >
-                  <h2 className="font-agrandir-extrabold text-xl sm:text-4xl tracking-[-0.025em] text-[#111111] text-balance">
-                    {c.beat2Title}
-                  </h2>
-                  <p className="mt-2.5 text-sm sm:text-base text-black/58 leading-relaxed max-w-md">
-                    {c.beat2Sub}
-                  </p>
-                </motion.div>
-
-                {/* Temps 3 — Remise en main propre + App */}
-                <motion.div
-                  style={{ opacity: beat3Opacity, y: beat3Y }}
-                  className="absolute inset-0 flex flex-col items-center justify-start"
-                >
-                  <h2 className="font-agrandir-extrabold text-2xl sm:text-4xl tracking-[-0.025em] text-[#111111] text-balance">
-                    {c.beat3Title}
-                  </h2>
-                  <p className="mt-2.5 text-sm sm:text-base text-black/58 leading-relaxed max-w-lg">
-                    {c.beat3Sub}
-                  </p>
-                </motion.div>
-              </div>
-
-              {/* Contrôle discret tactile + fil de progression fin */}
-              <motion.div
-                style={{ opacity: lightTextOpacity }}
-                className="mt-4 sm:mt-5 flex flex-col items-center gap-4"
-              >
-                <button
-                  type="button"
-                  onClick={() => setStageManualFlip((prev) => !prev)}
-                  className="min-h-[40px] px-4 rounded-full text-xs font-agrandir-semibold text-black/55 hover:text-black inline-flex items-center gap-2 transition-colors cursor-pointer"
-                >
-                  <RotateCw className="w-3.5 h-3.5" strokeWidth={1.6} />
-                  <span>{c.flipHint}</span>
-                </button>
-
-                <div className="w-32 h-[1.5px] bg-black/10 overflow-hidden rounded-full">
-                  <motion.div
-                    style={{ scaleX: choreoBarScaleX, transformOrigin: 'left center' }}
-                    className="h-full w-full bg-[#111111]"
-                  />
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* =================================================================== */}
-      {/* LES 7 AVANTAGES — LE PRODUIT SEUL SOUS LA LUMIÈRE                   */}
-      {/* Un avantage par plan, la carte tourne, le projecteur la suit.       */}
-      {/* =================================================================== */}
-      {prefersReducedMotion ? (
-        <section ref={perksRef} className="w-full bg-black text-white py-24 px-5 sm:px-8">
-          <div className="max-w-[960px] mx-auto">
-            <div className="max-w-[320px] mx-auto mb-16">
-              <VolumetricBlackCard
-                manualFlipped={stageManualFlip}
-                onToggleFlip={() => setStageManualFlip((prev) => !prev)}
+                manualFlipped={cardFlipped}
+                onToggleFlip={() => setCardFlipped((prev) => !prev)}
                 shadowTone="dark"
                 frontImageUrl={cardFrontUrl}
                 backImageUrl={cardBackUrl}
                 ariaLabel={c.flipHint}
-                frontAlt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto'}
-                backAlt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso'}
+                frontAlt={frontAlt}
+                backAlt={backAlt}
               />
             </div>
-            <div className="divide-y divide-white/10 border-y border-white/10">
+            <h1 className="mt-12 font-agrandir-extrabold text-4xl sm:text-6xl tracking-[-0.03em] text-balance">{heroTitleText}</h1>
+            <p className="mt-4 text-base sm:text-lg text-white/60 max-w-xl">{heroSubText}</p>
+            <div className="mt-16 w-full divide-y divide-white/10 border-y border-white/10 text-left">
               {perkBeats.map((p) => (
-                <div key={p.title} className="py-8 grid sm:grid-cols-2 gap-3">
+                <div key={p.title} className="py-7 grid sm:grid-cols-2 gap-3">
                   <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-[-0.025em]">{p.headline}</h2>
                   <div>
                     <h3 className="font-agrandir-semibold text-base">{p.title}</h3>
@@ -1678,199 +1330,265 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 </div>
               ))}
             </div>
+            <p className="mt-12 text-base text-white/60">{c.walletSub}</p>
           </div>
         </section>
       ) : (
-        <section ref={perksRef} className="relative w-full h-[640vh] sm:h-[700vh] bg-black text-white">
-          <div className="sticky top-0 h-[100svh] w-full overflow-hidden bg-black">
-            <HalftoneField x={perksHalftoneX} tone="light" className="opacity-60" />
-            <StageBeam x={perksBeamX} intensity={perksBeamIntensity} />
-            <LightDust />
+        <section ref={journeyRef} className="relative w-full h-[520vh] sm:h-[580vh] bg-black">
+          <div className="sticky top-0 h-[100svh] w-full overflow-hidden text-white">
+            {/* ---------- Environnements ---------- */}
+            <motion.div
+              aria-hidden="true"
+              style={{ opacity: heroLayerOpacity }}
+              className="pointer-events-none absolute inset-0"
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.88 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1.4, ease: EASE_CINEMA }}
+                className="absolute inset-0"
+                style={{
+                  background:
+                    'radial-gradient(58% 46% at 50% 36%, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.025) 42%, rgba(0,0,0,0) 74%)',
+                }}
+              />
+            </motion.div>
 
-            <div className="relative z-10 h-full w-full max-w-[1100px] mx-auto px-5 sm:px-8 pt-[11vh] pb-[7vh] flex flex-col items-center">
+            <motion.div
+              aria-hidden="true"
+              style={{ opacity: whiteOpacity }}
+              className="pointer-events-none absolute inset-0 bg-white"
+            >
+              <div
+                className="absolute inset-0"
+                style={{ background: 'radial-gradient(50% 42% at 50% 45%, rgba(0,0,0,0.04) 0%, rgba(255,255,255,0) 70%)' }}
+              />
+            </motion.div>
+
+            <motion.div aria-hidden="true" style={{ opacity: perkFxOpacity }} className="pointer-events-none absolute inset-0">
+              <HalftoneField x={halftoneX} tone="light" className="opacity-60" />
+              <StageBeam x={beamX} />
+              <LightDust />
+            </motion.div>
+
+            <motion.div
+              aria-hidden="true"
+              style={{ opacity: beigeOpacity }}
+              className="pointer-events-none absolute inset-0 bg-[#efebe4]"
+            >
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    'radial-gradient(60% 55% at 28% 18%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 70%), radial-gradient(70% 50% at 50% 100%, rgba(0,0,0,0.06) 0%, transparent 70%)',
+                }}
+              />
+              <HalftoneField tone="dark" className="opacity-50" />
+            </motion.div>
+
+            {/* ---------- Textes ---------- */}
+            {/* Entrée */}
+            <motion.div
+              style={{ opacity: heroLayerOpacity, y: heroLayerY }}
+              className="absolute inset-0 z-30 flex flex-col items-center justify-between px-5 sm:px-8 pt-[7vh] pb-[7vh] text-center pointer-events-none"
+            >
+              <motion.span
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, ease: EASE_CINEMA }}
+                className="text-[11px] sm:text-xs font-agrandir-semibold uppercase tracking-[0.28em] text-white/55"
+              >
+                {c.brandSignature}
+              </motion.span>
+
+              <div className="flex flex-col items-center">
+                <div className="overflow-hidden">
+                  <motion.h1
+                    initial={{ y: '105%', opacity: 0 }}
+                    animate={{ y: '0%', opacity: 1 }}
+                    transition={{ duration: 0.9, delay: 0.3, ease: EASE_CINEMA }}
+                    className="font-agrandir-extrabold text-[2.15rem] sm:text-5xl lg:text-[3.85rem] leading-[1.03] tracking-[-0.03em] text-white text-balance"
+                  >
+                    {heroTitleText}
+                  </motion.h1>
+                </div>
+                <motion.p
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.85, delay: 0.45, ease: EASE_CINEMA }}
+                  className="mt-3 text-sm sm:text-lg text-white/62 leading-relaxed max-w-xl text-balance"
+                >
+                  {heroSubText}
+                </motion.p>
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.58, ease: EASE_CINEMA }}
+                  className="mt-6 pointer-events-auto"
+                >
+                  {hasActiveCard ? (
+                    <button
+                      type="button"
+                      onClick={() => onGoToWallet?.()}
+                      className="min-h-[50px] px-8 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-sm sm:text-[15px] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer lum-press whitespace-nowrap"
+                    >
+                      <span>{c.ctaViewMyCard}</span>
+                      <ArrowRight className="w-4 h-4" strokeWidth={2} />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => scrollToJourney(0.15)}
+                      className="min-h-[50px] px-8 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-sm sm:text-[15px] inline-flex items-center justify-center gap-2.5 transition-colors cursor-pointer lum-press whitespace-nowrap"
+                    >
+                      <span>{c.heroCta}</span>
+                      <ArrowDown className="w-4 h-4" strokeWidth={2} />
+                    </button>
+                  )}
+                </motion.div>
+              </div>
+            </motion.div>
+
+            {/* Retournement — trois temps en bas du cadre */}
+            {[
+              { o: beat1Opacity, t: c.beat1Title, s: c.beat1Sub },
+              { o: beat2Opacity, t: c.beat2Title, s: c.beat2Sub },
+              { o: beat3Opacity, t: c.beat3Title, s: c.beat3Sub },
+            ].map((b) => (
+              <motion.div
+                key={b.t}
+                style={{ opacity: b.o }}
+                className="absolute inset-x-0 bottom-[9vh] z-30 px-5 sm:px-8 flex flex-col items-center text-center pointer-events-none"
+              >
+                <h2 className="font-agrandir-extrabold text-2xl sm:text-4xl tracking-[-0.025em] text-[#111111] text-balance max-w-2xl">
+                  {b.t}
+                </h2>
+                <p className="mt-2.5 text-sm sm:text-base text-black/58 leading-relaxed max-w-md text-balance">{b.s}</p>
+              </motion.div>
+            ))}
+
+            {/* Avantages — titre en haut, détail en bas */}
+            <motion.div
+              style={{ opacity: perksGroupOpacity }}
+              className="absolute inset-0 z-30 flex flex-col items-center px-5 sm:px-8 pt-[8vh] pb-[5vh] pointer-events-none"
+            >
               <span className="text-[10px] sm:text-[11px] font-agrandir-semibold uppercase tracking-[0.3em] text-white/45">
                 {c.perksKicker}
               </span>
-
-              <div className="relative mt-5 sm:mt-7 w-full flex-1 flex flex-col items-center">
-                {/* Texte : titre en haut, détail en bas, la carte au milieu */}
-                <div className="absolute inset-0">
-                  {perkBeats.map((p, i) => (
-                    <PerkBeat
-                      key={p.title}
-                      progress={perksProgress}
-                      index={i}
-                      total={PERK_TOTAL}
-                      headline={p.headline}
-                      title={p.title}
-                      desc={p.desc}
-                    />
-                  ))}
-                </div>
-
-                <div className="relative flex-1 w-full flex items-center justify-center pointer-events-none">
-                  <motion.div
-                    style={{ scale: perksScale }}
-                    className="w-full max-w-[270px] sm:max-w-[400px] lg:max-w-[440px] mt-14 sm:mt-20 mb-16 pointer-events-auto"
-                  >
-                    <VolumetricBlackCard
-                      rotateYBase={perksRotateY}
-                      rotateXBase={perksRotateX}
-                      rotateZBase={perksRotateZ}
-                      sheenX={perksSheen}
-                      manualFlipped={stageManualFlip}
-                      onToggleFlip={() => setStageManualFlip((prev) => !prev)}
-                      shadowTone="dark"
-                      frontImageUrl={cardFrontUrl}
-                      backImageUrl={cardBackUrl}
-                      ariaLabel={c.flipHint}
-                      frontAlt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto'}
-                      backAlt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso'}
-                    />
-                  </motion.div>
-                </div>
-              </div>
-
-              <div className="mt-6 flex items-center gap-1.5">
+              <div className="relative mt-4 sm:mt-6 w-full max-w-[1100px] flex-1">
                 {perkBeats.map((p, i) => (
-                  <PerkDot key={p.title} progress={perksProgress} index={i} total={PERK_TOTAL} />
+                  <PerkBeat
+                    key={p.title}
+                    progress={perkProgress}
+                    index={i}
+                    total={PERK_TOTAL}
+                    headline={p.headline}
+                    title={p.title}
+                    desc={p.desc}
+                  />
                 ))}
               </div>
+              <div className="mt-5 flex items-center gap-1.5">
+                {perkBeats.map((p, i) => (
+                  <PerkDot key={p.title} progress={perkProgress} index={i} total={PERK_TOTAL} />
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Portefeuille */}
+            <div className="absolute inset-x-0 top-[9vh] z-30 h-[80px] px-5 text-center text-[#111111] pointer-events-none">
+              <motion.h2
+                style={{ opacity: walletLine1Opacity }}
+                className="absolute inset-x-0 font-agrandir-extrabold text-[2rem] sm:text-6xl leading-[1.02] tracking-[-0.035em] text-balance"
+              >
+                {c.walletTitle}
+              </motion.h2>
+              <motion.h2
+                style={{ opacity: walletLine2Opacity, y: walletLine2Y }}
+                className="absolute inset-x-0 font-agrandir-extrabold text-[2rem] sm:text-6xl leading-[1.02] tracking-[-0.035em] text-balance"
+              >
+                {c.walletTitleAfter}
+              </motion.h2>
+            </div>
+            <motion.p
+              style={{ opacity: walletLine2Opacity }}
+              className="absolute inset-x-0 bottom-[8vh] z-30 px-5 text-center text-sm sm:text-lg text-black/55 text-balance pointer-events-none"
+            >
+              {c.walletSub}
+            </motion.p>
+
+            {/* ---------- LA carte (unique) + le portefeuille ---------- */}
+            <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+              <motion.div
+                style={{ y: rigY, scale: rigScale }}
+                className="relative w-[min(76vw,440px,66vh)]"
+              >
+                {/* Dos du portefeuille — derrière la carte */}
+                <motion.div
+                  aria-hidden="true"
+                  className="absolute z-0"
+                  style={{ top: '60%', left: '-8.14%', width: '116.28%', aspectRatio: '100 / 74', y: walletY, opacity: walletOpacity }}
+                >
+                  <WalletBack />
+                </motion.div>
+
+                {/* La carte */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, rotateX: 16 }}
+                  animate={{ opacity: 1, scale: 1, rotateX: 0 }}
+                  transition={{ duration: 1.15, delay: 0.12, ease: EASE_CINEMA }}
+                  style={{ y: cardSlide }}
+                  className="relative z-10 pointer-events-auto"
+                >
+                  <VolumetricBlackCard
+                    rotateYBase={cardRotY}
+                    rotateXBase={cardRotX}
+                    rotateZBase={cardRotZ}
+                    sheenX={cardSheen}
+                    manualFlipped={cardFlipped}
+                    onToggleFlip={() => setCardFlipped((prev) => !prev)}
+                    shadowTone="dark"
+                    openingSweep
+                    frontImageUrl={cardFrontUrl}
+                    backImageUrl={cardBackUrl}
+                    ariaLabel={c.flipHint}
+                    frontAlt={frontAlt}
+                    backAlt={backAlt}
+                  />
+                </motion.div>
+
+                {/* Poche du portefeuille — devant la carte */}
+                <motion.div
+                  aria-hidden="true"
+                  className="absolute z-20 pointer-events-none"
+                  style={{ top: '60%', left: '-8.14%', width: '116.28%', aspectRatio: '100 / 74', y: walletY, opacity: walletOpacity }}
+                >
+                  <WalletPocket />
+                </motion.div>
+              </motion.div>
             </div>
           </div>
         </section>
       )}
-
-      {/* =================================================================== */}
-      {/* LE PORTEFEUILLE — LA CARTE GLISSE DANS LA POCHE                     */}
-      {/* =================================================================== */}
-      {prefersReducedMotion ? (
-        <section ref={walletRef} className="w-full bg-[#efebe4] text-[#111111] py-24 px-5 sm:px-8">
-          <div className="max-w-[960px] mx-auto text-center">
-            <h2 className="font-agrandir-extrabold text-3xl sm:text-5xl tracking-[-0.03em] text-balance">{c.walletTitle}</h2>
-            <p className="mt-4 text-base sm:text-lg text-black/60">{c.walletSub}</p>
-          </div>
-        </section>
-      ) : (
-        <section ref={walletRef} className="relative w-full h-[260vh] bg-[#efebe4] text-[#111111]">
-          <div className="sticky top-0 h-[100svh] w-full overflow-hidden flex flex-col items-center justify-center px-5 sm:px-8">
-            {/* Lumière de fenêtre douce, venue du haut gauche */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background:
-                  'radial-gradient(60% 55% at 28% 18%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 70%), radial-gradient(70% 50% at 50% 100%, rgba(0,0,0,0.06) 0%, transparent 70%)',
-              }}
-            />
-            <HalftoneField tone="dark" className="opacity-50" />
-
-            <div className="relative z-10 w-full max-w-[960px] mx-auto flex flex-col items-center">
-              <div className="relative h-[80px] sm:h-[72px] w-full text-center">
-                <motion.div style={{ opacity: walletLineOneOpacity }} className="absolute inset-0">
-                  <h2 className="font-agrandir-extrabold text-[2rem] sm:text-6xl leading-[1.02] tracking-[-0.035em] text-balance">
-                    {c.walletTitle}
-                  </h2>
-                </motion.div>
-                <motion.div style={{ opacity: walletLineTwoOpacity, y: walletLineTwoY }} className="absolute inset-0">
-                  <h2 className="font-agrandir-extrabold text-[2rem] sm:text-6xl leading-[1.02] tracking-[-0.035em] text-balance">
-                    {c.walletTitleAfter}
-                  </h2>
-                </motion.div>
-              </div>
-
-              <div className="mt-24 sm:mt-[22vh] w-full max-w-[280px] sm:max-w-[360px]">
-                <WalletInsert
-                  progress={walletProgress}
-                  frontImageUrl={cardFrontUrl}
-                  alt={isEn ? 'LUMARÉEL Black Card in a wallet' : 'LUMARÉEL Black Card dans un portefeuille'}
-                />
-              </div>
-
-              <p className="mt-10 sm:mt-12 text-sm sm:text-lg text-black/55 max-w-md text-center text-balance">
-                {c.walletSub}
-              </p>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* =================================================================== */}
-      {/* FINALE — UN SEUL FAISCEAU, LA CARTE SEULE                           */}
-      {/* =================================================================== */}
-      <section
-        ref={finaleInView}
-        className="relative w-full min-h-[92svh] bg-black overflow-hidden flex flex-col items-center justify-center px-5 sm:px-8 py-24"
-      >
-        <StageBeam x={50} intensity={finaleBeam} width={16} />
-        <HalftoneField tone="light" className="opacity-40" />
-        <LightDust />
-
-        <motion.div style={{ y: finaleCardY }} className="relative z-10 w-full max-w-[280px] sm:max-w-[380px]">
-          <VolumetricBlackCard
-            manualFlipped={offerFlipped}
-            onToggleFlip={() => setOfferFlipped((prev) => !prev)}
-            shadowTone="dark"
-            enableFloat
-            frontImageUrl={cardFrontUrl}
-            backImageUrl={cardBackUrl}
-            ariaLabel={c.flipHint}
-            frontAlt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto'}
-            backAlt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso'}
-          />
-        </motion.div>
-
-        <div className="relative z-10 mt-16 text-center">
-          <MaskedReveal>
-            <h2 className="font-agrandir-extrabold text-3xl sm:text-5xl lg:text-[3.6rem] leading-[1.03] tracking-[-0.03em] text-white text-balance">
-              {climaxTitleText}
-            </h2>
-          </MaskedReveal>
-          <motion.p
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.4 }}
-            transition={{ duration: 0.75, delay: 0.14, ease: EASE_CINEMA }}
-            className="mt-4 text-sm sm:text-lg text-white/60 leading-relaxed max-w-lg mx-auto"
-          >
-            {climaxSubText}
-          </motion.p>
-        </div>
-      </section>
 
       {/* =================================================================== */}
       {/* ACQUISITION — CALME, CLAIRE, SANS PRESSION (Galerie Blanche)        */}
       {/* =================================================================== */}
-      <section className="w-full bg-white text-[#111111] pt-24 sm:pt-36 pb-28 lg:pb-32 px-5 sm:px-8">
+      <section className="w-full bg-[#efebe4] text-[#111111] pt-16 sm:pt-24 pb-28 lg:pb-32 px-5 sm:px-8">
         <div className="w-full max-w-[960px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-12 items-center pb-14 border-b border-black/10">
-            <div className="md:col-span-5">
-              <div className="w-full max-w-[290px] sm:max-w-[320px]">
-                <VolumetricBlackCard
-                  manualFlipped={offerFlipped}
-                  onToggleFlip={() => setOfferFlipped((prev) => !prev)}
-                  shadowTone="light"
-                  frontImageUrl={cardFrontUrl}
-                  backImageUrl={cardBackUrl}
-                  ariaLabel={c.flipHint}
-                  frontAlt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto'}
-                  backAlt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso'}
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-7 space-y-5">
+          <div className="grid grid-cols-1 gap-10 items-center pb-14 border-b border-black/10">
+            <div className="space-y-5 flex flex-col items-center text-center">
               <MaskedReveal>
                 <h2 className="font-agrandir-extrabold text-3xl sm:text-5xl leading-[1.04] tracking-[-0.028em] text-[#111111]">
                   {c.offerTitle}
                 </h2>
               </MaskedReveal>
 
-              <p className="text-base sm:text-lg text-black/60 leading-relaxed max-w-md">
+              <p className="text-base sm:text-lg text-black/60 leading-relaxed max-w-md mx-auto">
                 {c.offerSub}
               </p>
 
-              <div className="pt-2 flex flex-wrap items-baseline gap-2.5">
+              <div className="pt-2 flex flex-wrap items-baseline justify-center gap-2.5">
                 <span className="font-agrandir-extrabold text-3xl sm:text-4xl tracking-tight tabular-nums text-[#111111]">
                   {loading ? '...' : formattedPrice}
                 </span>
