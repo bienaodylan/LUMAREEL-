@@ -37,22 +37,29 @@ async function logEmailToSupabase(
     orderRef?: string;
     status: string;
     providerId?: string;
+    reason?: string;
   }
 ) {
   if (!db) return;
   try {
-    await db.from('transactional_emails').insert({
+    const { error } = await db.from('transactional_emails').insert({
       id: `eml_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
       recipient: record.recipient,
       subject: record.subject,
       type: record.type,
       order_ref: record.orderRef || null,
       status: record.status,
-      content_preview: record.providerId ? `Resend ID: ${record.providerId}` : record.subject,
+      content_preview: record.providerId
+        ? `Resend ID: ${record.providerId}`
+        : record.reason
+        ? `Échec : ${record.reason}`.slice(0, 500)
+        : record.subject,
       sent_at: new Date().toISOString(),
     });
-  } catch {
-    // Non-blocking audit log
+    if (error) console.error('[email] Journal transactional_emails :', error.message);
+  } catch (err: any) {
+    // Journal non bloquant
+    console.error('[email] Journal transactional_emails :', err?.message || err);
   }
 }
 
@@ -72,11 +79,17 @@ export async function sendResendEmail(params: {
 
   const apiKey = (process.env.RESEND_API_KEY || '').trim();
   if (!apiKey) {
-    return {
-      sent: false,
-      provider: 'none',
-      reason: 'RESEND_API_KEY non configurée dans les variables d’environnement serveur.',
-    };
+    const reason = 'RESEND_API_KEY non configurée dans les variables d’environnement serveur.';
+    console.error(`[email] ${params.type} non envoyé à ${recipient} : ${reason}`);
+    await logEmailToSupabase(params.db || null, {
+      recipient,
+      subject: params.subject,
+      type: params.type,
+      orderRef: params.orderRef,
+      status: 'failed',
+      reason,
+    });
+    return { sent: false, provider: 'none', reason };
   }
 
   try {
@@ -97,21 +110,25 @@ export async function sendResendEmail(params: {
     });
 
     const raw = await response.text();
-    const data = raw ? JSON.parse(raw) : {};
+    let data: any = {};
+    try {
+      data = raw ? JSON.parse(raw) : {};
+    } catch {
+      data = { message: raw.slice(0, 300) };
+    }
 
     if (!response.ok) {
+      const reason = data?.message || `Erreur Resend HTTP ${response.status}`;
+      console.error(`[email] Resend a refusé ${params.type} pour ${recipient} : ${reason}`);
       await logEmailToSupabase(params.db || null, {
         recipient,
         subject: params.subject,
         type: params.type,
         orderRef: params.orderRef,
         status: 'failed',
+        reason,
       });
-      return {
-        sent: false,
-        provider: 'resend',
-        reason: data?.message || `Erreur Resend HTTP ${response.status}`,
-      };
+      return { sent: false, provider: 'resend', reason };
     }
 
     await logEmailToSupabase(params.db || null, {
@@ -129,11 +146,17 @@ export async function sendResendEmail(params: {
       id: data?.id,
     };
   } catch (error: any) {
-    return {
-      sent: false,
-      provider: 'resend',
-      reason: error?.message || 'Erreur réseau Resend.',
-    };
+    const reason = error?.message || 'Erreur réseau Resend.';
+    console.error(`[email] Erreur réseau ${params.type} pour ${recipient} : ${reason}`);
+    await logEmailToSupabase(params.db || null, {
+      recipient,
+      subject: params.subject,
+      type: params.type,
+      orderRef: params.orderRef,
+      status: 'failed',
+      reason,
+    });
+    return { sent: false, provider: 'resend', reason };
   }
 }
 

@@ -245,6 +245,17 @@ export const AuthModal: React.FC = () => {
           },
         });
         if (error) throw error;
+        // Supabase renvoie un faux succès (sans e-mail) quand l'adresse existe déjà
+        if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+          setMode('login');
+          showToast(
+            isEn
+              ? 'An account already exists with this email. Sign in, or reset your password.'
+              : 'Un compte existe déjà avec cet e-mail. Connecte-toi ou réinitialise ton mot de passe.',
+            'info'
+          );
+          return;
+        }
         authUser = data.user;
         authSession = data.session;
         if (!authSession) {
