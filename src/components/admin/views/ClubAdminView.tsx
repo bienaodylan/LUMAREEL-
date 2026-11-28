@@ -35,6 +35,10 @@ export const ClubAdminView: React.FC = () => {
   const [mediaStatus,setMediaStatus] = useState('draft');
   const [mediaCollection,setMediaCollection] = useState('');
   const [mediaArtist,setMediaArtist] = useState('');
+  const [mediaDuration,setMediaDuration] = useState('');
+  const [mediaEvent,setMediaEvent] = useState('');
+  const [mediaAccessNote,setMediaAccessNote] = useState('');
+  const [mediaFeatured,setMediaFeatured] = useState(false);
   const [mediaFile,setMediaFile] = useState<File|null>(null);
   const [coverFile,setCoverFile] = useState<File|null>(null);
 
@@ -52,6 +56,11 @@ export const ClubAdminView: React.FC = () => {
   const [offerTitle,setOfferTitle] = useState('');
   const [offerDescription,setOfferDescription] = useState('');
   const [offerBenefit,setOfferBenefit] = useState('');
+  const [offerPrice,setOfferPrice] = useState('');
+  const [offerConditions,setOfferConditions] = useState('');
+  const [offerActionLabel,setOfferActionLabel] = useState('');
+  const [offerActionUrl,setOfferActionUrl] = useState('');
+  const [offerStart,setOfferStart] = useState('');
   const [offerEnd,setOfferEnd] = useState('');
   const [offerStatus,setOfferStatus] = useState('draft');
   const [offerCover,setOfferCover] = useState<File|null>(null);
@@ -111,10 +120,11 @@ export const ClubAdminView: React.FC = () => {
         title:mediaTitle.trim(),description:mediaDescription.trim(),category:mediaCategory,
         media_type:mediaFile.type.startsWith('video/')?'video':'image',storage_path:mediaPath,
         thumbnail_path:thumbPath,collection_id:mediaCollection||null,artist_name:mediaArtist.trim()||null,
+        duration:mediaDuration.trim()||null,event_id:mediaEvent||null,access_note:mediaAccessNote.trim()||null,is_featured:mediaFeatured,
         access_tier:mediaTier,status:mediaStatus,published_at:mediaStatus==='published'?new Date().toISOString():null,
       });
       if(error) throw error;
-      setMediaTitle('');setMediaDescription('');setMediaArtist('');setMediaFile(null);setCoverFile(null);
+      setMediaTitle('');setMediaDescription('');setMediaArtist('');setMediaDuration('');setMediaEvent('');setMediaAccessNote('');setMediaFeatured(false);setMediaFile(null);setCoverFile(null);
       setMessage('Contenu enregistré.');
       await load();
     }catch(err:any){setMessage(err?.message||'Échec de publication.');}
@@ -159,16 +169,30 @@ export const ClubAdminView: React.FC = () => {
       const {error}=await supabase.from('club_offers').insert({
         offer_type:offerType,title:offerTitle.trim(),description:offerDescription.trim(),
         benefit_label:offerBenefit.trim()||null,cover_path:coverPath,
-        ends_at:offerEnd?new Date(offerEnd).toISOString():null,status:offerStatus,
+        price_amount:offerPrice?Number(offerPrice):null,conditions:offerConditions.trim()||null,
+        action_label:offerActionLabel.trim()||null,action_url:offerActionUrl.trim()||null,
+        starts_at:offerStart?new Date(offerStart).toISOString():null,ends_at:offerEnd?new Date(offerEnd).toISOString():null,status:offerStatus,
       });
       if(error)throw error;
-      setOfferTitle('');setOfferDescription('');setOfferBenefit('');setOfferEnd('');setOfferCover(null);await load();
+      setOfferTitle('');setOfferDescription('');setOfferBenefit('');setOfferPrice('');setOfferConditions('');setOfferActionLabel('');setOfferActionUrl('');setOfferStart('');setOfferEnd('');setOfferCover(null);await load();
     }catch(err:any){setMessage(err?.message||'Impossible de créer cette offre.');}
     finally{setSaving(false);}
   };
 
   const updateSuggestion = async (item:Suggestion,status:string,response:string) => {
     const {error}=await supabase.from('club_suggestions').update({status,admin_response:response,updated_at:new Date().toISOString()}).eq('id',item.id);
+    if(error){setMessage(error.message);return;} await load();
+  };
+  const updateMediaStatus = async (id:string,status:string) => {
+    const {error}=await supabase.from('club_backstage_media').update({status,published_at:status==='published'?new Date().toISOString():null,updated_at:new Date().toISOString()}).eq('id',id);
+    if(error){setMessage(error.message);return;} await load();
+  };
+  const updateAlbumStatus = async (id:string,status:string) => {
+    const {error}=await supabase.from('club_moment_albums').update({status,updated_at:new Date().toISOString()}).eq('id',id);
+    if(error){setMessage(error.message);return;} await load();
+  };
+  const updateOfferStatus = async (id:string,status:string) => {
+    const {error}=await supabase.from('club_offers').update({status,updated_at:new Date().toISOString()}).eq('id',id);
     if(error){setMessage(error.message);return;} await load();
   };
 
@@ -189,7 +213,7 @@ export const ClubAdminView: React.FC = () => {
           <textarea value={mediaDescription} onChange={e=>setMediaDescription(e.target.value)} placeholder="Description" rows={3} className="w-full bg-black border border-white/15 p-3 text-sm"/>
           <div className="grid sm:grid-cols-2 gap-3"><select value={mediaCategory} onChange={e=>setMediaCategory(e.target.value)} className="min-h-11 bg-black border border-white/15 px-3 text-xs">{categories.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select><select value={mediaTier} onChange={e=>setMediaTier(e.target.value)} className="min-h-11 bg-black border border-white/15 px-3 text-xs">{[['free','Public'],['club','Membres Club'],['card','LUMARÉEL Card'],['tv_pass','TV Pass'],['vip','VIP']].map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
           <select value={mediaCollection} onChange={e=>setMediaCollection(e.target.value)} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="">Sans collection</option>{collections.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</select>
-          <input value={mediaArtist} onChange={e=>setMediaArtist(e.target.value)} placeholder="Artiste (facultatif)" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/>
+          <input value={mediaArtist} onChange={e=>setMediaArtist(e.target.value)} placeholder="Artiste (facultatif)" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/><div className="grid sm:grid-cols-2 gap-3"><input value={mediaDuration} onChange={e=>setMediaDuration(e.target.value)} placeholder="Durée (ex. 04:32)" className="min-h-11 bg-black border border-white/15 px-3 text-xs"/><select value={mediaEvent} onChange={e=>setMediaEvent(e.target.value)} className="min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="">Événement associé (facultatif)</option>{events.map(ev=><option key={ev.id} value={ev.id}>{ev.title}</option>)}</select></div><input value={mediaAccessNote} onChange={e=>setMediaAccessNote(e.target.value)} placeholder="Condition d’accès affichée au membre (facultatif)" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/><label className="flex items-center gap-2 text-xs text-neutral-400"><input type="checkbox" checked={mediaFeatured} onChange={e=>setMediaFeatured(e.target.checked)}/>Mettre en avant dans le hero</label>
           <label className="block text-xs text-neutral-400">Fichier image ou vidéo<input type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" onChange={e=>setMediaFile(e.target.files?.[0]||null)} className="mt-2 block w-full text-xs"/></label>
           <label className="block text-xs text-neutral-400">Image de couverture (obligatoire pour vidéo ou contenu réservé)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setCoverFile(e.target.files?.[0]||null)} className="mt-2 block w-full text-xs"/></label>
           <select value={mediaStatus} onChange={e=>setMediaStatus(e.target.value)} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="draft">Brouillon</option><option value="published">Publier</option></select>
@@ -202,11 +226,11 @@ export const ClubAdminView: React.FC = () => {
       </div>}
       {tab==='albums'&&<div className="grid xl:grid-cols-2 gap-8">
         <form onSubmit={createAlbum} className="space-y-4 border border-white/10 p-5"><h2 className="font-agrandir-extrabold">Créer un album événement</h2><select required value={albumEvent} onChange={e=>setAlbumEvent(e.target.value)} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="">Choisir un événement</option>{events.map(ev=><option key={ev.id} value={ev.id}>{ev.artist} — {ev.title} ({ev.date})</option>)}</select><input required value={albumTitle} onChange={e=>setAlbumTitle(e.target.value)} placeholder="Titre de l’album" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/><textarea value={albumDescription} onChange={e=>setAlbumDescription(e.target.value)} placeholder="Description" rows={3} className="w-full bg-black border border-white/15 p-3 text-sm"/><input type="url" value={albumRecap} onChange={e=>setAlbumRecap(e.target.value)} placeholder="URL du récap vidéo (facultatif)" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/><label className="text-xs text-neutral-400">Couverture de l’album<input type="file" accept="image/*" onChange={e=>setAlbumCover(e.target.files?.[0]||null)} className="mt-2 block w-full text-xs"/></label><button disabled={saving} className="min-h-11 w-full bg-white text-black text-xs font-agrandir-extrabold">Créer l’album</button></form>
-        <div className="space-y-5"><form onSubmit={addPhotos} className="border border-white/10 p-5 space-y-3"><h2 className="font-agrandir-extrabold">Ajouter des photos officielles</h2><select value={photoAlbum} onChange={e=>setPhotoAlbum(e.target.value)} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="">Choisir un album</option>{albums.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select><input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e=>setPhotoFiles(Array.from(e.target.files||[]))} className="block w-full text-xs"/><button disabled={saving||!photoFiles.length} className="min-h-11 w-full bg-white text-black text-xs font-agrandir-extrabold disabled:opacity-40">Ajouter {photoFiles.length||''} photo(s)</button></form><div><h2 className="mb-3 font-agrandir-extrabold">Albums ({albums.length})</h2>{albums.map(a=><p key={a.id} className="py-3 border-b border-white/10 text-xs">{a.title}<span className="ml-2 text-neutral-500">{a.status}</span></p>)}</div></div>
+        <div className="space-y-5"><form onSubmit={addPhotos} className="border border-white/10 p-5 space-y-3"><h2 className="font-agrandir-extrabold">Ajouter des photos officielles</h2><select value={photoAlbum} onChange={e=>setPhotoAlbum(e.target.value)} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="">Choisir un album</option>{albums.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select><input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={e=>setPhotoFiles(Array.from(e.target.files||[]))} className="block w-full text-xs"/><button disabled={saving||!photoFiles.length} className="min-h-11 w-full bg-white text-black text-xs font-agrandir-extrabold disabled:opacity-40">Ajouter {photoFiles.length||''} photo(s)</button></form><div><h2 className="mb-3 font-agrandir-extrabold">Albums ({albums.length})</h2>{albums.map(a=><div key={a.id} className="py-3 border-b border-white/10 flex items-center justify-between gap-3 text-xs">{a.title}<select value={a.status} onChange={e=>void updateAlbumStatus(a.id,e.target.value)} className="bg-black border border-white/15 px-2 py-2 text-[10px]"><option value="draft">Brouillon</option><option value="published">Publié</option><option value="archived">Archivé</option></select></div>)}</div></div>
       </div>}
       {tab==='offers'&&<div className="grid xl:grid-cols-2 gap-8">
-        <form onSubmit={createOffer} className="space-y-4 border border-white/10 p-5"><h2 className="font-agrandir-extrabold">Créer une surprise ou vente flash</h2><select value={offerType} onChange={e=>setOfferType(e.target.value as 'flash'|'surprise')} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="flash">Vente flash</option><option value="surprise">Surprise membre</option></select><input required value={offerTitle} onChange={e=>setOfferTitle(e.target.value)} placeholder="Titre" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/><textarea value={offerDescription} onChange={e=>setOfferDescription(e.target.value)} placeholder="Description" rows={3} className="w-full bg-black border border-white/15 p-3 text-sm"/><input value={offerBenefit} onChange={e=>setOfferBenefit(e.target.value)} placeholder="Avantage / prix / bénéfice" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/><label className="text-xs text-neutral-400">Date de fin<input type="datetime-local" value={offerEnd} onChange={e=>setOfferEnd(e.target.value)} className="mt-2 block w-full min-h-11 bg-black border border-white/15 px-3 text-xs"/></label><label className="text-xs text-neutral-400">Image (facultative)<input type="file" accept="image/*" onChange={e=>setOfferCover(e.target.files?.[0]||null)} className="mt-2 block w-full text-xs"/></label><select value={offerStatus} onChange={e=>setOfferStatus(e.target.value)} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="draft">Brouillon</option><option value="published">Publier</option></select><button disabled={saving} className="min-h-11 w-full bg-white text-black text-xs font-agrandir-extrabold">Enregistrer l’offre</button></form>
-        <div><h2 className="mb-3 font-agrandir-extrabold">Offres ({offers.length})</h2>{offers.map(o=><div key={o.id} className="py-3 border-b border-white/10 flex justify-between gap-3 text-xs"><span>{o.title}<small className="block mt-1 text-neutral-500">{o.offer_type}</small></span><span className="text-neutral-400">{o.status}</span></div>)}</div>
+        <form onSubmit={createOffer} className="space-y-4 border border-white/10 p-5"><h2 className="font-agrandir-extrabold">Créer une surprise ou vente flash</h2><select value={offerType} onChange={e=>setOfferType(e.target.value as 'flash'|'surprise')} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="flash">Vente flash</option><option value="surprise">Surprise membre</option></select><input required value={offerTitle} onChange={e=>setOfferTitle(e.target.value)} placeholder="Titre" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/><textarea value={offerDescription} onChange={e=>setOfferDescription(e.target.value)} placeholder="Description" rows={3} className="w-full bg-black border border-white/15 p-3 text-sm"/><input value={offerBenefit} onChange={e=>setOfferBenefit(e.target.value)} placeholder="Avantage / bénéfice" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/><div className="grid grid-cols-2 gap-3"><input type="number" min="0" value={offerPrice} onChange={e=>setOfferPrice(e.target.value)} placeholder="Prix (FCFA)" className="min-h-11 bg-black border border-white/15 px-3 text-xs"/><input value={offerActionLabel} onChange={e=>setOfferActionLabel(e.target.value)} placeholder="Texte du bouton" className="min-h-11 bg-black border border-white/15 px-3 text-xs"/></div><input type="url" value={offerActionUrl} onChange={e=>setOfferActionUrl(e.target.value)} placeholder="Lien de l’action (facultatif)" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/><textarea value={offerConditions} onChange={e=>setOfferConditions(e.target.value)} rows={2} placeholder="Conditions de l’offre" className="w-full bg-black border border-white/15 p-3 text-sm"/><label className="text-xs text-neutral-400">Début de disponibilité<input type="datetime-local" value={offerStart} onChange={e=>setOfferStart(e.target.value)} className="mt-2 block w-full min-h-11 bg-black border border-white/15 px-3 text-xs"/></label><label className="text-xs text-neutral-400">Date de fin<input type="datetime-local" value={offerEnd} onChange={e=>setOfferEnd(e.target.value)} className="mt-2 block w-full min-h-11 bg-black border border-white/15 px-3 text-xs"/></label><label className="text-xs text-neutral-400">Image (facultative)<input type="file" accept="image/*" onChange={e=>setOfferCover(e.target.files?.[0]||null)} className="mt-2 block w-full text-xs"/></label><select value={offerStatus} onChange={e=>setOfferStatus(e.target.value)} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="draft">Brouillon</option><option value="published">Publier</option></select><button disabled={saving} className="min-h-11 w-full bg-white text-black text-xs font-agrandir-extrabold">Enregistrer l’offre</button></form>
+        <div><h2 className="mb-3 font-agrandir-extrabold">Offres ({offers.length})</h2>{offers.map(o=><div key={o.id} className="py-3 border-b border-white/10 flex items-center justify-between gap-3 text-xs"><span>{o.title}<small className="block mt-1 text-neutral-500">{o.offer_type}</small></span><select value={o.status} onChange={e=>void updateOfferStatus(o.id,e.target.value)} className="bg-black border border-white/15 px-2 py-2 text-[10px]"><option value="draft">Brouillon</option><option value="published">Publié</option><option value="archived">Archivé</option></select></div>)}</div>
       </div>}
       {tab==='suggestions'&&<div><h2 className="mb-4 font-agrandir-extrabold">Propositions des membres ({suggestions.length})</h2>{suggestions.length? suggestions.map(item=><SuggestionAdminRow key={item.id} item={item} onSave={updateSuggestion}/>):<p className="py-10 text-sm text-neutral-500">Aucune proposition reçue.</p>}</div>}
     </>}
