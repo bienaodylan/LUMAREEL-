@@ -164,14 +164,14 @@ export const Navbar: React.FC = () => {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-40 md:hidden transition-all duration-200 px-3.5 sm:px-6 py-2.5 ${
+        className={`fixed top-0 left-0 right-0 z-40 md:hidden transition-all duration-200 px-4 sm:px-7 py-2 ${
           scrolled || !isHome
             ? 'bg-[#FBFBFD]/92 dark:bg-[#080808]/92 backdrop-blur-xl border-b border-black/[0.07] dark:border-white/10'
             : 'bg-[#FBFBFD]/88 dark:bg-black/82 backdrop-blur-md'
         }`}
-        style={{ paddingTop: 'max(0.65rem, env(safe-area-inset-top, 0px))' }}
+        style={{ paddingTop: 'max(0.55rem, env(safe-area-inset-top, 0px))' }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 min-h-[44px]">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 min-h-[42px]">
           {/* ZONE GAUCHE */}
           <div className="flex items-center gap-1.5 shrink-0 min-w-[78px]">
             {!isStandalone && (

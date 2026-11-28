@@ -224,13 +224,13 @@ export const HomeFeed: React.FC = () => {
 
   return (
     <div
-      className={`home-editorial w-full max-w-full overflow-x-clip bg-[#FBFBFD] text-[#111111] dark:bg-[#050505] dark:text-white flex flex-col justify-between min-h-[100dvh] md:h-[100dvh] md:overflow-hidden transition-colors duration-200 ${
+      className={`home-editorial w-full max-w-full overflow-x-clip bg-[#FBFBFD] text-[#111111] dark:bg-[#050505] dark:text-white flex flex-col justify-between min-h-[100dvh] [@media(min-height:600px)]:h-[100dvh] [@media(min-height:600px)]:overflow-hidden md:h-[100dvh] md:overflow-hidden transition-colors duration-200 ${
         isStandalone
-          ? 'pb-[calc(5.15rem+env(safe-area-inset-bottom,0px))] md:pb-0'
-          : 'pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] md:pb-0'
+          ? 'pb-[calc(5.25rem+max(0.75rem,env(safe-area-inset-bottom,0px)))] md:pb-0'
+          : 'pb-[calc(1rem+env(safe-area-inset-bottom,0px))] md:pb-0'
       }`}
     >
-      <div className="w-full flex-1 flex flex-col justify-evenly md:justify-center gap-3 md:gap-5 pt-[calc(3.85rem+env(safe-area-inset-top,0px))] md:pt-5">
+      <div className="w-full flex-1 min-h-0 flex flex-col justify-start md:justify-center gap-[clamp(12px,1.9dvh,18px)] md:gap-6 pt-[calc(3.75rem+env(safe-area-inset-top,0px))] md:pt-5">
         {homeCms?.announcementActive && homeCms.announcementBanner && (
           <div className="w-full px-4 sm:px-7 lg:px-10 shrink-0">
             <div className="w-full max-w-2xl rounded-xl border border-black/10 dark:border-white/15 bg-black/[0.04] dark:bg-white/[0.06] px-3.5 py-1.5 text-xs font-agrandir-semibold text-[#111111] dark:text-white/90 truncate">
@@ -239,9 +239,12 @@ export const HomeFeed: React.FC = () => {
           </div>
         )}
 
-        {/* SECTION ÉVÉNEMENTS — Affiches proportionnées pour tenir toute la rubrique dans l'écran sans scroll */}
-        <section id="home-upcoming-events" className="home-events w-full shrink-0">
-          <div className="mx-4 mb-2 flex items-center justify-between border-b border-black/[0.09] dark:border-white/15 pb-1.5 sm:mx-7 sm:mb-2.5 sm:pb-2 lg:mx-10">
+        {/* SECTION ÉVÉNEMENTS — S'adapte fluidement à la hauteur de chaque téléphone sans chevaucher la barre de navigation */}
+        <section
+          id="home-upcoming-events"
+          className="home-events w-full flex-1 min-h-0 flex flex-col md:flex-none"
+        >
+          <div className="mx-4 mb-2 flex shrink-0 items-center justify-between border-b border-black/[0.09] dark:border-white/15 pb-1.5 sm:mx-7 sm:mb-2.5 sm:pb-2 lg:mx-10">
             <h2 className="text-[14px] font-agrandir-extrabold uppercase tracking-[-0.025em] sm:text-xl">
               {isEn ? 'EVENTS' : 'ÉVÉNEMENTS'}
             </h2>
@@ -284,7 +287,7 @@ export const HomeFeed: React.FC = () => {
             <div
               ref={featuredRowRef}
               onScroll={handleContainerScroll}
-              className="home-events-track flex snap-x snap-mandatory scroll-pl-4 scroll-pr-4 items-start gap-3 overflow-x-auto px-4 pb-1 pt-0.5 sm:scroll-pl-7 sm:scroll-pr-7 sm:gap-4 sm:px-7 lg:scroll-pl-10 lg:scroll-pr-10 lg:gap-5 lg:px-10"
+              className="home-events-track flex flex-1 min-h-0 snap-x snap-mandatory scroll-pl-4 scroll-pr-4 items-stretch md:flex-none md:items-start gap-3 overflow-x-auto px-4 pb-0.5 pt-0.5 sm:scroll-pl-7 sm:scroll-pr-7 sm:gap-4 sm:px-7 lg:scroll-pl-10 lg:scroll-pr-10 lg:gap-5 lg:px-10"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {activeSlides.map((event, index) => {
@@ -295,16 +298,16 @@ export const HomeFeed: React.FC = () => {
                     ref={(element) => {
                       cardRefs.current[index] = element;
                     }}
-                    className="home-event-card w-[78vw] max-w-[325px] shrink-0 snap-start bg-transparent text-left sm:w-[46vw] sm:max-w-[380px] lg:w-[34vw] lg:max-w-[420px]"
+                    className="home-event-card flex flex-col h-full md:h-auto w-[82vw] max-w-[355px] shrink-0 snap-start bg-transparent text-left sm:w-[46vw] sm:max-w-[385px] lg:w-[34vw] lg:max-w-[420px]"
                   >
-                    <div className="relative">
+                    <div className="relative flex-1 min-h-[144px] max-h-[360px] md:flex-none md:max-h-none">
                       <button
                         type="button"
                         onClick={() => handleViewDetails(event)}
-                        className="home-event-media group block w-full overflow-hidden rounded-[16px] sm:rounded-[18px] bg-black/[0.06] dark:bg-[#111] text-left cursor-pointer"
+                        className="home-event-media group block h-full w-full overflow-hidden rounded-[16px] sm:rounded-[18px] bg-black/[0.06] dark:bg-[#111] text-left cursor-pointer"
                         aria-label={`${event.artist} — ${isEn ? 'Event details' : 'Détails du concert'}`}
                       >
-                        <div className="relative h-[clamp(112px,20dvh,180px)] sm:h-[clamp(145px,24dvh,215px)] md:h-[clamp(165px,27dvh,235px)] w-full overflow-hidden bg-black/[0.06] dark:bg-[#111]">
+                        <div className="relative h-full min-h-[144px] md:h-[clamp(180px,28dvh,250px)] w-full overflow-hidden bg-black/[0.06] dark:bg-[#111]">
                           <img
                             src={event.officialPoster || event.bannerImage}
                             alt={event.title || event.artist}
@@ -336,7 +339,7 @@ export const HomeFeed: React.FC = () => {
                       </button>
                     </div>
 
-                    <div className="pt-2 sm:pt-2.5">
+                    <div className="shrink-0 pt-2 sm:pt-2.5">
                       <h3 className="truncate text-[14px] font-agrandir-extrabold uppercase leading-tight tracking-[-0.02em] text-[#111111] dark:text-white sm:text-base">
                         {event.artist} EN CONCERT
                       </h3>
@@ -348,7 +351,7 @@ export const HomeFeed: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleBuyTickets(event)}
-                          className="home-event-action inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-[11px] bg-[#111111] text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85 px-2.5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.07em] transition-colors cursor-pointer sm:min-h-[40px] whitespace-nowrap"
+                          className="home-event-action inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-[11px] bg-[#111111] text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85 px-2.5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.07em] transition-colors cursor-pointer sm:min-h-[42px] whitespace-nowrap"
                         >
                           <span aria-hidden="true">▣</span>{' '}
                           {isEn ? 'Buy tickets' : 'Acheter tickets'}
@@ -356,7 +359,7 @@ export const HomeFeed: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleViewDetails(event)}
-                          className="home-event-action inline-flex min-h-[38px] items-center justify-center rounded-[11px] border border-black/20 dark:border-white/30 px-2.5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.06em] text-[#111111] dark:text-white transition-colors hover:bg-[#111111] hover:text-white dark:hover:bg-white dark:hover:text-black cursor-pointer sm:min-h-[40px] whitespace-nowrap"
+                          className="home-event-action inline-flex min-h-[40px] items-center justify-center rounded-[11px] border border-black/20 dark:border-white/30 px-2.5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.06em] text-[#111111] dark:text-white transition-colors hover:bg-[#111111] hover:text-white dark:hover:bg-white dark:hover:text-black cursor-pointer sm:min-h-[42px] whitespace-nowrap"
                         >
                           {isEn ? 'Details' : 'Détails'}
                         </button>
@@ -390,12 +393,12 @@ export const HomeFeed: React.FC = () => {
           )}
         </section>
 
-        {/* ACCÈS RAPIDE CLUB — Compact sur mobile, grille horizontale 5 colonnes sur desktop */}
+        {/* ACCÈS RAPIDE CLUB — Aligné sur le même rail que Événements, proportionné à la hauteur d'écran */}
         <section
           className="home-quick-access mx-auto w-full shrink-0 px-4 sm:px-7 lg:px-10"
           aria-label={isEn ? 'Quick access' : 'Accès rapide'}
         >
-          <div className="overflow-hidden rounded-[20px] border border-black/[0.08] dark:border-white/12 bg-white dark:bg-[#0b0b0b] px-3 sm:rounded-[22px] sm:border-black/[0.09] dark:sm:border-white/15 md:px-0 md:grid md:grid-cols-5 md:divide-x md:divide-black/[0.07] dark:md:divide-white/10 transition-colors">
+          <div className="overflow-hidden rounded-[20px] border border-black/[0.08] dark:border-white/12 bg-white dark:bg-[#0b0b0b] px-3.5 sm:rounded-[22px] sm:border-black/[0.09] dark:sm:border-white/15 md:px-0 md:grid md:grid-cols-5 md:divide-x md:divide-black/[0.07] dark:md:divide-white/10 transition-colors">
             {filteredQuickAccess.map((item, index) => {
               const Icon = item.icon;
               return (
@@ -403,7 +406,7 @@ export const HomeFeed: React.FC = () => {
                   key={item.id}
                   type="button"
                   onClick={() => setCurrentPage(item.page)}
-                  className="group flex min-h-[44px] w-full items-center gap-3 border-b border-black/[0.07] dark:border-white/[0.08] py-1.5 text-left last:border-b-0 cursor-pointer md:border-b-0 md:flex-col md:items-start md:justify-between md:gap-2.5 md:p-4 md:min-h-[112px] md:hover:bg-black/[0.025] dark:md:hover:bg-white/[0.04] transition-colors"
+                  className="group flex min-h-[clamp(44px,6.1dvh,56px)] w-full items-center gap-3 border-b border-black/[0.07] dark:border-white/[0.08] py-1.5 text-left last:border-b-0 cursor-pointer md:border-b-0 md:flex-col md:items-start md:justify-between md:gap-2.5 md:p-4 md:min-h-[112px] md:hover:bg-black/[0.025] dark:md:hover:bg-white/[0.04] transition-colors"
                 >
                   <span
                     className={
@@ -423,7 +426,7 @@ export const HomeFeed: React.FC = () => {
                     <span className="block truncate text-[11px] font-agrandir-extrabold uppercase tracking-[0.07em] text-[#111111] dark:text-white md:text-[12px]">
                       {item.title}
                     </span>
-                    <span className="mt-0.5 hidden text-[11px] leading-snug text-[#6E6E73] dark:text-neutral-400 md:line-clamp-2">
+                    <span className="mt-0.5 hidden truncate [@media(min-height:760px)]:block text-[10.5px] leading-snug text-[#6E6E73] dark:text-neutral-400 md:whitespace-normal md:line-clamp-2 md:text-[11px]">
                       {item.subtitle}
                     </span>
                   </span>

@@ -163,13 +163,13 @@ export const FloatingAppNavbar: React.FC = () => {
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 400, damping: 32 }}
         aria-label={t('nav.mainNav')}
-        className="fixed left-3 right-3 z-50 md:hidden select-none pointer-events-none"
+        className="fixed left-4 right-4 z-50 md:hidden select-none pointer-events-none"
         style={{
           bottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
         }}
       >
         <div
-          className="pointer-events-auto mx-auto max-w-[396px] rounded-full border border-black/[0.10] dark:border-white/14 bg-white/92 dark:bg-[#121212]/90 backdrop-blur-2xl px-2 py-2 shadow-[0_12px_36px_rgba(0,0,0,0.14)] dark:shadow-[0_14px_42px_rgba(0,0,0,0.88)]"
+          className="pointer-events-auto mx-auto max-w-[440px] rounded-full border border-black/[0.10] dark:border-white/14 bg-white/92 dark:bg-[#121212]/90 backdrop-blur-2xl px-2 py-2 shadow-[0_12px_36px_rgba(0,0,0,0.14)] dark:shadow-[0_14px_42px_rgba(0,0,0,0.88)]"
           style={{ WebkitBackdropFilter: 'blur(28px)' }}
         >
           <div className="grid grid-cols-5 items-center">

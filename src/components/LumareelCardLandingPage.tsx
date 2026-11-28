@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import { MembershipEdition, MembershipPlan, MembershipCard } from '../types';
 import type { CardOrderContextData } from './LumareelCardOrderPage';
 import { ArrowDown, ArrowRight } from 'lucide-react';
@@ -699,25 +700,65 @@ const DUST = Array.from({ length: 22 }, (_, i) => ({
   delay: (i * 0.7) % 6,
 }));
 
-const LightDust: React.FC = () => {
+const LightDust: React.FC<{ scrollOffsetY?: MotionValue<number> }> = ({ scrollOffsetY }) => {
   const prefersReducedMotion = useReducedMotion();
   if (prefersReducedMotion) return null;
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+    <motion.div
+      aria-hidden="true"
+      style={scrollOffsetY ? { y: scrollOffsetY } : undefined}
+      className="pointer-events-none absolute -inset-y-16 inset-x-0 overflow-hidden"
+    >
       {DUST.map((d, i) => (
         <motion.span
           key={i}
           className="absolute rounded-full bg-white"
           style={{ left: `${d.left}%`, top: `${d.top}%`, width: d.size, height: d.size }}
-          animate={{ y: [0, -40, 0], opacity: [0, 0.55, 0] }}
+          animate={{ y: [0, -42, 0], opacity: [0, 0.6, 0] }}
           transition={{ duration: d.dur, delay: d.delay, repeat: Infinity, ease: 'easeInOut' }}
         />
       ))}
-    </div>
+    </motion.div>
   );
 };
 
-/** Un avantage = un plan. Fondu calme + léger mouvement vertical. */
+/** Temps d’inspection 360° sur scène blanche — parallaxe verticale + mise au point au scroll. */
+const StudioBeat: React.FC<{
+  progress: MotionValue<number>;
+  range: [number, number, number, number];
+  title: string;
+  subtitle: string;
+  bottomClass: string;
+}> = ({ progress, range, title, subtitle, bottomClass }) => {
+  const [a, b, c, d] = range;
+  const opacity = useTransform(progress, [a, b, c, d], [0, 1, 1, 0]);
+  const titleY = useTransform(progress, [a, b, c, d], [26, 0, 0, -22]);
+  const subY = useTransform(progress, [a, b, c, d], [38, 0, 0, -14]);
+  const scale = useTransform(progress, [a, b, c, d], [0.96, 1, 1, 0.98]);
+  const blur = useTransform(progress, [a, b, c, d], [5, 0, 0, 4]);
+  const filter = useMotionTemplate`blur(${blur}px)`;
+  return (
+    <motion.div
+      style={{ opacity, filter }}
+      className={`absolute inset-x-0 ${bottomClass} z-30 px-5 sm:px-8 flex flex-col items-center text-center pointer-events-none`}
+    >
+      <motion.h2
+        style={{ y: titleY, scale }}
+        className="font-agrandir-extrabold text-[1.45rem] sm:text-4xl leading-[1.08] tracking-[-0.025em] text-[#111111] text-balance max-w-2xl"
+      >
+        {title}
+      </motion.h2>
+      <motion.p
+        style={{ y: subY }}
+        className="mt-2 sm:mt-2.5 text-[13px] sm:text-base text-black/58 leading-relaxed max-w-md text-balance"
+      >
+        {subtitle}
+      </motion.p>
+    </motion.div>
+  );
+};
+
+/** Un avantage = un plan cinématographique à double vitesse de parallaxe. */
 const PerkBeat: React.FC<{
   progress: MotionValue<number>;
   index: number;
@@ -728,7 +769,7 @@ const PerkBeat: React.FC<{
 }> = ({ progress, index, total, headline, title, desc }) => {
   const s = index / total;
   const e = (index + 1) / total;
-  const f = 0.18 / total;
+  const f = 0.2 / total;
   const isFirst = index === 0;
   const isLast = index === total - 1;
   const opacity = useTransform(
@@ -736,18 +777,43 @@ const PerkBeat: React.FC<{
     [s, s + f, e - f, e],
     [isFirst ? 1 : 0, 1, 1, isLast ? 1 : 0]
   );
-  const y = useTransform(progress, [s, s + f, e - f, e], [isFirst ? 0 : 14, 0, 0, isLast ? 0 : -14]);
-  const blur = useTransform(progress, [s, s + f, e - f, e], [isFirst ? 0 : 4, 0, 0, isLast ? 0 : 4]);
+  const headlineY = useTransform(
+    progress,
+    [s, s + f, e - f, e],
+    [isFirst ? 0 : 34, 0, 0, isLast ? 0 : -30]
+  );
+  const headlineScale = useTransform(
+    progress,
+    [s, s + f, e - f, e],
+    [isFirst ? 1 : 0.94, 1, 1, isLast ? 1 : 0.96]
+  );
+  const detailY = useTransform(
+    progress,
+    [s, s + f, e - f, e],
+    [isFirst ? 0 : 20, 0, 0, isLast ? 0 : -16]
+  );
+  const blur = useTransform(progress, [s, s + f, e - f, e], [isFirst ? 0 : 6, 0, 0, isLast ? 0 : 5]);
   const filter = useMotionTemplate`blur(${blur}px)`;
+  const indexLabel = `${String(index + 1).padStart(2, '0')} / ${String(total).padStart(2, '0')}`;
   return (
-    <motion.div style={{ opacity, y, filter }} className="absolute inset-0 flex flex-col items-center text-center">
-      <h2 className="font-agrandir-extrabold text-[2.1rem] sm:text-6xl lg:text-[4.4rem] leading-[1.02] tracking-[-0.035em] text-white text-balance">
-        {headline}
-      </h2>
-      <div className="mt-auto max-w-md">
-        <h3 className="font-agrandir-semibold text-sm sm:text-base text-white">{title}</h3>
-        <p className="mt-1.5 text-xs sm:text-sm text-white/55 leading-relaxed text-balance">{desc}</p>
-      </div>
+    <motion.div
+      style={{ opacity, filter }}
+      className="absolute inset-0 flex flex-col items-center text-center"
+    >
+      <motion.div style={{ y: headlineY, scale: headlineScale }} className="flex flex-col items-center">
+        <span className="font-mono text-[10px] sm:text-[11px] tracking-[0.26em] text-white/40 tabular-nums mb-1.5 sm:mb-2">
+          {indexLabel}
+        </span>
+        <h2 className="font-agrandir-extrabold text-[clamp(1.65rem,5.8vw,4.35rem)] leading-[1.02] tracking-[-0.035em] text-white text-balance">
+          {headline}
+        </h2>
+      </motion.div>
+      <motion.div style={{ y: detailY }} className="mt-auto max-w-md px-1">
+        <h3 className="font-agrandir-semibold text-[13.5px] sm:text-base text-white">{title}</h3>
+        <p className="mt-1 sm:mt-1.5 text-[12px] sm:text-sm text-white/58 leading-relaxed text-balance">
+          {desc}
+        </p>
+      </motion.div>
     </motion.div>
   );
 };
@@ -759,9 +825,9 @@ const PerkDot: React.FC<{ progress: MotionValue<number>; index: number; total: n
 }) => {
   const s = index / total;
   const e = (index + 1) / total;
-  const width = useTransform(progress, [s - 0.001, s, e, e + 0.001], [6, 22, 22, 6]);
-  const opacity = useTransform(progress, [s - 0.001, s, e, e + 0.001], [0.3, 1, 1, 0.3]);
-  return <motion.span style={{ width, opacity }} className="block h-[6px] rounded-full bg-white" />;
+  const width = useTransform(progress, [s - 0.001, s, e, e + 0.001], [6, 26, 26, 6]);
+  const opacity = useTransform(progress, [s - 0.001, s, e, e + 0.001], [0.28, 1, 1, 0.28]);
+  return <motion.span style={{ width, opacity }} className="block h-[5px] sm:h-[6px] rounded-full bg-white" />;
 };
 
 /**
@@ -813,6 +879,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   hasActiveCard = false,
 }) => {
   const { showToast, language } = useApp();
+  const { isStandalone } = usePWAInstall();
   const isEn = language === 'en';
   const c = CARD_COPY[isEn ? 'en' : 'fr'];
   const prefersReducedMotion = useReducedMotion();
@@ -903,83 +970,136 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   );
 
   // =====================================================================
-  // UNE SEULE CARTE, UN SEUL PLAN-SÉQUENCE — SCROLL DOUX ET PONDÉRÉ
-  // Entrée → retournement (noir → blanc) → 7 avantages → portefeuille.
+  // PLAN-SÉQUENCE CHORÉGRAPHIÉ AU SCROLL — FLUIDE & MAXIMISÉ
+  // Hero → Inspection studio 360° → 7 privilèges (double faisceau) → Étui cuir.
   // =====================================================================
   const { scrollYProgress: rawJourney } = useScroll({
     target: journeyRef,
     offset: ['start start', 'end end'],
   });
-  const jp = useSpring(rawJourney, { stiffness: 62, damping: 28, mass: 0.88 });
+  const jp = useSpring(rawJourney, { stiffness: 74, damping: 27, mass: 0.76 });
 
-  // Repères de phases (piste allongée pour que chaque petit scroll reste calme et maîtrisé)
-  const P0 = 0.29; // début des avantages
-  const P1 = 0.72; // fin des avantages
+  // Repères de phases équilibrés sur une piste ample et soyeuse
+  const P0 = 0.295; // début des 7 privilèges
+  const P1 = 0.735; // fin des 7 privilèges
   const PERK_TOTAL = 7;
   const perkSpan = (P1 - P0) / PERK_TOTAL;
   const perkCenters = Array.from({ length: PERK_TOTAL }, (_, i) => P0 + (i + 0.5) * perkSpan);
+  const perkStarts = Array.from({ length: PERK_TOTAL }, (_, i) => P0 + i * perkSpan);
 
-  // Orientation douce et maîtrisée de la carte
+  // Chorégraphie 3D expressive à chaque scène & chaque privilège
   const cardRotY = useTransform(
     jp,
-    [0, 0.08, 0.12, 0.18, 0.23, 0.28, ...perkCenters, 0.75, 1],
-    [-10, 0, 0, 180, 180, 360, 348, 370, 352, 372, 350, 370, 360, 360, 360]
+    [0, 0.08, 0.13, 0.165, 0.205, 0.245, 0.29, ...perkCenters, 0.765, 0.85, 1],
+    [-16, 0, -18, 12, 180, 194, 360, 342, 378, 355, 376, 344, 374, 360, 360, 360, 360]
   );
   const cardRotX = useTransform(
     jp,
-    [0, 0.08, 0.28, ...perkCenters, 0.75, 0.86, 0.94, 1],
-    [7, 1.5, 0, 6, -4, 5, -3, 4, -4, 1.5, 0, 3, 0, 0]
+    [0, 0.08, 0.15, 0.21, 0.29, ...perkCenters, 0.765, 0.85, 0.94, 1],
+    [14, 0, 8, -6, 0, 10, -7, 8, -6, 9, -5, 3, 10, 4, 0, 0]
   );
   const cardRotZ = useTransform(
     jp,
-    [0, 0.08, 0.28, ...perkCenters, 0.78, 0.85, 0.93, 1],
-    [-1.5, 0, 0, -1.5, 1.5, -1, 1.2, -1.2, 0.8, 0, 0, -4, 0, 0]
+    [0, 0.08, 0.15, 0.21, 0.29, ...perkCenters, 0.77, 0.85, 0.935, 1],
+    [-3.5, 0, -2.5, 2.5, 0, -3.5, 3, -1.5, 2.5, -3, 2, 0, -5, -2, 0, 0]
   );
-  const cardSheen = useTransform(
+
+  // Reflet métallique balayant la carte à CHAQUE transition (studio + chacun des 7 avantages + étui)
+  const sheenInput: number[] = [0, 0.08, 0.145, 0.215, 0.285];
+  const sheenOutput: number[] = [-40, 145, -35, 150, -35];
+  perkStarts.forEach((ps, i) => {
+    const mid = ps + perkSpan * 0.55;
+    const end = ps + perkSpan * 0.95;
+    sheenInput.push(ps + 0.002, mid, end);
+    sheenOutput.push(i % 2 === 0 ? -35 : 145, i % 2 === 0 ? 145 : -35, i % 2 === 0 ? 150 : -40);
+  });
+  sheenInput.push(0.75, 0.86, 0.97, 1);
+  sheenOutput.push(-40, 145, -25, 145);
+  const cardSheen = useTransform(jp, sheenInput, sheenOutput);
+
+  // Placement & respiration macro de la carte + portefeuille dans le cadre
+  const rigYv = useTransform(
     jp,
-    [0, 0.28, 0.281, P1, P1 + 0.001, 1],
-    [-35, 145, -35, 145, -35, 145]
+    [0, 0.08, 0.12, 0.28, 0.31, perkCenters[2], perkCenters[5], P1, 0.785, 1],
+    [-10, -8, -5, -5, 1, -1, 0, 1, -10, -10]
+  );
+  const rigY = useMotionTemplate`${rigYv}vh`;
+  const rigScale = useTransform(
+    jp,
+    [0, 0.08, 0.13, 0.21, 0.285, 0.31, perkCenters[2], perkCenters[5], P1, 0.785, 1],
+    [0.95, 1.04, 1.08, 1.02, 1.05, 0.95, 1.03, 1.01, 0.95, 0.8, 0.8]
   );
 
-  // Placement de l’ensemble carte + portefeuille dans le cadre
-  const rigYv = useTransform(jp, [0, 0.08, 0.12, 0.28, 0.31, P1, 0.78, 1], [-11, -11, -7, -7, 1, 1, -10, -10]);
-  const rigY = useMotionTemplate`${rigYv}vh`;
-  const rigScale = useTransform(jp, [0, 0.08, 0.12, 0.28, 0.31, P1, 0.78, 1], [1, 1, 1.04, 1.04, 0.96, 0.96, 0.8, 0.8]);
-
-  // La carte se soulève doucement puis glisse directement dans l’étui en cuir
-  const cardSlideV = useTransform(jp, [0, 0.76, 0.84, 0.94, 1], [0, 0, -20, 69.5, 69.5]);
+  // La carte se soulève puis glisse droit dans l’étui en cuir
+  const cardSlideV = useTransform(jp, [0, 0.755, 0.84, 0.945, 1], [0, 0, -22, 69.5, 69.5]);
   const cardSlide = useMotionTemplate`${cardSlideV}%`;
 
-  // Le portefeuille monte dans le cadre + léger clic tactile à l’insertion
-  const walletYv = useTransform(jp, [0.72, 0.81], [70, 0]);
+  // Portefeuille en cuir : montée fluide + compression tactile à l’insertion
+  const walletYv = useTransform(jp, [0.73, 0.815], [72, 0]);
   const walletY = useMotionTemplate`${walletYv}vh`;
-  const walletOpacity = useTransform(jp, [0.72, 0.77], [0, 1]);
-  const walletClickScale = useTransform(jp, [0.93, 0.946, 0.968], [1, 1.016, 1]);
-  const walletSheenX = useTransform(jp, [0.82, 0.98], [-30, 140]);
-  const leatherSheen = useMotionTemplate`linear-gradient(105deg, transparent calc(${walletSheenX}% - 20%), rgba(255,255,255,0.09) ${walletSheenX}%, transparent calc(${walletSheenX}% + 20%))`;
+  const walletOpacity = useTransform(jp, [0.73, 0.78], [0, 1]);
+  const walletClickScale = useTransform(jp, [0.935, 0.95, 0.968, 0.985], [1, 1.024, 0.995, 1]);
+  const walletSheenX = useTransform(jp, [0.81, 0.985], [-35, 145]);
+  const leatherSheen = useMotionTemplate`linear-gradient(108deg, transparent calc(${walletSheenX}% - 20%), rgba(255,255,255,0.11) ${walletSheenX}%, transparent calc(${walletSheenX}% + 20%))`;
 
-  // Environnements
-  const heroLayerOpacity = useTransform(jp, [0, 0.045, 0.085], [1, 1, 0]);
-  const heroLayerY = useTransform(jp, [0, 0.085], [0, -24]);
-  const whiteOpacity = useTransform(jp, [0.09, 0.14, 0.265, 0.3], [0, 1, 1, 0]);
-  const perkFxOpacity = useTransform(jp, [0.275, 0.31, 0.7, 0.74], [0, 1, 1, 0]);
-  const beigeOpacity = useTransform(jp, [0.71, 0.77], [0, 1]);
+  // Environnements & lumières synchronisées
+  const heroLayerOpacity = useTransform(jp, [0, 0.04, 0.09], [1, 1, 0]);
+  const heroTitleY = useTransform(jp, [0, 0.09], [0, -44]);
+  const heroSubY = useTransform(jp, [0, 0.09], [0, -22]);
+  const heroScale = useTransform(jp, [0, 0.09], [1, 0.95]);
+  const heroBlur = useTransform(jp, [0.03, 0.09], [0, 6]);
+  const heroFilter = useMotionTemplate`blur(${heroBlur}px)`;
+  const scrollHintOpacity = useTransform(jp, [0, 0.03], [1, 0]);
 
-  // Les trois temps du retournement
-  const beat1Opacity = useTransform(jp, [0.11, 0.135, 0.165, 0.185], [0, 1, 1, 0]);
-  const beat2Opacity = useTransform(jp, [0.18, 0.2, 0.225, 0.245], [0, 1, 1, 0]);
-  const beat3Opacity = useTransform(jp, [0.24, 0.26, 0.275, 0.295], [0, 1, 1, 0]);
+  const whiteOpacity = useTransform(jp, [0.09, 0.135, 0.27, 0.305], [0, 1, 1, 0]);
+  const studioRingScale = useTransform(jp, [0.1, 0.2, 0.3], [0.76, 1.06, 0.88]);
+  const studioRingRotate = useTransform(jp, [0.1, 0.3], [-18, 28]);
+  const studioRectoOpacity = useTransform(jp, [0.11, 0.13, 0.165, 0.185], [0, 1, 1, 0]);
+  const studioVersoOpacity = useTransform(jp, [0.195, 0.21, 0.24, 0.255], [0, 1, 1, 0]);
 
-  // Les avantages
-  const perksGroupOpacity = useTransform(jp, [0.285, 0.305, 0.71, 0.73], [0, 1, 1, 0]);
+  const perkFxOpacity = useTransform(jp, [0.285, 0.32, 0.715, 0.755], [0, 1, 1, 0]);
+  const beigeOpacity = useTransform(jp, [0.725, 0.785], [0, 1]);
+  const darkProgressOpacity = useTransform(jp, [0.09, 0.135, 0.27, 0.305, 0.725, 0.785], [0, 1, 1, 0, 0, 1]);
+
+  // Double faisceau concert + trame halftone 2D + poussière lumineuse en parallaxe
+  const perksGroupOpacity = useTransform(jp, [0.29, 0.31, 0.725, 0.745], [0, 1, 1, 0]);
   const perkProgress = useTransform(jp, [P0, P1], [0, 1]);
-  const beamX = useTransform(jp, [P0, ...perkCenters, P1], [34, 34, 66, 50, 38, 62, 50, 50, 50]);
-  const halftoneX = useTransform(jp, [P0, P1], [20, 80]);
+  const beamX = useTransform(jp, [P0, ...perkCenters, P1], [24, 24, 76, 50, 28, 72, 46, 54, 50]);
+  const beam2X = useTransform(jp, [P0, ...perkCenters, P1], [76, 76, 24, 50, 72, 28, 54, 46, 50]);
+  const beam2Intensity = useTransform(
+    jp,
+    [P0, perkCenters[2], perkCenters[5], P1],
+    [0.35, 0.65, 0.6, 0.3]
+  );
+  const halftoneX = useTransform(jp, [P0, P1], [15, 85]);
+  const halftoneY = useTransform(jp, [P0, P1], [32, 68]);
+  const dustScrollY = useTransform(jp, [P0, P1], [36, -54]);
 
-  // Le portefeuille
-  const walletLine1Opacity = useTransform(jp, [0.74, 0.78, 0.895, 0.92], [0, 1, 1, 0]);
-  const walletLine2Opacity = useTransform(jp, [0.925, 0.955, 1], [0, 1, 1]);
-  const walletLine2Y = useTransform(jp, [0.925, 0.955], [14, 0]);
+  // Le portefeuille : deux temps typographiques
+  const walletLine1Opacity = useTransform(jp, [0.75, 0.79, 0.895, 0.92], [0, 1, 1, 0]);
+  const walletLine1Y = useTransform(jp, [0.75, 0.79, 0.895, 0.92], [20, 0, 0, -18]);
+  const walletLine2Opacity = useTransform(jp, [0.925, 0.958, 1], [0, 1, 1]);
+  const walletLine2Y = useTransform(jp, [0.925, 0.958], [22, 0]);
+
+  // Espacements adaptatifs multi-téléphones (évite tout chevauchement avec l’en-tête ou la barre flottante)
+  const stickyStageFrame = isStandalone
+    ? 'sticky top-0 h-[100dvh]'
+    : 'sticky top-[calc(3.75rem+env(safe-area-inset-top,0px))] h-[calc(100dvh-3.75rem-env(safe-area-inset-top,0px))] md:top-0 md:h-[100dvh]';
+  const stageTopPad = isStandalone
+    ? 'pt-[max(2.25rem,calc(env(safe-area-inset-top,0px)+1.25rem))] md:pt-[7vh]'
+    : 'pt-[clamp(1.25rem,3.5dvh,2.75rem)] md:pt-[7vh]';
+  const stageBottomPad = isStandalone
+    ? 'pb-[calc(5.65rem+max(0.75rem,env(safe-area-inset-bottom,0px)))] md:pb-[7vh]'
+    : 'pb-[max(1.5rem,4.5dvh)] sm:pb-[7vh]';
+  const studioBeatBottom = isStandalone
+    ? 'bottom-[calc(5.65rem+max(0.75rem,env(safe-area-inset-bottom,0px)))] md:bottom-[9vh]'
+    : 'bottom-[max(1.75rem,5.5dvh)] sm:bottom-[9vh]';
+  const walletTitleTop = isStandalone
+    ? 'top-[max(2.5rem,calc(env(safe-area-inset-top,0px)+1.6rem))] md:top-[9vh]'
+    : 'top-[clamp(1.5rem,4.5dvh,3rem)] md:top-[9vh]';
+  const walletSubBottom = isStandalone
+    ? 'bottom-[calc(5.65rem+max(0.75rem,env(safe-area-inset-bottom,0px)))] md:bottom-[8vh]'
+    : 'bottom-[max(1.75rem,5.5dvh)] sm:bottom-[8vh]';
 
   const scrollToJourney = (fraction: number) => {
     const el = journeyRef.current;
@@ -1058,7 +1178,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     }
   };
 
-
   return (
     <div className="w-full overflow-x-clip bg-black text-white font-agrandir-regular">
       {/* =================================================================== */}
@@ -1082,12 +1201,16 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 backAlt={backAlt}
               />
             </div>
-            <h1 className="mt-12 font-agrandir-extrabold text-4xl sm:text-6xl tracking-[-0.03em] text-balance">{heroTitleText}</h1>
+            <h1 className="mt-12 font-agrandir-extrabold text-4xl sm:text-6xl tracking-[-0.03em] text-balance">
+              {heroTitleText}
+            </h1>
             <p className="mt-4 text-base sm:text-lg text-white/60 max-w-xl">{heroSubText}</p>
             <div className="mt-16 w-full divide-y divide-white/10 border-y border-white/10 text-left">
               {perkBeats.map((p) => (
                 <div key={p.title} className="py-7 grid sm:grid-cols-2 gap-3">
-                  <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-[-0.025em]">{p.headline}</h2>
+                  <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-[-0.025em]">
+                    {p.headline}
+                  </h2>
                   <div>
                     <h3 className="font-agrandir-semibold text-base">{p.title}</h3>
                     <p className="mt-1.5 text-sm text-white/60">{p.desc}</p>
@@ -1099,8 +1222,20 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
           </div>
         </section>
       ) : (
-        <section ref={journeyRef} className="relative w-full h-[960vh] sm:h-[1080vh] bg-black">
-          <div className="sticky top-0 h-[100svh] w-full overflow-hidden text-white">
+        <section ref={journeyRef} className="relative w-full h-[1040vh] sm:h-[1160vh] bg-black">
+          <div className={`${stickyStageFrame} w-full overflow-hidden text-white`}>
+            {/* Fil d’avancement minimaliste en haut de scène (adapté clair/sombre) */}
+            <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-0 z-40 h-[2px] bg-white/10">
+              <motion.div
+                style={{ scaleX: jp, transformOrigin: '0% 50%' }}
+                className="absolute inset-0 bg-white/85"
+              />
+              <motion.div
+                style={{ scaleX: jp, opacity: darkProgressOpacity, transformOrigin: '0% 50%' }}
+                className="absolute inset-0 bg-[#111111]/80"
+              />
+            </div>
+
             {/* ---------- Environnements ---------- */}
             <motion.div
               aria-hidden="true"
@@ -1108,17 +1243,18 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
               className="pointer-events-none absolute inset-0"
             >
               <motion.div
-                initial={{ opacity: 0, scale: 0.88 }}
+                initial={{ opacity: 0, scale: 0.86 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 1.4, ease: EASE_CINEMA }}
                 className="absolute inset-0"
                 style={{
                   background:
-                    'radial-gradient(58% 46% at 50% 36%, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.025) 42%, rgba(0,0,0,0) 74%)',
+                    'radial-gradient(62% 48% at 50% 38%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.03) 44%, rgba(0,0,0,0) 76%)',
                 }}
               />
             </motion.div>
 
+            {/* Scène studio blanche + anneau architectural 360° */}
             <motion.div
               aria-hidden="true"
               style={{ opacity: whiteOpacity }}
@@ -1126,16 +1262,34 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
             >
               <div
                 className="absolute inset-0"
-                style={{ background: 'radial-gradient(50% 42% at 50% 45%, rgba(0,0,0,0.04) 0%, rgba(255,255,255,0) 70%)' }}
+                style={{
+                  background:
+                    'radial-gradient(54% 44% at 50% 44%, rgba(0,0,0,0.05) 0%, rgba(255,255,255,0) 72%)',
+                }}
               />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <motion.div
+                  style={{ scale: studioRingScale, rotate: studioRingRotate }}
+                  className="w-[min(86vw,560px,62dvh)] aspect-square rounded-full border border-black/[0.06] flex items-center justify-center"
+                >
+                  <div className="w-[74%] aspect-square rounded-full border border-dashed border-black/[0.06]" />
+                </motion.div>
+              </div>
             </motion.div>
 
-            <motion.div aria-hidden="true" style={{ opacity: perkFxOpacity }} className="pointer-events-none absolute inset-0">
-              <HalftoneField x={halftoneX} tone="light" className="opacity-60" />
-              <StageBeam x={beamX} />
-              <LightDust />
+            {/* Scène concert : double faisceau + trame halftone 2D + poussière lumineuse en parallaxe */}
+            <motion.div
+              aria-hidden="true"
+              style={{ opacity: perkFxOpacity }}
+              className="pointer-events-none absolute inset-0"
+            >
+              <HalftoneField x={halftoneX} y={halftoneY} tone="light" className="opacity-65" />
+              <StageBeam x={beamX} width={22} />
+              <StageBeam x={beam2X} intensity={beam2Intensity} width={16} />
+              <LightDust scrollOffsetY={dustScrollY} />
             </motion.div>
 
+            {/* Table lin chaleureuse pour la scène portefeuille */}
             <motion.div
               aria-hidden="true"
               style={{ opacity: beigeOpacity }}
@@ -1145,57 +1299,60 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 className="absolute inset-0"
                 style={{
                   background:
-                    'radial-gradient(60% 55% at 28% 18%, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 70%), radial-gradient(70% 50% at 50% 100%, rgba(0,0,0,0.06) 0%, transparent 70%)',
+                    'radial-gradient(62% 55% at 28% 18%, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0) 70%), radial-gradient(70% 50% at 50% 100%, rgba(0,0,0,0.07) 0%, transparent 70%)',
                 }}
               />
               <HalftoneField tone="dark" className="opacity-50" />
             </motion.div>
 
             {/* ---------- Textes ---------- */}
-            {/* Entrée */}
+            {/* Entrée Hero avec parallaxe multi-couches */}
             <motion.div
-              style={{ opacity: heroLayerOpacity, y: heroLayerY }}
-              className="absolute inset-0 z-30 flex flex-col items-center justify-between px-5 sm:px-8 pt-[7vh] pb-[7vh] text-center pointer-events-none"
+              style={{ opacity: heroLayerOpacity, filter: heroFilter }}
+              className={`absolute inset-0 z-30 flex flex-col items-center justify-between px-5 sm:px-8 ${stageTopPad} ${stageBottomPad} text-center pointer-events-none`}
             >
               <motion.span
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, ease: EASE_CINEMA }}
-                className="text-[11px] sm:text-xs font-agrandir-semibold uppercase tracking-[0.28em] text-white/55"
+                style={{ y: heroSubY }}
+                className="text-[10.5px] sm:text-xs font-agrandir-semibold uppercase tracking-[0.28em] text-white/55"
               >
                 {c.brandSignature}
               </motion.span>
 
-              <div className="flex flex-col items-center">
-                <div className="overflow-hidden">
+              <motion.div style={{ scale: heroScale }} className="flex flex-col items-center">
+                <motion.div style={{ y: heroTitleY }} className="overflow-hidden">
                   <motion.h1
                     initial={{ y: '105%', opacity: 0 }}
                     animate={{ y: '0%', opacity: 1 }}
-                    transition={{ duration: 0.9, delay: 0.3, ease: EASE_CINEMA }}
-                    className="font-agrandir-extrabold text-[2.15rem] sm:text-5xl lg:text-[3.85rem] leading-[1.03] tracking-[-0.03em] text-white text-balance"
+                    transition={{ duration: 0.9, delay: 0.25, ease: EASE_CINEMA }}
+                    className="font-agrandir-extrabold text-[clamp(1.9rem,6vw,3.85rem)] leading-[1.03] tracking-[-0.03em] text-white text-balance"
                   >
                     {heroTitleText}
                   </motion.h1>
-                </div>
+                </motion.div>
                 <motion.p
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.85, delay: 0.45, ease: EASE_CINEMA }}
-                  className="mt-3 text-sm sm:text-lg text-white/62 leading-relaxed max-w-xl text-balance"
+                  transition={{ duration: 0.85, delay: 0.4, ease: EASE_CINEMA }}
+                  style={{ y: heroSubY }}
+                  className="mt-2.5 sm:mt-3 text-[13px] sm:text-lg text-white/64 leading-relaxed max-w-xl text-balance"
                 >
                   {heroSubText}
                 </motion.p>
                 <motion.div
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8, delay: 0.58, ease: EASE_CINEMA }}
-                  className="mt-6 pointer-events-auto"
+                  transition={{ duration: 0.8, delay: 0.54, ease: EASE_CINEMA }}
+                  style={{ y: heroSubY }}
+                  className="mt-4 sm:mt-6 pointer-events-auto flex flex-col items-center gap-3"
                 >
                   {hasActiveCard ? (
                     <button
                       type="button"
                       onClick={() => onGoToWallet?.()}
-                      className="min-h-[50px] px-8 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-sm sm:text-[15px] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer lum-press whitespace-nowrap"
+                      className="min-h-[48px] sm:min-h-[50px] px-7 sm:px-8 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-[13px] sm:text-[15px] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer lum-press whitespace-nowrap"
                     >
                       <span>{c.ctaViewMyCard}</span>
                       <ArrowRight className="w-4 h-4" strokeWidth={2} />
@@ -1204,43 +1361,79 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     <button
                       type="button"
                       onClick={() => scrollToJourney(0.14)}
-                      className="min-h-[50px] px-8 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-sm sm:text-[15px] inline-flex items-center justify-center gap-2.5 transition-colors cursor-pointer lum-press whitespace-nowrap"
+                      className="min-h-[48px] sm:min-h-[50px] px-7 sm:px-8 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-[13px] sm:text-[15px] inline-flex items-center justify-center gap-2.5 transition-colors cursor-pointer lum-press whitespace-nowrap"
                     >
                       <span>{c.heroCta}</span>
                       <ArrowDown className="w-4 h-4" strokeWidth={2} />
                     </button>
                   )}
+
+                  {/* Repère discret de scroll qui s’efface au premier mouvement */}
+                  <motion.div
+                    style={{ opacity: scrollHintOpacity }}
+                    className="hidden [@media(min-height:700px)]:flex flex-col items-center gap-1 text-[10px] uppercase tracking-[0.26em] text-white/38"
+                  >
+                    <motion.span
+                      animate={{ y: [0, 5, 0] }}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                      className="block w-[1px] h-5 bg-gradient-to-b from-white/55 to-transparent"
+                    />
+                  </motion.div>
                 </motion.div>
-              </div>
+              </motion.div>
             </motion.div>
 
-            {/* Retournement — trois temps en bas du cadre */}
-            {[
-              { o: beat1Opacity, t: c.beat1Title, s: c.beat1Sub },
-              { o: beat2Opacity, t: c.beat2Title, s: c.beat2Sub },
-              { o: beat3Opacity, t: c.beat3Title, s: c.beat3Sub },
-            ].map((b) => (
-              <motion.div
-                key={b.t}
-                style={{ opacity: b.o }}
-                className="absolute inset-x-0 bottom-[9vh] z-30 px-5 sm:px-8 flex flex-col items-center text-center pointer-events-none"
+            {/* Indicateur discret Recto / Verso sur la scène studio blanche */}
+            <div
+              aria-hidden="true"
+              className={`pointer-events-none absolute inset-x-0 ${walletTitleTop} z-30 flex justify-center`}
+            >
+              <motion.span
+                style={{ opacity: studioRectoOpacity }}
+                className="absolute text-[10.5px] font-agrandir-semibold uppercase tracking-[0.32em] text-black/42"
               >
-                <h2 className="font-agrandir-extrabold text-2xl sm:text-4xl tracking-[-0.025em] text-[#111111] text-balance max-w-2xl">
-                  {b.t}
-                </h2>
-                <p className="mt-2.5 text-sm sm:text-base text-black/58 leading-relaxed max-w-md text-balance">{b.s}</p>
-              </motion.div>
-            ))}
+                {c.sideFront} · {c.brandSignature}
+              </motion.span>
+              <motion.span
+                style={{ opacity: studioVersoOpacity }}
+                className="absolute text-[10.5px] font-agrandir-semibold uppercase tracking-[0.32em] text-black/42"
+              >
+                {c.sideBack} · {c.brandSignature}
+              </motion.span>
+            </div>
 
-            {/* Avantages — titre en haut, détail en bas */}
+            {/* Retournement 360° — trois temps cinétiques sur scène blanche */}
+            <StudioBeat
+              progress={jp}
+              range={[0.105, 0.132, 0.165, 0.185]}
+              title={c.beat1Title}
+              subtitle={c.beat1Sub}
+              bottomClass={studioBeatBottom}
+            />
+            <StudioBeat
+              progress={jp}
+              range={[0.185, 0.205, 0.235, 0.252]}
+              title={c.beat2Title}
+              subtitle={c.beat2Sub}
+              bottomClass={studioBeatBottom}
+            />
+            <StudioBeat
+              progress={jp}
+              range={[0.252, 0.27, 0.285, 0.302]}
+              title={c.beat3Title}
+              subtitle={c.beat3Sub}
+              bottomClass={studioBeatBottom}
+            />
+
+            {/* Les 7 privilèges — titre en haut, détail en bas */}
             <motion.div
               style={{ opacity: perksGroupOpacity }}
-              className="absolute inset-0 z-30 flex flex-col items-center px-5 sm:px-8 pt-[8vh] pb-[5vh] pointer-events-none"
+              className={`absolute inset-0 z-30 flex flex-col items-center px-5 sm:px-8 ${stageTopPad} ${stageBottomPad} pointer-events-none`}
             >
               <span className="text-[10px] sm:text-[11px] font-agrandir-semibold uppercase tracking-[0.3em] text-white/45">
                 {c.perksKicker}
               </span>
-              <div className="relative mt-4 sm:mt-6 w-full max-w-[1100px] flex-1">
+              <div className="relative mt-2.5 sm:mt-5 w-full max-w-[1100px] flex-1 min-h-0">
                 {perkBeats.map((p, i) => (
                   <PerkBeat
                     key={p.title}
@@ -1253,31 +1446,33 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   />
                 ))}
               </div>
-              <div className="mt-5 flex items-center gap-1.5">
+              <div className="mt-3 sm:mt-5 flex items-center gap-1.5">
                 {perkBeats.map((p, i) => (
                   <PerkDot key={p.title} progress={perkProgress} index={i} total={PERK_TOTAL} />
                 ))}
               </div>
             </motion.div>
 
-            {/* Portefeuille */}
-            <div className="absolute inset-x-0 top-[9vh] z-30 h-[80px] px-5 text-center text-[#111111] pointer-events-none">
+            {/* Portefeuille — titres et sous-titre */}
+            <div
+              className={`absolute inset-x-0 ${walletTitleTop} z-30 h-[84px] px-5 text-center text-[#111111] pointer-events-none`}
+            >
               <motion.h2
-                style={{ opacity: walletLine1Opacity }}
-                className="absolute inset-x-0 font-agrandir-extrabold text-[2rem] sm:text-6xl leading-[1.02] tracking-[-0.035em] text-balance"
+                style={{ opacity: walletLine1Opacity, y: walletLine1Y }}
+                className="absolute inset-x-0 font-agrandir-extrabold text-[clamp(1.75rem,6vw,3.75rem)] leading-[1.02] tracking-[-0.035em] text-balance"
               >
                 {c.walletTitle}
               </motion.h2>
               <motion.h2
                 style={{ opacity: walletLine2Opacity, y: walletLine2Y }}
-                className="absolute inset-x-0 font-agrandir-extrabold text-[2rem] sm:text-6xl leading-[1.02] tracking-[-0.035em] text-balance"
+                className="absolute inset-x-0 font-agrandir-extrabold text-[clamp(1.75rem,6vw,3.75rem)] leading-[1.02] tracking-[-0.035em] text-balance"
               >
                 {c.walletTitleAfter}
               </motion.h2>
             </div>
             <motion.p
-              style={{ opacity: walletLine2Opacity }}
-              className="absolute inset-x-0 bottom-[8vh] z-30 px-5 text-center text-sm sm:text-lg text-black/55 text-balance pointer-events-none"
+              style={{ opacity: walletLine2Opacity, y: walletLine2Y }}
+              className={`absolute inset-x-0 ${walletSubBottom} z-30 px-5 text-center text-[13px] sm:text-lg text-black/58 text-balance pointer-events-none`}
             >
               {c.walletSub}
             </motion.p>
@@ -1286,7 +1481,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
             <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
               <motion.div
                 style={{ y: rigY, scale: rigScale }}
-                className="relative w-[min(76vw,440px,66vh)]"
+                className="relative w-[min(74vw,420px,50dvh)] sm:w-[min(70vw,440px,62dvh)]"
               >
                 {/* Dos du portefeuille — derrière la carte */}
                 <motion.div
@@ -1307,7 +1502,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
 
                 {/* La carte */}
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.9, rotateX: 16 }}
+                  initial={{ opacity: 0, scale: 0.88, rotateX: 18 }}
                   animate={{ opacity: 1, scale: 1, rotateX: 0 }}
                   transition={{ duration: 1.15, delay: 0.12, ease: EASE_CINEMA }}
                   style={{ y: cardSlide }}
@@ -1353,9 +1548,15 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
       )}
 
       {/* =================================================================== */}
-      {/* ACQUISITION — CALME, CLAIRE, SANS PRESSION (Galerie Blanche)        */}
+      {/* ACQUISITION — CALME, CLAIRE, SANS PRESSION (Galerie Lin)            */}
       {/* =================================================================== */}
-      <section className="w-full bg-[#efebe4] text-[#111111] pt-16 sm:pt-24 pb-28 lg:pb-32 px-5 sm:px-8">
+      <section
+        className={`w-full bg-[#efebe4] text-[#111111] pt-16 sm:pt-24 px-5 sm:px-8 ${
+          isStandalone
+            ? 'pb-[calc(6.75rem+max(0.75rem,env(safe-area-inset-bottom,0px)))] md:pb-32'
+            : 'pb-24 lg:pb-32'
+        }`}
+      >
         <div className="w-full max-w-[960px] mx-auto">
           <div className="grid grid-cols-1 gap-10 items-center pb-14 border-b border-black/10">
             <div className="space-y-5 flex flex-col items-center text-center">
@@ -1365,18 +1566,36 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 </h2>
               </MaskedReveal>
 
-              <p className="text-base sm:text-lg text-black/60 leading-relaxed max-w-md mx-auto">
+              <motion.p
+                initial={prefersReducedMotion ? undefined : { opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ duration: 0.7, delay: 0.08, ease: EASE_CINEMA }}
+                className="text-base sm:text-lg text-black/60 leading-relaxed max-w-md mx-auto"
+              >
                 {c.offerSub}
-              </p>
+              </motion.p>
 
-              <div className="pt-2 flex flex-wrap items-baseline justify-center gap-2.5">
+              <motion.div
+                initial={prefersReducedMotion ? undefined : { opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ duration: 0.75, delay: 0.14, ease: EASE_CINEMA }}
+                className="pt-2 flex flex-wrap items-baseline justify-center gap-2.5"
+              >
                 <span className="font-agrandir-extrabold text-3xl sm:text-4xl tracking-tight tabular-nums text-[#111111]">
                   {loading ? '...' : formattedPrice}
                 </span>
                 <span className="text-sm sm:text-base text-black/48">{c.priceSuffix}</span>
-              </div>
+              </motion.div>
 
-              <div className="pt-2">
+              <motion.div
+                initial={prefersReducedMotion ? undefined : { opacity: 0, y: 20, scale: 0.97 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ duration: 0.75, delay: 0.2, ease: EASE_CINEMA }}
+                className="pt-2 w-full sm:w-auto"
+              >
                 <button
                   type="button"
                   onClick={handleOrderAction}
@@ -1394,16 +1613,20 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   </span>
                   <ArrowRight className="w-4 h-4" strokeWidth={2} />
                 </button>
-              </div>
+              </motion.div>
             </div>
           </div>
 
-          {/* Conditions réelles, nettes et lisibles */}
-          <dl className="divide-y divide-black/10 border-b border-black/10">
-            {c.offerTerms.map((term) => (
-              <div
+          {/* Conditions réelles avec révélation éditoriale progressive au scroll */}
+          <dl>
+            {c.offerTerms.map((term, index) => (
+              <motion.div
                 key={term.label}
-                className="py-5 sm:py-6 grid grid-cols-1 sm:grid-cols-12 gap-1.5 sm:gap-6 items-baseline"
+                initial={prefersReducedMotion ? undefined : { opacity: 0, y: 18 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.35 }}
+                transition={{ duration: 0.65, delay: index * 0.07, ease: EASE_CINEMA }}
+                className="relative py-5 sm:py-6 grid grid-cols-1 sm:grid-cols-12 gap-1.5 sm:gap-6 items-baseline"
               >
                 <dt className="sm:col-span-3 text-xs font-agrandir-semibold text-black/45">
                   {term.label}
@@ -1414,11 +1637,28 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 <dd className="sm:col-span-5 text-sm text-black/60 leading-relaxed">
                   {term.detail}
                 </dd>
-              </div>
+                <motion.span
+                  aria-hidden="true"
+                  initial={prefersReducedMotion ? undefined : { scaleX: 0 }}
+                  whileInView={{ scaleX: 1 }}
+                  viewport={{ once: true, amount: 0.4 }}
+                  transition={{ duration: 0.85, delay: index * 0.08 + 0.05, ease: EASE_CINEMA }}
+                  style={{ transformOrigin: '0% 50%' }}
+                  className="pointer-events-none absolute bottom-0 inset-x-0 h-[1px] bg-black/10"
+                />
+              </motion.div>
             ))}
           </dl>
 
-          <p className="mt-8 text-xs sm:text-sm text-black/48">{c.footnote}</p>
+          <motion.p
+            initial={prefersReducedMotion ? undefined : { opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true, amount: 0.5 }}
+            transition={{ duration: 0.7, delay: 0.2 }}
+            className="mt-8 text-xs sm:text-sm text-black/48"
+          >
+            {c.footnote}
+          </motion.p>
         </div>
       </section>
     </div>

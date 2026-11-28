@@ -152,7 +152,7 @@ const MainApp: React.FC = () => {
         className={`flex-1 w-full max-w-full min-w-0 relative z-10 ${
           !isAdminOrScanner
             ? `${
-                isHomeFeed
+                isHomeFeed || currentPage === 'member_card' || currentPage === 'card'
                   ? ''
                   : isStandalone
                     ? 'pb-[calc(6.25rem+env(safe-area-inset-bottom,0px))]'
@@ -161,7 +161,7 @@ const MainApp: React.FC = () => {
                 hasVisibleMobileHeader && !isHomePage && currentPage !== 'splash'
                   ? 'pt-[calc(4.1rem+env(safe-area-inset-top,0px))] md:pt-0'
                   : ''
-              } ${isHomeFeed ? '' : 'md:pb-12'} md:pl-[244px]`
+              } ${isHomeFeed || currentPage === 'member_card' || currentPage === 'card' ? '' : 'md:pb-12'} md:pl-[244px]`
             : ''
         }`}
         style={
