@@ -102,11 +102,11 @@ export const ClubAdminView: React.FC = () => {
   const createMedia = async (e:React.FormEvent) => {
     e.preventDefault();
     if(!mediaTitle.trim() || !mediaFile){setMessage('Ajoutez un titre et un fichier média.');return;}
-    if(mediaFile.type.startsWith('video/') && !coverFile){setMessage('Ajoutez une couverture pour la vidéo.');return;}
+    if((mediaFile.type.startsWith('video/') || mediaTier !== 'free') && !coverFile){setMessage('Ajoutez une image de couverture distincte pour les vidéos et les contenus réservés.');return;}
     setSaving(true);setMessage('');
     try{
       const mediaPath=await uploadFile(mediaFile,'backstage');
-      const thumbPath=mediaFile.type.startsWith('image/')?mediaPath:(coverFile?await uploadFile(coverFile,'backstage-covers'):null);
+      const thumbPath=coverFile?await uploadFile(coverFile,'backstage-covers'):(mediaFile.type.startsWith('image/')&&mediaTier==='free'?mediaPath:null);
       const {error}=await supabase.from('club_backstage_media').insert({
         title:mediaTitle.trim(),description:mediaDescription.trim(),category:mediaCategory,
         media_type:mediaFile.type.startsWith('video/')?'video':'image',storage_path:mediaPath,
@@ -191,7 +191,7 @@ export const ClubAdminView: React.FC = () => {
           <select value={mediaCollection} onChange={e=>setMediaCollection(e.target.value)} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="">Sans collection</option>{collections.map(c=><option key={c.id} value={c.id}>{c.title}</option>)}</select>
           <input value={mediaArtist} onChange={e=>setMediaArtist(e.target.value)} placeholder="Artiste (facultatif)" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/>
           <label className="block text-xs text-neutral-400">Fichier image ou vidéo<input type="file" accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm" onChange={e=>setMediaFile(e.target.files?.[0]||null)} className="mt-2 block w-full text-xs"/></label>
-          <label className="block text-xs text-neutral-400">Couverture vidéo (obligatoire pour une vidéo)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setCoverFile(e.target.files?.[0]||null)} className="mt-2 block w-full text-xs"/></label>
+          <label className="block text-xs text-neutral-400">Image de couverture (obligatoire pour vidéo ou contenu réservé)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setCoverFile(e.target.files?.[0]||null)} className="mt-2 block w-full text-xs"/></label>
           <select value={mediaStatus} onChange={e=>setMediaStatus(e.target.value)} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="draft">Brouillon</option><option value="published">Publier</option></select>
           <button disabled={saving} className="min-h-11 w-full bg-white text-black text-xs font-agrandir-extrabold inline-flex items-center justify-center gap-2 disabled:opacity-50"><Upload size={15}/>{saving?'Enregistrement…':'Enregistrer le contenu'}</button>
         </form>
