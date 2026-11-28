@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useApp, PageView } from '../context/AppContext';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import {
@@ -25,6 +25,27 @@ export const FloatingAppNavbar: React.FC = () => {
   const { currentPage, setCurrentPage, language, t } = useApp();
   const [clubOpen, setClubOpen] = useState(false);
   const { isStandalone } = usePWAInstall();
+
+  // Lock the page behind the Club sheet while preserving scrolling inside the sheet.
+  useEffect(() => {
+    if (!clubOpen) return;
+    const body = document.body;
+    const html = document.documentElement;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyOverscroll = body.style.overscrollBehavior;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousHtmlOverscroll = html.style.overscrollBehavior;
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    return () => {
+      body.style.overflow = previousBodyOverflow;
+      body.style.overscrollBehavior = previousBodyOverscroll;
+      html.style.overflow = previousHtmlOverflow;
+      html.style.overscrollBehavior = previousHtmlOverscroll;
+    };
+  }, [clubOpen]);
   // Sur navigateur mobile web, le tiroir en haut à gauche gère la navigation.
   if (!isStandalone) return null;
   if (currentPage === 'splash' || currentPage === 'gate_scanner' || currentPage === 'admin') {
@@ -56,7 +77,7 @@ export const FloatingAppNavbar: React.FC = () => {
       page: 'home',
       label: isEn ? 'Home' : 'Accueil',
       ariaLabel: isEn ? 'Home' : 'Accueil',
-      isActive: (currentPage === 'home' || currentPage === 'discover'),
+      isActive: !clubOpen && (currentPage === 'home' || currentPage === 'discover'),
       fillWhenActive: true,
       icon: Home,
       onClick: () => {
@@ -114,12 +135,12 @@ export const FloatingAppNavbar: React.FC = () => {
     <>
       {/* Barre de navigation flottante façon Instagram : icônes épurées + pilule uniquement derrière l'élément actif */}
       {clubOpen && (
-        <div className="fixed inset-0 z-[40] flex items-end justify-center md:items-center" role="dialog" aria-modal="true" aria-label="LUMARÉEL Club">
-          <button type="button" className="absolute inset-x-0 top-0 bottom-[calc(5.4rem+env(safe-area-inset-bottom,0px))] bg-black/75 backdrop-blur-md" onClick={() => setClubOpen(false)} aria-label="Fermer le Club" />
-          <motion.section initial={{ y: 36, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 36, opacity: 0 }} className="relative z-[45] mb-[calc(6.1rem+env(safe-area-inset-bottom,0px))] max-h-[calc(100svh-9rem-env(safe-area-inset-bottom,0px))] w-[calc(100%-2rem)] max-w-[520px] overflow-y-auto rounded-[28px] border border-white/15 bg-[#101010] px-5 pb-5 pt-5 shadow-2xl md:mb-0">
-            <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-4">
-              <h2 className="text-[13px] font-agrandir-extrabold uppercase tracking-[0.18em] text-white">LUMARÉEL CLUB</h2>
-              <button type="button" onClick={() => setClubOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#242424] text-white" aria-label="Fermer"><X className="h-5 w-5" /></button>
+        <div className="fixed inset-0 z-[40] flex items-end justify-center overscroll-none md:items-center" role="dialog" aria-modal="true" aria-label="LUMARÉEL Club">
+          <button type="button" className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => setClubOpen(false)} aria-label="Fermer le Club" />
+          <motion.section initial={{ y: 36, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 36, opacity: 0 }} className="relative z-[45] mb-[calc(4.7rem+env(safe-area-inset-bottom,0px))] max-h-[calc(100svh-7rem-env(safe-area-inset-bottom,0px))] w-[calc(100%-1.25rem)] max-w-[520px] overflow-y-auto overscroll-contain rounded-[24px] border border-white/15 bg-[#101010] px-4 pb-3 pt-4 shadow-2xl md:mb-0">
+            <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-3">
+              <h2 className="text-[12px] font-agrandir-extrabold uppercase tracking-[0.14em] text-white">LUMARÉEL CLUB</h2>
+              <button type="button" onClick={() => setClubOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#242424] text-white" aria-label="Fermer"><X className="h-4 w-4" /></button>
             </div>
             {[
               { title: "Points & Parrainage", subtitle: "Points fidélité · 500 F CFA par ami", icon: Award, page: "rewards" as PageView },
@@ -129,10 +150,10 @@ export const FloatingAppNavbar: React.FC = () => {
               { title: "Boîte à suggestions", subtitle: "Proposez des artistes, lieux & idées", icon: Lightbulb, page: "suggestions" as PageView },
             ].map((item) => {
               const Icon = item.icon;
-              return <button key={item.title} type="button" onClick={() => { setClubOpen(false); setCurrentPage(item.page); }} className="flex min-h-[82px] w-full items-center gap-4 border-b border-white/[0.07] py-3 text-left last:border-0">
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#202020]"><Icon className="h-6 w-6 text-neutral-200" strokeWidth={1.8} /></span>
-                <span className="min-w-0 flex-1"><span className="block text-sm font-agrandir-extrabold text-white">{item.title}</span><span className="mt-0.5 block text-xs text-neutral-400">{item.subtitle}</span></span>
-                <ChevronRight className="h-5 w-5 shrink-0 text-neutral-500" />
+              return <button key={item.title} type="button" onClick={() => { setClubOpen(false); setCurrentPage(item.page); }} className="flex min-h-[68px] w-full items-center gap-3 border-b border-white/[0.07] py-2.5 text-left last:border-0">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#202020]"><Icon className="h-[19px] w-[19px] text-neutral-200" strokeWidth={1.8} /></span>
+                <span className="min-w-0 flex-1"><span className="block break-words text-[12px] font-agrandir-extrabold leading-tight text-white">{item.title}</span><span className="mt-1 block text-[10px] leading-tight text-neutral-400">{item.subtitle}</span></span>
+                <ChevronRight className="h-[17px] w-[17px] shrink-0 text-neutral-500" />
               </button>;
             })}
           </motion.section>
