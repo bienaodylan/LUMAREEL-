@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabaseClient';
-import { ArrowLeft, Download, Film, Images, MapPin, Play, Share2, X } from 'lucide-react';
+import { ArrowLeft, Check, Download, Film, Images, Play, Share2, X } from 'lucide-react';
 
 type Album = { id: string; event_id: string; title: string; description: string; cover_path: string | null; recap_url: string | null; recap_duration: string | null; event?: { title: string; artist: string; date: string; city: string; venue: string } | null };
 type Photo = { id: string; album_id: string; storage_path: string; thumbnail_path: string | null; caption: string; media_type: 'image' | 'video'; downloadable: boolean; sort_order: number };
@@ -17,6 +17,8 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<DisplayPhoto | null>(null);
   const [recapOpen, setRecapOpen] = useState(false);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -50,6 +52,28 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
   useEffect(() => { void load(); }, [load, currentUser?.id]);
 
   const selectedPhotos = useMemo(() => selectedAlbum ? photos.filter((photo) => photo.album_id === selectedAlbum.id) : [], [photos, selectedAlbum]);
+  const togglePhotoSelection = (photo: DisplayPhoto) => {
+    if (!photo.downloadable || !photo.downloadUrl) return;
+    setSelectedPhotoIds((current) => current.includes(photo.id) ? current.filter((id) => id !== photo.id) : [...current, photo.id]);
+  };
+  const downloadSelection = async () => {
+    const chosen = selectedPhotos.filter((photo) => selectedPhotoIds.includes(photo.id) && photo.downloadable && photo.downloadUrl);
+    if (!chosen.length) { showToast(isEn ? 'No downloadable photo selected.' : 'Aucune photo téléchargeable sélectionnée.', 'error'); return; }
+    let completed = 0;
+    try {
+      for (const photo of chosen) {
+        const response = await fetch(photo.downloadUrl);
+        if (!response.ok) throw new Error('download_failed');
+        const objectUrl = URL.createObjectURL(await response.blob());
+        const link = document.createElement('a'); link.href = objectUrl; link.download = `lumareel-${photo.id}`; document.body.appendChild(link); link.click(); link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1500);
+        completed += 1;
+        await new Promise((resolve) => window.setTimeout(resolve, 250));
+      }
+      showToast(isEn ? `${completed} photos downloaded.` : `${completed} photo(s) téléchargée(s).`, 'success');
+      setSelectionMode(false); setSelectedPhotoIds([]);
+    } catch { showToast(isEn ? `${completed} photo(s) downloaded; the rest failed.` : `${completed} photo(s) téléchargée(s), le reste a échoué.`, 'error'); }
+  };
   const download = async (photo: DisplayPhoto) => {
     if (!photo.downloadUrl) { showToast(isEn ? 'Download is unavailable.' : 'Téléchargement indisponible.', 'error'); return; }
     try {
@@ -87,11 +111,11 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
 
       {selectedAlbum && (
         <section>
-          <div className="mb-6 flex items-center justify-between gap-3"><button onClick={() => { setSelectedAlbum(null); setSelectedPhoto(null); setRecapOpen(false); }} className="inline-flex min-h-11 items-center gap-2 text-xs text-neutral-300"><ArrowLeft size={16}/>{isEn ? 'All my events' : 'Tous mes événements'}</button><button onClick={() => void shareAlbum(selectedAlbum)} className="inline-flex min-h-10 items-center gap-2 border border-white/15 px-4 text-xs"><Share2 size={14}/>{isEn ? 'Share' : 'Partager'}</button></div>
+          <div className="mb-6 flex items-center justify-between gap-3"><button onClick={() => { setSelectedAlbum(null); setSelectedPhoto(null); setRecapOpen(false); setSelectionMode(false); setSelectedPhotoIds([]); }} className="inline-flex min-h-11 items-center gap-2 text-xs text-neutral-300"><ArrowLeft size={16}/>{isEn ? 'All my events' : 'Tous mes événements'}</button><button onClick={() => void shareAlbum(selectedAlbum)} className="inline-flex min-h-10 items-center gap-2 border border-white/15 px-4 text-xs"><Share2 size={14}/>{isEn ? 'Share' : 'Partager'}</button></div>
           <header className="mb-8 border-b border-white/10 pb-6"><p className="text-[10px] uppercase tracking-widest text-neutral-500">{isEn ? 'YOUR EVENT' : 'VOTRE ÉVÉNEMENT'}</p><h2 className="mt-2 text-3xl sm:text-5xl font-agrandir-extrabold leading-tight">{selectedAlbum.title}</h2><p className="mt-3 text-sm text-neutral-400">{selectedAlbum.description}</p>{selectedAlbum.event && <p className="mt-3 text-xs text-neutral-500">{selectedAlbum.event.date} · {selectedAlbum.event.city || selectedAlbum.event.venue}</p>}</header>
           {selectedAlbum.recap_url && <section className="mb-10"><div className="mb-3 flex items-center gap-2"><Film size={17}/><h3 className="font-agrandir-extrabold">{isEn ? 'Event recap' : 'Récapitulatif'}</h3>{selectedAlbum.recap_duration && <span className="ml-auto text-xs text-neutral-500">{selectedAlbum.recap_duration}</span>}</div><button onClick={() => setRecapOpen(true)} className="relative block w-full aspect-video bg-[#111] text-left"><div className="absolute inset-0 flex items-center justify-center"><span className="h-14 w-14 flex items-center justify-center rounded-full bg-white text-black"><Play size={20}/></span></div></button></section>}
-          <div className="mb-5 flex items-center justify-between"><h3 className="text-lg font-agrandir-extrabold">{isEn ? 'Official photographs' : 'Photos officielles'}</h3><span className="text-xs text-neutral-500">{selectedPhotos.length}</span></div>
-          {selectedPhotos.length ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">{selectedPhotos.map((photo) => <button key={photo.id} onClick={() => setSelectedPhoto(photo)} className="group relative aspect-[4/5] overflow-hidden bg-[#111]">{photo.url && <img src={photo.url} alt={photo.caption || selectedAlbum.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"/>}</button>)}</div> : <p className="py-12 text-sm text-neutral-500">{isEn ? 'The album is being prepared.' : 'L’album est en cours de préparation.'}</p>}
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-3"><h3 className="text-lg font-agrandir-extrabold">{isEn ? 'Official photographs' : 'Photos officielles'}</h3><span className="text-xs text-neutral-500">{selectedPhotos.length}</span></div><div className="flex items-center gap-2">{selectionMode && selectedPhotoIds.length > 0 && <button onClick={() => void downloadSelection()} className="min-h-10 bg-white px-3 text-[11px] font-agrandir-extrabold text-black inline-flex items-center gap-2"><Download size={13}/>{isEn ? `Download (${selectedPhotoIds.length})` : `Télécharger (${selectedPhotoIds.length})`}</button>}<button onClick={() => {setSelectionMode((value) => !value);setSelectedPhotoIds([]);}} className="min-h-10 border border-white/20 px-3 text-[11px]">{selectionMode ? (isEn ? 'Cancel selection' : 'Annuler') : (isEn ? 'Select photos' : 'Sélectionner')}</button></div></div>
+          {selectedPhotos.length ? <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">{selectedPhotos.map((photo) => {const isChosen = selectedPhotoIds.includes(photo.id);return <button key={photo.id} onClick={() => selectionMode ? togglePhotoSelection(photo) : setSelectedPhoto(photo)} className={`group relative aspect-[4/5] overflow-hidden bg-[#111] ${selectionMode && !photo.downloadable ? 'opacity-40' : ''}`}>{photo.url && <img src={photo.url} alt={photo.caption || selectedAlbum.title} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"/>}{selectionMode && <span className={`absolute right-2 top-2 h-6 w-6 flex items-center justify-center border ${isChosen ? 'bg-white text-black border-white' : 'bg-black/60 text-transparent border-white/60'}`}>{isChosen ? <Check size={14}/> : <span className="h-2 w-2"/>}</span>}</button>;})}</div> : <p className="py-12 text-sm text-neutral-500">{isEn ? 'The album is being prepared.' : 'L’album est en cours de préparation.'}</p>}
         </section>
       )}
 
