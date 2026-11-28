@@ -25,6 +25,7 @@ import { SuggestionsView } from './components/SuggestionsView';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { saveStoredMemberCard } from './utils/memberCardStorage';
+import { lockBodyScroll, scrollWindowToTop } from './utils/scrollLock';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const MainApp: React.FC = () => {
@@ -100,9 +101,7 @@ const MainApp: React.FC = () => {
 
   // Remet le scroll en haut proprement lors d'un changement de page
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    }
+    scrollWindowToTop();
   }, [currentPage]);
 
   // Le tunnel d'achat ne vit que pendant l'action « Acheter un ticket » : on le ferme dès qu'on change de page
@@ -112,12 +111,8 @@ const MainApp: React.FC = () => {
 
   // Bloque le défilement de la page en arrière-plan quand le tunnel d'achat est ouvert
   useEffect(() => {
-    if (typeof document === 'undefined' || !checkoutEvent) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
+    if (!checkoutEvent) return;
+    return lockBodyScroll();
   }, [checkoutEvent]);
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
@@ -170,7 +165,7 @@ const MainApp: React.FC = () => {
             : undefined
         }
       >
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" onExitComplete={scrollWindowToTop}>
           <motion.div
             key={currentPage}
             initial={{ opacity: 0 }}

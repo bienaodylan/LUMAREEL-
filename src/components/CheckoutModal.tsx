@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Order, Ticket, TicketCategory } from '../types';
 import {
@@ -249,6 +249,15 @@ export const CheckoutModal: React.FC = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [checkoutEvent, step]);
+
+  const scrollBodyRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!checkoutEvent) return;
+    if (scrollBodyRef.current) {
+      scrollBodyRef.current.scrollTop = 0;
+    }
+  }, [checkoutEvent?.id, step]);
 
   if (!checkoutEvent) return null;
 
@@ -578,13 +587,13 @@ export const CheckoutModal: React.FC = () => {
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[90] overflow-y-auto overscroll-contain w-full bg-black text-white flex flex-col font-agrandir-regular"
+      className="fixed inset-0 z-[90] h-[100dvh] w-full bg-black text-white flex flex-col overflow-hidden font-agrandir-regular"
     >
       {/* ========================================================================= */}
       {/* EN-TÊTE PLEINE PAGE AVEC BOUTON RETOUR & RAIL D'ÉTAPES                    */}
       {/* ========================================================================= */}
       <header
-        className="sticky top-0 z-30 border-b border-white/[0.1] bg-black/95 backdrop-blur-xl"
+        className="shrink-0 z-30 border-b border-white/[0.1] bg-black/95 backdrop-blur-xl"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))' }}
       >
         <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 pb-3.5">
@@ -622,9 +631,14 @@ export const CheckoutModal: React.FC = () => {
       </header>
 
       {/* ========================================================================= */}
-      {/* CORPS DE LA PAGE DE RÉSERVATION                                           */}
+      {/* CORPS DÉFILANT DE LA PAGE DE RÉSERVATION                                  */}
       {/* ========================================================================= */}
-      <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 py-6 flex-1 min-h-0">
+      <div
+        ref={scrollBodyRef}
+        className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain touch-pan-y"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 pt-5 pb-12">
           {/* ===================================================================== */}
           {/* ÉTAPE 1 : SÉLECTION DES BILLETS                                       */}
           {/* ===================================================================== */}
@@ -1364,12 +1378,13 @@ export const CheckoutModal: React.FC = () => {
             </div>
           )}
         </div>
+      </div>
 
       {/* ========================================================================= */}
       {/* BARRE FIXE BASSE (ÉTAPES 1 & 2)                                           */}
       {/* ========================================================================= */}
       {step < 3 && (
-        <footer className="sticky bottom-0 z-30 border-t border-white/[0.12] bg-black/95 backdrop-blur-xl py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <footer className="shrink-0 z-30 border-t border-white/[0.12] bg-black/95 backdrop-blur-xl py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
           <div className="w-full max-w-2xl mx-auto px-4 sm:px-6">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
@@ -1445,7 +1460,7 @@ export const CheckoutModal: React.FC = () => {
         {/* SUBMODAL : APERÇU EMAIL DE CONFIRMATION */}
         {showEmailPreview && createdOrder && (
           <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-[#0E0E0E] border border-white/[0.16] rounded-[12px] max-w-2xl w-full p-5 space-y-4 shadow-2xl text-left">
+            <div className="bg-[#0E0E0E] border border-white/[0.16] rounded-[12px] max-w-2xl w-full max-h-[90dvh] flex flex-col overflow-hidden p-5 space-y-4 shadow-2xl text-left">
               <div className="flex items-center justify-between border-b border-white/[0.1] pb-3">
                 <div className="flex items-center gap-2 min-w-0">
                   <Sparkles className="w-4 h-4 text-[#D4AF6A] shrink-0" />
@@ -1543,7 +1558,10 @@ export const CheckoutModal: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 space-y-1.5 max-h-[58vh]">
+              <div
+                className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-4 space-y-1.5 max-h-[58dvh]"
+                style={{ WebkitOverflowScrolling: 'touch' }}
+              >
                 {filteredCountries.map((c) => {
                   const currentDial =
                     countryDrawerTarget === 'customer' ? customerDialCode : paymentDialCode;

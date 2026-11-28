@@ -10,6 +10,7 @@ import {
 } from '../types';
 import { DigitalMembershipCard } from './DigitalMembershipCard';
 import { loadStoredMemberCard, saveStoredMemberCard } from '../utils/memberCardStorage';
+import { lockBodyScroll } from '../utils/scrollLock';
 import { SkeletonBlock, StatusBadge, Tabs } from './ui/LumareelKit';
 import {
   Ticket as TicketIcon,
@@ -78,11 +79,7 @@ export const LumareelWalletView: React.FC<LumareelWalletViewProps> = ({
   useEffect(() => {
     const isModalOpen = Boolean(selectedTicketForQr || selectedInvitationForQr);
     if (!isModalOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
+    return lockBodyScroll();
   }, [selectedTicketForQr, selectedInvitationForQr]);
 
   useEffect(() => {

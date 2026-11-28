@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { lockBodyScroll } from '../utils/scrollLock';
 
 /**
  * Barre de navigation flottante mobile style Instagram (App installée / standalone).
@@ -29,22 +30,7 @@ export const FloatingAppNavbar: React.FC = () => {
   // Lock the page behind the Club sheet while preserving scrolling inside the sheet.
   useEffect(() => {
     if (!clubOpen) return;
-    const body = document.body;
-    const html = document.documentElement;
-    const previousBodyOverflow = body.style.overflow;
-    const previousBodyOverscroll = body.style.overscrollBehavior;
-    const previousHtmlOverflow = html.style.overflow;
-    const previousHtmlOverscroll = html.style.overscrollBehavior;
-    body.style.overflow = 'hidden';
-    body.style.overscrollBehavior = 'none';
-    html.style.overflow = 'hidden';
-    html.style.overscrollBehavior = 'none';
-    return () => {
-      body.style.overflow = previousBodyOverflow;
-      body.style.overscrollBehavior = previousBodyOverscroll;
-      html.style.overflow = previousHtmlOverflow;
-      html.style.overscrollBehavior = previousHtmlOverscroll;
-    };
+    return lockBodyScroll();
   }, [clubOpen]);
   // Sur navigateur mobile web, le tiroir en haut à gauche gère la navigation.
   if (!isStandalone) return null;

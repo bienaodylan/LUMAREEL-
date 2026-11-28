@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowRight, MapPin, X } from 'lucide-react';
+import { lockBodyScroll } from '../../utils/scrollLock';
 
 /* ============================================================================
    1. ScrollReveal — Apparition discrète au scroll (fade + translateY 12px)
@@ -360,14 +361,13 @@ export const BottomSheet: React.FC<{
 }> = ({ open, onClose, title, kicker, children }) => {
   useEffect(() => {
     if (!open || typeof window === 'undefined') return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    const unlock = lockBodyScroll();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => {
-      document.body.style.overflow = prev;
+      unlock();
       window.removeEventListener('keydown', onKey);
     };
   }, [open, onClose]);
@@ -393,8 +393,11 @@ export const BottomSheet: React.FC<{
             exit={{ y: 40, opacity: 0 }}
             transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg max-h-[88dvh] overflow-y-auto rounded-t-[28px] sm:rounded-[24px] bg-white text-[#111111] dark:bg-[#0E0E0E] dark:text-white border-t sm:border border-black/10 dark:border-white/[0.12] p-5 sm:p-6 shadow-2xl"
-            style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))' }}
+            className="w-full max-w-lg max-h-[88dvh] overflow-y-auto overscroll-contain touch-pan-y rounded-t-[28px] sm:rounded-[24px] bg-white text-[#111111] dark:bg-[#0E0E0E] dark:text-white border-t sm:border border-black/10 dark:border-white/[0.12] p-5 sm:p-6 shadow-2xl"
+            style={{
+              paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))',
+              WebkitOverflowScrolling: 'touch',
+            }}
           >
             <div className="w-10 h-1 rounded-full bg-black/15 dark:bg-white/20 mx-auto mb-4 sm:hidden" />
             {(title || kicker) && (

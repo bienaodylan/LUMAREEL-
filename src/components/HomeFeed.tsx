@@ -353,7 +353,6 @@ export const HomeFeed: React.FC = () => {
                           onClick={() => handleBuyTickets(event)}
                           className="home-event-action inline-flex min-h-[40px] items-center justify-center gap-1.5 rounded-[11px] bg-[#111111] text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/85 px-2.5 text-[10px] font-agrandir-extrabold uppercase tracking-[0.07em] transition-colors cursor-pointer sm:min-h-[42px] whitespace-nowrap"
                         >
-                          <span aria-hidden="true">▣</span>{' '}
                           {isEn ? 'Buy tickets' : 'Acheter tickets'}
                         </button>
                         <button

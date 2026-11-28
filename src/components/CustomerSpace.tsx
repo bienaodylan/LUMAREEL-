@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { formatDateLong } from '../utils/dateUtils';
+import { lockBodyScroll } from '../utils/scrollLock';
 import { EmptyState } from './ui/EditorialPrimitives';
 import { BottomSheet, QRTicket, StatusBadge, Tabs } from './ui/LumareelKit';
 
@@ -61,6 +62,11 @@ export const CustomerSpace: React.FC = () => {
   useEffect(() => {
     refreshCustomerOrders();
   }, [currentUser]);
+
+  useEffect(() => {
+    if (!selectedTicketForQr) return;
+    return lockBodyScroll();
+  }, [selectedTicketForQr]);
 
   const allTickets = useMemo<Ticket[]>(() => {
     const list: Ticket[] = [];
@@ -614,8 +620,11 @@ export const CustomerSpace: React.FC = () => {
 
       {/* VUE DÉTAILLÉE DU BILLET */}
       {selectedTicketForQr && (
-        <div className="fixed inset-0 z-[95] bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-white overflow-y-auto overscroll-contain">
-          <div className="sticky top-0 z-20 bg-[#FBFBFD]/92 dark:bg-black/90 backdrop-blur-xl border-b border-black/[0.08] dark:border-white/[0.08] px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div className="fixed inset-0 z-[95] h-[100dvh] w-full bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-white flex flex-col overflow-hidden">
+          <div
+            className="shrink-0 z-20 bg-[#FBFBFD]/92 dark:bg-black/90 backdrop-blur-xl border-b border-black/[0.08] dark:border-white/[0.08] px-4 sm:px-6 py-3 flex items-center justify-between"
+            style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top, 0px))' }}
+          >
             <button
               type="button"
               onClick={() => setSelectedTicketForQr(null)}
@@ -638,6 +647,10 @@ export const CustomerSpace: React.FC = () => {
               <X className="w-4 h-4" strokeWidth={1.6} />
             </button>
           </div>
+          <div
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
           <div className="w-full max-w-[520px] mx-auto px-4 pt-5 pb-12">
             <QRTicket
               eventTitle={selectedTicketForQr.eventTitle}
@@ -675,6 +688,7 @@ export const CustomerSpace: React.FC = () => {
                 <span>{t('orders.print')}</span>
               </a>
             </div>
+          </div>
           </div>
           {isQrExpanded && (
             <div

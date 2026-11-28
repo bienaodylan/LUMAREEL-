@@ -18,6 +18,7 @@ import {
   clearStoredPendingReferralCode,
   getStoredPendingReferralCode,
 } from '../lib/apiClient';
+import { lockBodyScroll } from '../utils/scrollLock';
 
 function buildEffectiveUser(params: {
   id?: string;
@@ -94,12 +95,7 @@ export const AuthModal: React.FC = () => {
       setReferralCodeInput(captured);
       setMode('register');
     }
-    if (typeof document === 'undefined') return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
+    return lockBodyScroll();
   }, [isAuthModalOpen]);
 
   if (!isAuthModalOpen) return null;
@@ -328,9 +324,9 @@ export const AuthModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-white overflow-y-auto flex flex-col font-agrandir-regular transition-colors duration-200">
+    <div className="fixed inset-0 z-[100] h-[100dvh] w-full bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-white flex flex-col overflow-hidden font-agrandir-regular transition-colors duration-200">
       <header
-        className="sticky top-0 z-20 bg-[#FBFBFD]/95 dark:bg-black/95 backdrop-blur-xl border-b border-black/[0.08] dark:border-white/[0.08]"
+        className="shrink-0 z-20 bg-[#FBFBFD]/95 dark:bg-black/95 backdrop-blur-xl border-b border-black/[0.08] dark:border-white/[0.08]"
         style={{ paddingTop: 'max(0.85rem, env(safe-area-inset-top, 0px))' }}
       >
         <div className="w-full max-w-lg mx-auto px-5 pb-3.5 flex items-center justify-between gap-3">
@@ -354,10 +350,14 @@ export const AuthModal: React.FC = () => {
       </header>
 
       <main
-        className="flex-1 w-full max-w-md mx-auto px-5 sm:px-6 py-8 sm:py-12 flex flex-col justify-center"
-        style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom, 0px))' }}
+        className="flex-1 min-h-0 w-full overflow-y-auto overscroll-contain touch-pan-y"
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        <div className="space-y-6">
+        <div
+          className="w-full max-w-md min-h-full mx-auto px-5 sm:px-6 py-8 sm:py-12 flex flex-col"
+          style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom, 0px))' }}
+        >
+        <div className="my-auto space-y-6">
           <div className="space-y-4">
             <div>
               <p className="text-[10px] font-agrandir-extrabold uppercase tracking-[0.24em] text-black/45 dark:text-white/50 mb-1.5">
@@ -541,6 +541,7 @@ export const AuthModal: React.FC = () => {
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>{t('auth.secureBadge')}</span>
           </div>
+        </div>
         </div>
       </main>
     </div>

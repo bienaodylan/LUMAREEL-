@@ -296,7 +296,7 @@ export const LumareelCardOrderPage: React.FC<LumareelCardOrderPageProps> = ({
   // =========================================================================
   if (step === 4 && issuedResult) {
     return (
-      <div className="min-h-[100dvh] w-full bg-black text-white font-agrandir-regular relative overflow-hidden">
+      <div className="min-h-[100dvh] w-full bg-black text-white font-agrandir-regular relative overflow-x-clip">
         <StageBeam x={50} width={20} />
         <HalftoneField tone="light" className="opacity-45" />
 

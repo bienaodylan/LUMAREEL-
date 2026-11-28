@@ -3,6 +3,7 @@ import { useApp, PageView } from '../context/AppContext';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { PWAInstallButton } from './PWAInstallButton';
 import { AnimatePresence, motion } from 'framer-motion';
+import { lockBodyScroll } from '../utils/scrollLock';
 import {
   ArrowLeft,
   Camera,
@@ -82,12 +83,8 @@ export const Navbar: React.FC = () => {
   }, [langMenuOpen]);
 
   useEffect(() => {
-    if ((!drawerOpen && !favoritesOpen) || typeof document === 'undefined') return;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prevOverflow;
-    };
+    if (!drawerOpen && !favoritesOpen) return;
+    return lockBodyScroll();
   }, [drawerOpen, favoritesOpen]);
 
   const isEn = language === 'en';
