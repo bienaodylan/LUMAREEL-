@@ -93,44 +93,39 @@ export const DiscoverView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-[#FFFFFF] pt-28 sm:pt-32 pb-24">
-      
+    <div className="min-h-screen bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-white pt-10 sm:pt-14 pb-24 transition-colors duration-200">
       {/* Top Header & Search Pills Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 mb-8 sm:mb-12">
-        
         {/* Title & Slogan */}
         <div className="mb-6">
-          <div className="text-[11px] font-agrandir-regular tracking-[0.25em] text-[#888] uppercase mb-2">
+          <div className="text-[11px] font-agrandir-regular tracking-[0.25em] text-black/45 dark:text-[#888] uppercase mb-2">
             CALENDRIER DES CONCERTS
           </div>
-          <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl text-white tracking-tight uppercase leading-none">
+          <h1 className="font-agrandir-extrabold text-3xl sm:text-5xl text-[#111111] dark:text-white tracking-tight uppercase leading-none">
             DÉCOUVRIR LES ÉVÉNEMENTS
           </h1>
         </div>
 
-        {/* Floating Search & Filter Capsule Bar (matching GoLive style) */}
-        <div className="rounded-3xl sm:rounded-full bg-[#0d0d0d]/90 backdrop-blur-xl border border-white/20 p-2.5 sm:p-3 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-3">
-          
+        {/* Floating Search & Filter Capsule Bar */}
+        <div className="rounded-3xl sm:rounded-full bg-white/95 dark:bg-[#0d0d0d]/90 backdrop-blur-xl border border-black/10 dark:border-white/15 p-2.5 sm:p-3 shadow-sm dark:shadow-2xl flex flex-col md:flex-row items-center justify-between gap-3">
           {/* Search Input */}
           <div className="relative w-full md:w-96">
-            <Search className="w-4 h-4 text-[#777] absolute left-4 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-black/40 dark:text-[#777] absolute left-4 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Rechercher un artiste, salle, date..."
-              className="w-full bg-[#181818] border border-white/10 rounded-full pl-11 pr-4 py-2 text-xs text-white placeholder-[#666] focus:outline-none focus:border-white font-agrandir-regular"
+              placeholder="Cherche un artiste, une salle, une date..."
+              className="w-full bg-[#F2F2F5] dark:bg-[#181818] border border-black/10 dark:border-white/10 rounded-full pl-11 pr-4 py-2 text-xs text-[#111111] dark:text-white placeholder:text-black/40 dark:placeholder-[#666] focus:outline-none focus:border-black dark:focus:border-white font-agrandir-regular"
             />
           </div>
 
-          {/* Quick Selects with rounded-full */}
+          {/* Quick Selects */}
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-end">
-
-            {/* City */}
             <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="bg-[#181818] border border-white/10 rounded-full px-4 py-2 text-xs text-white font-agrandir-regular uppercase cursor-pointer"
+              className="bg-[#F2F2F5] dark:bg-[#181818] border border-black/10 dark:border-white/10 rounded-full px-4 py-2 text-xs text-[#111111] dark:text-white font-agrandir-regular uppercase cursor-pointer"
             >
               <option value="all">TOUTES LES VILLES</option>
               <option value="Abidjan">ABIDJAN</option>
@@ -144,28 +139,25 @@ export const DiscoverView: React.FC = () => {
                   setSelectedCity('all');
                   setSelectedGenre('all');
                 }}
-                className="text-[11px] text-[#aaa] hover:text-white uppercase font-agrandir-semibold px-3 py-1 cursor-pointer"
+                className="text-[11px] text-black/60 hover:text-black dark:text-[#aaa] dark:hover:text-white uppercase font-agrandir-semibold px-3 py-1 cursor-pointer"
               >
                 Réinitialiser
               </button>
             )}
           </div>
-
         </div>
-
       </div>
 
-      {/* Main Concerts List grouped by Month (Matching GoLive Asia screenshot layout) */}
+      {/* Main Concerts List grouped by Month */}
       <main className="max-w-7xl mx-auto px-4 sm:px-8 md:px-12 space-y-12">
-        
         {monthGroups.length === 0 ? (
-          <div className="text-center py-24 rounded-3xl bg-[#0c0c0c] border border-white/10 p-8">
-            <Calendar className="w-10 h-10 text-[#555] mx-auto mb-3" />
-            <h3 className="font-agrandir-extrabold text-xl text-white uppercase mb-2">
+          <div className="text-center py-24 rounded-3xl bg-white dark:bg-[#0c0c0c] border border-black/10 dark:border-white/10 p-8">
+            <Calendar className="w-10 h-10 text-black/40 dark:text-[#555] mx-auto mb-3" />
+            <h3 className="font-agrandir-extrabold text-xl text-[#111111] dark:text-white uppercase mb-2">
               AUCUN CONCERT TROUVÉ
             </h3>
-            <p className="font-agrandir-regular text-xs text-[#888] max-w-sm mx-auto mb-6">
-              Aucun événement ne correspond à vos filtres actuels.
+            <p className="font-agrandir-regular text-xs text-black/55 dark:text-[#888] max-w-sm mx-auto mb-6">
+              Aucun événement ne correspond à tes filtres actuels.
             </p>
             <button
               onClick={() => {
@@ -173,7 +165,7 @@ export const DiscoverView: React.FC = () => {
                 setSelectedCity('all');
                 setSelectedGenre('all');
               }}
-              className="px-6 py-2.5 rounded-full bg-white text-black font-agrandir-semibold text-xs uppercase tracking-wider cursor-pointer"
+              className="px-6 py-2.5 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-semibold text-xs uppercase tracking-wider cursor-pointer"
             >
               Voir toute la programmation
             </button>
@@ -181,13 +173,12 @@ export const DiscoverView: React.FC = () => {
         ) : (
           monthGroups.map((group) => (
             <section key={group.monthTitle} className="space-y-4">
-              
-              {/* Month Header (Matching "NOVEMBER 2026" from screenshot) */}
+              {/* Month Header */}
               <div className="flex items-center gap-3">
-                <span className="text-xs font-agrandir-extrabold tracking-[0.25em] text-[#888] uppercase">
+                <span className="text-xs font-agrandir-extrabold tracking-[0.25em] text-black/50 dark:text-[#888] uppercase">
                   {group.monthTitle}
                 </span>
-                <span className="h-[1px] flex-1 bg-white/10" />
+                <span className="h-[1px] flex-1 bg-black/10 dark:bg-white/10" />
               </div>
 
               {/* Stacked Wide Event Cards */}
@@ -202,82 +193,84 @@ export const DiscoverView: React.FC = () => {
                     <div
                       key={event.id}
                       onClick={() => handleBookNow(event)}
-                      className={`group relative rounded-2xl sm:rounded-3xl p-3 sm:p-5 bg-gradient-to-r ${ambient} border transition-all duration-300 hover:scale-[1.008] shadow-2xl cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 overflow-hidden`}
+                      className="group relative rounded-2xl sm:rounded-3xl p-3.5 sm:p-5 bg-white dark:bg-[#0E0E0E] border border-black/[0.08] dark:border-white/[0.12] hover:border-black/25 dark:hover:border-white/30 transition-all duration-300 shadow-sm dark:shadow-none cursor-pointer flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 overflow-hidden"
                     >
-                      {/* Subtle Ambient Vignette / Spotlight inside Card */}
-                      <div className="absolute inset-0 bg-black/25 pointer-events-none" />
-
                       {/* Left Block : Date Widget + Artist Poster + Event Info */}
                       <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
-                        
-                        {/* 1. Date Widget Box (Exact replica of "SUN 01" / "WED 04" / "FRI 06") */}
-                        <div className="w-13 h-14 sm:w-16 sm:h-18 rounded-2xl bg-black/70 border border-white/15 backdrop-blur-md flex flex-col items-center justify-center shrink-0 shadow-lg group-hover:border-white/30 transition-colors">
-                          <span className="text-[9px] sm:text-[10px] font-agrandir-semibold tracking-wider text-[#999] uppercase leading-none">
+                        {/* 1. Date Widget Box */}
+                        <div className="w-13 h-14 sm:w-16 sm:h-18 rounded-2xl bg-[#F2F2F5] dark:bg-black/80 border border-black/10 dark:border-white/15 flex flex-col items-center justify-center shrink-0">
+                          <span className="text-[9px] sm:text-[10px] font-agrandir-semibold tracking-wider text-black/50 dark:text-[#999] uppercase leading-none">
                             {dayOfWeek}
                           </span>
-                          <span className="text-xl sm:text-2xl font-agrandir-extrabold text-white leading-none mt-1">
+                          <span className="text-xl sm:text-2xl font-agrandir-extrabold text-[#111111] dark:text-white leading-none mt-1">
                             {dayNumber}
                           </span>
                         </div>
 
-                        {/* 2. Artist Poster Thumbnail (Rounded rectangle) */}
-                        <div className="w-full sm:w-40 md:w-48 aspect-[16/10] rounded-xl sm:rounded-2xl overflow-hidden border border-white/10 bg-[#161616] shrink-0 shadow-md">
+                        {/* 2. Artist Poster Thumbnail */}
+                        <div className="w-full sm:w-40 md:w-48 aspect-[16/10] rounded-xl sm:rounded-2xl overflow-hidden border border-black/10 dark:border-white/10 bg-black/[0.05] dark:bg-[#161616] shrink-0">
                           <img
-                            src={event.officialPoster || event.bannerImage || '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.30_0f827a3a.jpeg'}
+                            src={
+                              event.officialPoster ||
+                              event.bannerImage ||
+                              '/assets/aistudio/WhatsApp_Image_2026-10-28_at_16.54.30_0f827a3a.jpeg'
+                            }
                             alt={event.title}
                             referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover filter contrast-105 group-hover:scale-105 transition-transform duration-500 ease-out"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                           />
                         </div>
 
-                        {/* 3. Event Details (Center info block matching screenshot) */}
+                        {/* 3. Event Details */}
                         <div className="flex-1 min-w-0">
-                          
-                          {/* Top Meta Line: CONCERT tag + Date & Time */}
                           <div className="flex flex-wrap items-center gap-2.5 text-xs mb-1.5">
-                            <span className="rounded-full border border-emerald-500/50 bg-emerald-950/40 text-emerald-400 text-[10px] font-agrandir-semibold tracking-wider uppercase px-2.5 py-0.5 shadow-sm">
+                            <span className="rounded-full bg-[#111111] text-white dark:bg-white dark:text-black text-[10px] font-agrandir-semibold tracking-wider uppercase px-2.5 py-0.5">
                               CONCERT
                             </span>
 
-                            <div className="flex items-center gap-1.5 text-xs text-[#aaa] font-agrandir-regular">
-                              <Calendar className="w-3.5 h-3.5 text-[#888]" />
-                              <span>{event.time} · <strong className="font-agrandir-extrabold text-white">{fullDate}</strong></span>
+                            <div className="flex items-center gap-1.5 text-xs text-black/55 dark:text-[#aaa] font-agrandir-regular">
+                              <Calendar className="w-3.5 h-3.5" />
+                              <span>
+                                {event.time} ·{' '}
+                                <strong className="font-agrandir-extrabold text-[#111111] dark:text-white">
+                                  {fullDate}
+                                </strong>
+                              </span>
                             </div>
                           </div>
 
-                          {/* Massive Spaced Artist Name */}
-                          <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl md:text-4xl text-white tracking-[0.04em] uppercase leading-tight truncate drop-shadow-md">
+                          <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl md:text-4xl text-[#111111] dark:text-white tracking-[0.04em] uppercase leading-tight truncate">
                             {event.artist} EN CONCERT
                           </h2>
 
-                          {/* Venue Location with MapPin */}
-                          <div className="flex items-center gap-1.5 text-xs text-[#ccc] font-agrandir-regular mt-2 truncate">
-                            <MapPin className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-                            <span className="truncate"><strong className="font-agrandir-extrabold text-white">{event.venue}</strong> ({event.city})</span>
-                          </div>
-
-                          {/* Ticket Price Badge Pill (Matching "TICKETS FROM RM 298") */}
-                          <div className="mt-2.5">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-[11px] font-agrandir-semibold text-white backdrop-blur-sm shadow-sm">
-                              <Ticket className="w-3.5 h-3.5 text-[#d4af37]" />
-                              <span>BILLETS DÈS {minPrice.toLocaleString()} FCFA</span>
+                          <div className="flex items-center gap-1.5 text-xs text-black/60 dark:text-[#ccc] font-agrandir-regular mt-2 truncate">
+                            <MapPin className="w-3.5 h-3.5 text-[#111111] dark:text-white shrink-0" />
+                            <span className="truncate">
+                              <strong className="font-agrandir-extrabold text-[#111111] dark:text-white">
+                                {event.venue}
+                              </strong>{' '}
+                              ({event.city})
                             </span>
                           </div>
 
+                          <div className="mt-2.5">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/[0.05] dark:bg-white/10 border border-black/10 dark:border-white/15 text-[11px] font-agrandir-semibold text-[#111111] dark:text-white">
+                              <Ticket className="w-3.5 h-3.5" />
+                              <span>BILLETS DÈS {minPrice.toLocaleString()} FCFA</span>
+                            </span>
+                          </div>
                         </div>
-
                       </div>
 
-                      <div className="relative z-10 flex items-center justify-end sm:justify-center gap-3 shrink-0 pt-2 sm:pt-0 border-t border-white/10 sm:border-t-0 w-full md:w-auto">
+                      <div className="relative z-10 flex items-center justify-end sm:justify-center gap-3 shrink-0 pt-2 sm:pt-0 border-t border-black/10 dark:border-white/10 sm:border-t-0 w-full md:w-auto">
                         <button
                           onClick={(e) => handleBookNow(event, e)}
-                          className="w-full md:w-auto px-6 py-3 rounded-full bg-white text-black hover:bg-neutral-200 font-agrandir-extrabold text-xs tracking-widest uppercase flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer"
+                          className="w-full md:w-auto px-6 py-3 rounded-full bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:text-black dark:hover:bg-neutral-200 font-agrandir-extrabold text-xs tracking-widest uppercase flex items-center justify-center gap-2 transition-all cursor-pointer"
                         >
                           <Ticket className="w-3.5 h-3.5" />
                           <span>ACHETER TICKETS</span>
                         </button>
                       </div>
-
                     </div>
                   );
                 })}

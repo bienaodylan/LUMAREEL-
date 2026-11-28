@@ -5,6 +5,8 @@ import { convertToYouTubeEmbed } from '../utils/mediaUtils';
 import { supabase, isSupabaseConfigured, configureSupabase, testSupabaseConnection } from '../lib/supabaseClient';
 import { SupportedLanguage, getTranslation } from '../i18n/translations';
 
+export type AppTheme = 'light' | 'dark';
+
 export type PageView =
   | 'splash'
   | 'home'
@@ -65,10 +67,18 @@ interface AppContextType {
   platformSettings: PlatformSettings;
   updatePlatformSettings: (settings: Partial<PlatformSettings>) => Promise<void>;
   
-  // Internationalisation
+  // Internationalisation & Apparence
   language: SupportedLanguage;
   setLanguage: (lang: SupportedLanguage) => void;
   t: (key: string, fallback?: string) => string;
+  theme: AppTheme;
+  setTheme: (theme: AppTheme) => void;
+  toggleTheme: () => void;
+
+  // Favoris événements
+  favoriteEventIds: string[];
+  toggleFavoriteEvent: (eventId: string) => void;
+  isFavoriteEvent: (eventId: string) => boolean;
 
   // États de scalabilité et base de données Cloud
   isLoadingEvents: boolean;
@@ -348,6 +358,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'info' | 'success' | 'error' } | null>(null);
 
+  // Favoris événements persistés localement
+  const [favoriteEventIds, setFavoriteEventIds] = useState<string[]>(() =>
+    readLocal<string[]>('lumareel_favorite_events_v1', [])
+  );
+
+  // Thème global (mode sombre / mode clair) persisté dans localStorage
+  const [theme, setThemeState] = useState<AppTheme>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const saved = localStorage.getItem('lumareel_theme');
+        if (saved === 'light' || saved === 'dark') return saved;
+      }
+    } catch {}
+    return 'dark';
+  });
+
+  const setTheme = useCallback((next: AppTheme) => {
+    setThemeState(next);
+    try {
+      localStorage.setItem('lumareel_theme', next);
+    } catch {}
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setThemeState((prev) => {
+      const next: AppTheme = prev === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('lumareel_theme', next);
+      } catch {}
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    root.classList.toggle('dark', theme === 'dark');
+    root.style.colorScheme = theme;
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', theme === 'dark' ? '#000000' : '#FBFBFD');
+    }
+  }, [theme]);
+
   // Internationalisation (Français / Anglais)
   const [language, setLanguageState] = useState<SupportedLanguage>(() => {
     if (typeof window !== 'undefined') {
@@ -488,6 +542,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setToast({ message, type });
     setTimeout(() => setToast(null), 4500);
   };
+
+  const toggleFavoriteEvent = useCallback((eventId: string) => {
+    setFavoriteEventIds((prev) => {
+      const exists = prev.includes(eventId);
+      const next = exists ? prev.filter((id) => id !== eventId) : [eventId, ...prev];
+      writeLocal('lumareel_favorite_events_v1', next);
+      return next;
+    });
+  }, []);
+
+  const isFavoriteEvent = useCallback(
+    (eventId: string) => favoriteEventIds.includes(eventId),
+    [favoriteEventIds]
+  );
 
   // ============================================================================
   // 1. GESTION DES ÉVÉNEMENTS (SUPABASE CLOUD AVEC CACHE & DEDUPLICATION)
@@ -1297,6 +1365,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         language,
         setLanguage,
         t,
+        theme,
+        setTheme,
+        toggleTheme,
+        favoriteEventIds,
+        toggleFavoriteEvent,
+        isFavoriteEvent,
         isLoadingEvents,
         isLoadingOrders,
         isCloudDbActive,

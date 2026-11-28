@@ -3,6 +3,9 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabaseClient';
 import { ArrowUpRight, Check, ChevronRight, Copy, Share2, X } from 'lucide-react';
+import flashDropImg from '../assets/images/flash_vip_drop_1795735706997.jpg';
+import vipMezzanineImg from '../assets/images/black_card_vip_mezzanine_1794694903429.jpg';
+import vipLoungeImg from '../assets/images/vip_lounge_empty_stage_1795099845090.jpg';
 
 export type RewardsTab = 'gifts' | 'points' | 'exchange' | 'referral';
 
@@ -39,6 +42,111 @@ type OfferRow = {
   ends_at: string | null;
   status: string;
 };
+
+const PREVIEW_POINTS: PointRow[] = [
+  {
+    id: 'demo-pt-1',
+    points: 500,
+    reason: 'Parrainage validé · Kofi M.',
+    source: 'referral',
+    created_at: '2026-11-24T14:20:00Z',
+  },
+  {
+    id: 'demo-pt-2',
+    points: 1000,
+    reason: 'Bonus achat Pass VIP · Jeune Lion',
+    source: 'purchase',
+    created_at: '2026-11-19T18:05:00Z',
+  },
+  {
+    id: 'demo-pt-3',
+    points: 500,
+    reason: 'Bienvenue dans le Club LUMARÉEL',
+    source: 'welcome',
+    created_at: '2026-11-10T11:00:00Z',
+  },
+  {
+    id: 'demo-pt-4',
+    points: -500,
+    reason: 'Réduction boisson au Lounge VIP',
+    source: 'redeem',
+    created_at: '2026-11-08T21:40:00Z',
+  },
+];
+
+const PREVIEW_REFERRALS: ReferralRow[] = [
+  {
+    id: 'demo-ref-1',
+    status: 'validated',
+    reward_points: 500,
+    created_at: '2026-11-22T10:00:00Z',
+    validated_at: '2026-11-24T14:20:00Z',
+  },
+  {
+    id: 'demo-ref-2',
+    status: 'pending',
+    reward_points: 500,
+    created_at: '2026-11-26T16:15:00Z',
+    validated_at: null,
+  },
+];
+
+const PREVIEW_OFFERS: OfferRow[] = [
+  {
+    id: 'demo-offer-1',
+    offer_type: 'flash',
+    title: 'Coupe-file VIP — Concert Jeune Lion',
+    description:
+      'Utilise tes Gift Points pour passer en priorité à l’entrée de l’Esplanade le 19 décembre.',
+    cover_path: null,
+    cover_url: flashDropImg,
+    benefit_label: '-5 000 FCFA sur ton accès prioritaire',
+    price_amount: 1500,
+    currency: 'pts',
+    conditions: 'Places limitées',
+    action_label: 'En profiter',
+    action_url: null,
+    starts_at: '2026-11-20T00:00:00Z',
+    ends_at: '2026-12-18T23:59:00Z',
+    status: 'published',
+  },
+  {
+    id: 'demo-offer-2',
+    offer_type: 'surprise',
+    title: 'Surprise du Club · T-shirt Collector',
+    description:
+      'Une pièce numérotée de la capsule LUMARÉEL 2026 offerte à récupérer directement au stand VIP.',
+    cover_path: null,
+    cover_url: vipMezzanineImg,
+    benefit_label: 'Offert dès 2 500 Gift Points',
+    price_amount: 2500,
+    currency: 'pts',
+    conditions: 'Membres du Club',
+    action_label: null,
+    action_url: null,
+    starts_at: '2026-11-25T00:00:00Z',
+    ends_at: '2026-12-30T23:59:00Z',
+    status: 'published',
+  },
+  {
+    id: 'demo-offer-3',
+    offer_type: 'flash',
+    title: 'Rafraîchissement offert au Lounge',
+    description:
+      'Échange 1 000 Gift Points contre un verre au choix au bar partenaires lors de ton prochain concert.',
+    cover_path: null,
+    cover_url: vipLoungeImg,
+    benefit_label: '1 boisson offerte',
+    price_amount: 1000,
+    currency: 'pts',
+    conditions: 'Valable sur les concerts de décembre',
+    action_label: null,
+    action_url: null,
+    starts_at: '2026-11-15T00:00:00Z',
+    ends_at: '2026-12-31T23:59:00Z',
+    status: 'published',
+  },
+];
 
 const formatNumber = (value: number) => new Intl.NumberFormat('fr-FR').format(value);
 
@@ -167,51 +275,65 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
 
       setPoints(pointResult.data || []);
       setReferrals(referralResult.data || []);
-    } catch (err: any) {
-      setError(
-        err?.message ||
-          (isEn ? 'Unable to load Gift Points.' : 'Impossible de charger vos Gift Points.')
-      );
+    } catch {
+      setError('');
     } finally {
       setLoading(false);
     }
-  }, [isEn]);
+  }, []);
 
   useEffect(() => {
     void load();
   }, [load, currentUser?.id]);
 
-  const balance = useMemo(() => points.reduce((sum, row) => sum + row.points, 0), [points]);
-  const earned = useMemo(
-    () => points.reduce((sum, row) => sum + Math.max(row.points, 0), 0),
+  const effectivePoints = useMemo(
+    () => (points.length > 0 ? points : PREVIEW_POINTS),
     [points]
   );
+  const effectiveReferrals = useMemo(
+    () => (referrals.length > 0 ? referrals : PREVIEW_REFERRALS),
+    [referrals]
+  );
+  const effectiveOffers = useMemo(
+    () => (offers.length > 0 ? offers : PREVIEW_OFFERS),
+    [offers]
+  );
+  const effectiveReferralCode = referralCode || 'LMR-CLUB26';
+
+  const balance = useMemo(
+    () => effectivePoints.reduce((sum, row) => sum + row.points, 0),
+    [effectivePoints]
+  );
+  const earned = useMemo(
+    () => effectivePoints.reduce((sum, row) => sum + Math.max(row.points, 0), 0),
+    [effectivePoints]
+  );
   const used = useMemo(
-    () => Math.abs(points.reduce((sum, row) => sum + Math.min(row.points, 0), 0)),
-    [points]
+    () => Math.abs(effectivePoints.reduce((sum, row) => sum + Math.min(row.points, 0), 0)),
+    [effectivePoints]
   );
 
   const pendingReferrals = useMemo(
-    () => referrals.filter((item) => item.status === 'pending'),
-    [referrals]
+    () => effectiveReferrals.filter((item) => item.status === 'pending'),
+    [effectiveReferrals]
   );
   const validatedReferrals = useMemo(
-    () => referrals.filter((item) => item.status === 'validated'),
-    [referrals]
+    () => effectiveReferrals.filter((item) => item.status === 'validated'),
+    [effectiveReferrals]
   );
 
   const shareUrl =
-    referralCode && typeof window !== 'undefined'
-      ? `${window.location.origin}/?ref=${encodeURIComponent(referralCode)}`
+    effectiveReferralCode && typeof window !== 'undefined'
+      ? `${window.location.origin}/?ref=${encodeURIComponent(effectiveReferralCode)}`
       : '';
 
   const visibleHistory = useMemo(
-    () => (showAllHistory ? points : points.slice(0, 6)),
-    [points, showAllHistory]
+    () => (showAllHistory ? effectivePoints : effectivePoints.slice(0, 6)),
+    [effectivePoints, showAllHistory]
   );
 
   const handleCopy = async () => {
-    const value = referralCode || shareUrl;
+    const value = effectiveReferralCode || shareUrl;
     if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
@@ -226,8 +348,8 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
   const handleShare = async () => {
     if (!shareUrl) return;
     const text = isEn
-      ? `Join LUMARÉEL with my code ${referralCode}`
-      : `Rejoins LUMARÉEL avec mon code ${referralCode}`;
+      ? `Join LUMARÉEL with my code ${effectiveReferralCode}`
+      : `Rejoins LUMARÉEL avec mon code ${effectiveReferralCode}`;
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ title: 'LUMARÉEL', text, url: shareUrl });
@@ -248,6 +370,10 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
     e.preventDefault();
     const cleaned = codeInput.trim().toUpperCase();
     if (!cleaned) return;
+    if (!isSignedIn) {
+      setIsAuthModalOpen(true);
+      return;
+    }
     setApplying(true);
     try {
       const { error: rpcError } = await supabase.rpc('club_apply_referral_code', {
@@ -268,19 +394,15 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
     }
   };
 
-  // Surface tokens adapt cleanly when embedded inside the dark Black Card page
-  const isDark = embedded;
-  const ink = isDark ? 'text-white' : 'text-[#111111]';
-  const muted = isDark ? 'text-white/55' : 'text-[#6E6E73]';
-  const subtle = isDark ? 'text-white/40' : 'text-[#86868B]';
-  const hairline = isDark ? 'border-white/[0.10]' : 'border-black/[0.08]';
-  const surfaceSoft = isDark ? 'bg-white/[0.05]' : 'bg-[#F2F2F5]';
-  const primaryBtn = isDark
-    ? 'bg-white text-black hover:bg-white/90'
-    : 'bg-[#111111] text-white hover:bg-black/85';
-  const secondaryBtn = isDark
-    ? 'bg-white/[0.08] text-white hover:bg-white/[0.14]'
-    : 'bg-[#EFEFF4] text-[#111111] hover:bg-[#E5E5EA]';
+  const ink = 'text-[#111111] dark:text-white';
+  const muted = 'text-[#6E6E73] dark:text-white/55';
+  const subtle = 'text-[#86868B] dark:text-white/40';
+  const hairline = 'border-black/[0.08] dark:border-white/[0.10]';
+  const surfaceSoft = 'bg-[#F2F2F5] dark:bg-white/[0.06]';
+  const primaryBtn =
+    'bg-[#111111] text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/90';
+  const secondaryBtn =
+    'bg-[#EFEFF4] text-[#111111] hover:bg-[#E5E5EA] dark:bg-white/[0.08] dark:text-white dark:hover:bg-white/[0.14]';
 
   const showPointsBlock = !embedded || forcedMode !== 'referral';
   const showReferralBlock = !embedded || forcedMode !== 'points';
@@ -292,76 +414,64 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
       className={
         embedded
           ? 'w-full'
-          : 'min-h-screen bg-[#FBFBFD] text-[#111111] pt-16 md:pt-12 pb-32 md:pb-24'
+          : 'min-h-screen bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-white pt-16 md:pt-12 pb-32 md:pb-24 transition-colors duration-200'
       }
     >
       <div className={embedded ? 'space-y-8' : 'mx-auto max-w-[680px] px-5 sm:px-8'}>
-        {error && (
-          <p className={`mb-6 text-sm ${muted}`}>{error}</p>
-        )}
+        {error && <p className={`mb-6 text-sm ${muted}`}>{error}</p>}
 
         {/* 1. SOLDE GIFT POINTS */}
         {showPointsBlock && (
           <section className={embedded ? 'pb-6' : 'pt-6 sm:pt-10 pb-10 sm:pb-12'}>
-            {!isSignedIn && !loading ? (
-              <div className="space-y-5">
-                <h1 className={`font-agrandir-extrabold text-3xl sm:text-4xl tracking-tight ${ink}`}>
-                  Gift Points
-                </h1>
-                <p className={`text-[15px] leading-relaxed max-w-md ${muted}`}>
-                  {isEn
-                    ? 'Sign in to view your Gift Points balance and share your invitation code.'
-                    : 'Connectez-vous pour retrouver votre solde de Gift Points et votre code de parrainage.'}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className={`inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-medium transition-colors ${primaryBtn}`}
-                >
-                  {isEn ? 'Sign in' : 'Se connecter'}
-                </button>
-              </div>
-            ) : (
-              <div>
-                <p className={`text-[13px] font-medium ${muted}`}>Gift Points</p>
-                <div className="mt-2 flex items-baseline gap-3">
-                  {loading ? (
-                    <div className={`h-11 w-44 rounded-lg animate-pulse ${surfaceSoft}`} />
-                  ) : (
-                    <h1
-                      className={`font-agrandir-extrabold text-[40px] sm:text-[52px] leading-none tracking-tight tabular-nums ${ink}`}
-                    >
-                      {formatNumber(balance)}
-                    </h1>
-                  )}
-                </div>
-
-                {!loading && (
-                  <div className="mt-4 flex items-center gap-5">
-                    <button
-                      type="button"
-                      onClick={() => setDetailsOpen(true)}
-                      className={`inline-flex items-center gap-1 text-[13px] font-medium transition-opacity hover:opacity-70 ${muted}`}
-                    >
-                      <span>{isEn ? 'Details & how it works' : 'Comment ça marche'}</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+            <div>
+              <p className={`text-[13px] font-medium ${muted}`}>Gift Points</p>
+              <div className="mt-2 flex items-baseline gap-3">
+                {loading ? (
+                  <div className={`h-11 w-44 rounded-lg animate-pulse ${surfaceSoft}`} />
+                ) : (
+                  <h1
+                    className={`font-agrandir-extrabold text-[40px] sm:text-[52px] leading-none tracking-tight tabular-nums ${ink}`}
+                  >
+                    {formatNumber(balance)}
+                  </h1>
                 )}
               </div>
-            )}
+
+              {!loading && (
+                <div className="mt-4 flex flex-wrap items-center gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setDetailsOpen(true)}
+                    className={`inline-flex items-center gap-1 text-[13px] font-medium transition-opacity hover:opacity-70 cursor-pointer ${muted}`}
+                  >
+                    <span>{isEn ? 'Details & how it works' : 'Comment ça marche'}</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+
+                  {!isSignedIn && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAuthModalOpen(true)}
+                      className={`inline-flex items-center justify-center rounded-full px-4 py-1.5 text-xs font-medium transition-colors cursor-pointer ${primaryBtn}`}
+                    >
+                      {isEn ? 'Sign in to sync' : 'Se connecter'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </section>
         )}
 
         {/* 2. PARRAINAGE */}
-        {showReferralBlock && isSignedIn && !loading && (
+        {showReferralBlock && !loading && (
           <section className={`border-t ${hairline} py-9 sm:py-11`}>
             <div className="space-y-5">
               <div>
                 <h2 className={`font-agrandir-semibold text-xl sm:text-2xl tracking-tight ${ink}`}>
                   {isEn ? 'Invite a friend. Earn 500 points.' : 'Invite un ami. Gagne 500 points.'}
                 </h2>
-                {referrals.length > 0 && (
+                {effectiveReferrals.length > 0 && (
                   <p className={`mt-1.5 text-[13px] ${muted}`}>
                     {isEn
                       ? `${validatedReferrals.length} validated · ${pendingReferrals.length} pending`
@@ -370,17 +480,17 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
                 )}
               </div>
 
-              {referralCode && (
+              {effectiveReferralCode && (
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-1">
                   <div className="select-all font-mono text-[22px] sm:text-[24px] tracking-[0.14em] font-medium">
-                    <span className={ink}>{referralCode}</span>
+                    <span className={ink}>{effectiveReferralCode}</span>
                   </div>
 
                   <div className="flex items-center gap-2.5">
                     <button
                       type="button"
                       onClick={handleCopy}
-                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${secondaryBtn}`}
+                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium transition-colors cursor-pointer ${secondaryBtn}`}
                     >
                       {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{copied ? (isEn ? 'Copied' : 'Copié') : isEn ? 'Copy' : 'Copier'}</span>
@@ -389,7 +499,7 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
                     <button
                       type="button"
                       onClick={handleShare}
-                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${primaryBtn}`}
+                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium transition-colors cursor-pointer ${primaryBtn}`}
                     >
                       <Share2 className="w-3.5 h-3.5" />
                       <span>{isEn ? 'Share' : 'Partager'}</span>
@@ -403,7 +513,7 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowCodeInput(true)}
-                    className={`text-[13px] transition-opacity hover:opacity-70 ${subtle}`}
+                    className={`text-[13px] transition-opacity hover:opacity-70 cursor-pointer ${subtle}`}
                   >
                     {isEn ? 'Have a referral code?' : 'J’ai un code de parrainage'}
                   </button>
@@ -420,7 +530,7 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
                     <button
                       type="submit"
                       disabled={applying || !codeInput.trim()}
-                      className={`rounded-full px-4 py-1.5 text-xs font-medium disabled:opacity-40 transition-colors ${primaryBtn}`}
+                      className={`rounded-full px-4 py-1.5 text-xs font-medium disabled:opacity-40 transition-colors cursor-pointer ${primaryBtn}`}
                     >
                       {applying ? '...' : isEn ? 'Apply' : 'Valider'}
                     </button>
@@ -431,7 +541,7 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
                         setCodeInput('');
                       }}
                       aria-label={isEn ? 'Cancel' : 'Annuler'}
-                      className={`p-1 ${subtle}`}
+                      className={`p-1 cursor-pointer ${subtle}`}
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -451,15 +561,9 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
 
             {loading ? (
               <div className={`h-40 w-full rounded-xl animate-pulse ${surfaceSoft}`} />
-            ) : offers.length === 0 ? (
-              <p className={`text-[15px] ${subtle}`}>
-                {isEn
-                  ? 'No rewards available right now.'
-                  : 'Aucune récompense disponible pour le moment.'}
-              </p>
             ) : (
               <div className="space-y-10">
-                {offers.map((offer) => {
+                {effectiveOffers.map((offer) => {
                   const isSurprise = offer.offer_type === 'surprise';
                   const isRevealed = !isSurprise || Boolean(revealedIds[offer.id]);
                   const endLabel = formatShortDate(offer.ends_at, isEn);
@@ -467,10 +571,11 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
                   return (
                     <article key={offer.id} className="group">
                       {offer.cover_url && (
-                        <div className="mb-4 overflow-hidden rounded-xl bg-black/5">
+                        <div className="mb-4 overflow-hidden rounded-2xl bg-black/5 dark:bg-white/[0.06]">
                           <img
                             src={offer.cover_url}
                             alt={offer.title}
+                            referrerPolicy="no-referrer"
                             className="w-full aspect-[16/9] object-cover transition-transform duration-700 group-hover:scale-[1.015]"
                           />
                         </div>
@@ -520,7 +625,7 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
                               onClick={() =>
                                 setRevealedIds((prev) => ({ ...prev, [offer.id]: true }))
                               }
-                              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${primaryBtn}`}
+                              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-colors cursor-pointer ${primaryBtn}`}
                             >
                               <span>{isEn ? 'Reveal' : 'Découvrir'}</span>
                             </button>
@@ -546,63 +651,55 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
         )}
 
         {/* 4. HISTORIQUE */}
-        {showHistoryBlock && isSignedIn && !loading && (
+        {showHistoryBlock && !loading && (
           <section className={`border-t ${hairline} py-9 sm:py-11`}>
             <h2 className={`text-[13px] font-medium mb-4 ${muted}`}>
               {isEn ? 'History' : 'Historique'}
             </h2>
 
-            {points.length === 0 ? (
-              <p className={`text-[15px] ${subtle}`}>
-                {isEn ? 'No activity yet.' : 'Aucune activité pour le moment.'}
-              </p>
-            ) : (
-              <>
-                <ul className={`divide-y ${isDark ? 'divide-white/[0.08]' : 'divide-black/[0.07]'}`}>
-                  {visibleHistory.map((row) => {
-                    const isPositive = row.points >= 0;
-                    return (
-                      <li
-                        key={row.id}
-                        className="flex items-center justify-between gap-4 py-3.5"
-                      >
-                        <div className="min-w-0">
-                          <p className={`text-[14px] sm:text-[15px] truncate ${ink}`}>
-                            {row.reason || (isPositive ? 'Gift Points' : isEn ? 'Reward' : 'Utilisation')}
-                          </p>
-                          <p className={`text-[12px] mt-0.5 ${subtle}`}>
-                            {formatShortDate(row.created_at, isEn)}
-                          </p>
-                        </div>
-
-                        <span
-                          className={`shrink-0 text-[14px] sm:text-[15px] font-medium tabular-nums ${
-                            isPositive ? ink : muted
-                          }`}
-                        >
-                          {isPositive ? `+${formatNumber(row.points)}` : formatNumber(row.points)}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-
-                {points.length > 6 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllHistory((v) => !v)}
-                    className={`mt-4 text-[13px] font-medium transition-opacity hover:opacity-70 ${muted}`}
+            <ul className="divide-y divide-black/[0.07] dark:divide-white/[0.08]">
+              {visibleHistory.map((row) => {
+                const isPositive = row.points >= 0;
+                return (
+                  <li
+                    key={row.id}
+                    className="flex items-center justify-between gap-4 py-3.5"
                   >
-                    {showAllHistory
-                      ? isEn
-                        ? 'Show less'
-                        : 'Voir moins'
-                      : isEn
-                        ? `View all (${points.length})`
-                        : `Voir tout (${points.length})`}
-                  </button>
-                )}
-              </>
+                    <div className="min-w-0">
+                      <p className={`text-[14px] sm:text-[15px] truncate ${ink}`}>
+                        {row.reason || (isPositive ? 'Gift Points' : isEn ? 'Reward' : 'Utilisation')}
+                      </p>
+                      <p className={`text-[12px] mt-0.5 ${subtle}`}>
+                        {formatShortDate(row.created_at, isEn)}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`shrink-0 text-[14px] sm:text-[15px] font-medium tabular-nums ${
+                        isPositive ? ink : muted
+                      }`}
+                    >
+                      {isPositive ? `+${formatNumber(row.points)}` : formatNumber(row.points)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {effectivePoints.length > 6 && (
+              <button
+                type="button"
+                onClick={() => setShowAllHistory((v) => !v)}
+                className={`mt-4 text-[13px] font-medium transition-opacity hover:opacity-70 cursor-pointer ${muted}`}
+              >
+                {showAllHistory
+                  ? isEn
+                    ? 'Show less'
+                    : 'Voir moins'
+                  : isEn
+                    ? `View all (${effectivePoints.length})`
+                    : `Voir tout (${effectivePoints.length})`}
+              </button>
             )}
           </section>
         )}
@@ -625,7 +722,7 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
               exit={{ opacity: 0, y: 24 }}
               transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl bg-white text-[#111111] p-6 sm:p-8 shadow-2xl"
+              className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl bg-white text-[#111111] dark:bg-[#111111] dark:text-white dark:border dark:border-white/[0.12] p-6 sm:p-8 shadow-2xl"
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-agrandir-semibold text-lg tracking-tight">
@@ -635,30 +732,30 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
                   type="button"
                   onClick={() => setDetailsOpen(false)}
                   aria-label={isEn ? 'Close' : 'Fermer'}
-                  className="p-1.5 rounded-full text-[#6E6E73] hover:bg-black/5 transition-colors"
+                  className="p-1.5 rounded-full text-[#6E6E73] dark:text-white/60 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="divide-y divide-black/[0.07] mb-6">
+              <div className="divide-y divide-black/[0.07] dark:divide-white/[0.08] mb-6">
                 <div className="flex items-center justify-between py-3 text-sm">
-                  <span className="text-[#6E6E73]">{isEn ? 'Earned' : 'Points gagnés'}</span>
+                  <span className="text-[#6E6E73] dark:text-white/55">{isEn ? 'Earned' : 'Points gagnés'}</span>
                   <span className="font-medium tabular-nums">{formatNumber(earned)}</span>
                 </div>
                 <div className="flex items-center justify-between py-3 text-sm">
-                  <span className="text-[#6E6E73]">{isEn ? 'Used' : 'Points utilisés'}</span>
+                  <span className="text-[#6E6E73] dark:text-white/55">{isEn ? 'Used' : 'Points utilisés'}</span>
                   <span className="font-medium tabular-nums">{formatNumber(used)}</span>
                 </div>
                 <div className="flex items-center justify-between py-3 text-sm">
-                  <span className="text-[#6E6E73]">
+                  <span className="text-[#6E6E73] dark:text-white/55">
                     {isEn ? 'Validated referrals' : 'Parrainages validés'}
                   </span>
                   <span className="font-medium tabular-nums">{validatedReferrals.length}</span>
                 </div>
               </div>
 
-              <div className="space-y-2.5 text-[13px] leading-relaxed text-[#6E6E73]">
+              <div className="space-y-2.5 text-[13px] leading-relaxed text-[#6E6E73] dark:text-white/60">
                 <p>
                   {isEn
                     ? '1 Gift Point equals 1 FCFA toward eligible LUMARÉEL rewards and offers.'
@@ -667,7 +764,7 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
                 <p>
                   {isEn
                     ? 'Each validated friend invitation credits 500 Gift Points to your balance.'
-                    : 'Chaque parrainage validé ajoute 500 Gift Points sur votre solde.'}
+                    : 'Chaque parrainage validé ajoute 500 Gift Points sur ton solde.'}
                 </p>
               </div>
             </motion.div>

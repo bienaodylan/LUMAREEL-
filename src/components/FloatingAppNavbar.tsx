@@ -136,39 +136,40 @@ export const FloatingAppNavbar: React.FC = () => {
       {/* Barre de navigation flottante façon Instagram : icônes épurées + pilule uniquement derrière l'élément actif */}
       {clubOpen && (
         <div className="fixed inset-0 z-[40] flex items-end justify-center overscroll-none md:items-center" role="dialog" aria-modal="true" aria-label="LUMARÉEL Club">
-          <button type="button" className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={() => setClubOpen(false)} aria-label="Fermer le Club" />
-          <motion.section initial={{ y: 36, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 36, opacity: 0 }} className="relative z-[45] mb-[calc(4.7rem+env(safe-area-inset-bottom,0px))] max-h-[calc(100svh-7rem-env(safe-area-inset-bottom,0px))] w-[calc(100%-1.25rem)] max-w-[520px] overflow-y-auto overscroll-contain rounded-[24px] border border-white/15 bg-[#101010] px-4 pb-3 pt-4 shadow-2xl md:mb-0">
-            <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-3">
-              <h2 className="text-[12px] font-agrandir-extrabold uppercase tracking-[0.14em] text-white">LUMARÉEL CLUB</h2>
-              <button type="button" onClick={() => setClubOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-[#242424] text-white" aria-label="Fermer"><X className="h-4 w-4" /></button>
+          <button type="button" className="absolute inset-0 bg-black/55 dark:bg-black/75 backdrop-blur-md" onClick={() => setClubOpen(false)} aria-label="Fermer le Club" />
+          <motion.section initial={{ y: 36, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 36, opacity: 0 }} className="relative z-[45] mb-[calc(5.4rem+env(safe-area-inset-bottom,0px))] max-h-[calc(100svh-7.5rem-env(safe-area-inset-bottom,0px))] w-[calc(100%-1.25rem)] max-w-[520px] overflow-y-auto overscroll-contain rounded-[24px] border border-black/[0.08] dark:border-white/15 bg-white dark:bg-[#101010] px-4 pb-3 pt-4 shadow-2xl md:mb-0">
+            <div className="mb-2 flex items-center justify-between border-b border-black/[0.08] dark:border-white/10 pb-3">
+              <h2 className="text-[12px] font-agrandir-extrabold uppercase tracking-[0.14em] text-[#111111] dark:text-white">LUMARÉEL CLUB</h2>
+              <button type="button" onClick={() => setClubOpen(false)} className="flex h-8 w-8 items-center justify-center rounded-full bg-black/[0.06] dark:bg-[#242424] text-[#111111] dark:text-white" aria-label="Fermer"><X className="h-4 w-4" /></button>
             </div>
             {[
-              { title: "Gift Points & Parrainage", subtitle: "Fidélité · 500 F en Gift Points par ami", icon: Award, page: "rewards" as PageView },
-              { title: "BACKSTAGE", subtitle: "Artistes · coulisses · Sessions Studio", icon: Film, page: "backstage" as PageView },
+              { title: isEn ? "Gift Points & Referrals" : "Gift Points & Parrainage", subtitle: isEn ? "Rewards · 500 FCFA per friend" : "Récompenses · 500 F par ami invité", icon: Award, page: "rewards" as PageView },
+              { title: "BACKSTAGE", subtitle: isEn ? "Artists · behind the scenes · Studio Sessions" : "Artistes · coulisses · Sessions Studio", icon: Film, page: "backstage" as PageView },
               { title: isEn ? "Memories" : "Souvenirs", subtitle: isEn ? "Events · photos · recaps" : "Événements · photos · récaps", icon: Camera, page: "memories" as PageView },
-              { title: "Ta Voix", subtitle: "Artistes · lieux · idées d’événements", icon: Lightbulb, page: "suggestions" as PageView },
+              { title: isEn ? "Your Voice" : "Ta Voix", subtitle: isEn ? "Artists · venues · event ideas" : "Propose tes artistes, lieux & idées", icon: Lightbulb, page: "suggestions" as PageView },
             ].map((item) => {
               const Icon = item.icon;
-              return <button key={item.title} type="button" onClick={() => { setClubOpen(false); setCurrentPage(item.page); }} className="flex min-h-[68px] w-full items-center gap-3 border-b border-white/[0.07] py-2.5 text-left last:border-0">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#202020]"><Icon className="h-[19px] w-[19px] text-neutral-200" strokeWidth={1.8} /></span>
-                <span className="min-w-0 flex-1"><span className="block break-words text-[12px] font-agrandir-extrabold leading-tight text-white">{item.title}</span><span className="mt-1 block text-[10px] leading-tight text-neutral-400">{item.subtitle}</span></span>
-                <ChevronRight className="h-[17px] w-[17px] shrink-0 text-neutral-500" />
+              return <button key={item.title} type="button" onClick={() => { setClubOpen(false); setCurrentPage(item.page); }} className="flex min-h-[68px] w-full items-center gap-3 border-b border-black/[0.07] dark:border-white/[0.07] py-2.5 text-left last:border-0">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/[0.05] dark:bg-[#202020]"><Icon className="h-[19px] w-[19px] text-[#111111] dark:text-neutral-200" strokeWidth={1.8} /></span>
+                <span className="min-w-0 flex-1"><span className="block break-words text-[12px] font-agrandir-extrabold leading-tight text-[#111111] dark:text-white">{item.title}</span><span className="mt-1 block text-[10px] leading-tight text-[#6E6E73] dark:text-neutral-400">{item.subtitle}</span></span>
+                <ChevronRight className="h-[17px] w-[17px] shrink-0 text-[#86868B] dark:text-neutral-500" />
               </button>;
             })}
           </motion.section>
         </div>
       )}
-      <motion.nav        initial={{ y: 24, opacity: 0 }}
+      <motion.nav
+        initial={{ y: 24, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 400, damping: 32 }}
         aria-label={t('nav.mainNav')}
-        className="fixed left-4 right-4 z-50 md:hidden select-none pointer-events-none"
+        className="fixed left-3 right-3 z-50 md:hidden select-none pointer-events-none"
         style={{
-          bottom: 'max(0.85rem, env(safe-area-inset-bottom, 0px))',
+          bottom: 'max(0.75rem, env(safe-area-inset-bottom, 0px))',
         }}
       >
         <div
-          className="pointer-events-auto mx-auto max-w-[360px] rounded-full border border-white/14 bg-[#121212]/88 backdrop-blur-2xl px-1.5 py-1.5 shadow-[0_14px_40px_rgba(0,0,0,0.88)]"
+          className="pointer-events-auto mx-auto max-w-[396px] rounded-full border border-black/[0.10] dark:border-white/14 bg-white/92 dark:bg-[#121212]/90 backdrop-blur-2xl px-2 py-2 shadow-[0_12px_36px_rgba(0,0,0,0.14)] dark:shadow-[0_14px_42px_rgba(0,0,0,0.88)]"
           style={{ WebkitBackdropFilter: 'blur(28px)' }}
         >
           <div className="grid grid-cols-5 items-center">
@@ -182,7 +183,7 @@ export const FloatingAppNavbar: React.FC = () => {
                   whileTap={{ scale: 0.9 }}
                   aria-label={item.ariaLabel}
                   aria-current={item.isActive ? 'page' : undefined}
-                  className="relative flex h-[44px] w-full items-center justify-center rounded-full outline-none cursor-pointer"
+                  className="relative flex h-[50px] w-full items-center justify-center rounded-full outline-none cursor-pointer"
                 >
                   {item.isActive && (
                     <motion.div
@@ -193,7 +194,7 @@ export const FloatingAppNavbar: React.FC = () => {
                         damping: 33,
                         mass: 0.72,
                       }}
-                      className="absolute inset-0.5 rounded-full bg-white/[0.16] ring-1 ring-inset ring-white/15"
+                      className="absolute inset-0.5 rounded-full bg-black/[0.08] ring-1 ring-inset ring-black/[0.06] dark:bg-white/[0.16] dark:ring-white/15"
                     />
                   )}
                   <motion.div
@@ -206,10 +207,10 @@ export const FloatingAppNavbar: React.FC = () => {
                     <Icon
                       aria-hidden="true"
                       fill={item.isActive && item.fillWhenActive ? 'currentColor' : 'none'}
-                      className={`h-[22px] w-[22px] shrink-0 transition-colors duration-200 ${
+                      className={`h-[24px] w-[24px] shrink-0 transition-colors duration-200 ${
                         item.isActive
-                          ? 'text-white stroke-[2.2]'
-                          : 'text-neutral-400 stroke-[1.75]'
+                          ? 'text-[#111111] dark:text-white stroke-[2.2]'
+                          : 'text-[#86868B] dark:text-neutral-400 stroke-[1.75]'
                       }`}
                     />
                   </motion.div>

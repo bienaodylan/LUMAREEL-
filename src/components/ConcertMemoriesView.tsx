@@ -13,6 +13,14 @@ import {
   Share2,
   X,
 } from 'lucide-react';
+import crowdMemoriesImg from '../assets/images/concert_memories_crowd_1795735706315.jpg';
+import concertsCrowdImg from '../assets/images/black_card_concerts_crowd_1794694902084.jpg';
+import soundcheckImg from '../assets/images/backstage_soundcheck_1795735706175.jpg';
+import studioSessionImg from '../assets/images/backstage_studio_session_1795735706831.jpg';
+import vipLoungeImg from '../assets/images/vip_lounge_empty_stage_1795099845090.jpg';
+import flashDropImg from '../assets/images/flash_vip_drop_1795735706997.jpg';
+import dressingRoomImg from '../assets/images/backstage_artist_dressing_1795857144421.jpg';
+import stageBeamsImg from '../assets/images/backstage_stage_beams_1795857146120.jpg';
 
 type RawAlbum = {
   id: string;
@@ -64,6 +72,56 @@ type MemoryEvent = {
   recapDuration: string;
   photos: MemoryPhoto[];
 };
+
+const PREVIEW_MEMORY_EVENTS: MemoryEvent[] = [
+  {
+    id: 'demo-mem-1',
+    title: 'Nuit LUMARÉEL · Esplanade',
+    dateLabel: '14 novembre 2026',
+    location: 'Palais de la Culture · Abidjan',
+    coverUrl: crowdMemoriesImg,
+    recapUrl: 'https://www.youtube.com/watch?v=ScMzIvxBSi4',
+    recapDuration: '03:48',
+    photos: [
+      { id: 'dm1-1', url: crowdMemoriesImg, sourceUrl: crowdMemoriesImg, downloadUrl: crowdMemoriesImg, mediaType: 'image' },
+      { id: 'dm1-2', url: stageBeamsImg, sourceUrl: stageBeamsImg, downloadUrl: stageBeamsImg, mediaType: 'image' },
+      { id: 'dm1-3', url: dressingRoomImg, sourceUrl: dressingRoomImg, downloadUrl: dressingRoomImg, mediaType: 'image' },
+      { id: 'dm1-4', url: concertsCrowdImg, sourceUrl: concertsCrowdImg, downloadUrl: concertsCrowdImg, mediaType: 'image' },
+      { id: 'dm1-5', url: soundcheckImg, sourceUrl: soundcheckImg, downloadUrl: soundcheckImg, mediaType: 'image' },
+      { id: 'dm1-6', url: vipLoungeImg, sourceUrl: vipLoungeImg, downloadUrl: vipLoungeImg, mediaType: 'image' },
+    ],
+  },
+  {
+    id: 'demo-mem-2',
+    title: 'Session Privée · Plateau',
+    dateLabel: '26 octobre 2026',
+    location: 'Lounge Panoramique · Abidjan',
+    coverUrl: concertsCrowdImg,
+    recapUrl: 'https://www.youtube.com/watch?v=kJQP7kiw5Fk',
+    recapDuration: '02:35',
+    photos: [
+      { id: 'dm2-1', url: concertsCrowdImg, sourceUrl: concertsCrowdImg, downloadUrl: concertsCrowdImg, mediaType: 'image' },
+      { id: 'dm2-2', url: flashDropImg, sourceUrl: flashDropImg, downloadUrl: flashDropImg, mediaType: 'image' },
+      { id: 'dm2-3', url: studioSessionImg, sourceUrl: studioSessionImg, downloadUrl: studioSessionImg, mediaType: 'image' },
+      { id: 'dm2-4', url: vipLoungeImg, sourceUrl: vipLoungeImg, downloadUrl: vipLoungeImg, mediaType: 'image' },
+    ],
+  },
+  {
+    id: 'demo-mem-3',
+    title: 'Black Card Showcase',
+    dateLabel: '3 octobre 2026',
+    location: 'Salle Lougah François · Abidjan',
+    coverUrl: flashDropImg,
+    recapUrl: '',
+    recapDuration: '',
+    photos: [
+      { id: 'dm3-1', url: flashDropImg, sourceUrl: flashDropImg, downloadUrl: flashDropImg, mediaType: 'image' },
+      { id: 'dm3-2', url: stageBeamsImg, sourceUrl: stageBeamsImg, downloadUrl: stageBeamsImg, mediaType: 'image' },
+      { id: 'dm3-3', url: crowdMemoriesImg, sourceUrl: crowdMemoriesImg, downloadUrl: crowdMemoriesImg, mediaType: 'image' },
+      { id: 'dm3-4', url: dressingRoomImg, sourceUrl: dressingRoomImg, downloadUrl: dressingRoomImg, mediaType: 'image' },
+    ],
+  },
+];
 
 const isDirectVideoUrl = (url: string) =>
   /\.(mp4|webm|mov|m4v|ogg)(\?|$)/i.test(url) || url.includes('/storage/v1/object/sign/');
@@ -268,7 +326,7 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
       });
     }
 
-    return list;
+    return list.length > 0 ? list : PREVIEW_MEMORY_EVENTS;
   }, [clubAlbums, archives, isEn]);
 
   const activeEvent = useMemo(
@@ -370,19 +428,19 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
   }, [activeRecap]);
 
   return (
-    <div className="min-h-screen bg-[#FBFBFD] text-[#111111] pt-16 md:pt-12 pb-32 md:pb-24">
+    <div className="min-h-screen bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-white pt-16 md:pt-12 pb-32 md:pb-24 transition-colors duration-200">
       <div className="mx-auto max-w-[1080px] px-5 sm:px-8">
         {!activeEvent ? (
           /* VUE PRINCIPALE SOUVENIRS */
           <div className="pt-4 sm:pt-8 space-y-12 sm:space-y-16">
-            <h1 className="font-agrandir-extrabold text-3xl sm:text-4xl tracking-tight text-[#111111]">
+            <h1 className="font-agrandir-extrabold text-3xl sm:text-4xl tracking-tight text-[#111111] dark:text-white">
               {isEn ? 'Memories' : 'Souvenirs'}
             </h1>
 
             {loading && allEvents.length === 0 ? (
-              <div className="w-full aspect-[4/3] sm:aspect-[16/9] rounded-xl bg-black/[0.05] animate-pulse" />
+              <div className="w-full aspect-[4/3] sm:aspect-[16/9] rounded-xl bg-black/[0.05] dark:bg-white/[0.06] animate-pulse" />
             ) : allEvents.length === 0 ? (
-              <p className="text-[15px] text-[#86868B] py-16">
+              <p className="text-[15px] text-[#86868B] dark:text-white/50 py-16">
                 {isEn
                   ? 'Event memories will appear here.'
                   : 'Les souvenirs des événements apparaîtront ici.'}
@@ -399,9 +457,9 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
                         setSelectionMode(false);
                         setSelectedIds([]);
                       }}
-                      className="group block w-full text-left"
+                      className="group block w-full text-left cursor-pointer"
                     >
-                      <div className="overflow-hidden rounded-xl bg-black/[0.05]">
+                      <div className="overflow-hidden rounded-xl bg-black/[0.05] dark:bg-white/[0.06]">
                         {featuredEvent.coverUrl ? (
                           <img
                             src={featuredEvent.coverUrl}
@@ -409,16 +467,16 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
                             className="w-full aspect-[4/3] sm:aspect-[16/9] object-cover transition-transform duration-700 group-hover:scale-[1.015]"
                           />
                         ) : (
-                          <div className="w-full aspect-[16/9] bg-[#ECECEF]" />
+                          <div className="w-full aspect-[16/9] bg-[#ECECEF] dark:bg-[#141414]" />
                         )}
                       </div>
 
                       <div className="mt-4 flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-1">
-                        <h2 className="font-agrandir-semibold text-xl sm:text-2xl tracking-tight text-[#111111]">
+                        <h2 className="font-agrandir-semibold text-xl sm:text-2xl tracking-tight text-[#111111] dark:text-white">
                           {featuredEvent.title}
                         </h2>
                         {featuredEvent.dateLabel && (
-                          <p className="text-[13px] text-[#6E6E73]">{featuredEvent.dateLabel}</p>
+                          <p className="text-[13px] text-[#6E6E73] dark:text-white/55">{featuredEvent.dateLabel}</p>
                         )}
                       </div>
                     </button>
@@ -437,9 +495,9 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
                           setSelectionMode(false);
                           setSelectedIds([]);
                         }}
-                        className="group block w-full text-left"
+                        className="group block w-full text-left cursor-pointer"
                       >
-                        <div className="overflow-hidden rounded-xl bg-black/[0.05]">
+                        <div className="overflow-hidden rounded-xl bg-black/[0.05] dark:bg-white/[0.06]">
                           {ev.coverUrl ? (
                             <img
                               src={ev.coverUrl}
@@ -447,15 +505,15 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
                               className="w-full aspect-[4/3] object-cover transition-transform duration-700 group-hover:scale-[1.02]"
                             />
                           ) : (
-                            <div className="w-full aspect-[4/3] bg-[#ECECEF]" />
+                            <div className="w-full aspect-[4/3] bg-[#ECECEF] dark:bg-[#141414]" />
                           )}
                         </div>
                         <div className="mt-3 space-y-0.5">
-                          <h3 className="font-agrandir-semibold text-[17px] tracking-tight text-[#111111]">
+                          <h3 className="font-agrandir-semibold text-[17px] tracking-tight text-[#111111] dark:text-white">
                             {ev.title}
                           </h3>
                           {ev.dateLabel && (
-                            <p className="text-[13px] text-[#6E6E73]">{ev.dateLabel}</p>
+                            <p className="text-[13px] text-[#6E6E73] dark:text-white/55">{ev.dateLabel}</p>
                           )}
                         </div>
                       </button>
@@ -465,8 +523,8 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
 
                 {/* Récaps & Aftermovies — affiché uniquement si des vidéos existent */}
                 {recapEvents.length > 0 && (
-                  <section className="border-t border-black/[0.08] pt-10 space-y-5">
-                    <h2 className="text-[13px] font-medium text-[#6E6E73]">
+                  <section className="border-t border-black/[0.08] dark:border-white/[0.1] pt-10 space-y-5">
+                    <h2 className="text-[13px] font-medium text-[#6E6E73] dark:text-white/55">
                       {isEn ? 'Recaps & Aftermovies' : 'Récaps & Aftermovies'}
                     </h2>
                     <div className="flex gap-4 sm:gap-5 overflow-x-auto no-scrollbar pb-2 -mx-5 px-5 sm:mx-0 sm:px-0">
@@ -475,7 +533,7 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
                           key={`recap-${ev.id}`}
                           type="button"
                           onClick={() => setActiveRecap(ev)}
-                          className="group shrink-0 w-[76vw] sm:w-[320px] text-left"
+                          className="group shrink-0 w-[76vw] sm:w-[320px] text-left cursor-pointer"
                         >
                           <div className="relative aspect-video overflow-hidden rounded-xl bg-black">
                             {ev.coverUrl && (
@@ -492,11 +550,11 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
                             </span>
                           </div>
                           <div className="mt-2.5 flex items-baseline justify-between gap-2">
-                            <p className="text-[14px] font-medium text-[#111111] truncate">
+                            <p className="text-[14px] font-medium text-[#111111] dark:text-white truncate">
                               {ev.title}
                             </p>
                             {ev.recapDuration && (
-                              <span className="shrink-0 text-[12px] text-[#86868B] tabular-nums">
+                              <span className="shrink-0 text-[12px] text-[#86868B] dark:text-white/45 tabular-nums">
                                 {ev.recapDuration}
                               </span>
                             )}
@@ -520,7 +578,7 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
                   setSelectionMode(false);
                   setSelectedIds([]);
                 }}
-                className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#6E6E73] hover:text-[#111111] transition-colors"
+                className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#6E6E73] hover:text-[#111111] dark:text-white/60 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>{isEn ? 'Memories' : 'Souvenirs'}</span>
@@ -531,7 +589,7 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
                   <button
                     type="button"
                     onClick={() => setActiveRecap(activeEvent)}
-                    className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#111111] hover:opacity-70 transition-opacity"
+                    className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#111111] dark:text-white hover:opacity-70 transition-opacity cursor-pointer"
                   >
                     <Play className="w-3.5 h-3.5 fill-current" />
                     <span>{isEn ? 'Recap' : 'Récap'}</span>
@@ -545,7 +603,7 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
                       setSelectionMode((prev) => !prev);
                       setSelectedIds([]);
                     }}
-                    className="text-[13px] font-medium text-[#6E6E73] hover:text-[#111111] transition-colors"
+                    className="text-[13px] font-medium text-[#6E6E73] hover:text-[#111111] dark:text-white/60 dark:hover:text-white transition-colors cursor-pointer"
                   >
                     {selectionMode
                       ? isEn
@@ -560,18 +618,18 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
             </div>
 
             <div className="pb-8 space-y-1">
-              <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-tight text-[#111111]">
+              <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-tight text-[#111111] dark:text-white">
                 {activeEvent.title}
               </h1>
               {(activeEvent.dateLabel || activeEvent.location) && (
-                <p className="text-[14px] text-[#6E6E73]">
+                <p className="text-[14px] text-[#6E6E73] dark:text-white/55">
                   {[activeEvent.dateLabel, activeEvent.location].filter(Boolean).join(' · ')}
                 </p>
               )}
             </div>
 
             {activeEvent.photos.length === 0 ? (
-              <p className="text-[15px] text-[#86868B] py-16">
+              <p className="text-[15px] text-[#86868B] dark:text-white/50 py-16">
                 {isEn ? 'No photos in this album yet.' : 'Aucune photo disponible pour cet événement.'}
               </p>
             ) : (
@@ -601,7 +659,7 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
                           }
                         }
                       }}
-                      className="relative break-inside-avoid overflow-hidden rounded-[6px] bg-black/[0.04] cursor-pointer group"
+                      className="relative break-inside-avoid overflow-hidden rounded-[6px] bg-black/[0.04] dark:bg-white/[0.05] cursor-pointer group"
                     >
                       <img
                         src={photo.url}
@@ -641,12 +699,12 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
             exit={{ opacity: 0, y: 20 }}
             className="fixed bottom-24 md:bottom-8 inset-x-0 z-40 flex justify-center px-4 pointer-events-none"
           >
-            <div className="pointer-events-auto inline-flex items-center gap-3 rounded-full bg-[#111111] text-white px-5 py-2.5 shadow-2xl">
+            <div className="pointer-events-auto inline-flex items-center gap-3 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black px-5 py-2.5 shadow-2xl">
               <button
                 type="button"
                 disabled={downloadingBatch}
                 onClick={handleBatchDownload}
-                className="inline-flex items-center gap-2 text-[13px] font-medium disabled:opacity-50"
+                className="inline-flex items-center gap-2 text-[13px] font-medium disabled:opacity-50 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 <span>
@@ -659,11 +717,11 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
                       : `Télécharger (${selectedIds.length})`}
                 </span>
               </button>
-              <span className="h-4 w-px bg-white/20" />
+              <span className="h-4 w-px bg-white/20 dark:bg-black/15" />
               <button
                 type="button"
                 onClick={() => setSelectedIds([])}
-                className="text-[12px] text-white/65 hover:text-white"
+                className="text-[12px] text-white/65 hover:text-white dark:text-black/60 dark:hover:text-black cursor-pointer"
               >
                 {isEn ? 'Clear' : 'Effacer'}
               </button>

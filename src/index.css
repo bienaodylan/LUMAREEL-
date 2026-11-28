@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @font-face {
   font-family: 'Agrandir Grand';
@@ -26,26 +27,26 @@
 
 @layer base {
   :root {
-    /* LUMARÉEL Design System — Palette stricte mode sombre */
-    --bg: #000000;
-    --surface: #0E0E0E;
-    --surface-control: #141414;
-    --text: #FFFFFF;
-    --text-secondary: #C8C8C8;
-    --text-muted: #9A9A9A;
-    --border: rgba(255, 255, 255, 0.12);
+    /* LUMARÉEL Design System — Mode clair par défaut */
+    --bg: #FBFBFD;
+    --surface: #FFFFFF;
+    --surface-control: #F2F2F5;
+    --text: #111111;
+    --text-secondary: #48484A;
+    --text-muted: #6E6E73;
+    --border: rgba(0, 0, 0, 0.09);
     --gold: #D4AF6A;
     --gold-hover: #E1BE7D;
 
     /* Statuts éditoriaux & scanner */
-    --status-valid-fg: #7FE0A6;
-    --status-valid-bg: #0F2A1A;
-    --status-study-fg: #A9C7F0;
-    --status-study-bg: #1F2A3A;
-    --status-neutral-fg: #C8C8C8;
-    --status-neutral-bg: #262626;
-    --status-retained-fg: #D4AF6A;
-    --status-retained-bg: #2A2112;
+    --status-valid-fg: #127A43;
+    --status-valid-bg: #E8F7EE;
+    --status-study-fg: #1E4B8F;
+    --status-study-bg: #EBF2FC;
+    --status-neutral-fg: #48484A;
+    --status-neutral-bg: #EFEFF4;
+    --status-retained-fg: #111111;
+    --status-retained-bg: #ECECEF;
 
     --scan-valid: #0E6B37;
     --scan-used: #F2A23A;
@@ -64,6 +65,26 @@
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 
+  .dark {
+    /* LUMARÉEL Design System — Mode sombre */
+    --bg: #000000;
+    --surface: #0E0E0E;
+    --surface-control: #141414;
+    --text: #FFFFFF;
+    --text-secondary: #C8C8C8;
+    --text-muted: #9A9A9A;
+    --border: rgba(255, 255, 255, 0.12);
+
+    --status-valid-fg: #7FE0A6;
+    --status-valid-bg: #0F2A1A;
+    --status-study-fg: #A9C7F0;
+    --status-study-bg: #1F2A3A;
+    --status-neutral-fg: #C8C8C8;
+    --status-neutral-bg: #262626;
+    --status-retained-fg: #FFFFFF;
+    --status-retained-bg: #242426;
+  }
+
   *, html, body, button, input, select, textarea, a, p, span, div, h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-agrandir);
   }
@@ -77,6 +98,10 @@
     color: var(--text);
     letter-spacing: -0.01em;
     -webkit-tap-highlight-color: transparent;
+    color-scheme: light;
+  }
+
+  html.dark {
     color-scheme: dark;
   }
 
@@ -166,9 +191,14 @@
 }
 
 .lum-skeleton {
-  background: linear-gradient(90deg, #0E0E0E 25%, #1A1A1A 50%, #0E0E0E 75%);
+  background: linear-gradient(90deg, #ECECEF 25%, #F5F5F7 50%, #ECECEF 75%);
   background-size: 200% 100%;
   animation: lumSkeletonPulse 1.6s ease-in-out infinite;
+}
+
+.dark .lum-skeleton {
+  background: linear-gradient(90deg, #0E0E0E 25%, #1A1A1A 50%, #0E0E0E 75%);
+  background-size: 200% 100%;
 }
 
 /* Print styling for e-tickets */
@@ -215,12 +245,12 @@
 /* Homepage editorial system — mobile-first, monochrome, sharp edges, isolated horizontal rails */
 /* Git-to-Vercel preview sync checkpoint: mobile homepage updates. */
 .home-editorial {
-  --home-black: #050505;
-  --home-deep: #111111;
-  --home-gray: #777777;
-  --home-light: #E8E8E8;
-  background: var(--home-black);
-  color: #FFFFFF;
+  --home-black: var(--bg);
+  --home-deep: var(--surface);
+  --home-gray: var(--text-muted);
+  --home-light: var(--text);
+  background: var(--bg);
+  color: var(--text);
 }
 .home-editorial .home-hero-frame,
 .home-editorial .home-quick-tile,
@@ -243,7 +273,7 @@
   scroll-margin-top: 1rem;
 }
 .home-editorial button:focus-visible {
-  outline: 2px solid #FFFFFF;
+  outline: 2px solid var(--text);
   outline-offset: 3px;
 }
 @media (max-width: 640px) {

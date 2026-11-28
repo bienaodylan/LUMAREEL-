@@ -73,8 +73,8 @@ const MainApp: React.FC = () => {
           }
           showToast(
             isCard
-              ? (language === 'en' ? 'LUMARÉEL Black Card payment confirmed! Your card is ready.' : 'Paiement LUMARÉEL Black Card confirmé ! Votre carte est prête.')
-              : (language === 'en' ? 'Payment confirmed! Your tickets are available.' : 'Paiement confirmé ! Vos billets sont disponibles.'),
+              ? (language === 'en' ? 'LUMARÉEL Black Card confirmed! Your card is ready.' : 'Paiement confirmé ! Ta carte LUMARÉEL est prête.')
+              : (language === 'en' ? 'Payment confirmed! Your tickets are available.' : 'Paiement confirmé ! Tes billets sont dispos.'),
             'success'
           );
           setCurrentPage(isCard ? 'member_card' : 'client_space');
@@ -134,20 +134,8 @@ const MainApp: React.FC = () => {
     currentPage !== 'backstage' &&
     currentPage !== 'event_detail' &&
     (!isStandalone || isHomePage || !isStandaloneRootTab);
-  const isLightClubPage =
-    currentPage === 'rewards' ||
-    currentPage === 'flash_drops' ||
-    currentPage === 'memories' ||
-    currentPage === 'suggestions';
-
   return (
-    <div
-      className={`min-h-screen w-full max-w-full flex flex-col justify-between font-agrandir-regular relative transition-colors duration-200 ${
-        isLightClubPage
-          ? 'bg-[#FBFBFD] text-[#111111] selection:bg-black selection:text-white'
-          : 'bg-black text-[#EFEFEF] selection:bg-white selection:text-black'
-      }`}
-    >
+    <div className="min-h-screen w-full max-w-full flex flex-col justify-between font-agrandir-regular relative transition-colors duration-200 bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-[#EFEFEF] selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black">
       {/* Indicateur hors-ligne discret pour la PWA */}
       <OfflineIndicator />
 
@@ -225,7 +213,7 @@ const MainApp: React.FC = () => {
       {/* Minimal Toast Notification */}
       {toast && (
         <div
-          className={`fixed left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-[95] bg-[#141414]/95 backdrop-blur-md border border-white/20 px-4 py-3 shadow-2xl font-agrandir-regular text-xs flex items-center gap-3 text-white animate-slideUp rounded-2xl ${
+          className={`fixed left-4 right-4 sm:left-auto sm:right-6 sm:max-w-sm z-[95] bg-[#111111]/95 dark:bg-[#161616]/95 backdrop-blur-md border border-black/10 dark:border-white/20 px-4 py-3 shadow-2xl font-agrandir-regular text-xs flex items-center gap-3 text-white animate-slideUp rounded-2xl ${
             isStandalone ? 'bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] md:bottom-8' : 'bottom-6 sm:bottom-8'
           }`}
         >

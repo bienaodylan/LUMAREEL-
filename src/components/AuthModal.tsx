@@ -190,7 +190,7 @@ export const AuthModal: React.FC = () => {
 
     if (mode === 'register' && !isValidNameInput(cleanName)) {
       showToast(
-        isEn ? 'Please enter your full name.' : 'Veuillez saisir votre nom complet.',
+        isEn ? 'Please enter your full name.' : 'Écris ton nom complet pour continuer.',
         'error'
       );
       return;
@@ -218,7 +218,7 @@ export const AuthModal: React.FC = () => {
           showToast(
             isEn
               ? 'Account created. Check your email to confirm your address, then sign in.'
-              : 'Compte créé. Vérifiez votre e-mail pour confirmer votre adresse, puis connectez-vous.',
+              : 'Ton compte est créé ! Vérifie ton e-mail pour confirmer ton adresse, puis connecte-toi.',
             'success'
           );
           return;
@@ -269,10 +269,10 @@ export const AuthModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black text-white overflow-y-auto flex flex-col font-agrandir-regular">
+    <div className="fixed inset-0 z-[100] bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-white overflow-y-auto flex flex-col font-agrandir-regular transition-colors duration-200">
       {/* En-tête pleine page avec Retour + Logo */}
       <header
-        className="sticky top-0 z-20 bg-black/95 backdrop-blur-xl border-b border-white/[0.08]"
+        className="sticky top-0 z-20 bg-[#FBFBFD]/95 dark:bg-black/95 backdrop-blur-xl border-b border-black/[0.08] dark:border-white/[0.08]"
         style={{ paddingTop: 'max(0.85rem, env(safe-area-inset-top, 0px))' }}
       >
         <div className="w-full max-w-lg mx-auto px-5 pb-3.5 flex items-center justify-between gap-3">
@@ -285,7 +285,7 @@ export const AuthModal: React.FC = () => {
                 setIsAuthModalOpen(false);
               }
             }}
-            className="inline-flex items-center gap-2 min-h-[38px] px-3.5 -ml-1 rounded-full bg-[#121212] hover:bg-[#1B1B1B] border border-white/[0.12] text-xs font-agrandir-semibold text-white transition-colors cursor-pointer lum-press"
+            className="inline-flex items-center gap-2 min-h-[38px] px-3.5 -ml-1 rounded-full bg-black/[0.05] hover:bg-black/[0.1] dark:bg-[#121212] dark:hover:bg-[#1B1B1B] border border-black/10 dark:border-white/[0.12] text-xs font-agrandir-semibold text-[#111111] dark:text-white transition-colors cursor-pointer lum-press"
           >
             <ArrowLeft className="w-4 h-4 shrink-0" strokeWidth={1.7} />
             <span>{isEn ? 'Back' : 'Retour'}</span>
@@ -294,7 +294,7 @@ export const AuthModal: React.FC = () => {
           <img
             src={logoSrc}
             alt="LUMARÉEL"
-            className="h-5 sm:h-6 w-auto object-contain"
+            className="h-5 sm:h-6 w-auto object-contain invert dark:invert-0"
           />
 
           <div className="w-[74px]" aria-hidden="true" />
@@ -309,13 +309,11 @@ export const AuthModal: React.FC = () => {
         {socialConfirmProvider ? (
           <div className="space-y-6">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#121212] border border-white/[0.12] text-[11px] font-agrandir-semibold text-white">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/[0.05] dark:bg-[#121212] border border-black/10 dark:border-white/[0.12] text-[11px] font-agrandir-semibold text-[#111111] dark:text-white">
                 {socialConfirmProvider === 'google' ? <GoogleLogo /> : <AppleLogo />}
-                <span>
-                  {socialConfirmProvider === 'google' ? 'Google' : 'Apple'}
-                </span>
+                <span>{socialConfirmProvider === 'google' ? 'Google' : 'Apple'}</span>
               </div>
-              <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white uppercase tracking-tight">
+              <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-[#111111] dark:text-white uppercase tracking-tight">
                 {socialConfirmProvider === 'google'
                   ? isEn
                     ? 'Continue with Google'
@@ -324,51 +322,51 @@ export const AuthModal: React.FC = () => {
                   ? 'Continue with Apple'
                   : 'Continuer avec Apple'}
               </h1>
-              <p className="text-xs sm:text-sm text-[#9A9A9A] leading-relaxed">
+              <p className="text-xs sm:text-sm text-black/55 dark:text-[#9A9A9A] leading-relaxed">
                 {isEn
                   ? 'Confirm the profile details to link to your LUMARÉEL account.'
-                  : 'Confirmez le profil à associer à votre espace LUMARÉEL.'}
+                  : 'Confirme ton profil pour le relier à ton espace LUMARÉEL.'}
               </p>
             </div>
 
             <form onSubmit={handleConfirmSocialEffective} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.16em] text-[#9A9A9A]">
+                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.16em] text-black/55 dark:text-[#9A9A9A]">
                   {t('auth.fullName')}
                 </label>
                 <div className="relative">
-                  <UserIcon className="w-4 h-4 text-[#666] absolute left-4 top-1/2 -translate-y-1/2" />
+                  <UserIcon className="w-4 h-4 text-black/40 dark:text-[#666] absolute left-4 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
                     value={socialName}
                     onChange={(e) => setSocialName(e.target.value)}
                     placeholder={t('auth.fullNamePlaceholder')}
-                    className="w-full min-h-[48px] bg-[#121212] border border-white/[0.14] focus:border-[#D4AF6A] rounded-2xl pl-11 pr-4 text-sm text-white placeholder:text-[#555] focus:outline-none transition-colors"
+                    className="w-full min-h-[48px] bg-white dark:bg-[#121212] border border-black/15 dark:border-white/[0.14] focus:border-black dark:focus:border-white rounded-2xl pl-11 pr-4 text-sm text-[#111111] dark:text-white placeholder:text-black/35 dark:placeholder:text-[#555] focus:outline-none transition-colors"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.16em] text-[#9A9A9A]">
+                <label className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.16em] text-black/55 dark:text-[#9A9A9A]">
                   {t('auth.email')}
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-[#666] absolute left-4 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-black/40 dark:text-[#666] absolute left-4 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     required
                     value={socialEmail}
                     onChange={(e) => setSocialEmail(e.target.value)}
                     placeholder="email@domain.com"
-                    className="w-full min-h-[48px] bg-[#121212] border border-white/[0.14] focus:border-[#D4AF6A] rounded-2xl pl-11 pr-4 text-sm text-white placeholder:text-[#555] focus:outline-none transition-colors"
+                    className="w-full min-h-[48px] bg-white dark:bg-[#121212] border border-black/15 dark:border-white/[0.14] focus:border-black dark:focus:border-white rounded-2xl pl-11 pr-4 text-sm text-[#111111] dark:text-white placeholder:text-black/35 dark:placeholder:text-[#555] focus:outline-none transition-colors"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full min-h-[50px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer lum-press"
+                className="w-full min-h-[50px] rounded-full bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:hover:bg-neutral-200 dark:text-black font-agrandir-extrabold text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-colors cursor-pointer lum-press"
               >
                 <span>
                   {socialConfirmProvider === 'google'
@@ -388,26 +386,26 @@ export const AuthModal: React.FC = () => {
             {/* Titre & Bascule Connexion / Inscription */}
             <div className="space-y-4">
               <div>
-                <p className="text-[10px] font-agrandir-extrabold uppercase tracking-[0.24em] text-[#D4AF6A] mb-1.5">
+                <p className="text-[10px] font-agrandir-extrabold uppercase tracking-[0.24em] text-black/45 dark:text-white/50 mb-1.5">
                   {t('auth.kicker')}
                 </p>
-                <h1 className="font-agrandir-extrabold text-3xl sm:text-4xl text-white uppercase tracking-tight leading-none">
+                <h1 className="font-agrandir-extrabold text-3xl sm:text-4xl text-[#111111] dark:text-white uppercase tracking-tight leading-none">
                   {mode === 'login' ? t('auth.loginTitle') : t('auth.registerTitle')}
                 </h1>
-                <p className="text-xs sm:text-sm text-[#9A9A9A] mt-2 leading-relaxed">
+                <p className="text-xs sm:text-sm text-black/55 dark:text-[#9A9A9A] mt-2 leading-relaxed">
                   {mode === 'login' ? t('auth.loginSub') : t('auth.registerSub')}
                 </p>
               </div>
 
               {/* Onglets Connexion / Inscription */}
-              <div className="grid grid-cols-2 p-1 rounded-full bg-[#121212] border border-white/[0.12]">
+              <div className="grid grid-cols-2 p-1 rounded-full bg-black/[0.05] dark:bg-[#121212] border border-black/[0.08] dark:border-white/[0.12]">
                 <button
                   type="button"
                   onClick={() => setMode('login')}
                   className={`min-h-[40px] rounded-full text-xs transition-colors cursor-pointer ${
                     mode === 'login'
-                      ? 'bg-white text-black font-agrandir-extrabold'
-                      : 'text-[#9A9A9A] hover:text-white font-agrandir-semibold'
+                      ? 'bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold'
+                      : 'text-black/55 hover:text-black dark:text-[#9A9A9A] dark:hover:text-white font-agrandir-semibold'
                   }`}
                 >
                   {isEn ? 'Sign in' : 'Connexion'}
@@ -417,8 +415,8 @@ export const AuthModal: React.FC = () => {
                   onClick={() => setMode('register')}
                   className={`min-h-[40px] rounded-full text-xs transition-colors cursor-pointer ${
                     mode === 'register'
-                      ? 'bg-white text-black font-agrandir-extrabold'
-                      : 'text-[#9A9A9A] hover:text-white font-agrandir-semibold'
+                      ? 'bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold'
+                      : 'text-black/55 hover:text-black dark:text-[#9A9A9A] dark:hover:text-white font-agrandir-semibold'
                   }`}
                 >
                   {isEn ? 'Sign up' : 'Inscription'}
@@ -432,7 +430,7 @@ export const AuthModal: React.FC = () => {
                 type="button"
                 disabled={isLoading || Boolean(oauthLoading)}
                 onClick={() => handleOAuthSignIn('google')}
-                className="w-full min-h-[48px] px-4 rounded-full bg-[#121212] hover:bg-[#1B1B1B] border border-white/[0.14] hover:border-white/30 text-white font-agrandir-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-colors cursor-pointer disabled:opacity-50 lum-press"
+                className="w-full min-h-[48px] px-4 rounded-full bg-white hover:bg-black/[0.04] dark:bg-[#121212] dark:hover:bg-[#1B1B1B] border border-black/15 dark:border-white/[0.14] text-[#111111] dark:text-white font-agrandir-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-colors cursor-pointer disabled:opacity-50 lum-press"
               >
                 <GoogleLogo />
                 <span>
@@ -450,7 +448,7 @@ export const AuthModal: React.FC = () => {
                 type="button"
                 disabled={isLoading || Boolean(oauthLoading)}
                 onClick={() => handleOAuthSignIn('apple')}
-                className="w-full min-h-[48px] px-4 rounded-full bg-[#121212] hover:bg-[#1B1B1B] border border-white/[0.14] hover:border-white/30 text-white font-agrandir-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-colors cursor-pointer disabled:opacity-50 lum-press"
+                className="w-full min-h-[48px] px-4 rounded-full bg-white hover:bg-black/[0.04] dark:bg-[#121212] dark:hover:bg-[#1B1B1B] border border-black/15 dark:border-white/[0.14] text-[#111111] dark:text-white font-agrandir-semibold text-xs sm:text-sm flex items-center justify-center gap-2.5 transition-colors cursor-pointer disabled:opacity-50 lum-press"
               >
                 <AppleLogo />
                 <span>
@@ -466,54 +464,54 @@ export const AuthModal: React.FC = () => {
             </div>
 
             <div className="relative flex items-center gap-3">
-              <div className="h-px flex-1 bg-white/[0.10]" />
-              <span className="text-[10px] uppercase tracking-[0.2em] text-[#777]">
+              <div className="h-px flex-1 bg-black/10 dark:bg-white/[0.10]" />
+              <span className="text-[10px] uppercase tracking-[0.2em] text-black/45 dark:text-[#777]">
                 {isEn ? 'or with email' : 'ou par e-mail'}
               </span>
-              <div className="h-px flex-1 bg-white/[0.10]" />
+              <div className="h-px flex-1 bg-black/10 dark:bg-white/[0.10]" />
             </div>
 
             {/* Formulaire Email & Mot de passe */}
             <form onSubmit={handleSubmit} className="space-y-4">
               {mode === 'register' && (
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] text-[#9A9A9A] uppercase tracking-[0.16em] font-agrandir-semibold">
+                  <label className="block text-[10px] text-black/55 dark:text-[#9A9A9A] uppercase tracking-[0.16em] font-agrandir-semibold">
                     {t('auth.fullName')}
                   </label>
                   <div className="relative">
-                    <UserIcon className="w-4 h-4 text-[#666] absolute left-4 top-1/2 -translate-y-1/2" />
+                    <UserIcon className="w-4 h-4 text-black/40 dark:text-[#666] absolute left-4 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder={t('auth.fullNamePlaceholder')}
-                      className="w-full min-h-[48px] bg-[#121212] border border-white/[0.14] rounded-2xl pl-11 pr-4 text-white focus:outline-none focus:border-[#D4AF6A] text-sm placeholder:text-[#555] transition-colors"
+                      className="w-full min-h-[48px] bg-white dark:bg-[#121212] border border-black/15 dark:border-white/[0.14] rounded-2xl pl-11 pr-4 text-[#111111] dark:text-white focus:outline-none focus:border-black dark:focus:border-white text-sm placeholder:text-black/35 dark:placeholder:text-[#555] transition-colors"
                     />
                   </div>
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <label className="block text-[10px] text-[#9A9A9A] uppercase tracking-[0.16em] font-agrandir-semibold">
+                <label className="block text-[10px] text-black/55 dark:text-[#9A9A9A] uppercase tracking-[0.16em] font-agrandir-semibold">
                   {t('auth.email')}
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-[#666] absolute left-4 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-black/40 dark:text-[#666] absolute left-4 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="email@domain.com"
-                    className="w-full min-h-[48px] bg-[#121212] border border-white/[0.14] rounded-2xl pl-11 pr-4 text-white focus:outline-none focus:border-[#D4AF6A] text-sm placeholder:text-[#555] transition-colors"
+                    className="w-full min-h-[48px] bg-white dark:bg-[#121212] border border-black/15 dark:border-white/[0.14] rounded-2xl pl-11 pr-4 text-[#111111] dark:text-white focus:outline-none focus:border-black dark:focus:border-white text-sm placeholder:text-black/35 dark:placeholder:text-[#555] transition-colors"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-[10px] text-[#9A9A9A] uppercase tracking-[0.16em] font-agrandir-semibold">
+                  <label className="block text-[10px] text-black/55 dark:text-[#9A9A9A] uppercase tracking-[0.16em] font-agrandir-semibold">
                     {t('auth.password')}
                   </label>
                   {mode === 'login' && (
@@ -521,14 +519,14 @@ export const AuthModal: React.FC = () => {
                       type="button"
                       onClick={handlePasswordReset}
                       disabled={isResettingPassword}
-                      className="text-[11px] text-[#9A9A9A] hover:text-white underline cursor-pointer transition-colors"
+                      className="text-[11px] text-black/55 hover:text-black dark:text-[#9A9A9A] dark:hover:text-white underline cursor-pointer transition-colors"
                     >
                       {isResettingPassword ? t('auth.sending') : t('auth.forgot')}
                     </button>
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-[#666] absolute left-4 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-black/40 dark:text-[#666] absolute left-4 top-1/2 -translate-y-1/2" />
                   <input
                     type="password"
                     required
@@ -537,7 +535,7 @@ export const AuthModal: React.FC = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full min-h-[48px] bg-[#121212] border border-white/[0.14] rounded-2xl pl-11 pr-4 text-white focus:outline-none focus:border-[#D4AF6A] text-sm placeholder:text-[#555] transition-colors"
+                    className="w-full min-h-[48px] bg-white dark:bg-[#121212] border border-black/15 dark:border-white/[0.14] rounded-2xl pl-11 pr-4 text-[#111111] dark:text-white focus:outline-none focus:border-black dark:focus:border-white text-sm placeholder:text-black/35 dark:placeholder:text-[#555] transition-colors"
                   />
                 </div>
               </div>
@@ -545,7 +543,7 @@ export const AuthModal: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full min-h-[52px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold uppercase tracking-wider text-xs sm:text-sm rounded-full transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer shadow-lg disabled:opacity-50 lum-press"
+                className="w-full min-h-[52px] bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:hover:bg-neutral-200 dark:text-black font-agrandir-extrabold uppercase tracking-wider text-xs sm:text-sm rounded-full transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer shadow-lg disabled:opacity-50 lum-press"
               >
                 {isLoading ? (
                   <span className="animate-pulse">{t('auth.verifying')}</span>
@@ -559,21 +557,19 @@ export const AuthModal: React.FC = () => {
             </form>
 
             {/* Bascule secondaire */}
-            <div className="pt-4 border-t border-white/[0.10] flex items-center justify-between text-xs text-[#9A9A9A]">
-              <span>
-                {mode === 'login' ? t('auth.noAccount') : t('auth.alreadyAccount')}
-              </span>
+            <div className="pt-4 border-t border-black/10 dark:border-white/[0.10] flex items-center justify-between text-xs text-black/55 dark:text-[#9A9A9A]">
+              <span>{mode === 'login' ? t('auth.noAccount') : t('auth.alreadyAccount')}</span>
               <button
                 type="button"
                 onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-                className="text-white hover:text-[#D4AF6A] underline uppercase tracking-wider font-agrandir-extrabold text-[11px] cursor-pointer transition-colors"
+                className="text-[#111111] dark:text-white hover:opacity-75 underline uppercase tracking-wider font-agrandir-extrabold text-[11px] cursor-pointer transition-opacity"
               >
                 {mode === 'login' ? t('auth.switchRegister') : t('auth.switchLogin')}
               </button>
             </div>
 
-            <div className="text-center text-[11px] text-[#666] flex items-center justify-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#777]" />
+            <div className="text-center text-[11px] text-black/45 dark:text-[#666] flex items-center justify-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5" />
               <span>{t('auth.secureBadge')}</span>
             </div>
           </div>

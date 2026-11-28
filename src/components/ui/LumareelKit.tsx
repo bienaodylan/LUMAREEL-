@@ -26,7 +26,7 @@ export const ScrollReveal: React.FC<{
    2. SkeletonBlock — Chargements sombres (jamais de spinner seul)
    ============================================================================ */
 export const SkeletonBlock: React.FC<{ className?: string }> = ({ className = 'h-24 w-full' }) => (
-  <div aria-hidden="true" className={`lum-skeleton rounded-2xl border border-white/[0.06] ${className}`} />
+  <div aria-hidden="true" className={`lum-skeleton rounded-2xl border border-black/[0.06] dark:border-white/[0.06] ${className}`} />
 );
 
 /* ============================================================================
@@ -54,14 +54,14 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   <div className={className}>
     {(letter || kicker) && (
       <div className="flex items-center gap-2.5 text-[11px] font-agrandir-extrabold uppercase tracking-[0.23em] mb-2">
-        {letter && <span className="text-[#D4AF6A]">{letter}</span>}
-        {kicker && <span className={letter ? 'text-white' : 'text-[#D4AF6A]'}>{kicker}</span>}
+        {letter && <span className="text-black/50 dark:text-white/55">{letter}</span>}
+        {kicker && <span className={letter ? 'text-[#111111] dark:text-white' : 'text-black/50 dark:text-white/55'}>{kicker}</span>}
       </div>
     )}
     {(title || actionLabel) && (
       <div className="flex items-baseline justify-between gap-4">
         {title && (
-          <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-white tracking-tight">
+          <h2 className="font-agrandir-extrabold text-xl sm:text-2xl text-[#111111] dark:text-white tracking-tight">
             {title}
           </h2>
         )}
@@ -69,14 +69,14 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
           <button
             type="button"
             onClick={onAction}
-            className="text-xs sm:text-sm font-agrandir-semibold text-[#9A9A9A] hover:text-white transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            className="text-xs sm:text-sm font-agrandir-semibold text-black/55 hover:text-black dark:text-[#9A9A9A] dark:hover:text-white transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
             {actionLabel}
           </button>
         )}
       </div>
     )}
-    {goldDivider && <div className="mt-3 h-px w-full bg-[#D4AF6A]/45" />}
+    {goldDivider && <div className="mt-3 h-px w-full bg-black/15 dark:bg-white/20" />}
   </div>
 );
 
@@ -114,28 +114,28 @@ export const EditorialRow: React.FC<EditorialRowProps> = ({
     >
       <div className="flex items-start gap-4 min-w-0 flex-1">
         {index && (
-          <span className="text-xs font-mono text-[#D4AF6A] tabular-nums w-6 pt-1 shrink-0">
+          <span className="text-xs font-mono text-black/45 dark:text-white/50 tabular-nums w-6 pt-1 shrink-0">
             {index}
           </span>
         )}
         {icon && <span className="pt-0.5 shrink-0">{icon}</span>}
         <div className="min-w-0 flex-1">
-          <p className="font-agrandir-extrabold text-base sm:text-lg text-white group-hover:text-[#D4AF6A] transition-colors leading-snug truncate">
+          <p className="font-agrandir-extrabold text-base sm:text-lg text-[#111111] dark:text-white group-hover:opacity-75 transition-opacity leading-snug truncate">
             {title}
           </p>
           {subtitle && (
-            <p className="text-xs text-[#9A9A9A] mt-0.5 truncate">{subtitle}</p>
+            <p className="text-xs text-black/55 dark:text-[#9A9A9A] mt-0.5 truncate">{subtitle}</p>
           )}
         </div>
       </div>
 
       <div className="flex items-center gap-2.5 shrink-0">
         {rightText && (
-          <span className="text-xs sm:text-sm text-[#9A9A9A] group-hover:text-[#C8C8C8] transition-colors whitespace-nowrap">
+          <span className="text-xs sm:text-sm text-black/55 dark:text-[#9A9A9A] group-hover:text-black dark:group-hover:text-[#C8C8C8] transition-colors whitespace-nowrap">
             {rightText}
           </span>
         )}
-        {accentDot && <span className="w-2 h-2 rounded-full bg-[#D4AF6A]" aria-hidden="true" />}
+        {accentDot && <span className="w-2 h-2 rounded-full bg-[#111111] dark:bg-white" aria-hidden="true" />}
       </div>
     </Tag>
   );
@@ -253,14 +253,14 @@ export type LumareelStatusVariant =
   | 'points';
 
 const STATUS_STYLES: Record<LumareelStatusVariant, string> = {
-  valid: 'bg-[#0F2A1A] text-[#7FE0A6]',
-  study: 'bg-[#1F2A3A] text-[#A9C7F0]',
-  preparation: 'bg-[#D4AF6A] text-black',
-  retained: 'bg-[#2A2112] text-[#D4AF6A]',
-  neutral: 'bg-[#262626] text-[#C8C8C8]',
-  rejected: 'bg-[#2A1417] text-[#F29AA4]',
-  paid: 'bg-white text-black',
-  points: 'bg-[#D4AF6A] text-black',
+  valid: 'bg-[#111111] text-white dark:bg-white dark:text-black',
+  study: 'bg-black/[0.08] text-[#111111] dark:bg-white/[0.12] dark:text-white',
+  preparation: 'bg-[#111111] text-white dark:bg-white dark:text-black',
+  retained: 'bg-black/[0.08] text-[#111111] dark:bg-white/[0.12] dark:text-white',
+  neutral: 'bg-black/[0.06] text-black/65 dark:bg-[#262626] dark:text-[#C8C8C8]',
+  rejected: 'bg-black/[0.06] text-black/60 dark:bg-white/[0.1] dark:text-white/70',
+  paid: 'bg-[#111111] text-white dark:bg-white dark:text-black',
+  points: 'bg-[#111111] text-white dark:bg-white dark:text-black',
 };
 
 export const StatusBadge: React.FC<{
@@ -297,7 +297,7 @@ export function Tabs<T extends string>({
   className?: string;
 }) {
   return (
-    <nav className={`flex items-center gap-6 sm:gap-7 border-b border-white/[0.12] overflow-x-auto scrollbar-hide ${className}`}>
+    <nav className={`flex items-center gap-6 sm:gap-7 border-b border-black/[0.1] dark:border-white/[0.12] overflow-x-auto scrollbar-hide ${className}`}>
       {items.map((tab) => {
         const active = tab.id === activeId;
         return (
@@ -307,12 +307,12 @@ export function Tabs<T extends string>({
             onClick={() => onChange(tab.id)}
             className={`relative min-h-[44px] pb-3 pt-1 text-sm whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
               active
-                ? 'font-agrandir-extrabold text-white'
-                : 'font-agrandir-semibold text-[#9A9A9A] hover:text-white'
+                ? 'font-agrandir-extrabold text-[#111111] dark:text-white'
+                : 'font-agrandir-semibold text-black/45 hover:text-black dark:text-[#9A9A9A] dark:hover:text-white'
             }`}
           >
             <span>{tab.label}</span>
-            {active && <span className="absolute inset-x-0 -bottom-[1px] h-[2px] bg-[#D4AF6A]" />}
+            {active && <span className="absolute inset-x-0 -bottom-[1px] h-[2px] bg-[#111111] dark:bg-white" />}
           </button>
         );
       })}
@@ -393,20 +393,20 @@ export const BottomSheet: React.FC<{
             exit={{ y: 40, opacity: 0 }}
             transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg max-h-[88dvh] overflow-y-auto rounded-t-[28px] sm:rounded-[24px] bg-[#0E0E0E] border-t sm:border border-white/[0.12] p-5 sm:p-6 shadow-2xl text-white"
+            className="w-full max-w-lg max-h-[88dvh] overflow-y-auto rounded-t-[28px] sm:rounded-[24px] bg-white text-[#111111] dark:bg-[#0E0E0E] dark:text-white border-t sm:border border-black/10 dark:border-white/[0.12] p-5 sm:p-6 shadow-2xl"
             style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom, 0px))' }}
           >
-            <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4 sm:hidden" />
+            <div className="w-10 h-1 rounded-full bg-black/15 dark:bg-white/20 mx-auto mb-4 sm:hidden" />
             {(title || kicker) && (
-              <div className="flex items-start justify-between gap-3 pb-4 mb-4 border-b border-white/[0.12]">
+              <div className="flex items-start justify-between gap-3 pb-4 mb-4 border-b border-black/[0.08] dark:border-white/[0.12]">
                 <div className="min-w-0">
                   {kicker && (
-                    <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A] mb-1">
+                    <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/55 mb-1">
                       {kicker}
                     </p>
                   )}
                   {title && (
-                    <h3 className="font-agrandir-extrabold text-lg sm:text-xl text-white leading-tight">
+                    <h3 className="font-agrandir-extrabold text-lg sm:text-xl text-[#111111] dark:text-white leading-tight">
                       {title}
                     </h3>
                   )}
@@ -415,7 +415,7 @@ export const BottomSheet: React.FC<{
                   type="button"
                   onClick={onClose}
                   aria-label="Fermer"
-                  className="w-10 h-10 rounded-full bg-[#141414] hover:bg-white/15 border border-white/[0.12] flex items-center justify-center text-white transition-colors cursor-pointer shrink-0"
+                  className="w-10 h-10 rounded-full bg-black/[0.05] hover:bg-black/[0.1] dark:bg-[#141414] dark:hover:bg-white/15 border border-black/[0.08] dark:border-white/[0.12] flex items-center justify-center text-[#111111] dark:text-white transition-colors cursor-pointer shrink-0"
                 >
                   <X className="w-4 h-4" strokeWidth={1.6} />
                 </button>
@@ -468,14 +468,9 @@ export const QRTicket: React.FC<QRTicketProps> = ({
   const isCancelled = status === 'cancelled';
 
   return (
-    <article className="rounded-[22px] bg-[#0E0E0E] border border-white/[0.12] overflow-hidden">
-      {/* Bandeau supérieur à halo chaud discret */}
-      <div className="relative px-5 sm:px-6 pt-5 pb-5 bg-gradient-to-br from-[#2B2214]/80 via-[#15120C]/90 to-[#0E0E0E] overflow-hidden">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-10 right-6 w-44 h-44 rounded-full bg-[#D4AF6A]/15 blur-3xl"
-        />
-
+    <article className="rounded-[22px] bg-white dark:bg-[#0E0E0E] border border-black/[0.1] dark:border-white/[0.12] overflow-hidden shadow-sm dark:shadow-none">
+      {/* Bandeau supérieur */}
+      <div className="relative px-5 sm:px-6 pt-5 pb-5 bg-[#F5F5F7] dark:bg-[#141414] overflow-hidden">
         <div className="relative z-10 flex items-center justify-end mb-3">
           {isValid ? (
             <StatusBadge variant="valid" dot label={isEn ? 'VALID' : 'VALIDE'} />
@@ -487,22 +482,22 @@ export const QRTicket: React.FC<QRTicketProps> = ({
         </div>
 
         <div className="relative z-10">
-          <h2 className="font-agrandir-extrabold text-[1.8rem] sm:text-3xl uppercase tracking-tight text-white leading-[1.02]">
+          <h2 className="font-agrandir-extrabold text-[1.8rem] sm:text-3xl uppercase tracking-tight text-[#111111] dark:text-white leading-[1.02]">
             {eventTitle}
           </h2>
-          <p className="mt-1.5 text-xs sm:text-sm text-[#C8C8C8]">{dateTimeLine}</p>
+          <p className="mt-1.5 text-xs sm:text-sm text-black/60 dark:text-[#C8C8C8]">{dateTimeLine}</p>
         </div>
       </div>
 
       {/* Zone QR code grand format (~236px) sur fond blanc pur */}
-      <div className="px-5 sm:px-6 pt-6 pb-5 text-center bg-[#0E0E0E]">
+      <div className="px-5 sm:px-6 pt-6 pb-5 text-center bg-white dark:bg-[#0E0E0E]">
         {isCancelled ? (
-          <div className="mx-auto w-[236px] h-[236px] rounded-[18px] bg-[#141414] border border-white/[0.12] flex flex-col items-center justify-center gap-2 p-6">
-            <p className="text-xs font-agrandir-extrabold text-[#C8C8C8] uppercase">
-              {isEn ? 'QR Code Revoked' : 'QR Code révoqué'}
+          <div className="mx-auto w-[236px] h-[236px] rounded-[18px] bg-[#F5F5F7] dark:bg-[#141414] border border-black/10 dark:border-white/[0.12] flex flex-col items-center justify-center gap-2 p-6">
+            <p className="text-xs font-agrandir-extrabold text-[#111111] dark:text-[#C8C8C8] uppercase">
+              {isEn ? 'QR Code Revoked' : 'QR Code désactivé'}
             </p>
-            <p className="text-[11px] text-[#9A9A9A] leading-snug">
-              {isEn ? 'Reissued to the new holder.' : 'Réémis au nouveau titulaire.'}
+            <p className="text-[11px] text-black/55 dark:text-[#9A9A9A] leading-snug">
+              {isEn ? 'Reissued to the new holder.' : 'Transféré à la nouvelle personne.'}
             </p>
           </div>
         ) : (
@@ -510,7 +505,7 @@ export const QRTicket: React.FC<QRTicketProps> = ({
             type="button"
             onClick={onOpenQrFullscreen}
             aria-label={isEn ? 'Open full-screen QR code' : 'Afficher le QR code en plein écran'}
-            className="mx-auto w-[236px] h-[236px] rounded-[18px] bg-white p-3.5 flex items-center justify-center cursor-pointer lum-press shadow-lg"
+            className="mx-auto w-[236px] h-[236px] rounded-[18px] bg-white ring-1 ring-black/10 dark:ring-0 p-3.5 flex items-center justify-center cursor-pointer lum-press shadow-md"
           >
             {qrDataUrl ? (
               <img src={qrDataUrl} alt={`QR ${serialNumber}`} className="w-full h-full object-contain" />
@@ -520,68 +515,68 @@ export const QRTicket: React.FC<QRTicketProps> = ({
           </button>
         )}
 
-        <p className="mt-4 text-xs text-[#9A9A9A] leading-relaxed max-w-[270px] mx-auto">
+        <p className="mt-4 text-xs text-black/55 dark:text-[#9A9A9A] leading-relaxed max-w-[270px] mx-auto">
           {isEn
-            ? 'Present this code at the entrance · brightness automatically boosted'
-            : "Présentez ce code à l'entrée · luminosité augmentée automatiquement"}
+            ? 'Show this code at the entrance · brightness automatically boosted'
+            : "Montre ce code à l'entrée · luminosité augmentée automatiquement"}
         </p>
 
-        <p className="mt-3 font-mono text-xs sm:text-sm font-semibold tracking-[0.14em] text-white uppercase">
+        <p className="mt-3 font-mono text-xs sm:text-sm font-semibold tracking-[0.14em] text-[#111111] dark:text-white uppercase">
           N° {serialNumber}
         </p>
       </div>
 
       {/* Perforation en pointillés */}
-      <div className="mx-5 sm:mx-6 border-t border-dashed border-white/[0.18]" />
+      <div className="mx-5 sm:mx-6 border-t border-dashed border-black/15 dark:border-white/[0.18]" />
 
       {/* Grille 2×2 des informations */}
-      <div className="px-5 sm:px-6 py-5 grid grid-cols-2 gap-x-4 gap-y-4 text-left bg-[#0E0E0E]">
+      <div className="px-5 sm:px-6 py-5 grid grid-cols-2 gap-x-4 gap-y-4 text-left bg-white dark:bg-[#0E0E0E]">
         <div className="min-w-0">
-          <span className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.18em] text-[#9A9A9A]">
+          <span className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.18em] text-black/50 dark:text-[#9A9A9A]">
             {isEn ? 'CATEGORY' : 'CATÉGORIE'}
           </span>
-          <span className="mt-1 block text-sm sm:text-base font-agrandir-extrabold text-[#D4AF6A] truncate">
+          <span className="mt-1 block text-sm sm:text-base font-agrandir-extrabold text-[#111111] dark:text-white truncate">
             {categoryName}
           </span>
         </div>
 
         <div className="min-w-0">
-          <span className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.18em] text-[#9A9A9A]">
+          <span className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.18em] text-black/50 dark:text-[#9A9A9A]">
             {isEn ? 'HOLDER' : 'TITULAIRE'}
           </span>
-          <span className="mt-1 block text-sm sm:text-base font-agrandir-extrabold text-white truncate">
+          <span className="mt-1 block text-sm sm:text-base font-agrandir-extrabold text-[#111111] dark:text-white truncate">
             {holderName}
           </span>
         </div>
 
         <div className="min-w-0">
-          <span className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.18em] text-[#9A9A9A]">
+          <span className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.18em] text-black/50 dark:text-[#9A9A9A]">
             {isEn ? 'VENUE' : 'LIEU'}
           </span>
-          <span className="mt-1 block text-sm font-agrandir-extrabold text-white truncate">
+          <span className="mt-1 block text-sm font-agrandir-extrabold text-[#111111] dark:text-white truncate">
             {venue}
           </span>
         </div>
 
         <div className="min-w-0">
-          <span className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.18em] text-[#9A9A9A]">
+          <span className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.18em] text-black/50 dark:text-[#9A9A9A]">
             {isEn ? 'DOORS' : 'PORTES'}
           </span>
-          <span className="mt-1 block text-sm font-agrandir-extrabold text-white truncate">
+          <span className="mt-1 block text-sm font-agrandir-extrabold text-[#111111] dark:text-white truncate">
             {doorsLine}
           </span>
         </div>
       </div>
 
       {/* Actions scindées Transférer | Itinéraire */}
-      <div className="grid grid-cols-2 border-t border-white/[0.12] divide-x divide-white/[0.12] bg-[#0B0B0B]">
+      <div className="grid grid-cols-2 border-t border-black/[0.08] dark:border-white/[0.12] divide-x divide-black/[0.08] dark:divide-white/[0.12] bg-[#F5F5F7] dark:bg-[#0B0B0B]">
         <button
           type="button"
           disabled={!isValid}
           onClick={onTransfer}
-          className="min-h-[52px] px-4 flex items-center justify-center gap-2 text-xs sm:text-sm font-agrandir-extrabold text-white hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed lum-press"
+          className="min-h-[52px] px-4 flex items-center justify-center gap-2 text-xs sm:text-sm font-agrandir-extrabold text-[#111111] dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed lum-press"
         >
-          <ArrowRight className="w-4 h-4 text-[#C8C8C8]" strokeWidth={1.6} />
+          <ArrowRight className="w-4 h-4 text-black/60 dark:text-[#C8C8C8]" strokeWidth={1.6} />
           <span>{isEn ? 'Transfer' : 'Transférer'}</span>
         </button>
 
@@ -589,9 +584,9 @@ export const QRTicket: React.FC<QRTicketProps> = ({
           href={directionsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="min-h-[52px] px-4 flex items-center justify-center gap-2 text-xs sm:text-sm font-agrandir-extrabold text-white hover:bg-white/[0.04] transition-colors lum-press"
+          className="min-h-[52px] px-4 flex items-center justify-center gap-2 text-xs sm:text-sm font-agrandir-extrabold text-[#111111] dark:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors lum-press"
         >
-          <MapPin className="w-4 h-4 text-[#C8C8C8]" strokeWidth={1.6} />
+          <MapPin className="w-4 h-4 text-black/60 dark:text-[#C8C8C8]" strokeWidth={1.6} />
           <span>{isEn ? 'Directions' : 'Itinéraire'}</span>
         </a>
       </div>

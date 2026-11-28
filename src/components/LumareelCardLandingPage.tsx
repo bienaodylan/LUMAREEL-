@@ -4,14 +4,25 @@ import { useApp } from '../context/AppContext';
 import { MembershipEdition, MembershipPlan, MembershipCard } from '../types';
 import { saveStoredMemberCard } from '../utils/memberCardStorage';
 import {
+  ArrowRight,
+  Car,
   Check,
   CheckCircle2,
-  ChevronRight,
+  Coffee,
+  Crown,
   Minus,
   RotateCw,
+  Sparkles,
+  Tag,
+  Ticket,
+  Users,
   X,
+  Zap,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+
+const CARD_FRONT_IMG = '/assets/aistudio/IMG_6112_896cf3ce.png';
+const CARD_BACK_IMG = '/assets/aistudio/IMG_6111_952dcd49.png';
 
 interface LumareelCardLandingPageProps {
   onGoToWallet?: () => void;
@@ -20,60 +31,102 @@ interface LumareelCardLandingPageProps {
   activeCardNumber?: string;
 }
 
+const PERK_ICONS = [Zap, Car, Crown, Coffee, Ticket, Users, Tag] as const;
+
 const CARD_COPY = {
   fr: {
-    heroTitle1: 'Le cercle',
-    heroTitle2: 'LUMARÉEL.',
+    // 1. Présentation de la carte (inspiration Monzo : direct, simple, humain)
+    eyebrow: 'LUMARÉEL BLACK CARD',
+    heroTitle: 'Ta carte pour vivre chaque concert au premier rang.',
     heroSub:
-      'Une adhésion pour vivre chaque événement autrement : en avance, au plus près, avec ceux qui le font.',
-    benefitsKicker: 'AVANTAGES MEMBRES',
+      'Finie l’attente dans la file. Tu arrives, tu passes devant, tu profites de la soirée comme un invité spécial — du parking jusqu’au premier rang.',
+    flipHintFront: 'Toucher la carte pour voir l’arrière',
+    flipHintBack: 'Toucher la carte pour voir l’avant',
+    priceSuffix: '/ an',
+    ctaPrimary: 'Prendre ma carte',
+    ctaViewMyCard: 'Voir ma carte',
+    quickNote: 'Active tout de suite dans l’app · Ta vraie carte remise en main propre',
+
+    // 2. Avantages (les 7 avantages exacts demandés)
+    benefitsTitle: 'Tes 7 avantages inclus',
+    benefitsSub: 'Tout ce qui change pour toi dès que tu as ta carte.',
     perksList: [
       {
-        num: '01',
-        title: 'Préventes et Flash Drops réservés',
-        desc: "Accès avant l'ouverture publique.",
+        title: 'Accès prioritaire dans la file d’attente',
+        desc: 'Tu entres par le passage rapide, sans faire la queue comme tout le monde.',
       },
       {
-        num: '02',
-        title: 'Entrée dédiée',
-        desc: 'File membre aux événements partenaires.',
+        title: 'Place de parking réservée',
+        desc: 'Ta place t’attend déjà à ton arrivée. Zéro stress pour te garer.',
       },
       {
-        num: '03',
-        title: 'LUMARÉEL TV & invitations',
-        desc: 'Originals, concerts filmés, coulisses, rencontres et soirées privées.',
+        title: 'Placement VIP au premier rang',
+        desc: 'Tu es au plus près de la scène pour profiter à fond du spectacle.',
+      },
+      {
+        title: 'Rafraîchissement offert',
+        desc: 'Une boisson t’est offerte pour profiter tranquillement de ta soirée.',
+      },
+      {
+        title: 'Accès aux préventes',
+        desc: 'Tu peux réserver tes billets avant tout le monde, avant que ça parte.',
+      },
+      {
+        title: 'Accès au meet and greet',
+        desc: 'Tu rencontres les artistes de près et tu gardes un vrai souvenir.',
+      },
+      {
+        title: 'Réduction sur des articles de nos partenaires',
+        desc: 'Tu profites de prix réduits chez nos marques et boutiques partenaires.',
       },
     ],
-    digitalPhysicalKicker: 'NUMÉRIQUE + PHYSIQUE',
-    digitalPhysicalCopy:
-      "Votre carte est active dans l'app dès l'adhésion. La carte physique NFC, à votre nom, est associée à votre compte puis remise par l'équipe. Elle matérialise votre statut — ce n'est pas une carte de paiement.",
-    annualLabel: 'Adhésion annuelle',
-    ctaBecomeMember: 'Devenir membre',
-    ctaViewMyCard: 'Voir ma carte active',
-    footnote: "Adhésion ouverte · paiement Mobile Money ou carte · conditions d'adhésion",
-    memberLabel: 'MEMBRE',
-    yourNamePlaceholder: 'VOTRE NOM',
-    // Tunnel d'adhésion (étapes masquées)
-    wizHeader: () => 'ADHÉSION BLACK CARD',
-    wizTitle: 'LUMARÉEL Black Card',
-    wiz1Title: 'Votre nom complet',
-    wiz1Sub: 'Gravé sur votre carte physique NFC et lié à votre statut membre.',
-    wiz1Label: 'Nom complet *',
-    wiz1Plan: 'Formule choisie',
+
+    // 3. Détails de la carte (Zéro jargon technique)
+    detailsTitle: 'Les détails de ta carte, tout simplement',
+    detailsSub: 'Pas de mots compliqués : voici comment ça marche dans la vraie vie.',
+    detailsList: [
+      {
+        title: 'Prête tout de suite sur ton téléphone',
+        desc: 'Dès que tu valides, ta carte apparaît ici dans l’application. Tu peux déjà l’utiliser.',
+      },
+      {
+        title: 'Ta vraie carte dans ta main',
+        desc: 'En plus de l’app, notre équipe prépare ta carte personnelle et te la remet directement.',
+      },
+      {
+        title: 'Super simple le jour du concert',
+        desc: 'Tu la montres juste à ton arrivée pour le parking, l’entrée rapide et ton accès VIP.',
+      },
+      {
+        title: 'Un seul tarif pour 12 mois',
+        desc: 'Tu paies une fois pour toute l’année, sans mauvaise surprise. C’est ta carte de membre LUMARÉEL, pas une carte bancaire.',
+      },
+    ],
+
+    finalTitle: 'Prêt à prendre ta place au premier rang ?',
+    finalSub: 'Active ta carte maintenant et retrouve-la aussitôt dans ton espace.',
+    footnote: 'Paiement par Mobile Money ou carte · Aucun frais caché',
+
+    // Tunnel d’adhésion (langage simple et familier, zéro jargon)
+    wizHeader: 'LUMARÉEL BLACK CARD',
+    wizTitle: 'Ta carte membre',
+    wiz1Label: 'Ton nom complet *',
+    wiz1Placeholder: 'TON NOM COMPLET',
+    wiz1Hint: 'C’est le nom qui sera lié à ta carte.',
+    wiz1Plan: 'Formule',
     wiz1PlanFallback: 'LUMARÉEL Black Card',
-    wiz1PlanDesc: 'Carte numérique immédiate + carte physique NFC (statut membre, hors paiement)',
-    wiz1Valid: 'Adhésion',
+    wiz1PlanDesc: 'Valable 12 mois · Dans l’app + ta vraie carte',
     wiz1Next: 'Continuer',
-    wiz2Title: 'Coordonnées & remise',
-    wiz2Sub: 'Pour activer votre statut membre et vous remettre votre carte NFC.',
-    wiz2Email: 'E-mail *',
-    wiz2Phone: 'Téléphone *',
-    wiz2City: 'Ville *',
-    wiz2Address: 'Quartier / Adresse *',
+    wiz2Title: 'Tes coordonnées',
+    wiz2Sub: 'Pour activer ta carte et t’organiser la remise en main propre.',
+    wiz2Email: 'Ton e-mail *',
+    wiz2Phone: 'Ton numéro *',
+    wiz2City: 'Ta ville *',
+    wiz2Address: 'Ton quartier / Adresse *',
     wiz2Back: 'Retour',
     wiz2Next: 'Continuer',
-    wiz3Title: 'Règlement de l’adhésion',
-    wiz3Sub: 'Votre statut membre et votre carte numérique s’activent dès validation.',
+    wiz3Title: 'Comment tu veux régler ?',
+    wiz3Sub: 'Ta carte s’active tout de suite après validation.',
     wiz3Methods: [
       { id: 'wave', label: 'Wave', desc: '0% frais' },
       { id: 'orange_money', label: 'Orange Money', desc: 'Mobile' },
@@ -81,84 +134,120 @@ const CARD_COPY = {
       { id: 'moov_money', label: 'Moov Money', desc: 'Flooz' },
       { id: 'card', label: 'Carte Bancaire', desc: 'Visa / MC' },
     ],
-    wiz3Membership: 'Adhésion LUMARÉEL Black Card',
-    wiz3CardDelivery: 'Remise carte physique NFC',
+    wiz3Membership: 'Ta LUMARÉEL Black Card (1 an)',
+    wiz3CardDelivery: 'Ta vraie carte personnelle',
     wiz3Included: 'Incluse',
-    wiz3Bonus: 'Statut membre & accès dédié',
-    wiz3BonusVal: 'Actif',
-    wiz3Total: 'Total à régler',
-    wiz3Submitting: 'Validation...',
-    wiz3Submit: 'Valider mon adhésion',
-    wiz4Kicker: 'ADHÉSION CONFIRMÉE',
-    wiz4Title: 'BIENVENUE AU CERCLE',
+    wiz3Total: 'Total à payer',
+    wiz3Submitting: 'Activation...',
+    wiz3Submit: 'Valider et activer ma carte',
+    wiz4Kicker: 'C’EST TOUT BON !',
+    wiz4Title: 'Bienvenue avec ta carte',
     wiz4Desc: (num: string) =>
-      `Votre référence membre : ${num}. Votre Black Card numérique est déjà active.`,
-    wiz4Holder: 'Titulaire',
+      `Ta référence est le ${num}. Ta carte est déjà active et prête à être utilisée.`,
+    wiz4Holder: 'Ton nom',
     wiz4Number: 'Référence',
-    wiz4Box: 'Carte NFC',
-    wiz4Prep: 'Préparation équipe',
-    wiz4Cta: 'Accéder à ma carte',
+    wiz4Physical: 'Ta vraie carte',
+    wiz4Prep: 'En préparation',
+    wiz4Cta: 'Voir ma carte',
     wizMinimize: 'Réduire',
     wizCancel: 'Fermer',
-    wizMissingName: 'Entrez votre nom complet pour continuer.',
-    wizMissingContact: 'Entrez votre e-mail et votre numéro de téléphone.',
-    wizInvalidEmail: 'Entrez une adresse e-mail valide.',
-    toastMissing: 'Renseignez votre nom complet et votre e-mail.',
-    toastOrderErr: 'Impossible de valider votre adhésion pour le moment. Réessayez.',
-    toastActivated: 'Votre LUMARÉEL Black Card est active.',
+    wizMissingName: 'Écris ton nom complet pour continuer.',
+    wizMissingContact: 'Renseigne ton e-mail et ton numéro de téléphone.',
+    wizInvalidEmail: 'Vérifie ton adresse e-mail, elle ne semble pas valide.',
+    toastAuth: 'Connecte-toi ou crée ton compte pour prendre ta carte.',
+    toastMissing: 'Renseigne ton nom complet et ton e-mail.',
+    toastOrderErr: 'Oups, impossible de valider pour le moment. Réessaie.',
+    toastActivated: 'Super ! Ta LUMARÉEL Black Card est active.',
   },
   en: {
-    heroTitle1: 'The LUMARÉEL',
-    heroTitle2: 'circle.',
+    eyebrow: 'LUMARÉEL BLACK CARD',
+    heroTitle: 'Your card to live every show from the front row.',
     heroSub:
-      'A membership to experience every event differently: ahead of everyone, closer to the stage, with those who make it happen.',
-    benefitsKicker: 'MEMBER BENEFITS',
+      'Skip the lines and enjoy every night like a special guest — from your reserved parking spot right to the front row.',
+    flipHintFront: 'Tap the card to see the back',
+    flipHintBack: 'Tap the card to see the front',
+    priceSuffix: '/ year',
+    ctaPrimary: 'Get my card',
+    ctaViewMyCard: 'View my card',
+    quickNote: 'Active right away in the app · Plus your real card handed to you',
+
+    benefitsTitle: 'Your 7 included perks',
+    benefitsSub: 'Everything that changes for you the moment you get your card.',
     perksList: [
       {
-        num: '01',
-        title: 'Reserved presales & Flash Drops',
-        desc: 'Access before public release.',
+        title: 'Priority queue access',
+        desc: 'Walk straight through the fast lane without waiting in line.',
       },
       {
-        num: '02',
-        title: 'Dedicated entrance',
-        desc: 'Member lane at partner events.',
+        title: 'Reserved parking spot',
+        desc: 'Your space is waiting when you arrive. No parking stress.',
       },
       {
-        num: '03',
-        title: 'LUMARÉEL TV & invitations',
-        desc: 'Originals, filmed concerts, backstage, artist meetings and private nights.',
+        title: 'Front-row VIP seating',
+        desc: 'Stay right up close to the stage for the best view in the house.',
+      },
+      {
+        title: 'Complimentary refreshment',
+        desc: 'Enjoy a drink on us so you can relax and soak in the night.',
+      },
+      {
+        title: 'Presale access',
+        desc: 'Book your tickets before everyone else, before they sell out.',
+      },
+      {
+        title: 'Meet & greet access',
+        desc: 'Meet the artists up close and take home an unforgettable moment.',
+      },
+      {
+        title: 'Discounts with our partners',
+        desc: 'Save on items and offers from our partner brands and shops.',
       },
     ],
-    digitalPhysicalKicker: 'DIGITAL + PHYSICAL',
-    digitalPhysicalCopy:
-      'Your card is active in the app immediately upon joining. The personalized physical NFC card is linked to your account and handed over by the team. It certifies your member status — it is not a payment card.',
-    annualLabel: 'Annual membership',
-    ctaBecomeMember: 'Become a member',
-    ctaViewMyCard: 'View my active card',
-    footnote: 'Open membership · Mobile Money or card payment · membership terms apply',
-    memberLabel: 'MEMBER',
-    yourNamePlaceholder: 'YOUR NAME',
-    wizHeader: () => 'BLACK CARD MEMBERSHIP',
-    wizTitle: 'LUMARÉEL Black Card',
-    wiz1Title: 'Your Full Name',
-    wiz1Sub: 'Linked to your member account and engraved on your physical NFC card.',
-    wiz1Label: 'Full name *',
-    wiz1Plan: 'Selected Plan',
+
+    detailsTitle: 'Card details, kept simple',
+    detailsSub: 'No confusing jargon — just how it works in everyday life.',
+    detailsList: [
+      {
+        title: 'Ready right away on your phone',
+        desc: 'As soon as you join, your card shows up right here in the app ready to use.',
+      },
+      {
+        title: 'Your real card in your hand',
+        desc: 'On top of the app, our team prepares your personal card and hands it to you directly.',
+      },
+      {
+        title: 'Effortless on concert day',
+        desc: 'Just show it when you arrive for parking, fast entry, and your VIP seat.',
+      },
+      {
+        title: 'One clear price for 12 months',
+        desc: 'Pay once for the whole year with no hidden fees. It is your LUMARÉEL member card, not a bank card.',
+      },
+    ],
+
+    finalTitle: 'Ready for your spot in the front row?',
+    finalSub: 'Activate your card now and find it right here in your space.',
+    footnote: 'Pay with Mobile Money or card · No hidden fees',
+
+    wizHeader: 'LUMARÉEL BLACK CARD',
+    wizTitle: 'Your member card',
+    wiz1Label: 'Your full name *',
+    wiz1Placeholder: 'YOUR FULL NAME',
+    wiz1Hint: 'This is the name linked to your card.',
+    wiz1Plan: 'Plan',
     wiz1PlanFallback: 'LUMARÉEL Black Card',
-    wiz1PlanDesc: 'Instant digital card + physical NFC card (status card, non-payment)',
-    wiz1Valid: 'Membership',
+    wiz1PlanDesc: 'Valid 12 months · In the app + your real card',
     wiz1Next: 'Continue',
-    wiz2Title: 'Contact & Handover',
-    wiz2Sub: 'Used to activate your status and coordinate physical NFC card handover.',
-    wiz2Email: 'Email *',
-    wiz2Phone: 'Mobile Phone *',
-    wiz2City: 'City *',
-    wiz2Address: 'District / Address *',
+    wiz2Title: 'Your contact info',
+    wiz2Sub: 'So we can activate your card and arrange handover.',
+    wiz2Email: 'Your email *',
+    wiz2Phone: 'Your phone *',
+    wiz2City: 'Your city *',
+    wiz2Address: 'Neighborhood / Address *',
     wiz2Back: 'Back',
     wiz2Next: 'Continue',
-    wiz3Title: 'Membership Payment',
-    wiz3Sub: 'Your LUMARÉEL Black Card activates immediately upon confirmation.',
+    wiz3Title: 'How do you want to pay?',
+    wiz3Sub: 'Your card activates right away once confirmed.',
     wiz3Methods: [
       { id: 'wave', label: 'Wave', desc: '0% fee' },
       { id: 'orange_money', label: 'Orange Money', desc: 'Mobile' },
@@ -166,31 +255,30 @@ const CARD_COPY = {
       { id: 'moov_money', label: 'Moov Money', desc: 'Flooz' },
       { id: 'card', label: 'Bank Card', desc: 'Visa / MC' },
     ],
-    wiz3Membership: 'LUMARÉEL Black Card Membership',
-    wiz3CardDelivery: 'Physical NFC card handover',
+    wiz3Membership: 'Your LUMARÉEL Black Card (1 year)',
+    wiz3CardDelivery: 'Your personal physical card',
     wiz3Included: 'Included',
-    wiz3Bonus: 'Member status & fast-track',
-    wiz3BonusVal: 'Active',
-    wiz3Total: 'Total',
+    wiz3Total: 'Total to pay',
     wiz3Submitting: 'Activating...',
-    wiz3Submit: 'Confirm & Pay',
-    wiz4Kicker: 'MEMBERSHIP CONFIRMED',
-    wiz4Title: 'WELCOME TO THE CIRCLE',
+    wiz3Submit: 'Confirm & activate my card',
+    wiz4Kicker: 'YOU’RE ALL SET!',
+    wiz4Title: 'Welcome to your card',
     wiz4Desc: (num: string) =>
-      `Your member reference: ${num}. Your digital Black Card is now active.`,
-    wiz4Holder: 'Holder',
+      `Your reference is ${num}. Your card is now active and ready to use.`,
+    wiz4Holder: 'Your name',
     wiz4Number: 'Reference',
-    wiz4Box: 'NFC Card',
-    wiz4Prep: 'Team preparation',
-    wiz4Cta: 'Open My Card',
+    wiz4Physical: 'Your real card',
+    wiz4Prep: 'Being prepared',
+    wiz4Cta: 'Open my card',
     wizMinimize: 'Minimize',
     wizCancel: 'Close',
-    wizMissingName: 'Please enter your full name to continue.',
-    wizMissingContact: 'Please enter your email and mobile number.',
-    wizInvalidEmail: 'Please enter a valid email address.',
-    toastMissing: 'Please enter your full name and email address.',
-    toastOrderErr: 'Unable to process your membership right now. Please try again.',
-    toastActivated: 'Your LUMARÉEL Black Card is now active.',
+    wizMissingName: 'Enter your full name to continue.',
+    wizMissingContact: 'Enter your email and phone number.',
+    wizInvalidEmail: 'Check your email address — it doesn’t look valid.',
+    toastAuth: 'Sign in or create an account to get your card.',
+    toastMissing: 'Enter your full name and email address.',
+    toastOrderErr: 'Could not complete right now. Please try again.',
+    toastActivated: 'Awesome! Your LUMARÉEL Black Card is active.',
   },
 } as const;
 
@@ -202,14 +290,17 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const { currentUser, setCurrentPage, showToast, language, setIsAuthModalOpen } = useApp();
   const isEn = language === 'en';
   const c = CARD_COPY[isEn ? 'en' : 'fr'];
+  const prefersReducedMotion = useReducedMotion();
 
-  // Données réelles d'édition et de tarifs depuis /api/membership/editions
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
+
+  // Données de formule
   const [, setEdition] = useState<MembershipEdition | null>(null);
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Tunnel de commande en 4 étapes (Nom -> Coordonnées -> Paiement -> Confirmation)
+  // Tunnel de commande en 4 étapes
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [isWizardMinimized, setIsWizardMinimized] = useState(false);
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
@@ -227,18 +318,38 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     qrDataUrl: string;
   } | null>(null);
 
-  const parseJsonSafely = async (res: Response): Promise<any | null> => {
-    try {
-      const text = await res.text();
-      if (!text || !text.trim()) return null;
-      return JSON.parse(text);
-    } catch {
-      return null;
-    }
-  };
-
   useEffect(() => {
-    fetchEditionAndPlans();
+    const nowIso = new Date().toISOString();
+    const defaultEdition: MembershipEdition = {
+      id: 'edition_founders_2026',
+      name: 'LUMARÉEL Black Card 2026',
+      editionCode: 'FOUNDERS_2026',
+      description: 'Carte membre LUMARÉEL Black Card.',
+      quota: 100,
+      allocatedCount: 24,
+      startsAt: nowIso,
+      status: 'active',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+    const defaultPlan: MembershipPlan = {
+      id: 'plan_founders_annual',
+      editionId: 'edition_founders_2026',
+      name: 'LUMARÉEL Black Card — Annuel',
+      description: 'Tes 7 avantages LUMARÉEL pendant 12 mois.',
+      price: 50000,
+      currency: 'FCFA',
+      durationMonths: 12,
+      physicalCardIncluded: true,
+      renewalEnabled: true,
+      status: 'active',
+      createdAt: nowIso,
+      updatedAt: nowIso,
+    };
+    setEdition(defaultEdition);
+    setPlans([defaultPlan]);
+    setSelectedPlan((prev) => prev || defaultPlan);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -250,7 +361,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     }
   }, [currentUser]);
 
-  // Gel propre du scroll de fond lorsque la modale de commande est ouverte
+  // Gel propre du scroll de fond lorsque la modale est ouverte
   useEffect(() => {
     if (!isWizardOpen || isWizardMinimized || typeof window === 'undefined') return;
 
@@ -318,40 +429,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     };
   }, [isWizardOpen, isWizardMinimized]);
 
-  const fetchEditionAndPlans = async () => {
-    const nowIso = new Date().toISOString();
-    const defaultEdition: MembershipEdition = {
-      id: 'edition_founders_2026',
-      name: 'LUMARÉEL Founders 2026',
-      editionCode: 'FOUNDERS_2026',
-      description: 'Édition fondatrice numérotée LUMARÉEL Black Card.',
-      quota: 100,
-      allocatedCount: 24,
-      startsAt: nowIso,
-      status: 'active',
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    };
-    const defaultPlan: MembershipPlan = {
-      id: 'plan_founders_annual',
-      editionId: 'edition_founders_2026',
-      name: 'LUMARÉEL Black Card — Annuel',
-      description: 'Accès complet au cercle LUMARÉEL, préventes, entrée dédiée et LUMARÉEL TV.',
-      price: 50000,
-      currency: 'FCFA',
-      durationMonths: 12,
-      physicalCardIncluded: true,
-      renewalEnabled: true,
-      status: 'active',
-      createdAt: nowIso,
-      updatedAt: nowIso,
-    };
-    setEdition(defaultEdition);
-    setPlans([defaultPlan]);
-    setSelectedPlan((prev) => prev || defaultPlan);
-    setLoading(false);
-  };
-
   const openAdmissionWizard = (plan?: MembershipPlan) => {
     if (plan) setSelectedPlan(plan);
     setApplicantName(currentUser?.name?.toUpperCase() || applicantName || '');
@@ -410,17 +487,11 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     e.preventDefault();
     if (!currentUser) {
       setIsAuthModalOpen(true);
-      showToast(
-        language === 'en'
-          ? 'Sign in or create an account to join the Black Card circle.'
-          : 'Connectez-vous ou créez un compte pour adhérer à la Black Card.',
-        'info'
-      );
+      showToast(c.toastAuth, 'info');
       return;
     }
     const cleanName = applicantName.trim();
     const cleanEmail = applicantEmail.trim().toLowerCase();
-    const cleanPhone = applicantPhone.trim();
 
     if (!cleanName || !cleanEmail) {
       showToast(c.toastMissing, 'error');
@@ -461,7 +532,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     try {
       setIsSubmitting(true);
       const planId = selectedPlan?.id || plans[0]?.id || 'plan_founders_annual';
-      // Paiement fictif front-end : validation fluide et activation immédiate de la Black Card
       await new Promise((resolve) => setTimeout(resolve, 480));
       const issuedCard = buildClientFallbackCard(planId);
 
@@ -483,190 +553,248 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     language === 'en' ? 'en-US' : 'fr-FR'
   )} ${planCurrency}`;
 
-  const holderDisplayName = (currentUser?.name || c.yourNamePlaceholder).toUpperCase();
-
   return (
-    <div className="w-full bg-black text-white font-agrandir-regular">
+    <div className="w-full bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-white font-agrandir-regular transition-colors duration-200">
       {/* =================================================================== */}
-      {/* ÉCRAN 05 — BLACK CARD (FIDÈLE 1:1 À LA MAQUETTE OFFICIELLE)         */}
+      {/* 1. PRÉSENTATION DE LA CARTE — Style Monzo (clair, direct, centré)   */}
       {/* =================================================================== */}
-      <div className="w-full max-w-[1280px] mx-auto px-5 sm:px-8 lg:px-10 pt-3 pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
-          {/* Colonne gauche (mobile: haut) : Carte noire mate NFC + Titre */}
-          <div className="lg:col-span-6 space-y-8">
-            {/* Carte noire mate avec contour doré fin & ondes NFC (arrondi léger 12px) */}
-            <div className="relative w-full max-w-[420px] mx-auto lg:mx-0">
+      <section className="w-full max-w-[1120px] mx-auto px-5 sm:px-8 lg:px-10 pt-8 sm:pt-14 pb-16 sm:pb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+          {/* Visuel officiel de la carte (recto / verso, coins réalistes 10-11px) */}
+          <div className="lg:col-span-6 lg:order-2 flex flex-col items-center">
+            <div className="relative w-full max-w-[380px] sm:max-w-[430px]">
+              {/* Halo neutre très discret */}
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute -inset-4 bg-[#D4AF6A]/[0.06] blur-2xl"
+                className="pointer-events-none absolute -inset-6 rounded-full bg-black/[0.06] dark:bg-white/[0.07] blur-3xl"
               />
-              <div className="relative aspect-[1.586/1] w-full rounded-[20px] border border-[#D4AF6A]/45 bg-gradient-to-br from-[#16120B] via-[#0B0B0B] to-[#070707] p-6 sm:p-7 flex flex-col justify-between overflow-hidden shadow-[0_24px_60px_rgba(0,0,0,0.85)]">
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -top-12 -right-8 w-44 h-44 rounded-full bg-[#D4AF6A]/12 blur-3xl"
-                />
 
-                {/* Haut de carte : LUMARÉEL + icône sans contact dorée */}
-                <div className="relative z-10 flex items-center justify-between gap-3">
-                  <span className="font-agrandir-extrabold text-sm sm:text-base uppercase tracking-[0.28em] text-white">
-                    LUMARÉEL
-                  </span>
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-label="NFC"
-                    className="text-[#D4AF6A] shrink-0"
+              <motion.div
+                onClick={() => setIsCardFlipped((prev) => !prev)}
+                whileTap={prefersReducedMotion ? undefined : { scale: 0.985 }}
+                className="relative z-10 w-full cursor-pointer perspective-[1400px]"
+                style={{ aspectRatio: '85.6 / 53.98' }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setIsCardFlipped((prev) => !prev);
+                  }
+                }}
+                aria-label={isEn ? 'Flip the LUMARÉEL Black Card' : 'Retourner la LUMARÉEL Black Card'}
+              >
+                <motion.div
+                  animate={{ rotateY: isCardFlipped ? 180 : 0 }}
+                  transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+                  className="w-full h-full relative"
+                  style={{ transformStyle: 'preserve-3d' }}
+                >
+                  {/* RECTO OFFICIEL */}
+                  <div
+                    className="absolute inset-0 rounded-[10px] sm:rounded-[11px] bg-black ring-1 ring-black/15 dark:ring-white/15 shadow-[0_26px_60px_rgba(0,0,0,0.22)] dark:shadow-[0_28px_70px_rgba(0,0,0,0.92)] overflow-hidden"
+                    style={{
+                      backfaceVisibility: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden',
+                    }}
                   >
-                    <path
-                      d="M8.5 16.5C10.3 14.7 10.3 9.3 8.5 7.5"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
+                    <img
+                      src={CARD_FRONT_IMG}
+                      alt={isEn ? 'LUMARÉEL Black Card — Front' : 'LUMARÉEL Black Card — Recto'}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
                     />
-                    <path
-                      d="M12.2 18.8C15.1 15.9 15.1 8.1 12.2 5.2"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M16 21C19.8 17.2 19.8 6.8 16 3"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                </div>
-
-                {/* Bas de carte : BLACK CARD + Titulaire | MEMBRE */}
-                <div className="relative z-10 flex items-end justify-between gap-3">
-                  <div className="min-w-0">
-                    <span className="block text-[10px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#D4AF6A]">
-                      BLACK CARD
-                    </span>
-                    <span className="mt-1 block font-agrandir-extrabold text-sm sm:text-base uppercase tracking-[0.06em] text-white truncate">
-                      {holderDisplayName}
-                    </span>
                   </div>
-                  <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.24em] text-[#9A9A9A] shrink-0">
-                    {c.memberLabel}
-                  </span>
-                </div>
-              </div>
+
+                  {/* VERSO OFFICIEL */}
+                  <div
+                    className="absolute inset-0 rounded-[10px] sm:rounded-[11px] bg-black ring-1 ring-black/15 dark:ring-white/15 shadow-[0_26px_60px_rgba(0,0,0,0.22)] dark:shadow-[0_28px_70px_rgba(0,0,0,0.92)] overflow-hidden"
+                    style={{
+                      backfaceVisibility: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)',
+                    }}
+                  >
+                    <img
+                      src={CARD_BACK_IMG}
+                      alt={isEn ? 'LUMARÉEL Black Card — Back' : 'LUMARÉEL Black Card — Verso'}
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </motion.div>
+              </motion.div>
             </div>
 
-            {/* Grand titre éditorial */}
-            <div className="space-y-4">
-              <h1 className="font-agrandir-extrabold text-[2.45rem] sm:text-5xl xl:text-[3.4rem] leading-[0.98] tracking-tight text-white">
-                {c.heroTitle1}
-                <br />
-                {c.heroTitle2}
-              </h1>
-              <p className="text-sm sm:text-base text-[#C8C8C8] leading-relaxed max-w-md">
-                {c.heroSub}
-              </p>
-            </div>
+            {/* Indication sobre pour retourner la carte */}
+            <button
+              type="button"
+              onClick={() => setIsCardFlipped((prev) => !prev)}
+              className="mt-4 inline-flex items-center gap-2 text-xs text-black/55 hover:text-black dark:text-white/55 dark:hover:text-white transition-colors cursor-pointer"
+            >
+              <RotateCw className="w-3.5 h-3.5" strokeWidth={1.7} />
+              <span>{isCardFlipped ? c.flipHintBack : c.flipHintFront}</span>
+            </button>
           </div>
 
-          {/* Colonne droite (mobile: suite) : Avantages, Statut non bancaire, Tarif & CTA */}
-          <div className="lg:col-span-6 space-y-8">
-            {/* AVANTAGES MEMBRES (01, 02, 03) */}
-            <section className="space-y-3">
-              <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-                {c.benefitsKicker}
-              </p>
+          {/* Accroche & CTA Monzo-style */}
+          <div className="lg:col-span-6 lg:order-1 space-y-6 text-center lg:text-left">
+            <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50">
+              {c.eyebrow}
+            </p>
 
-              <ol className="divide-y divide-white/[0.12] border-b border-white/[0.12]">
-                {c.perksList.map((perk) => (
-                  <li key={perk.num} className="py-4 flex items-start gap-4">
-                    <span className="text-xs font-mono font-semibold text-[#D4AF6A] tabular-nums pt-0.5 w-6 shrink-0">
-                      {perk.num}
-                    </span>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <h2 className="font-agrandir-extrabold text-sm sm:text-base text-white leading-snug">
-                        {perk.title}
-                      </h2>
-                      <p className="text-xs sm:text-sm text-[#9A9A9A] leading-relaxed">
-                        {perk.desc}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </section>
+            <h1 className="font-agrandir-extrabold text-[2.25rem] sm:text-5xl lg:text-[3.35rem] leading-[1.03] tracking-tight text-[#111111] dark:text-white">
+              {c.heroTitle}
+            </h1>
 
-            {/* NUMÉRIQUE + PHYSIQUE — Mention obligatoire (pas une carte de paiement) */}
-            <section className="space-y-2.5">
-              <p className="text-[11px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-                {c.digitalPhysicalKicker}
-              </p>
-              <p className="text-sm text-[#C8C8C8] leading-relaxed">
-                {c.digitalPhysicalCopy}
-              </p>
-            </section>
+            <p className="text-base sm:text-lg text-black/65 dark:text-white/70 leading-relaxed max-w-xl mx-auto lg:mx-0">
+              {c.heroSub}
+            </p>
 
-            {/* Sélecteur de formule si plusieurs plans backend existent */}
-            {plans.length > 1 && (
-              <div className="inline-flex flex-wrap items-center gap-1.5 p-1 rounded-full bg-[#0E0E0E] border border-white/[0.12]">
-                {plans.map((plan) => {
-                  const isActive = activePlan?.id === plan.id;
-                  return (
-                    <button
-                      key={plan.id}
-                      type="button"
-                      onClick={() => setSelectedPlan(plan)}
-                      className={`min-h-[38px] px-4 rounded-full text-xs transition-colors cursor-pointer ${
-                        isActive
-                          ? 'bg-white text-black font-agrandir-extrabold'
-                          : 'text-[#9A9A9A] hover:text-white font-agrandir-semibold'
-                      }`}
-                    >
-                      {plan.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Séparateur doré + Prix réel + CTA plein-largeur */}
-            <section className="pt-5 border-t border-white/[0.14] space-y-4">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="text-sm text-[#C8C8C8]">{c.annualLabel}</span>
-                <span className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tabular-nums tracking-tight">
-                  {loading ? '...' : formattedPrice}
-                </span>
-              </div>
-
+            {/* Tarif + CTA principal Noir & Blanc */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
               {hasActiveCard ? (
                 <button
                   type="button"
                   onClick={() => onGoToWallet?.()}
-                  className="w-full min-h-[52px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm sm:text-base transition-colors cursor-pointer lum-press"
+                  className="w-full sm:w-auto min-h-[54px] px-8 rounded-full bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:hover:bg-neutral-200 dark:text-black font-agrandir-extrabold text-sm sm:text-base inline-flex items-center justify-center gap-2.5 transition-all cursor-pointer lum-press"
                 >
-                  {c.ctaViewMyCard}
+                  <span>{c.ctaViewMyCard}</span>
+                  <ArrowRight className="w-4 h-4" strokeWidth={2} />
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={() => openAdmissionWizard(activePlan || undefined)}
-                  className="w-full min-h-[52px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-sm sm:text-base transition-colors cursor-pointer lum-press"
+                  className="w-full sm:w-auto min-h-[54px] px-8 rounded-full bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:hover:bg-neutral-200 dark:text-black font-agrandir-extrabold text-sm sm:text-base inline-flex items-center justify-center gap-2.5 transition-all cursor-pointer lum-press"
                 >
-                  {c.ctaBecomeMember}
+                  <span>{c.ctaPrimary}</span>
+                  <ArrowRight className="w-4 h-4" strokeWidth={2} />
                 </button>
               )}
 
-              <p className="text-[11px] text-[#9A9A9A] text-center leading-relaxed">
-                {c.footnote}
-              </p>
-            </section>
+              <div className="flex items-baseline gap-1.5 text-[#111111] dark:text-white">
+                <span className="font-agrandir-extrabold text-xl sm:text-2xl tabular-nums tracking-tight">
+                  {loading ? '...' : formattedPrice}
+                </span>
+                <span className="text-xs sm:text-sm text-black/55 dark:text-white/55">
+                  {c.priceSuffix}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-black/50 dark:text-white/50">{c.quickNote}</p>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* =================================================================== */}
-      {/* TUNNEL SIGNATURE BLACK CARD EN 4 ÉTAPES (PAYMETRUST / API RÉELLE)   */}
+      {/* 2. AVANTAGES — Les 7 avantages exacts, clairs et lisibles           */}
+      {/* =================================================================== */}
+      <section className="w-full border-t border-black/[0.08] dark:border-white/[0.1] bg-[#F3F3F5] dark:bg-[#0A0A0A] transition-colors duration-200">
+        <div className="w-full max-w-[1120px] mx-auto px-5 sm:px-8 lg:px-10 py-16 sm:py-24 space-y-10 sm:space-y-12">
+          <div className="max-w-2xl space-y-2.5">
+            <h2 className="font-agrandir-extrabold text-2xl sm:text-4xl tracking-tight text-[#111111] dark:text-white">
+              {c.benefitsTitle}
+            </h2>
+            <p className="text-sm sm:text-base text-black/60 dark:text-white/60 leading-relaxed">
+              {c.benefitsSub}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {c.perksList.map((perk, idx) => {
+              const Icon = PERK_ICONS[idx % PERK_ICONS.length];
+              return (
+                <div
+                  key={perk.title}
+                  className="p-6 rounded-[18px] bg-white dark:bg-[#121212] border border-black/[0.07] dark:border-white/[0.08] flex flex-col justify-between gap-4 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-[12px] bg-[#111111] text-white dark:bg-white dark:text-black flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4" strokeWidth={1.8} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <h3 className="font-agrandir-extrabold text-base sm:text-[17px] text-[#111111] dark:text-white leading-snug">
+                      {perk.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-black/60 dark:text-white/60 leading-relaxed">
+                      {perk.desc}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* =================================================================== */}
+      {/* 3. DÉTAILS DE LA CARTE — Zéro terme technique, tout en simplicité   */}
+      {/* =================================================================== */}
+      <section className="w-full border-t border-black/[0.08] dark:border-white/[0.1] bg-[#FBFBFD] dark:bg-black transition-colors duration-200">
+        <div className="w-full max-w-[1120px] mx-auto px-5 sm:px-8 lg:px-10 py-16 sm:py-24 space-y-12">
+          <div className="max-w-2xl space-y-2.5">
+            <h2 className="font-agrandir-extrabold text-2xl sm:text-4xl tracking-tight text-[#111111] dark:text-white">
+              {c.detailsTitle}
+            </h2>
+            <p className="text-sm sm:text-base text-black/60 dark:text-white/60 leading-relaxed">
+              {c.detailsSub}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-2 border-t border-black/[0.08] dark:border-white/[0.1]">
+            {c.detailsList.map((detail, idx) => (
+              <div
+                key={detail.title}
+                className="py-6 border-b border-black/[0.08] dark:border-white/[0.1] flex items-start gap-4"
+              >
+                <span className="w-7 h-7 rounded-full bg-black/[0.06] dark:bg-white/[0.1] text-[#111111] dark:text-white font-mono text-xs font-semibold flex items-center justify-center shrink-0 mt-0.5 tabular-nums">
+                  {idx + 1}
+                </span>
+                <div className="space-y-1.5 min-w-0">
+                  <h3 className="font-agrandir-extrabold text-base text-[#111111] dark:text-white leading-snug">
+                    {detail.title}
+                  </h3>
+                  <p className="text-sm text-black/60 dark:text-white/60 leading-relaxed">
+                    {detail.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bloc final de conversion Monzo-style (contraste inversé Noir / Blanc) */}
+          <div className="rounded-[24px] bg-[#111111] text-white dark:bg-[#121212] dark:border dark:border-white/[0.12] px-6 sm:px-10 py-10 sm:py-12 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="space-y-2 max-w-xl">
+              <div className="inline-flex items-center gap-2 text-[11px] font-agrandir-semibold uppercase tracking-[0.2em] text-white/60">
+                <Sparkles className="w-3.5 h-3.5" strokeWidth={1.7} />
+                <span>{formattedPrice} {c.priceSuffix}</span>
+              </div>
+              <h3 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-tight text-white">
+                {c.finalTitle}
+              </h3>
+              <p className="text-sm text-white/70 leading-relaxed">{c.finalSub}</p>
+            </div>
+
+            <div className="w-full md:w-auto flex flex-col items-stretch md:items-end gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => openAdmissionWizard(activePlan || undefined)}
+                className="w-full md:w-auto min-h-[52px] px-8 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-sm sm:text-base inline-flex items-center justify-center gap-2 transition-colors cursor-pointer lum-press"
+              >
+                <span>{c.ctaPrimary}</span>
+                <ArrowRight className="w-4 h-4" strokeWidth={2} />
+              </button>
+              <span className="text-[11px] text-white/55 text-center md:text-right">
+                {c.footnote}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* =================================================================== */}
+      {/* TUNNEL D’ACTIVATION EN 4 ÉTAPES — Noir & Blanc, Clair / Sombre      */}
       {/* =================================================================== */}
       {typeof document !== 'undefined' &&
         createPortal(
@@ -679,7 +807,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 20 }}
                 onClick={() => setIsWizardMinimized(false)}
-                className="fixed bottom-24 right-4 z-[90] min-h-[44px] px-4 rounded-full bg-[#D4AF6A] text-black font-agrandir-extrabold text-xs shadow-2xl flex items-center gap-2 cursor-pointer"
+                className="fixed bottom-24 right-4 z-[90] min-h-[44px] px-5 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold text-xs shadow-2xl flex items-center gap-2 cursor-pointer"
               >
                 <span>{c.wizTitle}</span>
               </motion.button>
@@ -695,25 +823,25 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 role="dialog"
                 aria-modal="true"
                 aria-label={c.wizTitle}
-                className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center sm:p-4 bg-black/90 backdrop-blur-md touch-none overscroll-none"
+                className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 dark:bg-black/88 backdrop-blur-md touch-none overscroll-none"
               >
                 <motion.div
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 24 }}
                   transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                  className="relative w-full max-w-xl max-h-[90dvh] sm:max-h-[86vh] flex flex-col overflow-hidden bg-[#090909] rounded-t-[24px] sm:rounded-[20px] border-t sm:border border-white/[0.14] shadow-[0_24px_80px_rgba(0,0,0,0.95)] text-left touch-auto"
+                  className="relative w-full max-w-xl max-h-[90dvh] sm:max-h-[86vh] flex flex-col overflow-hidden bg-white text-[#111111] dark:bg-[#0B0B0B] dark:text-white rounded-t-[24px] sm:rounded-[20px] border-t sm:border border-black/10 dark:border-white/[0.14] shadow-[0_24px_80px_rgba(0,0,0,0.35)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.95)] text-left touch-auto"
                 >
-                  {/* En-tête fixe sobre sans numéros d'étapes */}
-                  <div className="shrink-0 px-5 sm:px-6 pt-3 sm:pt-5 pb-4 border-b border-white/[0.1] bg-[#090909]">
-                    <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-3 sm:hidden" />
+                  {/* En-tête */}
+                  <div className="shrink-0 px-5 sm:px-6 pt-3 sm:pt-5 pb-4 border-b border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#0B0B0B]">
+                    <div className="w-10 h-1 rounded-full bg-black/15 dark:bg-white/20 mx-auto mb-3 sm:hidden" />
 
                     <div className="flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#D4AF6A] block">
-                          {c.wizHeader()}
+                        <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-black/45 dark:text-white/50 block">
+                          {c.wizHeader}
                         </span>
-                        <h3 className="font-agrandir-extrabold text-base sm:text-lg text-white uppercase mt-0.5 truncate">
+                        <h3 className="font-agrandir-extrabold text-base sm:text-lg text-[#111111] dark:text-white mt-0.5 truncate">
                           {c.wizTitle}
                         </h3>
                       </div>
@@ -722,7 +850,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         <button
                           type="button"
                           onClick={() => setIsWizardMinimized(true)}
-                          className="w-9 h-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] flex items-center justify-center text-[#C8C8C8] hover:text-white transition-colors cursor-pointer"
+                          className="w-9 h-9 rounded-full bg-black/[0.05] hover:bg-black/[0.1] dark:bg-white/[0.07] dark:hover:bg-white/[0.14] flex items-center justify-center text-black/65 hover:text-black dark:text-white/70 dark:hover:text-white transition-colors cursor-pointer"
                           aria-label={c.wizMinimize}
                         >
                           <Minus className="w-4 h-4" strokeWidth={1.6} />
@@ -730,7 +858,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         <button
                           type="button"
                           onClick={closeAdmissionWizard}
-                          className="w-9 h-9 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] flex items-center justify-center text-[#C8C8C8] hover:text-white transition-colors cursor-pointer"
+                          className="w-9 h-9 rounded-full bg-black/[0.05] hover:bg-black/[0.1] dark:bg-white/[0.07] dark:hover:bg-white/[0.14] flex items-center justify-center text-black/65 hover:text-black dark:text-white/70 dark:hover:text-white transition-colors cursor-pointer"
                           aria-label={c.wizCancel}
                         >
                           <X className="w-4 h-4" strokeWidth={1.6} />
@@ -743,33 +871,23 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5">
                     {wizardStep === 1 && (
                       <div className="space-y-5">
-                        {/* Aperçu gravure NFC en temps réel (zéro QR code, statut non bancaire) */}
-                        <div className="relative rounded-[12px] aspect-[1.85/1] bg-gradient-to-br from-[#1B1A17] via-[#0F0F0F] to-[#060606] border border-white/[0.16] p-5 flex flex-col justify-between overflow-hidden">
-                          <div className="flex items-center justify-between">
-                            <span className="font-agrandir-extrabold text-xs tracking-[0.22em] text-white uppercase">
-                              LUMARÉEL
-                            </span>
-                            <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-[#D4AF6A]">
-                              NFC · MEMBRE
-                            </span>
-                          </div>
-                          <div className="flex items-end justify-between gap-4">
-                            <div className="min-w-0">
-                              <span className="block text-[9px] font-mono uppercase tracking-[0.22em] text-[#9A9A9A]">
-                                BLACK CARD
-                              </span>
-                              <span className="mt-1 block font-agrandir-extrabold text-sm sm:text-base uppercase tracking-[0.08em] text-white truncate">
-                                {applicantName.trim() || (isEn ? 'YOUR FULL NAME' : 'VOTRE NOM COMPLET')}
-                              </span>
-                            </div>
-                            <span className="text-[10px] font-mono text-[#9A9A9A] shrink-0">
-                              {new Date().getFullYear()}
-                            </span>
+                        {/* Aperçu de la vraie carte officielle */}
+                        <div className="w-full max-w-[300px] mx-auto">
+                          <div
+                            className="w-full rounded-[10px] bg-black ring-1 ring-black/15 dark:ring-white/15 shadow-lg overflow-hidden"
+                            style={{ aspectRatio: '85.6 / 53.98' }}
+                          >
+                            <img
+                              src={CARD_FRONT_IMG}
+                              alt="LUMARÉEL Black Card"
+                              referrerPolicy="no-referrer"
+                              className="w-full h-full object-cover"
+                            />
                           </div>
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-[10px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
+                          <label className="text-xs font-agrandir-semibold text-black/70 dark:text-white/75 block">
                             {c.wiz1Label}
                           </label>
                           <input
@@ -782,29 +900,31 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                                 handleWizardNextStep1();
                               }
                             }}
-                            placeholder="VOTRE NOM COMPLET"
+                            placeholder={c.wiz1Placeholder}
                             required
-                            className="w-full min-h-[48px] px-4 py-3 rounded-[8px] bg-black border border-white/[0.16] focus:border-[#D4AF6A] text-white font-mono text-sm uppercase tracking-wider outline-none transition-colors"
+                            className="w-full min-h-[48px] px-4 py-3 rounded-[10px] bg-[#F5F5F7] dark:bg-black border border-black/15 dark:border-white/[0.16] focus:border-black dark:focus:border-white text-[#111111] dark:text-white font-mono text-sm uppercase tracking-wider outline-none transition-colors"
                           />
+                          <p className="text-[11px] text-black/50 dark:text-white/50">
+                            {c.wiz1Hint}
+                          </p>
                         </div>
 
-                        <div className="p-4 rounded-[10px] bg-[#0E0E0E] border border-white/[0.12] flex items-center justify-between gap-4">
+                        <div className="p-4 rounded-[12px] bg-[#F5F5F7] dark:bg-[#121212] border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-between gap-4">
                           <div className="min-w-0">
-                            <span className="text-[10px] font-mono text-[#D4AF6A] uppercase tracking-wider block">
+                            <span className="text-[10px] font-agrandir-semibold text-black/50 dark:text-white/50 uppercase tracking-wider block">
                               {c.wiz1Plan}
                             </span>
-                            <strong className="text-sm font-agrandir-extrabold text-white uppercase">
+                            <strong className="text-sm font-agrandir-extrabold text-[#111111] dark:text-white">
                               {activePlan?.name || c.wiz1PlanFallback}
                             </strong>
-                            <p className="text-xs text-[#9A9A9A] mt-0.5">{c.wiz1PlanDesc}</p>
+                            <p className="text-xs text-black/55 dark:text-white/55 mt-0.5">
+                              {c.wiz1PlanDesc}
+                            </p>
                           </div>
                           <div className="text-right shrink-0">
-                            <div className="text-base sm:text-lg font-agrandir-extrabold text-white font-mono tabular-nums">
+                            <div className="text-base sm:text-lg font-agrandir-extrabold text-[#111111] dark:text-white font-mono tabular-nums">
                               {formattedPrice}
                             </div>
-                            <span className="text-[10px] text-[#9A9A9A] uppercase">
-                              {c.wiz1Valid}
-                            </span>
                           </div>
                         </div>
                       </div>
@@ -813,15 +933,17 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     {wizardStep === 2 && (
                       <div className="space-y-5">
                         <div>
-                          <h4 className="text-base font-agrandir-extrabold text-white uppercase">
+                          <h4 className="text-base font-agrandir-extrabold text-[#111111] dark:text-white">
                             {c.wiz2Title}
                           </h4>
-                          <p className="text-xs text-[#9A9A9A] mt-1">{c.wiz2Sub}</p>
+                          <p className="text-xs text-black/55 dark:text-white/55 mt-1">
+                            {c.wiz2Sub}
+                          </p>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
+                            <label className="text-xs font-agrandir-semibold text-black/70 dark:text-white/75 block">
                               {c.wiz2Email}
                             </label>
                             <input
@@ -830,12 +952,12 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                               onChange={(e) => setApplicantEmail(e.target.value)}
                               placeholder="email@domain.com"
                               required
-                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[8px] bg-black border border-white/[0.16] focus:border-[#D4AF6A] text-white text-sm outline-none transition-colors"
+                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[10px] bg-[#F5F5F7] dark:bg-black border border-black/15 dark:border-white/[0.16] focus:border-black dark:focus:border-white text-[#111111] dark:text-white text-sm outline-none transition-colors"
                             />
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
+                            <label className="text-xs font-agrandir-semibold text-black/70 dark:text-white/75 block">
                               {c.wiz2Phone}
                             </label>
                             <input
@@ -844,14 +966,14 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                               onChange={(e) => setApplicantPhone(e.target.value)}
                               placeholder="+225 07 00 00 00 00"
                               required
-                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[8px] bg-black border border-white/[0.16] focus:border-[#D4AF6A] text-white text-sm outline-none transition-colors"
+                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[10px] bg-[#F5F5F7] dark:bg-black border border-black/15 dark:border-white/[0.16] focus:border-black dark:focus:border-white text-[#111111] dark:text-white text-sm outline-none transition-colors"
                             />
                           </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
+                            <label className="text-xs font-agrandir-semibold text-black/70 dark:text-white/75 block">
                               {c.wiz2City}
                             </label>
                             <input
@@ -859,12 +981,12 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                               value={applicantCity}
                               onChange={(e) => setApplicantCity(e.target.value)}
                               placeholder="Abidjan"
-                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[8px] bg-black border border-white/[0.16] focus:border-[#D4AF6A] text-white text-sm outline-none transition-colors"
+                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[10px] bg-[#F5F5F7] dark:bg-black border border-black/15 dark:border-white/[0.16] focus:border-black dark:focus:border-white text-[#111111] dark:text-white text-sm outline-none transition-colors"
                             />
                           </div>
 
                           <div className="space-y-1.5">
-                            <label className="text-[10px] font-mono uppercase tracking-wider text-[#C8C8C8] block">
+                            <label className="text-xs font-agrandir-semibold text-black/70 dark:text-white/75 block">
                               {c.wiz2Address}
                             </label>
                             <input
@@ -872,16 +994,10 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                               value={applicantAddress}
                               onChange={(e) => setApplicantAddress(e.target.value)}
                               placeholder="Cocody, Zone 4..."
-                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[8px] bg-black border border-white/[0.16] focus:border-[#D4AF6A] text-white text-sm outline-none transition-colors"
+                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[10px] bg-[#F5F5F7] dark:bg-black border border-black/15 dark:border-white/[0.16] focus:border-black dark:focus:border-white text-[#111111] dark:text-white text-sm outline-none transition-colors"
                             />
                           </div>
                         </div>
-
-                        <p className="text-[11px] text-[#9A9A9A] p-3 rounded-[8px] bg-[#0E0E0E] border border-white/[0.08] leading-relaxed">
-                          {isEn
-                            ? 'Membership card only (NFC) — not a bank or reloadable payment card.'
-                            : "Carte de statut membre NFC uniquement — il ne s'agit ni d'une carte bancaire ni d'une carte rechargeable."}
-                        </p>
                       </div>
                     )}
 
@@ -893,10 +1009,12 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                         className="space-y-5"
                       >
                         <div>
-                          <h4 className="text-base font-agrandir-extrabold text-white uppercase">
+                          <h4 className="text-base font-agrandir-extrabold text-[#111111] dark:text-white">
                             {c.wiz3Title}
                           </h4>
-                          <p className="text-xs text-[#9A9A9A] mt-1">{c.wiz3Sub}</p>
+                          <p className="text-xs text-black/55 dark:text-white/55 mt-1">
+                            {c.wiz3Sub}
+                          </p>
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
@@ -907,108 +1025,56 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                                 key={m.id}
                                 type="button"
                                 onClick={() => setPaymentMethod(m.id as any)}
-                                className={`relative min-h-[80px] p-3 rounded-[10px] border text-left transition-colors cursor-pointer ${
+                                className={`relative min-h-[78px] p-3 rounded-[12px] border text-left transition-colors cursor-pointer ${
                                   isSelected
-                                    ? 'bg-[#15130E] border-[#D4AF6A] text-white'
-                                    : 'bg-[#0E0E0E] border-white/[0.12] text-[#9A9A9A] hover:border-white/25'
+                                    ? 'bg-[#111111] border-[#111111] text-white dark:bg-white dark:border-white dark:text-black'
+                                    : 'bg-[#F5F5F7] border-black/10 text-black/75 hover:border-black/30 dark:bg-[#121212] dark:border-white/[0.12] dark:text-white/75 dark:hover:border-white/30'
                                 }`}
                               >
                                 {isSelected && (
-                                  <span className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-[#D4AF6A] text-black flex items-center justify-center">
+                                  <span className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-white text-black dark:bg-black dark:text-white flex items-center justify-center">
                                     <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
                                   </span>
                                 )}
-                                <div className="h-7 flex items-center justify-start gap-1.5 mb-1.5">
-                                  {m.id === 'wave' && (
-                                    <img
-                                      src="https://arcencielconsultingpro.com/gallery/upscalemedia-transformed%202.jpg"
-                                      alt="Wave"
-                                      className="h-6 w-auto max-w-[76px] object-contain rounded-[4px]"
-                                      loading="eager"
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                      }}
-                                    />
-                                  )}
-                                  {m.id === 'orange_money' && (
-                                    <img
-                                      src="https://cdn.simpleicons.org/orange/FF7900"
-                                      alt="Orange Money"
-                                      className="h-6 w-auto max-w-[76px] object-contain"
-                                      loading="eager"
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                      }}
-                                    />
-                                  )}
-                                  {m.id === 'mtn_momo' && (
-                                    <img
-                                      src="https://cdn.simpleicons.org/mtn/FFCC00"
-                                      alt="MTN MoMo"
-                                      className="h-6 w-auto max-w-[76px] object-contain"
-                                      loading="eager"
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                      }}
-                                    />
-                                  )}
-                                  {m.id === 'moov_money' && (
-                                    <img
-                                      src="https://cdn.simpleicons.org/moov/0065B3"
-                                      alt="Moov Money"
-                                      className="h-6 w-auto max-w-[76px] object-contain"
-                                      loading="eager"
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                      }}
-                                    />
-                                  )}
-                                  {m.id === 'card' && (
-                                    <>
-                                      <img
-                                        src="https://cdn.simpleicons.org/visa/1A1F71"
-                                        alt="Visa"
-                                        className="h-5 w-auto max-w-[42px] object-contain"
-                                        loading="eager"
-                                      />
-                                      <img
-                                        src="https://cdn.simpleicons.org/mastercard/EB001B"
-                                        alt="Mastercard"
-                                        className="h-5 w-auto max-w-[34px] object-contain"
-                                        loading="eager"
-                                      />
-                                    </>
-                                  )}
-                                </div>
-                                <div className="font-agrandir-extrabold text-xs text-white truncate">
+                                <div className="font-agrandir-extrabold text-xs sm:text-sm pr-5">
                                   {m.label}
                                 </div>
-                                <div className="text-[10px] text-[#9A9A9A] font-mono">{m.desc}</div>
+                                <div
+                                  className={`text-[11px] mt-1 ${
+                                    isSelected
+                                      ? 'text-white/70 dark:text-black/65'
+                                      : 'text-black/45 dark:text-white/45'
+                                  }`}
+                                >
+                                  {m.desc}
+                                </div>
                               </button>
                             );
                           })}
                         </div>
 
-                        <div className="p-4 rounded-[10px] bg-[#0E0E0E] border border-white/[0.12] space-y-2.5 text-xs">
-                          <div className="flex justify-between gap-2 text-[#9A9A9A]">
-                            <span>{c.wiz3Membership}</span>
-                            <span className="font-mono text-white tabular-nums shrink-0">
+                        <div className="p-4 rounded-[12px] bg-[#F5F5F7] dark:bg-[#121212] border border-black/[0.08] dark:border-white/[0.1] space-y-2.5 text-xs">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-black/60 dark:text-white/60">
+                              {c.wiz3Membership}
+                            </span>
+                            <span className="font-mono font-semibold text-[#111111] dark:text-white tabular-nums">
                               {formattedPrice}
                             </span>
                           </div>
-                          <div className="flex justify-between gap-2 text-[#9A9A9A]">
-                            <span>{c.wiz3CardDelivery}</span>
-                            <span className="text-[#7FE0A6] font-mono shrink-0">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-black/60 dark:text-white/60">
+                              {c.wiz3CardDelivery}
+                            </span>
+                            <span className="font-agrandir-semibold text-[#111111] dark:text-white">
                               {c.wiz3Included}
                             </span>
                           </div>
-                          <div className="flex justify-between gap-2 text-[#9A9A9A]">
-                            <span>{c.wiz3Bonus}</span>
-                            <span className="text-white font-mono shrink-0">{c.wiz3BonusVal}</span>
-                          </div>
-                          <div className="border-t border-dashed border-white/[0.16] pt-2.5 flex justify-between gap-2 font-agrandir-extrabold text-sm text-white">
-                            <span>{c.wiz3Total}</span>
-                            <span className="text-[#D4AF6A] font-mono tabular-nums shrink-0">
+                          <div className="pt-2.5 border-t border-black/10 dark:border-white/10 flex items-center justify-between gap-3 text-sm">
+                            <span className="font-agrandir-extrabold text-[#111111] dark:text-white">
+                              {c.wiz3Total}
+                            </span>
+                            <span className="font-agrandir-extrabold font-mono text-[#111111] dark:text-white tabular-nums">
                               {formattedPrice}
                             </span>
                           </div>
@@ -1017,115 +1083,104 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                     )}
 
                     {wizardStep === 4 && issuedResult && (
-                      <div className="text-center space-y-5 py-2">
-                        <div className="w-12 h-12 rounded-full bg-[#0F2A1A] text-[#7FE0A6] border border-[#7FE0A6]/40 flex items-center justify-center mx-auto">
-                          <CheckCircle2 className="w-6 h-6" strokeWidth={1.7} />
+                      <div className="py-4 text-center space-y-5">
+                        <div className="w-12 h-12 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black flex items-center justify-center mx-auto">
+                          <CheckCircle2 className="w-6 h-6" strokeWidth={1.8} />
                         </div>
 
                         <div className="space-y-1.5">
-                          <span className="text-[10px] font-mono tracking-[0.22em] text-[#D4AF6A] uppercase">
+                          <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50 block">
                             {c.wiz4Kicker}
                           </span>
-                          <h3 className="text-2xl font-agrandir-extrabold uppercase text-white">
+                          <h4 className="font-agrandir-extrabold text-xl text-[#111111] dark:text-white">
                             {c.wiz4Title}
-                          </h3>
-                          <p className="text-xs text-[#C8C8C8] max-w-md mx-auto">
+                          </h4>
+                          <p className="text-xs sm:text-sm text-black/60 dark:text-white/60 max-w-sm mx-auto leading-relaxed">
                             {c.wiz4Desc(issuedResult.card.cardNumber)}
                           </p>
                         </div>
 
-                        <div className="p-4 rounded-[10px] bg-[#0E0E0E] border border-white/[0.12] max-w-md mx-auto text-left space-y-2.5 text-xs">
-                          <div className="flex justify-between gap-2">
-                            <span className="text-[#9A9A9A]">{c.wiz4Holder}</span>
-                            <strong className="text-white uppercase font-mono truncate">
+                        <dl className="text-left rounded-[12px] bg-[#F5F5F7] dark:bg-[#121212] border border-black/[0.08] dark:border-white/[0.1] divide-y divide-black/[0.08] dark:divide-white/[0.1] text-xs px-4">
+                          <div className="py-3 flex items-center justify-between gap-4">
+                            <dt className="text-black/55 dark:text-white/55">{c.wiz4Holder}</dt>
+                            <dd className="font-agrandir-bold text-[#111111] dark:text-white uppercase">
                               {issuedResult.card.cardholderName}
-                            </strong>
+                            </dd>
                           </div>
-                          <div className="flex justify-between gap-2">
-                            <span className="text-[#9A9A9A]">{c.wiz4Number}</span>
-                            <strong className="text-[#D4AF6A] font-mono tabular-nums">
+                          <div className="py-3 flex items-center justify-between gap-4">
+                            <dt className="text-black/55 dark:text-white/55">{c.wiz4Number}</dt>
+                            <dd className="font-mono text-[#111111] dark:text-white">
                               {issuedResult.card.cardNumber}
-                            </strong>
+                            </dd>
                           </div>
-                          <div className="flex justify-between gap-2">
-                            <span className="text-[#9A9A9A]">{c.wiz4Box}</span>
-                            <span className="text-[#7FE0A6] font-mono">{c.wiz4Prep}</span>
+                          <div className="py-3 flex items-center justify-between gap-4">
+                            <dt className="text-black/55 dark:text-white/55">{c.wiz4Physical}</dt>
+                            <dd className="font-agrandir-semibold text-[#111111] dark:text-white">
+                              {c.wiz4Prep}
+                            </dd>
                           </div>
-                        </div>
+                        </dl>
                       </div>
                     )}
                   </div>
 
-                  {/* Barre d'action fixe en bas */}
-                  <div className="shrink-0 bg-[#090909] border-t border-white/[0.12] px-5 sm:px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))]">
+                  {/* Pied fixe d’action */}
+                  <div className="shrink-0 px-5 sm:px-6 py-4 border-t border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#0B0B0B]">
                     {wizardStep === 1 && (
                       <button
                         type="button"
                         onClick={handleWizardNextStep1}
-                        className="w-full min-h-[50px] px-7 py-3 rounded-[8px] bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors lum-press"
+                        className="w-full min-h-[48px] rounded-full bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:hover:bg-neutral-200 dark:text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer lum-press"
                       >
-                        <span>{c.wiz1Next}</span>
-                        <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={1.6} />
+                        {c.wiz1Next}
                       </button>
                     )}
 
                     {wizardStep === 2 && (
-                      <div className="flex items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-3">
                         <button
                           type="button"
                           onClick={() => setWizardStep(1)}
-                          className="min-h-[50px] px-4 rounded-[8px] border border-white/[0.16] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white hover:border-white/35 cursor-pointer transition-colors shrink-0 lum-press"
+                          className="min-h-[48px] px-5 rounded-full border border-black/15 dark:border-white/20 text-[#111111] dark:text-white font-agrandir-semibold text-sm transition-colors cursor-pointer"
                         >
                           {c.wiz2Back}
                         </button>
-
                         <button
                           type="button"
                           onClick={handleWizardNextStep2}
-                          className="flex-1 min-h-[50px] px-7 py-3 rounded-[8px] bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer transition-colors lum-press"
+                          className="flex-1 min-h-[48px] rounded-full bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:hover:bg-neutral-200 dark:text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer lum-press"
                         >
-                          <span>{c.wiz2Next}</span>
-                          <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={1.6} />
+                          {c.wiz2Next}
                         </button>
                       </div>
                     )}
 
                     {wizardStep === 3 && (
-                      <div className="flex items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-3">
                         <button
                           type="button"
                           onClick={() => setWizardStep(2)}
-                          className="min-h-[50px] px-4 rounded-[8px] border border-white/[0.16] text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white hover:border-white/35 cursor-pointer transition-colors shrink-0 lum-press"
+                          disabled={isSubmitting}
+                          className="min-h-[48px] px-5 rounded-full border border-black/15 dark:border-white/20 text-[#111111] dark:text-white font-agrandir-semibold text-sm transition-colors cursor-pointer disabled:opacity-50"
                         >
                           {c.wiz2Back}
                         </button>
-
                         <button
                           type="submit"
                           form="black-card-checkout-form"
                           disabled={isSubmitting}
-                          className="flex-1 min-h-[50px] px-7 py-3 rounded-[8px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 transition-colors lum-press"
+                          className="flex-1 min-h-[48px] rounded-full bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:hover:bg-neutral-200 dark:text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer disabled:opacity-60 lum-press"
                         >
-                          {isSubmitting ? (
-                            <>
-                              <RotateCw className="w-4 h-4 animate-spin text-black shrink-0" />
-                              <span>{c.wiz3Submitting}</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>{c.wiz3Submit}</span>
-                              <Check className="w-4 h-4 text-black shrink-0" strokeWidth={1.8} />
-                            </>
-                          )}
+                          {isSubmitting ? c.wiz3Submitting : c.wiz3Submit}
                         </button>
                       </div>
                     )}
 
-                    {wizardStep === 4 && issuedResult && (
+                    {wizardStep === 4 && (
                       <button
                         type="button"
-                        onClick={() => finishAndOpenInstalledCard(issuedResult.card)}
-                        className="w-full min-h-[50px] px-8 py-3.5 rounded-[8px] bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs uppercase tracking-wider cursor-pointer transition-colors lum-press"
+                        onClick={() => finishAndOpenInstalledCard()}
+                        className="w-full min-h-[48px] rounded-full bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:hover:bg-neutral-200 dark:text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer lum-press"
                       >
                         {c.wiz4Cta}
                       </button>

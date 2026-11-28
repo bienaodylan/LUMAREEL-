@@ -19,8 +19,9 @@ import {
   SlidersHorizontal,
   ScanLine,
   Maximize2,
+  Moon,
+  Sun,
 } from 'lucide-react';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import {
   computeUserPointsSummary,
   loadUserPointsState,
@@ -39,10 +40,6 @@ const NOTIF_STORAGE_KEY = 'lumareel_notifications_enabled_v1';
 
 type ProfileSheetType = null | 'info' | 'contact' | 'security' | 'prefs' | 'history';
 
-/**
- * Écran Compte — Liste éditoriale épurée conforme à la direction artistique LUMARÉEL
- * (0px conteneurs, 4px boutons/inputs, filets fins rgba(255,255,255,0.12), or #D4AF6A).
- */
 export const ProfileView: React.FC = () => {
   const {
     currentUser,
@@ -53,6 +50,8 @@ export const ProfileView: React.FC = () => {
     showToast,
     language,
     setLanguage,
+    theme,
+    setTheme,
     t,
   } = useApp();
 
@@ -128,15 +127,12 @@ export const ProfileView: React.FC = () => {
     setPointsState(next);
     saveUserPointsState(currentUser, next);
     setActiveSheet(null);
-    showToast(
-      isEn ? 'Account details updated.' : 'Informations enregistrées.',
-      'success'
-    );
+    showToast(isEn ? 'Saved!' : 'C’est enregistré !', 'success');
   };
 
   const handleLogout = () => {
     setCurrentUser(null);
-    showToast(isEn ? 'You have been signed out.' : 'Vous avez été déconnecté.', 'info');
+    showToast(isEn ? 'Signed out.' : 'Tu es déconnecté.', 'info');
   };
 
   const handleDeleteAccount = async () => {
@@ -177,13 +173,13 @@ export const ProfileView: React.FC = () => {
     if (next) {
       await enterMobileFullscreen();
       showToast(
-        isEn ? 'Auto fullscreen enabled on mobile.' : 'Plein écran mobile activé.',
+        isEn ? 'Mobile fullscreen enabled.' : 'Plein écran mobile activé.',
         'success'
       );
     } else {
       await exitMobileFullscreen();
       showToast(
-        isEn ? 'Auto fullscreen disabled.' : 'Plein écran mobile désactivé.',
+        isEn ? 'Mobile fullscreen disabled.' : 'Plein écran mobile désactivé.',
         'info'
       );
     }
@@ -198,13 +194,13 @@ export const ProfileView: React.FC = () => {
       ? [
           {
             label: isEn ? 'Ticket Scanner' : 'Scanner billets',
-            page: 'scanner' as PageView,
+            page: 'gate_scanner' as PageView,
             icon: ScanLine,
           },
         ]
       : []),
     {
-      label: isEn ? 'Help & Contact' : 'Contact & Aide',
+      label: isEn ? 'Help & Contact' : 'Besoin d’aide ?',
       page: 'contact',
       icon: HelpCircle,
     },
@@ -212,27 +208,24 @@ export const ProfileView: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen w-full max-w-3xl mx-auto px-4 sm:px-8 pb-24 bg-black text-white font-agrandir-regular overflow-x-clip"
+      className="min-h-screen w-full max-w-3xl mx-auto px-5 sm:px-8 pb-24 bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-white font-agrandir-regular overflow-x-clip transition-colors duration-200"
       style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top, 0px))' }}
     >
-      {/* 1. IDENTITÉ ÉDITORIALE */}
+      {/* 1. IDENTITÉ */}
       <header className="pb-8 sm:pb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
         <div className="flex items-center gap-4 min-w-0">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#141414] border border-white/[0.16] flex items-center justify-center font-agrandir-extrabold text-base sm:text-lg text-[#D4AF6A] shrink-0">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#EFEFF4] dark:bg-[#141414] border border-black/[0.08] dark:border-white/[0.16] flex items-center justify-center font-agrandir-extrabold text-base sm:text-lg text-[#111111] dark:text-white shrink-0">
             {initials}
           </div>
           <div className="min-w-0">
-            <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-              {isEn ? 'ACCOUNT' : 'COMPTE'}
-            </p>
-            <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight truncate">
+            <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-[#111111] dark:text-white tracking-tight truncate">
               {displayName}
             </h1>
-            <p className="text-xs sm:text-sm text-[#9A9A9A] truncate mt-0.5">
-              {currentUser?.email || (isEn ? 'Guest session' : 'Session invité')}
+            <p className="text-xs sm:text-sm text-[#6E6E73] dark:text-[#9A9A9A] truncate mt-0.5">
+              {currentUser?.email || (isEn ? 'Guest' : 'Mode invité')}
             </p>
             {activeBlackCard && (
-              <p className="mt-1.5 text-xs text-[#D4AF6A] font-agrandir-semibold inline-flex items-center gap-1.5">
+              <p className="mt-1.5 text-xs text-[#111111] dark:text-white font-agrandir-semibold inline-flex items-center gap-1.5">
                 <Crown className="w-3.5 h-3.5 shrink-0" strokeWidth={1.6} />
                 <span>
                   LUMARÉEL Black Card · {activeBlackCard.cardNumber || (isEn ? 'Active' : 'Active')}
@@ -247,16 +240,16 @@ export const ProfileView: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsAuthModalOpen(true)}
-              className="min-h-[42px] px-5 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold transition-colors cursor-pointer lum-press"
+              className="min-h-[42px] px-5 rounded-full bg-[#111111] text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/90 text-xs font-agrandir-extrabold transition-colors cursor-pointer lum-press"
             >
-              {isEn ? 'Sign in' : 'Se connecter'}
+              {isEn ? 'Sign in' : 'Me connecter'}
             </button>
           ) : (
             isSuperAdmin && (
               <button
                 type="button"
                 onClick={() => setCurrentPage('admin')}
-                className="min-h-[40px] px-4 rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 transition-colors cursor-pointer lum-press"
+                className="min-h-[40px] px-4 rounded-full bg-[#111111] text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/90 text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 transition-colors cursor-pointer lum-press"
               >
                 <Shield className="w-3.5 h-3.5" strokeWidth={1.6} />
                 <span>{t('nav.admin')}</span>
@@ -267,100 +260,100 @@ export const ProfileView: React.FC = () => {
       </header>
 
       <div className="space-y-9">
-        {/* 2. COMPTE & PRIVILÈGES */}
+        {/* 2. MON ESPACE */}
         <section>
-          <h2 className="text-[11px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A] mb-2">
-            {isEn ? 'Account & Privileges' : 'Compte & Privilèges'}
+          <h2 className="text-[12px] font-medium text-[#6E6E73] dark:text-[#9A9A9A] mb-2">
+            {isEn ? 'My space' : 'Mon espace'}
           </h2>
-          <div className="border-y border-white/[0.12] divide-y divide-white/[0.12]">
+          <div className="border-y border-black/[0.08] dark:border-white/[0.12] divide-y divide-black/[0.08] dark:divide-white/[0.12]">
             <button
               type="button"
               onClick={() => setCurrentPage('member_card')}
-              className="group w-full min-h-[58px] py-3.5 flex items-center justify-between gap-4 text-left transition-colors cursor-pointer"
+              className="group w-full min-h-[58px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
             >
               <span className="flex items-center gap-3.5 min-w-0">
-                <Crown className="w-4 h-4 text-[#D4AF6A] shrink-0" strokeWidth={1.6} />
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-white group-hover:text-[#D4AF6A] transition-colors truncate">
-                  LUMARÉEL Black Card
+                <Crown className="w-4 h-4 text-[#111111] dark:text-white shrink-0" strokeWidth={1.6} />
+                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
+                  {isEn ? 'LUMARÉEL Black Card' : 'Ma carte LUMARÉEL'}
                 </span>
               </span>
-              <span className="flex items-center gap-2 text-xs text-[#9A9A9A] shrink-0">
-                <span className={activeBlackCard ? 'text-[#D4AF6A] font-agrandir-extrabold' : ''}>
+              <span className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#9A9A9A] shrink-0">
+                <span className={activeBlackCard ? 'text-[#111111] dark:text-white font-agrandir-bold' : ''}>
                   {activeBlackCard
                     ? 'Active'
                     : isEn
                     ? 'Discover'
                     : 'Découvrir'}
                 </span>
-                <ChevronRight className="w-4 h-4 text-[#9A9A9A] group-hover:text-white transition-colors" strokeWidth={1.6} />
+                <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
               </span>
             </button>
 
             <button
               type="button"
               onClick={() => setCurrentPage('rewards')}
-              className="group w-full min-h-[58px] py-3.5 flex items-center justify-between gap-4 text-left transition-colors cursor-pointer"
+              className="group w-full min-h-[58px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
             >
               <span className="flex items-center gap-3.5 min-w-0">
-                <Award className="w-4 h-4 text-[#9A9A9A] group-hover:text-white transition-colors shrink-0" strokeWidth={1.6} />
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-white group-hover:text-[#D4AF6A] transition-colors truncate">
-                  {isEn ? 'Points & Rewards' : 'Mes points & récompenses'}
+                <Award className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
+                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
+                  {isEn ? 'Gift Points & Referrals' : 'Mes Gift Points'}
                 </span>
               </span>
-              <span className="flex items-center gap-2 text-xs text-[#9A9A9A] tabular-nums shrink-0">
-                <span className="text-[#D4AF6A] font-agrandir-extrabold">
+              <span className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#9A9A9A] tabular-nums shrink-0">
+                <span className="text-[#111111] dark:text-white font-agrandir-bold">
                   {pointsSummary.availablePoints.toLocaleString('fr-FR')} pts
                 </span>
-                <ChevronRight className="w-4 h-4 text-[#9A9A9A] group-hover:text-white transition-colors" strokeWidth={1.6} />
+                <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
               </span>
             </button>
 
             <button
               type="button"
               onClick={() => setCurrentPage('client_space')}
-              className="group w-full min-h-[58px] py-3.5 flex items-center justify-between gap-4 text-left transition-colors cursor-pointer"
+              className="group w-full min-h-[58px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
             >
               <span className="flex items-center gap-3.5 min-w-0">
-                <Ticket className="w-4 h-4 text-[#9A9A9A] group-hover:text-white transition-colors shrink-0" strokeWidth={1.6} />
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-white group-hover:text-[#D4AF6A] transition-colors truncate">
-                  {isEn ? 'My Tickets & Orders' : 'Mes billets & commandes'}
+                <Ticket className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
+                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
+                  {isEn ? 'My Tickets' : 'Mes billets'}
                 </span>
               </span>
-              <span className="flex items-center gap-2 text-xs text-[#9A9A9A] tabular-nums shrink-0">
+              <span className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#9A9A9A] tabular-nums shrink-0">
                 <span>
                   {activeTicketsCount}{' '}
                   {isEn
                     ? activeTicketsCount > 1
-                      ? 'passes'
-                      : 'pass'
+                      ? 'tickets'
+                      : 'ticket'
                     : activeTicketsCount > 1
                     ? 'actifs'
                     : 'actif'}
                 </span>
-                <ChevronRight className="w-4 h-4 text-[#9A9A9A] group-hover:text-white transition-colors" strokeWidth={1.6} />
+                <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
               </span>
             </button>
           </div>
         </section>
 
-        {/* 3. MON PROFIL (Informations, Coordonnées, Sécurité, Historique) */}
+        {/* 3. MES INFOS */}
         <section>
-          <h2 className="text-[11px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A] mb-2">
-            {isEn ? 'Profile & Security' : 'Profil & Sécurité'}
+          <h2 className="text-[12px] font-medium text-[#6E6E73] dark:text-[#9A9A9A] mb-2">
+            {isEn ? 'My info' : 'Mes infos'}
           </h2>
-          <div className="border-y border-white/[0.12] divide-y divide-white/[0.12]">
+          <div className="border-y border-black/[0.08] dark:border-white/[0.12] divide-y divide-black/[0.08] dark:divide-white/[0.12]">
             {[
               {
                 id: 'info' as const,
                 icon: UserIcon,
-                label: isEn ? 'Personal details' : 'Informations',
+                label: isEn ? 'About me' : 'Infos perso',
                 meta: cityInput || 'Abidjan',
               },
               {
                 id: 'contact' as const,
                 icon: Phone,
-                label: isEn ? 'Contact details' : 'Coordonnées',
-                meta: phoneInput || currentUser?.email || (isEn ? 'Add' : 'Compléter'),
+                label: isEn ? 'Contact' : 'Coordonnées',
+                meta: phoneInput || currentUser?.email || (isEn ? 'Add' : 'Ajouter'),
               },
               {
                 id: 'security' as const,
@@ -371,7 +364,7 @@ export const ProfileView: React.FC = () => {
               {
                 id: 'history' as const,
                 icon: History,
-                label: isEn ? 'Order & activity history' : 'Historique',
+                label: isEn ? 'Orders' : 'Historique',
                 meta: `${customerOrders.length} ${isEn ? 'orders' : 'commandes'}`,
               },
             ].map((row) => {
@@ -381,17 +374,17 @@ export const ProfileView: React.FC = () => {
                   key={row.id}
                   type="button"
                   onClick={() => setActiveSheet(row.id)}
-                  className="group w-full min-h-[56px] py-3.5 flex items-center justify-between gap-4 text-left transition-colors cursor-pointer"
+                  className="group w-full min-h-[56px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
                 >
                   <span className="flex items-center gap-3.5 min-w-0">
-                    <Icon className="w-4 h-4 text-[#9A9A9A] group-hover:text-white transition-colors shrink-0" strokeWidth={1.6} />
-                    <span className="text-sm sm:text-[15px] font-agrandir-semibold text-white group-hover:text-[#D4AF6A] transition-colors truncate">
+                    <Icon className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
+                    <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
                       {row.label}
                     </span>
                   </span>
-                  <span className="flex items-center gap-2 text-xs text-[#9A9A9A] shrink-0 max-w-[140px]">
+                  <span className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#9A9A9A] shrink-0 max-w-[140px]">
                     <span className="truncate">{row.meta}</span>
-                    <ChevronRight className="w-4 h-4 text-[#9A9A9A] group-hover:text-white shrink-0" strokeWidth={1.6} />
+                    <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={1.6} />
                   </span>
                 </button>
               );
@@ -399,44 +392,68 @@ export const ProfileView: React.FC = () => {
           </div>
         </section>
 
-        {/* 4. PRÉFÉRENCES (Notifications, Langue, Préférences musicales) */}
+        {/* 4. PRÉFÉRENCES (Apparence, Langue, Notifications, Préférences musicales) */}
         <section>
-          <h2 className="text-[11px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A] mb-2">
-            {t('profile.preferences')}
+          <h2 className="text-[12px] font-medium text-[#6E6E73] dark:text-[#9A9A9A] mb-2">
+            {isEn ? 'Preferences' : 'Préférences'}
           </h2>
-          <div className="border-y border-white/[0.12] divide-y divide-white/[0.12]">
-            <button
-              type="button"
-              onClick={() => setActiveSheet('prefs')}
-              className="group w-full min-h-[56px] py-3.5 flex items-center justify-between gap-4 text-left transition-colors cursor-pointer"
-            >
-              <span className="flex items-center gap-3.5 min-w-0">
-                <SlidersHorizontal className="w-4 h-4 text-[#9A9A9A] group-hover:text-white shrink-0" strokeWidth={1.6} />
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-white group-hover:text-[#D4AF6A] transition-colors truncate">
-                  {isEn ? 'Preferences' : 'Préférences'}
-                </span>
-              </span>
-              <span className="flex items-center gap-2 text-xs text-[#9A9A9A] shrink-0">
-                <span className="truncate max-w-[130px]">{favoriteGenre}</span>
-                <ChevronRight className="w-4 h-4 text-[#9A9A9A] group-hover:text-white" strokeWidth={1.6} />
-              </span>
-            </button>
-
+          <div className="border-y border-black/[0.08] dark:border-white/[0.12] divide-y divide-black/[0.08] dark:divide-white/[0.12]">
+            {/* MODE CLAIR / SOMBRE */}
             <div className="min-h-[58px] py-3.5 flex items-center justify-between gap-4">
               <span className="flex items-center gap-3.5 min-w-0">
-                <Globe className="w-4 h-4 text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-white">
+                {theme === 'dark' ? (
+                  <Moon className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
+                ) : (
+                  <Sun className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
+                )}
+                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white">
+                  {isEn ? 'Appearance' : 'Apparence'}
+                </span>
+              </span>
+              <div className="flex items-center rounded-full bg-black/[0.05] dark:bg-[#141414] border border-black/[0.08] dark:border-white/[0.12] p-0.5 text-xs shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setTheme('light')}
+                  className={`inline-flex items-center gap-1.5 min-h-[30px] px-3 rounded-full transition-colors cursor-pointer ${
+                    theme === 'light'
+                      ? 'bg-[#111111] text-white font-agrandir-extrabold'
+                      : 'text-[#6E6E73] dark:text-[#9A9A9A] hover:text-[#111111] dark:hover:text-white'
+                  }`}
+                >
+                  <Sun className="w-3.5 h-3.5" />
+                  <span>{isEn ? 'Light' : 'Clair'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTheme('dark')}
+                  className={`inline-flex items-center gap-1.5 min-h-[30px] px-3 rounded-full transition-colors cursor-pointer ${
+                    theme === 'dark'
+                      ? 'bg-white text-black font-agrandir-extrabold'
+                      : 'text-[#6E6E73] dark:text-[#9A9A9A] hover:text-[#111111] dark:hover:text-white'
+                  }`}
+                >
+                  <Moon className="w-3.5 h-3.5" />
+                  <span>{isEn ? 'Dark' : 'Sombre'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* LANGUE */}
+            <div className="min-h-[58px] py-3.5 flex items-center justify-between gap-4">
+              <span className="flex items-center gap-3.5 min-w-0">
+                <Globe className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
+                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white">
                   {t('profile.language')}
                 </span>
               </span>
-              <div className="flex items-center rounded-full bg-[#141414] border border-white/[0.12] p-0.5 text-xs shrink-0">
+              <div className="flex items-center rounded-full bg-black/[0.05] dark:bg-[#141414] border border-black/[0.08] dark:border-white/[0.12] p-0.5 text-xs shrink-0">
                 <button
                   type="button"
                   onClick={() => setLanguage('fr')}
                   className={`min-h-[30px] px-3 rounded-full transition-colors cursor-pointer ${
                     language === 'fr'
-                      ? 'bg-[#D4AF6A] text-black font-agrandir-extrabold'
-                      : 'text-[#9A9A9A] hover:text-white'
+                      ? 'bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold'
+                      : 'text-[#6E6E73] dark:text-[#9A9A9A] hover:text-[#111111] dark:hover:text-white'
                   }`}
                 >
                   FR
@@ -446,8 +463,8 @@ export const ProfileView: React.FC = () => {
                   onClick={() => setLanguage('en')}
                   className={`min-h-[30px] px-3 rounded-full transition-colors cursor-pointer ${
                     language === 'en'
-                      ? 'bg-[#D4AF6A] text-black font-agrandir-extrabold'
-                      : 'text-[#9A9A9A] hover:text-white'
+                      ? 'bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold'
+                      : 'text-[#6E6E73] dark:text-[#9A9A9A] hover:text-[#111111] dark:hover:text-white'
                   }`}
                 >
                   EN
@@ -455,10 +472,27 @@ export const ProfileView: React.FC = () => {
               </div>
             </div>
 
+            <button
+              type="button"
+              onClick={() => setActiveSheet('prefs')}
+              className="group w-full min-h-[56px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
+            >
+              <span className="flex items-center gap-3.5 min-w-0">
+                <SlidersHorizontal className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
+                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
+                  {isEn ? 'Music tastes' : 'Goûts musicaux'}
+                </span>
+              </span>
+              <span className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#9A9A9A] shrink-0">
+                <span className="truncate max-w-[130px]">{favoriteGenre}</span>
+                <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
+              </span>
+            </button>
+
             <div className="min-h-[58px] py-3.5 flex items-center justify-between gap-4">
               <span className="flex items-center gap-3.5 min-w-0">
-                <Bell className="w-4 h-4 text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-white">
+                <Bell className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
+                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white">
                   {t('profile.notifications')}
                 </span>
               </span>
@@ -468,11 +502,13 @@ export const ProfileView: React.FC = () => {
                 aria-checked={notificationsEnabled}
                 onClick={handleToggleNotifications}
                 className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
-                  notificationsEnabled ? 'bg-[#D4AF6A]' : 'bg-white/15'
+                  notificationsEnabled
+                    ? 'bg-[#111111] dark:bg-white'
+                    : 'bg-black/15 dark:bg-white/15'
                 }`}
               >
                 <span
-                  className={`inline-block h-5 w-5 rounded-full bg-black transition-transform ${
+                  className={`inline-block h-5 w-5 rounded-full bg-white dark:bg-black transition-transform ${
                     notificationsEnabled ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
@@ -481,13 +517,13 @@ export const ProfileView: React.FC = () => {
 
             <div className="min-h-[58px] py-3.5 flex items-center justify-between gap-4">
               <span className="flex items-center gap-3.5 min-w-0">
-                <Maximize2 className="w-4 h-4 text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
+                <Maximize2 className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
                 <span className="min-w-0">
-                  <span className="block text-sm sm:text-[15px] font-agrandir-semibold text-white truncate">
+                  <span className="block text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
                     {isEn ? 'Mobile fullscreen' : 'Plein écran mobile'}
                   </span>
-                  <span className="block text-[11px] text-[#9A9A9A] truncate">
-                    {isEn ? 'Auto immersion on launch' : 'Immersion automatique au lancement'}
+                  <span className="block text-[11px] text-[#6E6E73] dark:text-[#9A9A9A] truncate">
+                    {isEn ? 'Auto fullscreen on launch' : 'S’ouvre en plein écran'}
                   </span>
                 </span>
               </span>
@@ -497,11 +533,13 @@ export const ProfileView: React.FC = () => {
                 aria-checked={mobileFullscreenOn}
                 onClick={handleToggleMobileFullscreen}
                 className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
-                  mobileFullscreenOn ? 'bg-[#D4AF6A]' : 'bg-white/15'
+                  mobileFullscreenOn
+                    ? 'bg-[#111111] dark:bg-white'
+                    : 'bg-black/15 dark:bg-white/15'
                 }`}
               >
                 <span
-                  className={`inline-block h-5 w-5 rounded-full bg-black transition-transform ${
+                  className={`inline-block h-5 w-5 rounded-full bg-white dark:bg-black transition-transform ${
                     mobileFullscreenOn ? 'translate-x-6' : 'translate-x-1'
                   }`}
                 />
@@ -510,12 +548,12 @@ export const ProfileView: React.FC = () => {
           </div>
         </section>
 
-        {/* 5. ASSISTANCE */}
+        {/* 5. AIDE */}
         <section>
-          <h2 className="text-[11px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A] mb-2">
-            {isEn ? 'Support' : 'Assistance'}
+          <h2 className="text-[12px] font-medium text-[#6E6E73] dark:text-[#9A9A9A] mb-2">
+            {isEn ? 'Help' : 'Aide'}
           </h2>
-          <div className="border-y border-white/[0.12] divide-y divide-white/[0.12]">
+          <div className="border-y border-black/[0.08] dark:border-white/[0.12] divide-y divide-black/[0.08] dark:divide-white/[0.12]">
             {assistanceItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -523,15 +561,15 @@ export const ProfileView: React.FC = () => {
                   key={item.page}
                   type="button"
                   onClick={() => setCurrentPage(item.page)}
-                  className="group w-full min-h-[56px] py-3.5 flex items-center justify-between gap-4 text-left transition-colors cursor-pointer"
+                  className="group w-full min-h-[56px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
                 >
                   <span className="flex items-center gap-3.5 min-w-0">
-                    <Icon className="w-4 h-4 text-[#9A9A9A] group-hover:text-white transition-colors shrink-0" strokeWidth={1.6} />
-                    <span className="text-sm sm:text-[15px] font-agrandir-semibold text-white group-hover:text-[#D4AF6A] transition-colors truncate">
+                    <Icon className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
+                    <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
                       {item.label}
                     </span>
                   </span>
-                  <ChevronRight className="w-4 h-4 text-[#9A9A9A] group-hover:text-white transition-colors shrink-0" strokeWidth={1.6} />
+                  <ChevronRight className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
                 </button>
               );
             })}
@@ -541,20 +579,20 @@ export const ProfileView: React.FC = () => {
         {/* 6. SESSION */}
         {currentUser && (
           <section>
-            <h2 className="text-[11px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A] mb-2">
+            <h2 className="text-[12px] font-medium text-[#6E6E73] dark:text-[#9A9A9A] mb-2">
               {t('profile.session')}
             </h2>
-            <div className="border-y border-white/[0.12] divide-y divide-white/[0.12]">
+            <div className="border-y border-black/[0.08] dark:border-white/[0.12] divide-y divide-black/[0.08] dark:divide-white/[0.12]">
               <button
                 type="button"
                 onClick={handleLogout}
-                className="group w-full min-h-[54px] py-3.5 flex items-center justify-between gap-4 text-left transition-colors cursor-pointer text-[#C8C8C8]"
+                className="group w-full min-h-[54px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer text-[#48484A] dark:text-[#C8C8C8]"
               >
-                <span className="flex items-center gap-3.5 text-sm sm:text-[15px] font-agrandir-semibold group-hover:text-white">
-                  <LogOut className="w-4 h-4 text-[#9A9A9A]" strokeWidth={1.6} />
-                  <span>{t('profile.logout')}</span>
+                <span className="flex items-center gap-3.5 text-sm sm:text-[15px] font-agrandir-semibold">
+                  <LogOut className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A]" strokeWidth={1.6} />
+                  <span>{isEn ? 'Sign out' : 'Me déconnecter'}</span>
                 </span>
-                <ChevronRight className="w-4 h-4 text-[#9A9A9A]" strokeWidth={1.6} />
+                <ChevronRight className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A]" strokeWidth={1.6} />
               </button>
 
               <button
@@ -566,61 +604,60 @@ export const ProfileView: React.FC = () => {
                   }
                   setShowDeleteConfirm(true);
                 }}
-                className="w-full min-h-[54px] py-3.5 flex items-center justify-between gap-4 text-left transition-colors cursor-pointer text-[#F29AA4] hover:text-rose-300"
+                className="w-full min-h-[54px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer text-rose-600 dark:text-[#F29AA4]"
               >
                 <span className="flex items-center gap-3.5 text-sm sm:text-[15px] font-agrandir-semibold">
                   <Trash2 className="w-4 h-4 shrink-0" strokeWidth={1.6} />
-                  <span>{t('profile.deleteAccount')}</span>
+                  <span>{isEn ? 'Delete my account' : 'Supprimer mon compte'}</span>
                 </span>
-                <ChevronRight className="w-4 h-4 text-[#F29AA4]/60 shrink-0" strokeWidth={1.6} />
+                <ChevronRight className="w-4 h-4 opacity-60 shrink-0" strokeWidth={1.6} />
               </button>
             </div>
           </section>
         )}
       </div>
 
-      {/* BOTTOM SHEETS PROFIL : Informations / Coordonnées / Sécurité / Préférences / Historique */}
+      {/* BOTTOM SHEETS PROFIL */}
       <BottomSheet
         open={activeSheet === 'info' || activeSheet === 'contact' || activeSheet === 'prefs'}
         onClose={() => setActiveSheet(null)}
-        kicker={isEn ? 'ACCOUNT' : 'MON COMPTE'}
         title={
           activeSheet === 'info'
             ? isEn
-              ? 'Personal details'
-              : 'Informations personnelles'
+              ? 'About me'
+              : 'Infos perso'
             : activeSheet === 'contact'
             ? isEn
-              ? 'Contact details'
+              ? 'Contact'
               : 'Coordonnées'
             : isEn
-            ? 'Musical preferences'
-            : 'Préférences'
+            ? 'Music tastes'
+            : 'Goûts musicaux'
         }
       >
         <form onSubmit={handleSaveDetails} className="space-y-4">
           {activeSheet === 'info' && (
             <>
               <div>
-                <label className="block text-xs text-[#9A9A9A] mb-1.5">
+                <label className="block text-xs text-[#6E6E73] dark:text-[#9A9A9A] mb-1.5">
                   {isEn ? 'Full name' : 'Nom complet'}
                 </label>
                 <input
                   type="text"
                   value={displayName}
                   disabled
-                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black/60 border border-white/[0.12] text-sm text-[#9A9A9A]"
+                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black/[0.04] dark:bg-black/60 border border-black/[0.09] dark:border-white/[0.12] text-sm text-[#6E6E73] dark:text-[#9A9A9A]"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#9A9A9A] mb-1.5">
+                <label className="block text-xs text-[#6E6E73] dark:text-[#9A9A9A] mb-1.5">
                   {isEn ? 'City' : 'Ville'}
                 </label>
                 <input
                   type="text"
                   value={cityInput}
                   onChange={(e) => setCityInput(e.target.value)}
-                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
+                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-white dark:bg-black border border-black/15 dark:border-white/[0.16] text-sm text-[#111111] dark:text-white focus:border-[#111111] dark:focus:border-white focus:outline-none"
                 />
               </div>
             </>
@@ -629,16 +666,16 @@ export const ProfileView: React.FC = () => {
           {activeSheet === 'contact' && (
             <>
               <div>
-                <label className="block text-xs text-[#9A9A9A] mb-1.5">Email</label>
+                <label className="block text-xs text-[#6E6E73] dark:text-[#9A9A9A] mb-1.5">Email</label>
                 <input
                   type="email"
                   value={currentUser?.email || ''}
                   disabled
-                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black/60 border border-white/[0.12] text-sm text-[#9A9A9A]"
+                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black/[0.04] dark:bg-black/60 border border-black/[0.09] dark:border-white/[0.12] text-sm text-[#6E6E73] dark:text-[#9A9A9A]"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#9A9A9A] mb-1.5">
+                <label className="block text-xs text-[#6E6E73] dark:text-[#9A9A9A] mb-1.5">
                   {isEn ? 'Phone (WhatsApp / Mobile)' : 'Téléphone (WhatsApp / Mobile)'}
                 </label>
                 <input
@@ -646,7 +683,7 @@ export const ProfileView: React.FC = () => {
                   value={phoneInput}
                   onChange={(e) => setPhoneInput(e.target.value)}
                   placeholder="+225 07 00 00 00 00"
-                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
+                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-white dark:bg-black border border-black/15 dark:border-white/[0.16] text-sm text-[#111111] dark:text-white focus:border-[#111111] dark:focus:border-white focus:outline-none"
                 />
               </div>
             </>
@@ -654,22 +691,22 @@ export const ProfileView: React.FC = () => {
 
           {activeSheet === 'prefs' && (
             <div>
-              <label className="block text-xs text-[#9A9A9A] mb-1.5">
-                {isEn ? 'Favorite styles & events' : 'Styles musicaux & formats préférés'}
+              <label className="block text-xs text-[#6E6E73] dark:text-[#9A9A9A] mb-1.5">
+                {isEn ? 'Favorite styles' : 'Ce que tu aimes écouter'}
               </label>
               <input
                 type="text"
                 value={favoriteGenre}
                 onChange={(e) => setFavoriteGenre(e.target.value)}
                 placeholder="Afrobeats, Rap Ivoire, Acoustique..."
-                className="w-full min-h-[44px] px-3.5 rounded-xl bg-black border border-white/[0.16] text-sm text-white focus:border-[#D4AF6A] focus:outline-none"
+                className="w-full min-h-[44px] px-3.5 rounded-xl bg-white dark:bg-black border border-black/15 dark:border-white/[0.16] text-sm text-[#111111] dark:text-white focus:border-[#111111] dark:focus:border-white focus:outline-none"
               />
             </div>
           )}
 
           <button
             type="submit"
-            className="w-full min-h-[46px] rounded-full bg-[#D4AF6A] hover:bg-[#DFBE7D] text-black font-agrandir-extrabold text-xs cursor-pointer lum-press"
+            className="w-full min-h-[46px] rounded-full bg-[#111111] text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/90 font-agrandir-extrabold text-xs cursor-pointer lum-press"
           >
             {isEn ? 'Save' : 'Enregistrer'}
           </button>
@@ -679,22 +716,21 @@ export const ProfileView: React.FC = () => {
       <BottomSheet
         open={activeSheet === 'security'}
         onClose={() => setActiveSheet(null)}
-        kicker={isEn ? 'ACCOUNT SECURITY' : 'SÉCURITÉ DU COMPTE'}
-        title={isEn ? 'Security & access' : 'Sécurité & connexion'}
+        title={isEn ? 'Security' : 'Sécurité'}
       >
-        <div className="space-y-4 text-xs sm:text-sm text-[#C8C8C8] leading-relaxed">
-          <div className="p-4 rounded-[16px] bg-black border border-white/[0.12] space-y-1">
-            <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-[#9A9A9A]">
-              {isEn ? 'ACTIVE SESSION' : 'SESSION ACTIVE'}
+        <div className="space-y-4 text-xs sm:text-sm text-[#48484A] dark:text-[#C8C8C8] leading-relaxed">
+          <div className="p-4 rounded-[16px] bg-black/[0.04] dark:bg-black border border-black/[0.08] dark:border-white/[0.12] space-y-1">
+            <p className="text-[11px] text-[#6E6E73] dark:text-[#9A9A9A]">
+              {isEn ? 'Connected email' : 'Adresse connectée'}
             </p>
-            <p className="font-agrandir-extrabold text-white">
+            <p className="font-agrandir-extrabold text-[#111111] dark:text-white">
               {currentUser?.email || (isEn ? 'Not signed in' : 'Non connecté')}
             </p>
           </div>
-          <p className="text-xs text-[#9A9A9A]">
+          <p className="text-xs text-[#6E6E73] dark:text-[#9A9A9A]">
             {isEn
               ? 'Your tickets and Black Card are safely linked to your account.'
-              : 'Vos billets et votre carte sont protégés et liés à votre compte.'}
+              : 'Tes billets et ta carte sont bien liés à ton compte.'}
           </p>
         </div>
       </BottomSheet>
@@ -702,26 +738,25 @@ export const ProfileView: React.FC = () => {
       <BottomSheet
         open={activeSheet === 'history'}
         onClose={() => setActiveSheet(null)}
-        kicker={isEn ? 'HISTORY' : 'HISTORIQUE'}
-        title={isEn ? 'Orders & activity' : 'Commandes & activité'}
+        title={isEn ? 'My orders' : 'Mes commandes'}
       >
         {customerOrders.length === 0 ? (
-          <p className="text-xs text-[#9A9A9A] py-4">
-            {isEn ? 'No completed orders yet.' : 'Aucune commande enregistrée pour le moment.'}
+          <p className="text-xs text-[#6E6E73] dark:text-[#9A9A9A] py-4">
+            {isEn ? 'No orders yet.' : 'Tu n’as pas encore de commande.'}
           </p>
         ) : (
-          <div className="divide-y divide-white/[0.12] border-y border-white/[0.12]">
+          <div className="divide-y divide-black/[0.08] dark:divide-white/[0.12] border-y border-black/[0.08] dark:border-white/[0.12]">
             {customerOrders.slice(0, 10).map((ord) => (
               <div key={ord.id} className="py-3.5 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-agrandir-extrabold text-sm text-white truncate">
+                  <p className="font-agrandir-extrabold text-sm text-[#111111] dark:text-white truncate">
                     {ord.eventTitle}
                   </p>
-                  <p className="text-xs text-[#9A9A9A] truncate">
+                  <p className="text-xs text-[#6E6E73] dark:text-[#9A9A9A] truncate">
                     {ord.categoryName} · ×{ord.quantity}
                   </p>
                 </div>
-                <span className="font-agrandir-extrabold text-xs text-[#D4AF6A] tabular-nums shrink-0">
+                <span className="font-agrandir-extrabold text-xs text-[#111111] dark:text-white tabular-nums shrink-0">
                   {Number(ord.totalAmount || 0).toLocaleString('fr-FR')} FCFA
                 </span>
               </div>
@@ -730,31 +765,31 @@ export const ProfileView: React.FC = () => {
         )}
       </BottomSheet>
 
-      {/* BOTTOM SHEET CONFIRMATION SUPPRESSION — 0px */}
       <BottomSheet
         open={showDeleteConfirm}
         onClose={() => !isDeletingAccount && setShowDeleteConfirm(false)}
-        kicker={isEn ? 'DANGER ZONE' : 'SUPPRESSION DU COMPTE'}
-        title={t('profile.deleteTitle')}
+        title={isEn ? 'Delete account' : 'Supprimer mon compte'}
       >
         <div className="space-y-4">
-          <div className="flex items-center gap-3 text-[#F29AA4]">
-            <div className="w-10 h-10 rounded-xl bg-[#2A1417] border border-[#F29AA4]/30 flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-3 text-rose-600 dark:text-[#F29AA4]">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-[#2A1417] border border-rose-200 dark:border-[#F29AA4]/30 flex items-center justify-center shrink-0">
               <AlertTriangle className="w-5 h-5" strokeWidth={1.6} />
             </div>
             <p className="text-xs font-mono truncate">{currentUser?.email}</p>
           </div>
 
-          <p className="text-xs sm:text-sm text-[#C8C8C8] leading-relaxed">
-            {t('profile.deleteConfirm')}
+          <p className="text-xs sm:text-sm text-[#48484A] dark:text-[#C8C8C8] leading-relaxed">
+            {isEn
+              ? 'This permanently removes your account from this device.'
+              : 'Si tu supprimes ton compte, tu perdras l’accès à tes infos sur cet appareil.'}
           </p>
 
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/[0.12]">
+          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-black/[0.08] dark:border-white/[0.12]">
             <button
               type="button"
               onClick={() => setShowDeleteConfirm(false)}
               disabled={isDeletingAccount}
-              className="min-h-[42px] px-4 rounded-full border border-white/[0.16] hover:border-white text-xs font-agrandir-semibold text-[#C8C8C8] hover:text-white transition-colors cursor-pointer"
+              className="min-h-[42px] px-4 rounded-full border border-black/15 dark:border-white/[0.16] text-xs font-agrandir-semibold text-[#48484A] dark:text-[#C8C8C8] cursor-pointer"
             >
               {t('profile.cancel')}
             </button>

@@ -26,6 +26,30 @@ const STATUS_LABELS: Record<string, { fr: string; en: string }> = {
   declined: { fr: 'Non retenue', en: 'Declined' },
 };
 
+const PREVIEW_SUGGESTIONS: Suggestion[] = [
+  {
+    id: 'demo-sug-1',
+    suggestion_type: 'artist',
+    title: 'Burna Boy — Esplanade Abidjan',
+    status: 'reviewing',
+    created_at: '2026-11-23T15:00:00Z',
+  },
+  {
+    id: 'demo-sug-2',
+    suggestion_type: 'venue',
+    title: 'Rooftop Plateau · Session Sunset',
+    status: 'selected',
+    created_at: '2026-11-18T11:30:00Z',
+  },
+  {
+    id: 'demo-sug-3',
+    suggestion_type: 'event',
+    title: 'Concert acoustique à la bougie',
+    status: 'preparing',
+    created_at: '2026-11-12T19:45:00Z',
+  },
+];
+
 function normalizeOptionalUrl(raw: string): { valid: boolean; value: string | null } {
   const trimmed = raw.trim();
   if (!trimmed) return { valid: true, value: null };
@@ -112,7 +136,7 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
       showToast(
         isEn
           ? 'Please enter between 2 and 140 characters.'
-          : 'Veuillez saisir entre 2 et 140 caractères.',
+          : 'Écris entre 2 et 140 caractères.',
         'error'
       );
       return;
@@ -120,7 +144,7 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
 
     if (cleanReason.length > 3000) {
       showToast(
-        isEn ? 'Your message is too long.' : 'Votre texte dépasse la limite autorisée.',
+        isEn ? 'Your message is too long.' : 'Ton texte est un peu trop long.',
         'error'
       );
       return;
@@ -129,7 +153,7 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
     const parsedUrl = normalizeOptionalUrl(linkUrl);
     if (!parsedUrl.valid) {
       showToast(
-        isEn ? 'Please enter a valid link.' : 'Veuillez saisir un lien valide.',
+        isEn ? 'Please enter a valid link.' : 'Entre un lien valide.',
         'error'
       );
       return;
@@ -139,7 +163,7 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
     if (!auth.user) {
       setIsAuthModalOpen(true);
       showToast(
-        isEn ? 'Sign in to send your idea.' : 'Connectez-vous pour envoyer votre idée.',
+        isEn ? 'Sign in to send your idea.' : 'Connecte-toi pour envoyer ton idée.',
         'info'
       );
       return;
@@ -166,7 +190,7 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
 
     if (insertError) {
       showToast(
-        isEn ? 'Unable to send your idea. Please try again.' : 'Envoi impossible. Veuillez réessayer.',
+        isEn ? 'Unable to send your idea. Please try again.' : 'Envoi impossible pour le moment. Réessaie.',
         'error'
       );
       return;
@@ -188,7 +212,7 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
       title: isEn ? 'An artist' : 'Un artiste',
       subtitle: isEn
         ? 'Suggest an artist you want to see.'
-        : 'Proposer l’artiste que l’on aimerait voir.',
+        : 'Propose l’artiste que tu rêves de voir sur scène.',
       image: artistThumb,
     },
     {
@@ -196,7 +220,7 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
       title: isEn ? 'A venue' : 'Un lieu',
       subtitle: isEn
         ? 'Suggest a space for a future event.'
-        : 'Proposer un lieu pour un prochain événement.',
+        : 'Propose un lieu pour notre prochain événement.',
       image: venueThumb,
     },
     {
@@ -204,7 +228,7 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
       title: isEn ? 'An idea' : 'Une idée',
       subtitle: isEn
         ? 'Suggest a concept or experience.'
-        : 'Proposer un concept ou une expérience.',
+        : 'Propose un concept ou une expérience originale.',
       image: ideaThumb,
     },
   ];
@@ -212,7 +236,7 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
   const activeOption = options.find((o) => o.id === selectedKind) || null;
 
   return (
-    <div className="min-h-screen bg-[#FBFBFD] text-[#111111] pt-16 md:pt-12 pb-32 md:pb-24">
+    <div className="min-h-screen bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-white pt-16 md:pt-12 pb-32 md:pb-24 transition-colors duration-200">
       <div className="mx-auto max-w-[640px] px-5 sm:px-8 pt-6 sm:pt-12">
         <AnimatePresence mode="wait">
           {submitted ? (
@@ -225,13 +249,13 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
               transition={{ duration: 0.25 }}
               className="py-16 sm:py-24 space-y-6"
             >
-              <div className="w-10 h-10 rounded-full bg-[#111111] text-white flex items-center justify-center">
+              <div className="w-10 h-10 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black flex items-center justify-center">
                 <Check className="w-5 h-5" />
               </div>
-              <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-tight text-[#111111] leading-snug max-w-md">
+              <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-tight text-[#111111] dark:text-white leading-snug max-w-md">
                 {isEn
                   ? 'Thank you. Your idea has been sent.'
-                  : 'Merci. Votre idée a bien été envoyée.'}
+                  : 'Merci ! Ton idée a bien été envoyée.'}
               </h1>
               <button
                 type="button"
@@ -239,7 +263,7 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
                   setSubmitted(false);
                   setSelectedKind(null);
                 }}
-                className="text-[14px] font-medium text-[#6E6E73] hover:text-[#111111] transition-colors"
+                className="text-[14px] font-medium text-[#6E6E73] hover:text-[#111111] dark:text-white/60 dark:hover:text-white transition-colors cursor-pointer"
               >
                 {isEn ? 'Submit another idea' : 'Proposer autre chose'}
               </button>
@@ -254,19 +278,19 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
               transition={{ duration: 0.22 }}
               className="space-y-10 sm:space-y-12"
             >
-              <h1 className="font-agrandir-extrabold text-[28px] sm:text-[36px] tracking-tight text-[#111111] leading-[1.16] max-w-lg">
+              <h1 className="font-agrandir-extrabold text-[28px] sm:text-[36px] tracking-tight text-[#111111] dark:text-white leading-[1.16] max-w-lg">
                 {isEn
                   ? 'What if your idea became our next event?'
-                  : 'Et si votre idée devenait notre prochain événement ?'}
+                  : 'Et si ton idée devenait notre prochain événement ?'}
               </h1>
 
-              <div className="divide-y divide-black/[0.08] border-t border-b border-black/[0.08]">
+              <div className="divide-y divide-black/[0.08] dark:divide-white/[0.1] border-t border-b border-black/[0.08] dark:border-white/[0.1]">
                 {options.map((opt) => (
                   <button
                     key={opt.id}
                     type="button"
                     onClick={() => chooseKind(opt.id)}
-                    className="group w-full py-5 sm:py-6 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75"
+                    className="group w-full py-5 sm:py-6 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
                   >
                     <div className="flex items-center gap-4 min-w-0">
                       <img
@@ -275,16 +299,16 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
                         className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg object-cover grayscale contrast-105 shrink-0"
                       />
                       <div className="min-w-0">
-                        <p className="font-agrandir-semibold text-[18px] sm:text-[20px] tracking-tight text-[#111111]">
+                        <p className="font-agrandir-semibold text-[18px] sm:text-[20px] tracking-tight text-[#111111] dark:text-white">
                           {opt.title}
                         </p>
-                        <p className="mt-0.5 text-[14px] text-[#6E6E73] leading-snug">
+                        <p className="mt-0.5 text-[14px] text-[#6E6E73] dark:text-white/55 leading-snug">
                           {opt.subtitle}
                         </p>
                       </div>
                     </div>
 
-                    <ArrowRight className="w-4 h-4 text-[#86868B] shrink-0 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-[#111111]" />
+                    <ArrowRight className="w-4 h-4 text-[#86868B] dark:text-white/45 shrink-0 transition-transform duration-300 group-hover:translate-x-1 group-hover:text-[#111111] dark:group-hover:text-white" />
                   </button>
                 ))}
               </div>
@@ -302,13 +326,13 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
               <button
                 type="button"
                 onClick={() => setSelectedKind(null)}
-                className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#6E6E73] hover:text-[#111111] transition-colors"
+                className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[#6E6E73] hover:text-[#111111] dark:text-white/60 dark:hover:text-white transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>{isEn ? 'Back' : 'Retour'}</span>
               </button>
 
-              <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-tight text-[#111111]">
+              <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-tight text-[#111111] dark:text-white">
                 {activeOption?.title}
               </h1>
 
@@ -374,13 +398,13 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
                       required
                       value={title}
                       onChange={setTitle}
-                      placeholder={isEn ? 'Your idea' : 'Votre idée'}
+                      placeholder={isEn ? 'Your idea' : 'Ton idée'}
                     />
                     <TextAreaField
                       label={isEn ? 'Description' : 'Description'}
                       value={reason}
                       onChange={setReason}
-                      placeholder={isEn ? 'Describe the experience...' : 'Décrivez l’expérience...'}
+                      placeholder={isEn ? 'Describe the experience...' : 'Décris l’expérience...'}
                     />
                     <Field
                       label={isEn ? 'Artist (optional)' : 'Artiste éventuel (facultatif)'}
@@ -407,7 +431,7 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
                   <button
                     type="submit"
                     disabled={sending || title.trim().length < 2}
-                    className="inline-flex items-center justify-center rounded-full bg-[#111111] text-white px-7 py-3 text-[14px] font-medium transition-opacity hover:opacity-85 disabled:opacity-35"
+                    className="inline-flex items-center justify-center rounded-full bg-[#111111] text-white dark:bg-white dark:text-black px-7 py-3 text-[14px] font-medium transition-opacity hover:opacity-85 disabled:opacity-35 cursor-pointer"
                   >
                     {sending ? (isEn ? 'Sending...' : 'Envoi...') : isEn ? 'Send' : 'Envoyer'}
                   </button>
@@ -417,14 +441,20 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
           )}
         </AnimatePresence>
 
-        {/* MES PROPOSITIONS — affiché uniquement si le membre a déjà proposé */}
-        {items.length > 0 && !selectedKind && !submitted && (
-          <section className="mt-16 pt-10 border-t border-black/[0.08]">
-            <h2 className="text-[13px] font-medium text-[#6E6E73] mb-4">
-              {isEn ? 'My proposals' : 'Mes propositions'}
+        {/* MES PROPOSITIONS (ou aperçu des idées du Club) */}
+        {!selectedKind && !submitted && (
+          <section className="mt-14 pt-9 border-t border-black/[0.08] dark:border-white/[0.1]">
+            <h2 className="text-[13px] font-medium text-[#6E6E73] dark:text-white/55 mb-4">
+              {items.length > 0
+                ? isEn
+                  ? 'My proposals'
+                  : 'Mes propositions'
+                : isEn
+                  ? 'Recent Club ideas'
+                  : 'Idées récentes du Club'}
             </h2>
-            <ul className="divide-y divide-black/[0.07]">
-              {items.map((item) => {
+            <ul className="divide-y divide-black/[0.07] dark:divide-white/[0.08]">
+              {(items.length > 0 ? items : PREVIEW_SUGGESTIONS).map((item) => {
                 const statusLabel =
                   STATUS_LABELS[item.status]?.[isEn ? 'en' : 'fr'] || item.status;
                 return (
@@ -433,12 +463,12 @@ export const SuggestionsView: React.FC<{ embedded?: boolean }> = () => {
                     className="py-3.5 flex items-baseline justify-between gap-4"
                   >
                     <div className="min-w-0">
-                      <p className="text-[15px] text-[#111111] truncate">{item.title}</p>
-                      <p className="text-[12px] text-[#86868B] mt-0.5">
+                      <p className="text-[15px] text-[#111111] dark:text-white truncate">{item.title}</p>
+                      <p className="text-[12px] text-[#86868B] dark:text-white/45 mt-0.5">
                         {formatDate(item.created_at, isEn)}
                       </p>
                     </div>
-                    <span className="shrink-0 text-[13px] text-[#6E6E73]">
+                    <span className="shrink-0 text-[13px] text-[#6E6E73] dark:text-white/55">
                       {statusLabel}
                     </span>
                   </li>
@@ -460,14 +490,14 @@ const Field: React.FC<{
   required?: boolean;
 }> = ({ label, value, onChange, placeholder, required }) => (
   <label className="block space-y-1.5">
-    <span className="block text-[13px] font-medium text-[#6E6E73]">{label}</span>
+    <span className="block text-[13px] font-medium text-[#6E6E73] dark:text-white/60">{label}</span>
     <input
       type="text"
       required={required}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full bg-transparent border-b border-black/[0.15] focus:border-[#111111] py-2.5 text-[15px] text-[#111111] placeholder:text-[#A1A1A6] outline-none transition-colors"
+      className="w-full bg-transparent border-b border-black/[0.15] focus:border-[#111111] dark:border-white/[0.18] dark:focus:border-white py-2.5 text-[15px] text-[#111111] dark:text-white placeholder:text-[#A1A1A6] dark:placeholder:text-white/35 outline-none transition-colors"
     />
   </label>
 );
@@ -479,13 +509,13 @@ const TextAreaField: React.FC<{
   placeholder?: string;
 }> = ({ label, value, onChange, placeholder }) => (
   <label className="block space-y-1.5">
-    <span className="block text-[13px] font-medium text-[#6E6E73]">{label}</span>
+    <span className="block text-[13px] font-medium text-[#6E6E73] dark:text-white/60">{label}</span>
     <textarea
       rows={3}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full bg-transparent border-b border-black/[0.15] focus:border-[#111111] py-2.5 text-[15px] text-[#111111] placeholder:text-[#A1A1A6] outline-none resize-none transition-colors"
+      className="w-full bg-transparent border-b border-black/[0.15] focus:border-[#111111] dark:border-white/[0.18] dark:focus:border-white py-2.5 text-[15px] text-[#111111] dark:text-white placeholder:text-[#A1A1A6] dark:placeholder:text-white/35 outline-none resize-none transition-colors"
     />
   </label>
 );
