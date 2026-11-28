@@ -795,7 +795,8 @@ async function startServer() {
       success: true,
       readiness: {
         supabasePublicConfigured: Boolean(process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON_KEY),
-        supabaseServiceKeyConfigured: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+        supabaseServiceKeyConfigured: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY),
+        jekopayTransactionStoreConfigured: Boolean((process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY)),
         jekopayConfigured: cfg.configured,
         jekopayApiKeyIdConfigured: Boolean(process.env.JEKOPAY_API_KEY_ID),
         jekopayWebhookSecretConfigured: jekopayService.hasWebhookSecret(),
