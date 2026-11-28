@@ -86,7 +86,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     },
     {
       id: 'media' as AdminSection,
-      label: 'LUMARÉEL TV & Médias',
+      label: 'Club · Contenus & communauté',
       icon: Camera,
       badge: pendingMediaCount > 0 ? `${pendingMediaCount} à valider` : null,
     },
