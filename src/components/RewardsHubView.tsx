@@ -5,7 +5,7 @@ import { ArrowUpRight, CalendarClock, Check, Copy, Gift, History, Share2, Sparkl
 
 type PointRow = { id: string; points: number; reason: string; source: string; created_at: string };
 type ReferralRow = { id: string; status: 'pending' | 'validated' | 'rejected'; reward_points: number; created_at: string; validated_at: string | null };
-type OfferRow = { id: string; offer_type: 'flash' | 'surprise'; title: string; description: string; cover_path: string | null; benefit_label: string | null; price_amount: number | null; currency: string; conditions: string | null; action_label: string | null; action_url: string | null; starts_at: string | null; ends_at: string | null; status: string };
+type OfferRow = { cover_url?: string; id: string; offer_type: 'flash' | 'surprise'; title: string; description: string; cover_path: string | null; benefit_label: string | null; price_amount: number | null; currency: string; conditions: string | null; action_label: string | null; action_url: string | null; starts_at: string | null; ends_at: string | null; status: string };
 
 const money = (value: number) => new Intl.NumberFormat('fr-FR').format(value);
 
@@ -50,7 +50,7 @@ export const RewardsHubView: React.FC<{ initialTab?: 'gifts' | 'points' | 'excha
       }
       setReferralCode(profile?.referral_code || '');
       const [pointResult, referralResult, offerResult] = await Promise.all([
-        supabase.from('club_point_transactions').select('id,points,reason,source,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(30),
+        supabase.from('club_point_transactions').select('id,points,reason,source,created_at').eq('user_id', userId).order('created_at', { ascending: false }),
         supabase.from('club_referrals').select('id,status,reward_points,created_at,validated_at').eq('referrer_user_id', userId).order('created_at', { ascending: false }),
         supabase.from('club_offers').select('id,offer_type,title,description,cover_path,benefit_label,price_amount,currency,conditions,action_label,action_url,starts_at,ends_at,status').eq('status', 'published').order('created_at', { ascending: false }),
       ]);
@@ -59,7 +59,12 @@ export const RewardsHubView: React.FC<{ initialTab?: 'gifts' | 'points' | 'excha
       if (offerResult.error) throw offerResult.error;
       setPoints(pointResult.data || []);
       setReferrals(referralResult.data || []);
-      setOffers(offerResult.data || []);
+      const offersWithCovers = await Promise.all((offerResult.data || []).map(async (offer: OfferRow) => {
+        if (!offer.cover_path) return offer;
+        const { data: cover } = await supabase.storage.from('club-media').createSignedUrl(offer.cover_path, 900);
+        return { ...offer, cover_url: cover?.signedUrl || '' };
+      }));
+      setOffers(offersWithCovers);
     } catch (err: any) {
       setError(err?.message || (isEn ? 'Unable to load Club data.' : 'Impossible de charger les données du Club.'));
     } finally {
@@ -73,6 +78,7 @@ export const RewardsHubView: React.FC<{ initialTab?: 'gifts' | 'points' | 'excha
   const earned = useMemo(() => points.reduce((sum, row) => sum + Math.max(row.points, 0), 0), [points]);
   const used = useMemo(() => Math.abs(points.reduce((sum, row) => sum + Math.min(row.points, 0), 0)), [points]);
   const pending = referrals.filter((item) => item.status === 'pending').length;
+  const pendingPoints = pending * 500;
   const validated = referrals.filter((item) => item.status === 'validated').length;
   const shareUrl = referralCode && typeof window !== 'undefined' ? `${window.location.origin}/?ref=${encodeURIComponent(referralCode)}` : '';
 
@@ -116,7 +122,8 @@ export const RewardsHubView: React.FC<{ initialTab?: 'gifts' | 'points' | 'excha
     await load();
   };
 
-  const activeOffers = offers.filter((offer) => !offer.ends_at || new Date(offer.ends_at).getTime() >= Date.now());
+  const activeOffers = offers.filter((offer) => (!offer.starts_at || new Date(offer.starts_at).getTime() <= Date.now()) && (!offer.ends_at || new Date(offer.ends_at).getTime() >= Date.now()));
+  const upcomingOffers = offers.filter((offer) => offer.starts_at && new Date(offer.starts_at).getTime() > Date.now());
   const expiredOffers = offers.filter((offer) => offer.ends_at && new Date(offer.ends_at).getTime() < Date.now());
 
   return (
@@ -134,7 +141,7 @@ export const RewardsHubView: React.FC<{ initialTab?: 'gifts' | 'points' | 'excha
             <div className="bg-black py-5 pr-3"><p className="text-[10px] uppercase tracking-widest text-neutral-500">{isEn ? 'Available balance' : 'Solde disponible'}</p><p className="mt-2 text-3xl sm:text-4xl font-agrandir-extrabold tabular-nums">{money(balance)} <span className="text-xs font-normal text-neutral-500">GP</span></p></div>
             <div className="bg-black py-5 px-3"><p className="text-[10px] uppercase tracking-widest text-neutral-500">{isEn ? 'Earned' : 'Gagnés'}</p><p className="mt-2 text-2xl sm:text-3xl tabular-nums">{money(earned)}</p></div>
             <div className="bg-black py-5 px-3"><p className="text-[10px] uppercase tracking-widest text-neutral-500">{isEn ? 'Used' : 'Utilisés'}</p><p className="mt-2 text-2xl sm:text-3xl tabular-nums">{money(used)}</p></div>
-            <div className="bg-black py-5 pl-3"><p className="text-[10px] uppercase tracking-widest text-neutral-500">{isEn ? 'Pending' : 'En attente'}</p><p className="mt-2 text-2xl sm:text-3xl tabular-nums">{money(pending)}</p></div>
+            <div className="bg-black py-5 pl-3"><p className="text-[10px] uppercase tracking-widest text-neutral-500">{isEn ? 'Pending points' : 'Points en attente'}</p><p className="mt-2 text-2xl sm:text-3xl tabular-nums">{money(pendingPoints)}</p></div>
           </section>
 
           {!referralCode && (
@@ -169,13 +176,13 @@ export const RewardsHubView: React.FC<{ initialTab?: 'gifts' | 'points' | 'excha
 
           <section className="py-9 sm:py-12 border-b border-white/15">
             <div className="flex items-end justify-between gap-4 mb-6"><div><p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">02 · CLUB PRIVILÈGES</p><h2 className="mt-2 text-2xl sm:text-3xl font-agrandir-extrabold">{isEn ? 'Surprises are waiting.' : 'Des surprises vous attendent.'}</h2></div><Sparkles className="text-neutral-500" size={22}/></div>
-            {activeOffers.filter((o) => o.offer_type === 'surprise').length ? <div className="grid sm:grid-cols-2 gap-6">{activeOffers.filter((o) => o.offer_type === 'surprise').map((offer) => <article key={offer.id} className="border-t border-white/20 pt-4"><p className="text-[10px] uppercase tracking-widest text-neutral-500">{isEn ? 'MEMBER SURPRISE' : 'SURPRISE MEMBRE'}</p><h3 className="mt-2 text-xl font-agrandir-extrabold">{offer.title}</h3><p className="mt-2 text-sm text-neutral-400 leading-6">{offer.description}</p>{offer.benefit_label && <p className="mt-3 text-xs text-white">{offer.benefit_label}</p>}{offer.conditions && <p className="mt-2 text-xs text-neutral-500">{offer.conditions}</p>}{offer.action_url && <a href={offer.action_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs underline underline-offset-4">{offer.action_label || (isEn ? 'Discover' : 'Découvrir')} <ArrowUpRight size={14}/></a>}</article>)}</div> : <p className="py-8 text-sm text-neutral-500">{isEn ? 'No surprise is published at the moment.' : 'Aucune surprise n’est publiée pour le moment.'}</p>}
+            {activeOffers.filter((o) => o.offer_type === 'surprise').length ? <div className="grid sm:grid-cols-2 gap-6">{activeOffers.filter((o) => o.offer_type === 'surprise').map((offer) => <article key={offer.id} className="border-t border-white/20 pt-4">{offer.cover_url && <img src={offer.cover_url} alt={offer.title} loading="lazy" className="mb-4 aspect-[16/9] w-full object-cover"/>}<p className="text-[10px] uppercase tracking-widest text-neutral-500">{isEn ? 'MEMBER SURPRISE' : 'SURPRISE MEMBRE'}</p><h3 className="mt-2 text-xl font-agrandir-extrabold">{offer.title}</h3><p className="mt-2 text-sm text-neutral-400 leading-6">{offer.description}</p>{offer.benefit_label && <p className="mt-3 text-xs text-white">{offer.benefit_label}</p>}{offer.conditions && <p className="mt-2 text-xs text-neutral-500">{offer.conditions}</p>}{offer.action_url && <a href={offer.action_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs underline underline-offset-4">{offer.action_label || (isEn ? 'Discover' : 'Découvrir')} <ArrowUpRight size={14}/></a>}</article>)}</div> : <p className="py-8 text-sm text-neutral-500">{isEn ? 'No surprise is published at the moment.' : 'Aucune surprise n’est publiée pour le moment.'}</p>}
           </section>
 
           <section className="py-9 sm:py-12 border-b border-white/15">
             <div className="mb-6"><p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">03 · OPPORTUNITÉS LIMITÉES</p><h2 className="mt-2 text-2xl sm:text-3xl font-agrandir-extrabold">{isEn ? 'Flash offers' : 'Ventes flash'}</h2></div>
-            {activeOffers.filter((o) => o.offer_type === 'flash').length ? <div className="grid sm:grid-cols-2 gap-6">{activeOffers.filter((o) => o.offer_type === 'flash').map((offer) => <article key={offer.id} className="border-t border-white/20 pt-4"><p className="text-[10px] uppercase tracking-widest text-neutral-500">{isEn ? 'LIMITED OFFER' : 'OFFRE LIMITÉE'}</p><h3 className="mt-2 text-xl font-agrandir-extrabold">{offer.title}</h3><p className="mt-2 text-sm text-neutral-400 leading-6">{offer.description}</p>{offer.benefit_label && <p className="mt-3 text-sm text-white">{offer.benefit_label}</p>}{offer.price_amount !== null && <p className="mt-2 text-xl font-agrandir-extrabold">{money(offer.price_amount)} {offer.currency}</p>}{offer.ends_at && <p className="mt-2 text-xs text-neutral-500 inline-flex items-center gap-2"><CalendarClock size={13}/>{new Date(offer.ends_at).toLocaleString(isEn ? 'en-GB' : 'fr-FR')}</p>}{offer.conditions && <p className="mt-2 text-xs text-neutral-500">{offer.conditions}</p>}{offer.action_url && <a href={offer.action_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs underline underline-offset-4">{offer.action_label || (isEn ? 'View offer' : 'Voir l’offre')} <ArrowUpRight size={14}/></a>}</article>)}</div> : <p className="py-8 text-sm text-neutral-500">{isEn ? 'No flash offer is available at the moment.' : 'Aucune vente flash n’est disponible pour le moment.'}</p>}
-            {expiredOffers.length > 0 && <p className="mt-4 text-[11px] text-neutral-600">{expiredOffers.length} {isEn ? 'expired offer(s) are no longer available.' : 'offre(s) expirée(s) ne sont plus disponibles.'}</p>}
+            {activeOffers.filter((o) => o.offer_type === 'flash').length ? <div className="grid sm:grid-cols-2 gap-6">{activeOffers.filter((o) => o.offer_type === 'flash').map((offer) => <article key={offer.id} className="border-t border-white/20 pt-4">{offer.cover_url && <img src={offer.cover_url} alt={offer.title} loading="lazy" className="mb-4 aspect-[16/9] w-full object-cover"/>}<p className="text-[10px] uppercase tracking-widest text-neutral-500">{isEn ? 'LIMITED OFFER' : 'OFFRE LIMITÉE'}</p><h3 className="mt-2 text-xl font-agrandir-extrabold">{offer.title}</h3><p className="mt-2 text-sm text-neutral-400 leading-6">{offer.description}</p>{offer.benefit_label && <p className="mt-3 text-sm text-white">{offer.benefit_label}</p>}{offer.price_amount !== null && <p className="mt-2 text-xl font-agrandir-extrabold">{money(offer.price_amount)} {offer.currency}</p>}{offer.ends_at && <p className="mt-2 text-xs text-neutral-500 inline-flex items-center gap-2"><CalendarClock size={13}/>{new Date(offer.ends_at).toLocaleString(isEn ? 'en-GB' : 'fr-FR')}</p>}{offer.conditions && <p className="mt-2 text-xs text-neutral-500">{offer.conditions}</p>}{offer.action_url && <a href={offer.action_url} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 text-xs underline underline-offset-4">{offer.action_label || (isEn ? 'View offer' : 'Voir l’offre')} <ArrowUpRight size={14}/></a>}</article>)}</div> : <p className="py-8 text-sm text-neutral-500">{isEn ? 'No flash offer is available at the moment.' : 'Aucune vente flash n’est disponible pour le moment.'}</p>}
+            {upcomingOffers.length > 0 && <p className="mt-4 text-[11px] text-neutral-500">{upcomingOffers.length} {isEn ? 'upcoming offer(s).' : 'offre(s) bientôt disponibles.'}</p>}{expiredOffers.length > 0 && <p className="mt-4 text-[11px] text-neutral-600">{expiredOffers.length} {isEn ? 'expired offer(s) are no longer available.' : 'offre(s) expirée(s) ne sont plus disponibles.'}</p>}
           </section>
 
           <section className="py-9 sm:py-12">
