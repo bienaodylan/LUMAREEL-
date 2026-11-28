@@ -37,7 +37,9 @@ export const ConcertMemoriesView: React.FC<{ embedded?: boolean }> = () => {
           supabase.storage.from('club-media').createSignedUrl(previewPath, 900),
           supabase.storage.from('club-media').createSignedUrl(photo.storage_path, 900),
         ]);
-        return { ...photo, url: preview.data?.signedUrl || '', sourceUrl: full.data?.signedUrl || '', downloadUrl: photo.downloadable ? (full.data?.signedUrl || '') : '' };
+        const fullUrl = full.data?.signedUrl || '';
+        const previewUrl = preview.data?.signedUrl || '';
+        return { ...photo, url: previewUrl, sourceUrl: photo.downloadable ? (fullUrl || previewUrl) : previewUrl, downloadUrl: photo.downloadable ? fullUrl : '' };
       }));
       setPhotos(mapped);
     } catch (err: any) {
