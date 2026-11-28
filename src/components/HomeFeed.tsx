@@ -88,19 +88,21 @@ export const HomeFeed: React.FC = () => {
     { id: 'black-card', title: 'LUMARÉEL BLACK CARD', subtitle: isEn ? 'Privileged access to LUMARÉEL' : 'Accès privilégié au Club', page: 'member_card' as const, icon: CreditCard },
     { id: 'gift', title: isEn ? 'GIFT POINTS & REFERRALS' : 'GIFT POINTS & PARRAINAGE', subtitle: isEn ? 'Rewards, surprises, flash sales & 500 FCFA per friend' : 'Récompenses, surprises, ventes flash & 500 F CFA par ami', page: 'rewards' as const, icon: Gift },
     { id: 'backstage', title: 'BACKSTAGE', subtitle: isEn ? 'Ballon, studio sessions & exclusive content' : 'Ballon, sessions studio & contenus exclusifs', page: 'backstage' as const, icon: Clapperboard },
-    { id: 'memories', title: isEn ? 'MY MOMENTS' : 'MES MOMENTS', subtitle: isEn ? 'Official photos, recaps & shared memories' : 'Photos officielles, récaps & souvenirs partagés', page: 'memories' as const, icon: Camera },
+    { id: 'memories', title: isEn ? 'MEMORIES' : 'SOUVENIRS', subtitle: isEn ? 'Official photos, recaps & event memories' : 'Photos officielles, récaps & souvenirs d’événements', page: 'memories' as const, icon: Camera },
     { id: 'voice', title: isEn ? 'YOUR VOICE' : 'TA VOIX', subtitle: isEn ? 'Suggest artists, venues & event ideas' : 'Proposez vos artistes, lieux & idées d’événements', page: 'suggestions' as const, icon: Mic2 },
   ];
 
   return (
     <div
-      className={`home-editorial w-full max-w-full overflow-x-clip bg-[#050505] text-white flex flex-col justify-between h-[100dvh] overflow-y-hidden sm:h-auto sm:min-h-screen sm:overflow-y-visible ${
-        isStandalone ? 'pb-[calc(4.6rem+env(safe-area-inset-bottom,0px))] sm:pb-0' : 'pb-[env(safe-area-inset-bottom,0px)] sm:pb-0'
+      className={`home-editorial w-full max-w-full overflow-x-clip bg-[#050505] text-white flex flex-col justify-start sm:justify-between h-[100dvh] overflow-y-hidden sm:h-auto sm:min-h-screen sm:overflow-y-visible ${
+        isStandalone
+          ? 'pb-[calc(6.25rem+env(safe-area-inset-bottom,0px))] sm:pb-0'
+          : 'pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:pb-0'
       }`}
     >
       <section
         id="home-upcoming-events"
-        className="home-events w-full shrink-0 pt-[calc(3.55rem+env(safe-area-inset-top,0px))] sm:pt-7"
+        className="home-events w-full shrink-0 pt-[calc(3.45rem+env(safe-area-inset-top,0px))] sm:pt-7"
       >
         <div className="mb-2 flex items-center justify-between border-b border-white/15 px-4 pb-1.5 sm:mb-3 sm:px-7 sm:pb-2.5 lg:px-10">
           <h2 className="text-[15px] font-agrandir-extrabold uppercase tracking-[-0.025em] sm:text-2xl">
@@ -124,14 +126,14 @@ export const HomeFeed: React.FC = () => {
             <div
               ref={featuredRowRef}
               onScroll={handleContainerScroll}
-              className="home-events-track flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-4 pb-1.5 pt-0.5 sm:gap-4 sm:px-7 sm:pb-3 sm:pt-1 lg:gap-5 lg:px-10"
+              className="home-events-track flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-4 pb-1 pt-0.5 sm:gap-4 sm:px-7 sm:pb-3 sm:pt-1 lg:gap-5 lg:px-10"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {activeSlides.map((event, index) => (
                 <div
                   key={event.id}
                   ref={(element) => { cardRefs.current[index] = element; }}
-                  className="home-event-card w-[68vw] max-w-[280px] shrink-0 snap-start bg-transparent text-left sm:w-[42vw] sm:max-w-[390px] lg:w-[30vw]"
+                  className="home-event-card w-[66vw] max-w-[268px] shrink-0 snap-start bg-transparent text-left sm:w-[42vw] sm:max-w-[390px] lg:w-[30vw]"
                 >
                   <button
                     type="button"
@@ -159,14 +161,14 @@ export const HomeFeed: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleBuyTickets(event)}
-                        className="home-event-action inline-flex min-h-[38px] items-center justify-center gap-1.5 rounded-[10px] bg-white px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.08em] text-black transition-colors hover:bg-white/85 cursor-pointer sm:min-h-11 sm:gap-2 sm:text-[10px]"
+                        className="home-event-action inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-[10px] bg-white px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.08em] text-black transition-colors hover:bg-white/85 cursor-pointer sm:min-h-11 sm:gap-2 sm:text-[10px]"
                       >
                         <span aria-hidden="true">▣</span> {isEn ? 'Buy tickets' : 'Acheter tickets'}
                       </button>
                       <button
                         type="button"
                         onClick={() => handleViewDetails(event)}
-                        className="home-event-action inline-flex min-h-[38px] items-center justify-center rounded-[10px] border border-white/30 px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.06em] text-white transition-colors hover:bg-white hover:text-black cursor-pointer sm:min-h-11 sm:text-[10px]"
+                        className="home-event-action inline-flex min-h-[36px] items-center justify-center rounded-[10px] border border-white/30 px-2 text-[9px] font-agrandir-extrabold uppercase tracking-[0.06em] text-white transition-colors hover:bg-white hover:text-black cursor-pointer sm:min-h-11 sm:text-[10px]"
                       >
                         {isEn ? 'Details' : 'Détails'}
                       </button>
@@ -184,7 +186,7 @@ export const HomeFeed: React.FC = () => {
       </section>
 
       <section
-        className="home-quick-access mx-auto mt-2 w-full shrink-0 px-3 sm:mt-6 sm:px-7 lg:px-10"
+        className="home-quick-access mx-auto mt-3.5 w-full shrink-0 px-3 sm:mt-6 sm:px-7 lg:px-10"
         aria-label={isEn ? 'Quick access' : 'Accès rapide'}
       >
         <div className="overflow-hidden rounded-[20px] border border-white/12 bg-[#0b0b0b] px-3 sm:rounded-[26px] sm:border-white/15 sm:px-6">
@@ -221,15 +223,15 @@ export const HomeFeed: React.FC = () => {
         </div>
       </section>
 
-      <footer className="mx-auto mt-1.5 flex w-full max-w-6xl shrink-0 items-center justify-between gap-3 border-t border-white/10 px-4 py-2.5 text-center sm:mt-8 sm:px-10 sm:py-7">
-        <p className="text-[9px] uppercase tracking-[0.18em] text-neutral-500 sm:text-[10px]">
+      <footer className="hidden sm:flex mx-auto mt-8 w-full max-w-6xl shrink-0 items-center justify-between gap-3 border-t border-white/10 px-10 py-7 text-center">
+        <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
           © {new Date().getFullYear()} LUMARÉEL
         </p>
-        <div className="flex items-center gap-3.5 text-neutral-400 sm:gap-5">
-          <a href="https://www.instagram.com/lumareelco/" target="_blank" rel="noreferrer" aria-label="Instagram LUMARÉEL" className="transition-colors hover:text-white"><Instagram className="h-4 w-4 sm:h-5 sm:w-5" /></a>
-          <a href="https://www.facebook.com/share/19oZK7vQvR/?mibextid=wwXIfr" target="_blank" rel="noreferrer" aria-label="Facebook LUMARÉEL" className="transition-colors hover:text-white"><Facebook className="h-4 w-4 sm:h-5 sm:w-5" /></a>
-          <a href="https://www.tiktok.com/@lumareelco" target="_blank" rel="noreferrer" aria-label="TikTok LUMARÉEL" className="text-[10px] font-agrandir-extrabold uppercase tracking-wider transition-colors hover:text-white sm:text-[11px]">TikTok</a>
-          <a href="https://www.snapchat.com/add/lumareelco" target="_blank" rel="noreferrer" aria-label="Snapchat LUMARÉEL" className="text-[10px] font-agrandir-extrabold uppercase tracking-wider transition-colors hover:text-white sm:text-[11px]">Snapchat</a>
+        <div className="flex items-center gap-5 text-neutral-400">
+          <a href="https://www.instagram.com/lumareelco/" target="_blank" rel="noreferrer" aria-label="Instagram LUMARÉEL" className="transition-colors hover:text-white"><Instagram className="h-5 w-5" /></a>
+          <a href="https://www.facebook.com/share/19oZK7vQvR/?mibextid=wwXIfr" target="_blank" rel="noreferrer" aria-label="Facebook LUMARÉEL" className="transition-colors hover:text-white"><Facebook className="h-5 w-5" /></a>
+          <a href="https://www.tiktok.com/@lumareelco" target="_blank" rel="noreferrer" aria-label="TikTok LUMARÉEL" className="text-[11px] font-agrandir-extrabold uppercase tracking-wider transition-colors hover:text-white">TikTok</a>
+          <a href="https://www.snapchat.com/add/lumareelco" target="_blank" rel="noreferrer" aria-label="Snapchat LUMARÉEL" className="text-[11px] font-agrandir-extrabold uppercase tracking-wider transition-colors hover:text-white">Snapchat</a>
         </div>
       </footer>
     </div>

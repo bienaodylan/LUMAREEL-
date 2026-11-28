@@ -210,7 +210,7 @@ export const ClubAdminView: React.FC = () => {
   };
 
   const tabs: {id:AdminTab;label:string;icon:React.ElementType}[]=[
-    {id:'media',label:'Backstage',icon:Film},{id:'albums',label:'Mes Moments',icon:ImagePlus},
+    {id:'media',label:'Backstage',icon:Film},{id:'albums',label:'Souvenirs',icon:ImagePlus},
     {id:'offers',label:'Gift & Offres',icon:Layers3},{id:'suggestions',label:'Ta Voix',icon:MessageSquare},
   ];
 

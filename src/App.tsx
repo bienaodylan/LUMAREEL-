@@ -134,9 +134,20 @@ const MainApp: React.FC = () => {
     currentPage !== 'backstage' &&
     currentPage !== 'event_detail' &&
     (!isStandalone || isHomePage || !isStandaloneRootTab);
+  const isLightClubPage =
+    currentPage === 'rewards' ||
+    currentPage === 'flash_drops' ||
+    currentPage === 'memories' ||
+    currentPage === 'suggestions';
 
   return (
-    <div className="min-h-screen w-full max-w-full bg-black text-[#EFEFEF] flex flex-col justify-between selection:bg-white selection:text-black font-agrandir-regular relative">
+    <div
+      className={`min-h-screen w-full max-w-full flex flex-col justify-between font-agrandir-regular relative transition-colors duration-200 ${
+        isLightClubPage
+          ? 'bg-[#FBFBFD] text-[#111111] selection:bg-black selection:text-white'
+          : 'bg-black text-[#EFEFEF] selection:bg-white selection:text-black'
+      }`}
+    >
       {/* Indicateur hors-ligne discret pour la PWA */}
       <OfflineIndicator />
 

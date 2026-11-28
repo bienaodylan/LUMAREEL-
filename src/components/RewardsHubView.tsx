@@ -1,21 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../lib/supabaseClient';
-import { ClubSpaceNav } from './club/ClubSpaceNav';
-import {
-  ArrowUpRight,
-  CalendarClock,
-  Check,
-  Copy,
-  Gift,
-  History,
-  Share2,
-  ShieldCheck,
-  Sparkles,
-  Ticket,
-  Users,
-} from 'lucide-react';
+import { ArrowUpRight, Check, ChevronRight, Copy, Share2, X } from 'lucide-react';
 
 export type RewardsTab = 'gifts' | 'points' | 'exchange' | 'referral';
 
@@ -53,9 +40,17 @@ type OfferRow = {
   status: string;
 };
 
-type ActivityFilter = 'all' | 'points' | 'referrals' | 'redeemed';
-
 const formatNumber = (value: number) => new Intl.NumberFormat('fr-FR').format(value);
+
+const formatShortDate = (iso: string | null | undefined, isEn: boolean) => {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString(isEn ? 'en-GB' : 'fr-FR', {
+    day: 'numeric',
+    month: 'short',
+  });
+};
 
 interface RewardsHubViewProps {
   initialTab?: RewardsTab;
@@ -68,7 +63,7 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
   embedded = false,
   forcedMode,
 }) => {
-  const { currentUser, setIsAuthModalOpen, setCurrentPage, showToast, language } = useApp();
+  const { currentUser, setIsAuthModalOpen, showToast, language } = useApp();
   const isEn = language === 'en';
 
   const [loading, setLoading] = useState(true);
@@ -78,10 +73,14 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
   const [points, setPoints] = useState<PointRow[]>([]);
   const [referrals, setReferrals] = useState<ReferralRow[]>([]);
   const [offers, setOffers] = useState<OfferRow[]>([]);
+
+  const [copied, setCopied] = useState(false);
+  const [showCodeInput, setShowCodeInput] = useState(false);
   const [codeInput, setCodeInput] = useState('');
-  const [copiedKey, setCopiedKey] = useState<'code' | 'link' | null>(null);
   const [applying, setApplying] = useState(false);
-  const [activityFilter, setActivityFilter] = useState<ActivityFilter>('all');
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [revealedIds, setRevealedIds] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -171,7 +170,7 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
     } catch (err: any) {
       setError(
         err?.message ||
-          (isEn ? 'Unable to load your Club space.' : 'Impossible de charger votre espace Club.')
+          (isEn ? 'Unable to load Gift Points.' : 'Impossible de charger vos Gift Points.')
       );
     } finally {
       setLoading(false);
@@ -191,7 +190,6 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
     () => Math.abs(points.reduce((sum, row) => sum + Math.min(row.points, 0), 0)),
     [points]
   );
-  const redeemedRows = useMemo(() => points.filter((row) => row.points < 0), [points]);
 
   const pendingReferrals = useMemo(
     () => referrals.filter((item) => item.status === 'pending'),
@@ -201,955 +199,481 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({
     () => referrals.filter((item) => item.status === 'validated'),
     [referrals]
   );
-  const pendingPoints = useMemo(
-    () => pendingReferrals.reduce((sum, item) => sum + item.reward_points, 0),
-    [pendingReferrals]
-  );
-  const referralEarnedFcfa = useMemo(
-    () => validatedReferrals.reduce((sum, item) => sum + item.reward_points, 0),
-    [validatedReferrals]
-  );
 
   const shareUrl =
     referralCode && typeof window !== 'undefined'
       ? `${window.location.origin}/?ref=${encodeURIComponent(referralCode)}`
       : '';
 
-  const surpriseOffers = useMemo(
-    () => offers.filter((offer) => offer.offer_type === 'surprise'),
-    [offers]
-  );
-  const flashOffers = useMemo(
-    () => offers.filter((offer) => offer.offer_type === 'flash'),
-    [offers]
+  const visibleHistory = useMemo(
+    () => (showAllHistory ? points : points.slice(0, 6)),
+    [points, showAllHistory]
   );
 
-  const copyValue = async (value: string, key: 'code' | 'link', message: string) => {
+  const handleCopy = async () => {
+    const value = referralCode || shareUrl;
+    if (!value) return;
     try {
       await navigator.clipboard.writeText(value);
-      setCopiedKey(key);
-      showToast(message, 'success');
-      window.setTimeout(() => setCopiedKey(null), 1800);
+      setCopied(true);
+      showToast(isEn ? 'Code copied' : 'Code copié', 'success');
+      window.setTimeout(() => setCopied(false), 1800);
     } catch {
-      showToast(
-        isEn ? 'Copy is unavailable on this device.' : 'Copie indisponible sur cet appareil.',
-        'error'
-      );
+      showToast(isEn ? 'Unable to copy' : 'Copie impossible', 'error');
     }
   };
 
-  const shareInvite = async () => {
+  const handleShare = async () => {
     if (!shareUrl) return;
-    const payload = {
-      title: 'LUMARÉEL',
-      text: isEn
-        ? 'Discover LUMARÉEL — use my invitation link.'
-        : 'Découvrez LUMARÉEL — utilisez mon lien d’invitation.',
-      url: shareUrl,
-    };
-    if (navigator.share) {
+    const text = isEn
+      ? `Join LUMARÉEL with my code ${referralCode}`
+      : `Rejoins LUMARÉEL avec mon code ${referralCode}`;
+    if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share(payload);
+        await navigator.share({ title: 'LUMARÉEL', text, url: shareUrl });
         return;
       } catch {
-        // user cancelled share sheet
+        return;
       }
     }
-    await copyValue(
-      shareUrl,
-      'link',
-      isEn ? 'Invitation link copied.' : 'Lien d’invitation copié.'
-    );
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showToast(isEn ? 'Invitation link copied' : 'Lien d’invitation copié', 'success');
+    } catch {
+      showToast(isEn ? 'Unable to share' : 'Partage impossible', 'error');
+    }
   };
 
-  const applyReferralCode = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) {
-      setIsAuthModalOpen(true);
-      return;
-    }
-    const normalized = codeInput.trim().toUpperCase();
-    if (normalized.length < 5) {
+  const handleApplyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleaned = codeInput.trim().toUpperCase();
+    if (!cleaned) return;
+    setApplying(true);
+    try {
+      const { error: rpcError } = await supabase.rpc('club_apply_referral_code', {
+        p_code: cleaned,
+      });
+      if (rpcError) throw rpcError;
+      setCodeInput('');
+      setShowCodeInput(false);
+      showToast(isEn ? 'Referral code applied' : 'Code de parrainage enregistré', 'success');
+      await load();
+    } catch (err: any) {
       showToast(
-        isEn ? 'Please enter a valid invitation code.' : 'Veuillez saisir un code d’invitation valide.',
+        err?.message || (isEn ? 'Invalid referral code' : 'Code de parrainage invalide'),
         'error'
       );
-      return;
+    } finally {
+      setApplying(false);
     }
-    setApplying(true);
-    const { error: rpcError } = await supabase.rpc('club_apply_referral_code', {
-      p_code: normalized,
-    });
-    setApplying(false);
-
-    if (rpcError) {
-      const msg = rpcError.message.includes('REFERRAL_ALREADY_APPLIED')
-        ? isEn
-          ? 'A referral code has already been applied to this account.'
-          : 'Un code de parrainage a déjà été appliqué à ce compte.'
-        : rpcError.message.includes('SELF_REFERRAL_NOT_ALLOWED')
-          ? isEn
-            ? 'You cannot use your own referral code.'
-            : 'Vous ne pouvez pas utiliser votre propre code de parrainage.'
-          : rpcError.message.includes('REFERRAL_CODE_NOT_FOUND')
-            ? isEn
-              ? 'This referral code was not found.'
-              : 'Ce code de parrainage est introuvable.'
-            : isEn
-              ? 'This referral code could not be applied.'
-              : 'Ce code de parrainage ne peut pas être appliqué.';
-      showToast(msg, 'error');
-      return;
-    }
-
-    setCodeInput('');
-    showToast(
-      isEn
-        ? 'Invitation recorded. The 500 FCFA Gift Points reward is credited after a qualifying purchase.'
-        : 'Parrainage enregistré. La récompense de 500 FCFA en Gift Points sera créditée après un achat qualifiant.',
-      'success'
-    );
-    await load();
   };
 
-  const getOfferStatus = (offer: OfferRow) => {
-    const now = Date.now();
-    if (offer.ends_at && new Date(offer.ends_at).getTime() < now) {
-      return isEn ? 'Ended' : 'Terminée';
-    }
-    if (offer.starts_at && new Date(offer.starts_at).getTime() > now) {
-      return isEn ? 'Upcoming' : 'Bientôt';
-    }
-    return isEn ? 'Available' : 'Disponible';
-  };
+  // Surface tokens adapt cleanly when embedded inside the dark Black Card page
+  const isDark = embedded;
+  const ink = isDark ? 'text-white' : 'text-[#111111]';
+  const muted = isDark ? 'text-white/55' : 'text-[#6E6E73]';
+  const subtle = isDark ? 'text-white/40' : 'text-[#86868B]';
+  const hairline = isDark ? 'border-white/[0.10]' : 'border-black/[0.08]';
+  const surfaceSoft = isDark ? 'bg-white/[0.05]' : 'bg-[#F2F2F5]';
+  const primaryBtn = isDark
+    ? 'bg-white text-black hover:bg-white/90'
+    : 'bg-[#111111] text-white hover:bg-black/85';
+  const secondaryBtn = isDark
+    ? 'bg-white/[0.08] text-white hover:bg-white/[0.14]'
+    : 'bg-[#EFEFF4] text-[#111111] hover:bg-[#E5E5EA]';
 
-  const isOfferActive = (offer: OfferRow) => {
-    const now = Date.now();
-    return (
-      (!offer.starts_at || new Date(offer.starts_at).getTime() <= now) &&
-      (!offer.ends_at || new Date(offer.ends_at).getTime() >= now)
-    );
-  };
-
-  const unifiedTimeline = useMemo(() => {
-    const pointEvents = points.map((row) => ({
-      id: `pt-${row.id}`,
-      kind: row.points < 0 ? ('redeemed' as const) : ('points' as const),
-      title: row.reason,
-      subtitle:
-        row.source === 'referral'
-          ? isEn
-            ? 'Validated referral'
-            : 'Parrainage validé'
-          : row.source === 'ticket_purchase'
-            ? isEn
-              ? 'Ticket purchase'
-              : 'Achat de billets'
-            : row.source === 'concert_attendance'
-              ? isEn
-                ? 'Confirmed attendance'
-                : 'Présence confirmée'
-              : row.source === 'black_card_subscription'
-                ? 'LUMARÉEL Black Card'
-                : isEn
-                  ? 'Club benefit'
-                  : 'Avantage Club',
-      amountLabel: `${row.points > 0 ? '+' : ''}${formatNumber(row.points)} GP`,
-      isPositive: row.points > 0,
-      date: row.created_at,
-    }));
-
-    const referralEvents = referrals.map((ref) => ({
-      id: `ref-${ref.id}`,
-      kind: 'referrals' as const,
-      title:
-        ref.status === 'validated'
-          ? isEn
-            ? 'Referral validated'
-            : 'Invitation validée'
-          : ref.status === 'rejected'
-            ? isEn
-              ? 'Referral declined'
-              : 'Invitation non retenue'
-            : isEn
-              ? 'Invitation awaiting qualifying purchase'
-              : 'Invitation en attente d’achat qualifiant',
-      subtitle:
-        ref.status === 'validated'
-          ? isEn
-            ? '500 FCFA credited in Gift Points'
-            : '500 FCFA crédités en Gift Points'
-          : ref.status === 'pending'
-            ? isEn
-              ? 'Pending verification'
-              : 'Validation automatique après achat'
-            : isEn
-              ? 'Did not meet program rules'
-              : 'Conditions du programme non réunies',
-      amountLabel:
-        ref.status === 'validated'
-          ? `+${formatNumber(ref.reward_points)} F`
-          : ref.status === 'pending'
-            ? `${formatNumber(ref.reward_points)} F`
-            : '—',
-      isPositive: ref.status === 'validated',
-      date: ref.validated_at || ref.created_at,
-    }));
-
-    return [...pointEvents, ...referralEvents].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-  }, [points, referrals, isEn]);
-
-  const filteredTimeline = useMemo(() => {
-    if (activityFilter === 'all') return unifiedTimeline;
-    return unifiedTimeline.filter((entry) => entry.kind === activityFilter);
-  }, [unifiedTimeline, activityFilter]);
-
-  const showPointsBlock = !forcedMode || forcedMode === 'points';
-  const showReferralBlock = !forcedMode || forcedMode === 'referral';
-  const showOffersAndHistory = !forcedMode;
-
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
+  const showPointsBlock = !embedded || forcedMode !== 'referral';
+  const showReferralBlock = !embedded || forcedMode !== 'points';
+  const showOffersBlock = !embedded;
+  const showHistoryBlock = !embedded || forcedMode !== 'referral';
 
   return (
     <div
-      className={`w-full text-white bg-black ${
-        embedded ? 'py-2' : 'min-h-screen max-w-6xl mx-auto px-4 sm:px-8 lg:px-10 pt-3 sm:pt-8 pb-20'
-      }`}
+      className={
+        embedded
+          ? 'w-full'
+          : 'min-h-screen bg-[#FBFBFD] text-[#111111] pt-16 md:pt-12 pb-32 md:pb-24'
+      }
     >
-      {!embedded && <ClubSpaceNav active="rewards" className="mb-8 sm:mb-12" />}
+      <div className={embedded ? 'space-y-8' : 'mx-auto max-w-[680px] px-5 sm:px-8'}>
+        {error && (
+          <p className={`mb-6 text-sm ${muted}`}>{error}</p>
+        )}
 
-      {/* A. PRÉSENTATION */}
-      {!embedded && (
-        <motion.header
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className="pb-9 sm:pb-12 border-b border-white/10"
-        >
-          <p className="text-[10px] uppercase tracking-[0.26em] text-neutral-500">
-            LUMARÉEL CLUB · {isEn ? 'REWARDS & INVITATIONS' : 'GIFT POINTS & PARRAINAGE'}
-          </p>
-          <h1 className="mt-4 max-w-3xl text-[clamp(2.25rem,7.2vw,4.9rem)] font-agrandir-extrabold leading-[0.95] tracking-[-0.03em] text-white">
-            {isEn ? 'Every invitation can bring something back.' : 'Chaque invitation peut rapporter.'}
-          </h1>
-          <p className="mt-5 max-w-xl text-sm sm:text-base leading-7 text-neutral-400">
-            {isEn
-              ? 'Introduce friends to LUMARÉEL, enjoy member benefits and discover the surprises waiting for you.'
-              : 'Faites découvrir LUMARÉEL, profitez d’avantages et découvrez les surprises qui vous attendent.'}
-          </p>
-
-          <div className="mt-7 flex items-center gap-5 overflow-x-auto scrollbar-hide text-[11px] uppercase tracking-[0.14em] text-neutral-500">
-            {[
-              { id: 'gp-points', label: 'Gift Points' },
-              { id: 'gp-parrainage', label: isEn ? 'Referrals' : 'Parrainage' },
-              { id: 'gp-surprises', label: 'Surprises' },
-              { id: 'gp-flash', label: isEn ? 'Flash Sales' : 'Vente Flash' },
-              { id: 'gp-historique', label: isEn ? 'History' : 'Historique' },
-            ].map((anchor) => (
-              <button
-                key={anchor.id}
-                type="button"
-                onClick={() => scrollToSection(anchor.id)}
-                className="shrink-0 py-1 hover:text-white transition-colors cursor-pointer"
-              >
-                {anchor.label}
-              </button>
-            ))}
-          </div>
-        </motion.header>
-      )}
-
-      {error && (
-        <div
-          role="alert"
-          className="my-6 border border-white/15 bg-[#0a0a0a] px-5 py-4 text-xs sm:text-sm text-neutral-300 flex items-center justify-between gap-4"
-        >
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={() => void load()}
-            className="underline underline-offset-4 text-white shrink-0 cursor-pointer"
-          >
-            {isEn ? 'Retry' : 'Réessayer'}
-          </button>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="py-20 space-y-6">
-          <div className="h-28 w-full lum-skeleton" />
-          <div className="grid sm:grid-cols-2 gap-6">
-            <div className="h-44 lum-skeleton" />
-            <div className="h-44 lum-skeleton" />
-          </div>
-        </div>
-      ) : (
-        <div className="divide-y divide-white/10">
-          {/* B. GIFT POINTS */}
-          {showPointsBlock && (
-            <section id="gp-points" className="py-10 sm:py-14 scroll-mt-20">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">
-                    01 · GIFT POINTS
-                  </p>
-                  <h2 className="mt-2 text-2xl sm:text-3xl font-agrandir-extrabold tracking-tight">
-                    {isEn ? 'Your balance & rewards' : 'Votre solde & vos récompenses'}
-                  </h2>
+        {/* 1. SOLDE GIFT POINTS */}
+        {showPointsBlock && (
+          <section className={embedded ? 'pb-6' : 'pt-6 sm:pt-10 pb-10 sm:pb-12'}>
+            {!isSignedIn && !loading ? (
+              <div className="space-y-5">
+                <h1 className={`font-agrandir-extrabold text-3xl sm:text-4xl tracking-tight ${ink}`}>
+                  Gift Points
+                </h1>
+                <p className={`text-[15px] leading-relaxed max-w-md ${muted}`}>
+                  {isEn
+                    ? 'Sign in to view your Gift Points balance and share your invitation code.'
+                    : 'Connectez-vous pour retrouver votre solde de Gift Points et votre code de parrainage.'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className={`inline-flex items-center justify-center rounded-full px-6 py-2.5 text-sm font-medium transition-colors ${primaryBtn}`}
+                >
+                  {isEn ? 'Sign in' : 'Se connecter'}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <p className={`text-[13px] font-medium ${muted}`}>Gift Points</p>
+                <div className="mt-2 flex items-baseline gap-3">
+                  {loading ? (
+                    <div className={`h-11 w-44 rounded-lg animate-pulse ${surfaceSoft}`} />
+                  ) : (
+                    <h1
+                      className={`font-agrandir-extrabold text-[40px] sm:text-[52px] leading-none tracking-tight tabular-nums ${ink}`}
+                    >
+                      {formatNumber(balance)}
+                    </h1>
+                  )}
                 </div>
-                {isSignedIn && (
-                  <p className="text-xs text-neutral-500">
-                    {isEn ? '1 Gift Point = 1 FCFA value' : '1 Gift Point = 1 FCFA de valeur'}
+
+                {!loading && (
+                  <div className="mt-4 flex items-center gap-5">
+                    <button
+                      type="button"
+                      onClick={() => setDetailsOpen(true)}
+                      className={`inline-flex items-center gap-1 text-[13px] font-medium transition-opacity hover:opacity-70 ${muted}`}
+                    >
+                      <span>{isEn ? 'Details & how it works' : 'Comment ça marche'}</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* 2. PARRAINAGE */}
+        {showReferralBlock && isSignedIn && !loading && (
+          <section className={`border-t ${hairline} py-9 sm:py-11`}>
+            <div className="space-y-5">
+              <div>
+                <h2 className={`font-agrandir-semibold text-xl sm:text-2xl tracking-tight ${ink}`}>
+                  {isEn ? 'Invite a friend. Earn 500 points.' : 'Invite un ami. Gagne 500 points.'}
+                </h2>
+                {referrals.length > 0 && (
+                  <p className={`mt-1.5 text-[13px] ${muted}`}>
+                    {isEn
+                      ? `${validatedReferrals.length} validated · ${pendingReferrals.length} pending`
+                      : `${validatedReferrals.length} validé${validatedReferrals.length > 1 ? 's' : ''} · ${pendingReferrals.length} en attente`}
                   </p>
                 )}
               </div>
 
-              {!isSignedIn ? (
-                <div className="border border-white/12 bg-[#080808] p-6 sm:p-9 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                  <div className="max-w-lg">
-                    <p className="text-base sm:text-lg font-agrandir-extrabold text-white">
-                      {isEn
-                        ? 'Connect your LUMARÉEL account'
-                        : 'Accédez à votre solde de Gift Points'}
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-neutral-400">
-                      {isEn
-                        ? 'Sign in to view your real Gift Points balance, personal invitation code and member history.'
-                        : 'Connectez-vous pour consulter votre solde réel, votre code de parrainage personnel et votre historique.'}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsAuthModalOpen(true)}
-                    className="min-h-12 px-7 bg-white text-black text-xs font-agrandir-extrabold uppercase tracking-[0.12em] hover:bg-neutral-200 transition-colors cursor-pointer shrink-0"
-                  >
-                    {isEn ? 'Sign in' : 'Se connecter'}
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-8">
-                  <div className="grid grid-cols-2 lg:grid-cols-4 border-y border-white/12 divide-x divide-y lg:divide-y-0 divide-white/10">
-                    <div className="py-6 pr-4">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
-                        {isEn ? 'Available balance' : 'Solde disponible'}
-                      </p>
-                      <p className="mt-3 text-3xl sm:text-4xl font-agrandir-extrabold tabular-nums text-white">
-                        {formatNumber(balance)}
-                      </p>
-                      <p className="mt-1 text-[11px] text-neutral-500">
-                        {formatNumber(balance)} FCFA
-                      </p>
-                    </div>
-                    <div className="py-6 px-4">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
-                        {isEn ? 'Points earned' : 'Points gagnés'}
-                      </p>
-                      <p className="mt-3 text-2xl sm:text-3xl font-agrandir-semibold tabular-nums text-neutral-200">
-                        {formatNumber(earned)}
-                      </p>
-                      <p className="mt-1 text-[11px] text-neutral-600">
-                        {isEn ? 'Cumulative' : 'Cumulés'}
-                      </p>
-                    </div>
-                    <div className="py-6 pr-4 lg:px-4">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
-                        {isEn ? 'Points used' : 'Points utilisés'}
-                      </p>
-                      <p className="mt-3 text-2xl sm:text-3xl font-agrandir-semibold tabular-nums text-neutral-300">
-                        {formatNumber(used)}
-                      </p>
-                      <p className="mt-1 text-[11px] text-neutral-600">
-                        {redeemedRows.length}{' '}
-                        {isEn ? 'reward(s)' : 'récompense(s)'}
-                      </p>
-                    </div>
-                    <div className="py-6 pl-4">
-                      <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
-                        {isEn ? 'Pending' : 'En attente'}
-                      </p>
-                      <p className="mt-3 text-2xl sm:text-3xl font-agrandir-semibold tabular-nums text-neutral-400">
-                        {formatNumber(pendingPoints)}
-                      </p>
-                      <p className="mt-1 text-[11px] text-neutral-600">
-                        {pendingReferrals.length}{' '}
-                        {isEn ? 'invitation(s)' : 'invitation(s)'}
-                      </p>
-                    </div>
+              {referralCode && (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-1">
+                  <div className="select-all font-mono text-[22px] sm:text-[24px] tracking-[0.14em] font-medium">
+                    <span className={ink}>{referralCode}</span>
                   </div>
 
-                  {/* État vide élégant si 0 point */}
-                  {balance === 0 && points.length === 0 ? (
-                    <div className="border border-white/10 bg-[#080808] p-6 sm:p-9">
-                      <div className="max-w-2xl">
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">
-                          {isEn ? 'GETTING STARTED' : 'COMMENCER À CUMULER'}
-                        </p>
-                        <h3 className="mt-3 text-xl sm:text-2xl font-agrandir-extrabold text-white">
-                          {isEn
-                            ? 'You do not have any Gift Points yet.'
-                            : 'Vous n’avez pas encore de Gift Points.'}
-                        </h3>
-                        <p className="mt-3 text-sm leading-6 text-neutral-400">
-                          {isEn
-                            ? 'Your Gift Points accumulate automatically with your real activity on LUMARÉEL: ticket bookings, confirmed concert attendance, LUMARÉEL Black Card membership, and validated friend referrals (500 FCFA per friend).'
-                            : 'Vos Gift Points se cumulent automatiquement avec votre activité réelle sur LUMARÉEL : achats de billets, présence validée aux événements, adhésion LUMARÉEL Black Card et parrainages validés (500 FCFA par ami).'}
-                        </p>
-                        <div className="mt-6 flex flex-wrap gap-3">
-                          <button
-                            type="button"
-                            onClick={() => scrollToSection('gp-parrainage')}
-                            className="min-h-11 px-5 bg-white text-black text-xs font-agrandir-extrabold uppercase tracking-[0.1em] hover:bg-neutral-200 transition-colors cursor-pointer"
-                          >
-                            {isEn ? 'Invite a friend' : 'Inviter un ami'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setCurrentPage('discover')}
-                            className="min-h-11 px-5 border border-white/20 text-white text-xs font-agrandir-semibold uppercase tracking-[0.1em] hover:border-white transition-colors cursor-pointer"
-                          >
-                            {isEn ? 'Explore events' : 'Découvrir les événements'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="border border-white/10 bg-[#080808] p-5 sm:p-6">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
-                            {isEn ? 'USING YOUR POINTS' : 'UTILISER VOS GIFT POINTS'}
-                          </p>
-                          <Ticket size={16} className="text-neutral-500" />
-                        </div>
-                        <p className="mt-3 text-sm leading-6 text-neutral-300">
-                          {isEn
-                            ? 'Your available balance can be applied to eligible LUMARÉEL member advantages, exclusive drops and upcoming ticketing benefits.'
-                            : 'Votre solde disponible peut être mobilisé sur les avantages membres LUMARÉEL, les privilèges du Club et les offres éligibles.'}
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${secondaryBtn}`}
+                    >
+                      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copied ? (isEn ? 'Copied' : 'Copié') : isEn ? 'Copy' : 'Copier'}</span>
+                    </button>
 
-                      <div className="border border-white/10 bg-[#080808] p-5 sm:p-6">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-500">
-                            {isEn ? 'REDEEMED REWARDS' : 'RÉCOMPENSES OBTENUES'}
-                          </p>
-                          <Gift size={16} className="text-neutral-500" />
-                        </div>
-                        {redeemedRows.length > 0 ? (
-                          <ul className="mt-3 divide-y divide-white/10">
-                            {redeemedRows.slice(0, 3).map((item) => (
-                              <li
-                                key={item.id}
-                                className="py-2.5 flex items-center justify-between gap-3 text-xs"
-                              >
-                                <span className="text-neutral-200 truncate">{item.reason}</span>
-                                <span className="text-neutral-400 tabular-nums shrink-0">
-                                  {formatNumber(Math.abs(item.points))} GP
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="mt-3 text-sm leading-6 text-neutral-500">
-                            {isEn
-                              ? 'No points have been spent yet. Your redeemed benefits will appear here.'
-                              : 'Aucun point utilisé pour le moment. Vos récompenses débloquées apparaîtront ici.'}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                    <button
+                      type="button"
+                      onClick={handleShare}
+                      className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${primaryBtn}`}
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>{isEn ? 'Share' : 'Partager'}</span>
+                    </button>
+                  </div>
                 </div>
               )}
-            </section>
-          )}
 
-          {/* C. PARRAINAGE */}
-          {showReferralBlock && (
-            <section id="gp-parrainage" className="py-10 sm:py-14 scroll-mt-20">
-              <div className="grid lg:grid-cols-12 gap-8 lg:gap-12">
-                <div className="lg:col-span-5 space-y-5">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">
-                      02 · {isEn ? 'REFERRALS' : 'PARRAINAGE'}
-                    </p>
-                    <h2 className="mt-2 text-2xl sm:text-3xl font-agrandir-extrabold tracking-tight">
-                      {isEn ? 'Invite your circle.' : 'Invitez votre entourage.'}
-                    </h2>
-                  </div>
-                  <p className="text-sm leading-7 text-neutral-400">
-                    {isEn
-                      ? 'Receive 500 FCFA in Gift Points for each referred friend whose participation is validated by a qualifying purchase.'
-                      : 'Recevez 500 FCFA en Gift Points pour chaque ami parrainé et validé conformément aux conditions du programme.'}
-                  </p>
+              <div className="pt-1">
+                {!showCodeInput ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowCodeInput(true)}
+                    className={`text-[13px] transition-opacity hover:opacity-70 ${subtle}`}
+                  >
+                    {isEn ? 'Have a referral code?' : 'J’ai un code de parrainage'}
+                  </button>
+                ) : (
+                  <form onSubmit={handleApplyCode} className="flex items-center gap-2.5 max-w-sm pt-1">
+                    <input
+                      type="text"
+                      value={codeInput}
+                      onChange={(e) => setCodeInput(e.target.value)}
+                      placeholder={isEn ? 'Enter code' : 'Entrer le code'}
+                      autoFocus
+                      className={`flex-1 bg-transparent border-b py-1.5 text-sm uppercase tracking-wider outline-none ${hairline} ${ink}`}
+                    />
+                    <button
+                      type="submit"
+                      disabled={applying || !codeInput.trim()}
+                      className={`rounded-full px-4 py-1.5 text-xs font-medium disabled:opacity-40 transition-colors ${primaryBtn}`}
+                    >
+                      {applying ? '...' : isEn ? 'Apply' : 'Valider'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCodeInput(false);
+                        setCodeInput('');
+                      }}
+                      aria-label={isEn ? 'Cancel' : 'Annuler'}
+                      className={`p-1 ${subtle}`}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
 
-                  <div className="pt-2 space-y-2.5 text-xs text-neutral-500 border-t border-white/10">
-                    <div className="flex items-start gap-2.5">
-                      <ShieldCheck size={14} className="mt-0.5 shrink-0 text-neutral-400" />
-                      <span>
-                        {isEn
-                          ? 'Validation occurs automatically upon a qualifying paid order. Self-referrals and duplicates are blocked.'
-                          : 'Validation automatique après un achat qualifiant. Les auto-parrainages et doublons sont bloqués.'}
-                      </span>
-                    </div>
-                  </div>
+        {/* 3. RÉCOMPENSES & SURPRISES */}
+        {showOffersBlock && (
+          <section className={`border-t ${hairline} py-9 sm:py-11`}>
+            <h2 className={`text-[13px] font-medium mb-6 ${muted}`}>
+              {isEn ? 'Rewards & Surprises' : 'Récompenses & Surprises'}
+            </h2>
 
-                  {isSignedIn && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-4 pt-3">
-                      <div className="border-t border-white/15 pt-3">
-                        <p className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">
-                          {isEn ? 'Invited' : 'Invités'}
-                        </p>
-                        <p className="mt-1.5 text-xl font-agrandir-extrabold tabular-nums">
-                          {referrals.length}
-                        </p>
-                      </div>
-                      <div className="border-t border-white/15 pt-3">
-                        <p className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">
-                          {isEn ? 'Pending' : 'En attente'}
-                        </p>
-                        <p className="mt-1.5 text-xl font-agrandir-extrabold tabular-nums text-neutral-300">
-                          {pendingReferrals.length}
-                        </p>
-                      </div>
-                      <div className="border-t border-white/15 pt-3">
-                        <p className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">
-                          {isEn ? 'Validated' : 'Validés'}
-                        </p>
-                        <p className="mt-1.5 text-xl font-agrandir-extrabold tabular-nums">
-                          {validatedReferrals.length}
-                        </p>
-                      </div>
-                      <div className="border-t border-white/15 pt-3">
-                        <p className="text-[10px] uppercase tracking-[0.16em] text-neutral-500">
-                          {isEn ? 'Rewards earned' : 'Gains validés'}
-                        </p>
-                        <p className="mt-1.5 text-xl font-agrandir-extrabold tabular-nums">
-                          {formatNumber(referralEarnedFcfa)}{' '}
-                          <span className="text-xs font-normal text-neutral-500">F</span>
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
+            {loading ? (
+              <div className={`h-40 w-full rounded-xl animate-pulse ${surfaceSoft}`} />
+            ) : offers.length === 0 ? (
+              <p className={`text-[15px] ${subtle}`}>
+                {isEn
+                  ? 'No rewards available right now.'
+                  : 'Aucune récompense disponible pour le moment.'}
+              </p>
+            ) : (
+              <div className="space-y-10">
+                {offers.map((offer) => {
+                  const isSurprise = offer.offer_type === 'surprise';
+                  const isRevealed = !isSurprise || Boolean(revealedIds[offer.id]);
+                  const endLabel = formatShortDate(offer.ends_at, isEn);
 
-                <div className="lg:col-span-7 space-y-6">
-                  {isSignedIn && referralCode ? (
-                    <>
-                      <div className="border border-white/15 bg-[#090909] p-6 sm:p-8">
-                        <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">
-                          {isEn ? 'YOUR PERSONAL CODE' : 'VOTRE CODE PERSONNEL'}
-                        </p>
-                        <div className="mt-3 flex items-center justify-between gap-4 pb-5 border-b border-white/10">
-                          <p className="min-w-0 break-all font-mono text-2xl sm:text-3xl font-bold tracking-[0.1em] text-white">
-                            {referralCode}
-                          </p>
-                          <button
-                            type="button"
-                            aria-label={isEn ? 'Copy code' : 'Copier le code'}
-                            onClick={() =>
-                              void copyValue(
-                                referralCode,
-                                'code',
-                                isEn ? 'Referral code copied.' : 'Code de parrainage copié.'
-                              )
-                            }
-                            className="h-11 w-11 shrink-0 border border-white/20 hover:border-white flex items-center justify-center text-white transition-colors cursor-pointer"
-                          >
-                            {copiedKey === 'code' ? <Check size={16} /> : <Copy size={16} />}
-                          </button>
-                        </div>
-
-                        <p className="mt-4 text-[11px] text-neutral-500 truncate">{shareUrl}</p>
-
-                        <div className="mt-5 flex flex-col sm:flex-row gap-2.5">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void copyValue(
-                                shareUrl,
-                                'link',
-                                isEn ? 'Invitation link copied.' : 'Lien d’invitation copié.'
-                              )
-                            }
-                            className="min-h-12 flex-1 bg-white text-black text-xs font-agrandir-extrabold uppercase tracking-[0.1em] inline-flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors cursor-pointer"
-                          >
-                            {copiedKey === 'link' ? <Check size={15} /> : <Copy size={15} />}
-                            {isEn ? 'Copy invitation link' : 'Copier mon lien'}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void shareInvite()}
-                            className="min-h-12 px-6 border border-white/20 hover:border-white text-white text-xs font-agrandir-semibold uppercase tracking-[0.1em] inline-flex items-center justify-center gap-2 transition-colors cursor-pointer"
-                          >
-                            <Share2 size={15} />
-                            {isEn ? 'Share' : 'Partager'}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="border-t border-white/10 pt-5">
-                        <p className="text-[10px] uppercase tracking-[0.18em] text-neutral-500 mb-3">
-                          {isEn ? 'INVITED BY A MEMBER?' : 'INVITÉ PAR UN MEMBRE ?'}
-                        </p>
-                        <form onSubmit={applyReferralCode} className="flex flex-col sm:flex-row gap-2.5">
-                          <input
-                            value={codeInput}
-                            onChange={(e) => setCodeInput(e.target.value)}
-                            maxLength={32}
-                            placeholder={
-                              isEn ? 'Enter a friend’s referral code' : 'Saisir un code de parrainage'
-                            }
-                            className="min-h-12 min-w-0 flex-1 bg-transparent border border-white/20 px-4 text-sm text-white placeholder:text-neutral-600 outline-none focus:border-white transition-colors"
+                  return (
+                    <article key={offer.id} className="group">
+                      {offer.cover_url && (
+                        <div className="mb-4 overflow-hidden rounded-xl bg-black/5">
+                          <img
+                            src={offer.cover_url}
+                            alt={offer.title}
+                            className="w-full aspect-[16/9] object-cover transition-transform duration-700 group-hover:scale-[1.015]"
                           />
-                          <button
-                            type="submit"
-                            disabled={applying || !codeInput.trim()}
-                            className="min-h-12 px-6 bg-white text-black text-xs font-agrandir-extrabold uppercase tracking-[0.1em] disabled:opacity-35 hover:bg-neutral-200 transition-colors cursor-pointer"
-                          >
-                            {applying ? '…' : isEn ? 'Apply' : 'Valider le code'}
-                          </button>
-                        </form>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="border border-white/12 bg-[#080808] p-6 sm:p-8">
-                      <Users size={20} className="text-neutral-500" />
-                      <h3 className="mt-4 text-lg font-agrandir-extrabold">
-                        {isEn
-                          ? 'Generate your personal invitation link'
-                          : 'Retrouvez votre code d’invitation personnel'}
-                      </h3>
-                      <p className="mt-2 text-sm leading-6 text-neutral-400">
-                        {isEn
-                          ? 'Sign in to obtain your unique referral code, track pending and validated invitations, and earn 500 FCFA in Gift Points per validated friend.'
-                          : 'Connectez-vous pour obtenir votre code personnel, suivre vos invitations en attente ou validées et recevoir 500 FCFA en Gift Points par ami validé.'}
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setIsAuthModalOpen(true)}
-                        className="mt-5 min-h-11 px-6 bg-white text-black text-xs font-agrandir-extrabold uppercase tracking-[0.1em] cursor-pointer"
-                      >
-                        {isEn ? 'Sign in' : 'Se connecter'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </section>
-          )}
+                        </div>
+                      )}
 
-          {/* D. SURPRISES */}
-          {showOffersAndHistory && (
-            <section id="gp-surprises" className="py-10 sm:py-14 scroll-mt-20">
-              <div className="flex items-end justify-between gap-4 mb-8">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">
-                    03 · {isEn ? 'MEMBER PRIVILEGES' : 'PRIVILÈGES DU CLUB'}
-                  </p>
-                  <h2 className="mt-2 text-2xl sm:text-3xl font-agrandir-extrabold tracking-tight">
-                    {isEn ? 'Surprises are waiting for you.' : 'Des surprises vous attendent.'}
-                  </h2>
-                </div>
-                <Sparkles size={20} className="text-neutral-600 shrink-0" />
-              </div>
-
-              {surpriseOffers.length > 0 ? (
-                <div className="grid sm:grid-cols-2 gap-8">
-                  {surpriseOffers.map((offer) => {
-                    const active = isOfferActive(offer);
-                    return (
-                      <article
-                        key={offer.id}
-                        className="group border-t border-white/15 pt-5 flex flex-col justify-between"
-                      >
-                        <div>
-                          {offer.cover_url && (
-                            <div className="mb-5 aspect-[16/10] w-full overflow-hidden bg-[#111]">
-                              <img
-                                src={offer.cover_url}
-                                alt={offer.title}
-                                loading="lazy"
-                                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                              />
-                            </div>
-                          )}
-                          <div className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.18em] text-neutral-500">
-                            <span>{isEn ? 'CLUB SURPRISE' : 'SURPRISE MEMBRE'}</span>
-                            <span className={active ? 'text-white' : 'text-neutral-600'}>
-                              {getOfferStatus(offer)}
-                            </span>
-                          </div>
-                          <h3 className="mt-2.5 text-xl sm:text-2xl font-agrandir-extrabold leading-snug text-white">
+                      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+                        <div className="space-y-1">
+                          <h3 className={`font-agrandir-semibold text-lg sm:text-xl tracking-tight ${ink}`}>
                             {offer.title}
                           </h3>
-                          {offer.description && (
-                            <p className="mt-2.5 text-sm leading-6 text-neutral-400">
-                              {offer.description}
+
+                          {isRevealed ? (
+                            <>
+                              {offer.benefit_label && (
+                                <p className={`text-[14px] font-medium ${ink}`}>{offer.benefit_label}</p>
+                              )}
+                              {offer.description && (
+                                <p className={`text-[14px] leading-relaxed max-w-lg ${muted}`}>
+                                  {offer.description}
+                                </p>
+                              )}
+                              <div className={`flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-[12px] ${subtle}`}>
+                                {offer.price_amount != null && (
+                                  <span>
+                                    {formatNumber(offer.price_amount)} {offer.currency || 'FCFA'}
+                                  </span>
+                                )}
+                                {endLabel && (
+                                  <span>
+                                    {isEn ? `Ends ${endLabel}` : `Jusqu’au ${endLabel}`}
+                                  </span>
+                                )}
+                                {offer.conditions && <span>{offer.conditions}</span>}
+                              </div>
+                            </>
+                          ) : (
+                            <p className={`text-[14px] ${muted}`}>
+                              {isEn ? 'Member surprise' : 'Surprise réservée aux membres'}
                             </p>
-                          )}
-                          {offer.benefit_label && (
-                            <p className="mt-3 text-xs font-agrandir-semibold text-neutral-200">
-                              {offer.benefit_label}
-                            </p>
-                          )}
-                          {offer.conditions && (
-                            <p className="mt-2 text-xs text-neutral-500">{offer.conditions}</p>
                           )}
                         </div>
 
-                        {offer.action_url && active && (
-                          <div className="mt-5 pt-4 border-t border-white/10">
+                        <div className="shrink-0">
+                          {isSurprise && !isRevealed ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setRevealedIds((prev) => ({ ...prev, [offer.id]: true }))
+                              }
+                              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${primaryBtn}`}
+                            >
+                              <span>{isEn ? 'Reveal' : 'Découvrir'}</span>
+                            </button>
+                          ) : offer.action_url ? (
                             <a
                               href={offer.action_url}
                               target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-2 text-xs font-agrandir-extrabold uppercase tracking-[0.12em] text-white hover:opacity-70 transition-opacity"
+                              rel="noopener noreferrer"
+                              className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-medium transition-colors ${primaryBtn}`}
                             >
-                              {offer.action_label || (isEn ? 'Discover' : 'Découvrir')}
-                              <ArrowUpRight size={14} />
+                              <span>{offer.action_label || (isEn ? 'Open' : 'Profiter')}</span>
+                              <ArrowUpRight className="w-3.5 h-3.5" />
                             </a>
-                          </div>
-                        )}
-                      </article>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="border border-white/10 bg-[#070707] px-6 py-12 sm:py-16 text-center">
-                  <p className="text-lg sm:text-xl font-agrandir-extrabold text-white">
-                    {isEn ? 'Nothing announced just yet.' : 'Les prochaines surprises se préparent.'}
-                  </p>
-                  <p className="mt-2.5 max-w-md mx-auto text-sm leading-6 text-neutral-500">
-                    {isEn
-                      ? 'Exclusive gifts, privileged access, VIP invitations and community rewards will appear here as soon as they open.'
-                      : 'Cadeaux, accès privilégiés, invitations exclusives et avantages membres apparaîtront ici dès leur ouverture.'}
-                  </p>
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* E. VENTE FLASH */}
-          {showOffersAndHistory && (
-            <section id="gp-flash" className="py-10 sm:py-14 scroll-mt-20">
-              <div className="mb-8">
-                <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">
-                  04 · {isEn ? 'LIMITED WINDOW' : 'OFFRES TEMPORAIRES'}
-                </p>
-                <h2 className="mt-2 text-2xl sm:text-3xl font-agrandir-extrabold tracking-tight">
-                  {isEn ? 'Flash Sales' : 'Vente Flash'}
-                </h2>
-                <p className="mt-2 max-w-xl text-sm text-neutral-400">
-                  {isEn
-                    ? 'Presales, preferential Club rates, early access and limited quantities.'
-                    : 'Préventes, tarifs préférentiels Club, accès anticipés et quantités limitées.'}
-                </p>
-              </div>
-
-              {flashOffers.length > 0 ? (
-                <div className="space-y-6">
-                  {flashOffers.map((offer) => {
-                    const active = isOfferActive(offer);
-                    return (
-                      <article
-                        key={offer.id}
-                        className="border border-white/12 bg-[#080808] grid md:grid-cols-12 overflow-hidden"
-                      >
-                        {offer.cover_url && (
-                          <div className="md:col-span-5 aspect-[16/10] md:aspect-auto bg-[#111] overflow-hidden">
-                            <img
-                              src={offer.cover_url}
-                              alt={offer.title}
-                              loading="lazy"
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                        )}
-                        <div
-                          className={`${
-                            offer.cover_url ? 'md:col-span-7' : 'md:col-span-12'
-                          } p-6 sm:p-8 flex flex-col justify-between gap-5`}
-                        >
-                          <div>
-                            <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] uppercase tracking-[0.18em]">
-                              <span className="text-neutral-500">
-                                {isEn ? 'FLASH OFFER' : 'VENTE FLASH'}
-                              </span>
-                              <span
-                                className={`px-2.5 py-1 border ${
-                                  active
-                                    ? 'border-white/30 text-white'
-                                    : 'border-white/10 text-neutral-500'
-                                }`}
-                              >
-                                {getOfferStatus(offer)}
-                              </span>
-                            </div>
-                            <h3 className="mt-3 text-xl sm:text-2xl font-agrandir-extrabold text-white">
-                              {offer.title}
-                            </h3>
-                            {offer.description && (
-                              <p className="mt-2 text-sm leading-6 text-neutral-400">
-                                {offer.description}
-                              </p>
-                            )}
-                            {offer.benefit_label && (
-                              <p className="mt-3 text-xs font-agrandir-semibold text-neutral-200">
-                                {offer.benefit_label}
-                              </p>
-                            )}
-                            {offer.conditions && (
-                              <p className="mt-2 text-xs text-neutral-500">{offer.conditions}</p>
-                            )}
-                          </div>
-
-                          <div className="pt-4 border-t border-white/10 flex flex-wrap items-end justify-between gap-4">
-                            <div>
-                              {offer.price_amount !== null && (
-                                <p className="text-2xl font-agrandir-extrabold tabular-nums text-white">
-                                  {formatNumber(offer.price_amount)}{' '}
-                                  <span className="text-xs font-normal text-neutral-400">
-                                    {offer.currency}
-                                  </span>
-                                </p>
-                              )}
-                              {offer.ends_at && (
-                                <p className="mt-1.5 text-[11px] text-neutral-500 inline-flex items-center gap-1.5">
-                                  <CalendarClock size={13} />
-                                  {isEn ? 'Ends ' : 'Jusqu’au '}
-                                  {new Date(offer.ends_at).toLocaleString(
-                                    isEn ? 'en-GB' : 'fr-FR',
-                                    { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }
-                                  )}
-                                </p>
-                              )}
-                            </div>
-
-                            {offer.action_url && active && (
-                              <a
-                                href={offer.action_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="min-h-11 px-6 bg-white text-black text-xs font-agrandir-extrabold uppercase tracking-[0.1em] inline-flex items-center gap-2 hover:bg-neutral-200 transition-colors"
-                              >
-                                {offer.action_label || (isEn ? 'Access offer' : 'Profiter de l’offre')}
-                                <ArrowUpRight size={14} />
-                              </a>
-                            )}
-                          </div>
+                          ) : null}
                         </div>
-                      </article>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* 4. HISTORIQUE */}
+        {showHistoryBlock && isSignedIn && !loading && (
+          <section className={`border-t ${hairline} py-9 sm:py-11`}>
+            <h2 className={`text-[13px] font-medium mb-4 ${muted}`}>
+              {isEn ? 'History' : 'Historique'}
+            </h2>
+
+            {points.length === 0 ? (
+              <p className={`text-[15px] ${subtle}`}>
+                {isEn ? 'No activity yet.' : 'Aucune activité pour le moment.'}
+              </p>
+            ) : (
+              <>
+                <ul className={`divide-y ${isDark ? 'divide-white/[0.08]' : 'divide-black/[0.07]'}`}>
+                  {visibleHistory.map((row) => {
+                    const isPositive = row.points >= 0;
+                    return (
+                      <li
+                        key={row.id}
+                        className="flex items-center justify-between gap-4 py-3.5"
+                      >
+                        <div className="min-w-0">
+                          <p className={`text-[14px] sm:text-[15px] truncate ${ink}`}>
+                            {row.reason || (isPositive ? 'Gift Points' : isEn ? 'Reward' : 'Utilisation')}
+                          </p>
+                          <p className={`text-[12px] mt-0.5 ${subtle}`}>
+                            {formatShortDate(row.created_at, isEn)}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`shrink-0 text-[14px] sm:text-[15px] font-medium tabular-nums ${
+                            isPositive ? ink : muted
+                          }`}
+                        >
+                          {isPositive ? `+${formatNumber(row.points)}` : formatNumber(row.points)}
+                        </span>
+                      </li>
                     );
                   })}
-                </div>
-              ) : (
-                <div className="border border-white/10 bg-[#070707] px-6 py-12 text-center">
-                  <p className="text-lg font-agrandir-extrabold text-white">
-                    {isEn ? 'No flash sale live right now.' : 'Aucune vente flash en cours.'}
-                  </p>
-                  <p className="mt-2 max-w-md mx-auto text-sm text-neutral-500">
-                    {isEn
-                      ? 'Temporary Club offers, presales and limited preferential rates will be published here.'
-                      : 'Les préventes, billets en promotion et accès anticipés du Club apparaîtront ici dès leur ouverture.'}
-                  </p>
-                </div>
-              )}
-            </section>
-          )}
+                </ul>
 
-          {/* F. HISTORIQUE */}
-          {showOffersAndHistory && (
-            <section id="gp-historique" className="py-10 sm:py-14 scroll-mt-20">
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-7">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-neutral-500">
-                    05 · {isEn ? 'ACTIVITY' : 'SUIVI'}
-                  </p>
-                  <h2 className="mt-2 text-2xl font-agrandir-extrabold flex items-center gap-3">
-                    <History size={20} className="text-neutral-500" />
-                    {isEn ? 'History' : 'Historique'}
-                  </h2>
-                </div>
-
-                {isSignedIn && unifiedTimeline.length > 0 && (
-                  <div className="flex items-center gap-5 text-[11px] uppercase tracking-[0.12em] overflow-x-auto scrollbar-hide">
-                    {(
-                      [
-                        { id: 'all', label: isEn ? 'All' : 'Tout' },
-                        { id: 'points', label: isEn ? 'Earned' : 'Obtenus' },
-                        { id: 'redeemed', label: isEn ? 'Used' : 'Utilisés' },
-                        { id: 'referrals', label: isEn ? 'Referrals' : 'Parrainages' },
-                      ] as const
-                    ).map((tab) => (
-                      <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setActivityFilter(tab.id)}
-                        className={`pb-1 transition-colors cursor-pointer shrink-0 ${
-                          activityFilter === tab.id
-                            ? 'text-white border-b border-white font-agrandir-extrabold'
-                            : 'text-neutral-500 hover:text-neutral-300'
-                        }`}
-                      >
-                        {tab.label}
-                      </button>
-                    ))}
-                  </div>
+                {points.length > 6 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAllHistory((v) => !v)}
+                    className={`mt-4 text-[13px] font-medium transition-opacity hover:opacity-70 ${muted}`}
+                  >
+                    {showAllHistory
+                      ? isEn
+                        ? 'Show less'
+                        : 'Voir moins'
+                      : isEn
+                        ? `View all (${points.length})`
+                        : `Voir tout (${points.length})`}
+                  </button>
                 )}
+              </>
+            )}
+          </section>
+        )}
+      </div>
+
+      {/* SHEET / MODAL DÉTAILS & FONCTIONNEMENT */}
+      <AnimatePresence>
+        {detailsOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setDetailsOpen(false)}
+            className="fixed inset-0 z-[90] bg-black/45 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 24 }}
+              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl bg-white text-[#111111] p-6 sm:p-8 shadow-2xl"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="font-agrandir-semibold text-lg tracking-tight">
+                  Gift Points
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setDetailsOpen(false)}
+                  aria-label={isEn ? 'Close' : 'Fermer'}
+                  className="p-1.5 rounded-full text-[#6E6E73] hover:bg-black/5 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
-              {!isSignedIn ? (
-                <p className="py-8 border-t border-white/10 text-sm text-neutral-500">
+              <div className="divide-y divide-black/[0.07] mb-6">
+                <div className="flex items-center justify-between py-3 text-sm">
+                  <span className="text-[#6E6E73]">{isEn ? 'Earned' : 'Points gagnés'}</span>
+                  <span className="font-medium tabular-nums">{formatNumber(earned)}</span>
+                </div>
+                <div className="flex items-center justify-between py-3 text-sm">
+                  <span className="text-[#6E6E73]">{isEn ? 'Used' : 'Points utilisés'}</span>
+                  <span className="font-medium tabular-nums">{formatNumber(used)}</span>
+                </div>
+                <div className="flex items-center justify-between py-3 text-sm">
+                  <span className="text-[#6E6E73]">
+                    {isEn ? 'Validated referrals' : 'Parrainages validés'}
+                  </span>
+                  <span className="font-medium tabular-nums">{validatedReferrals.length}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2.5 text-[13px] leading-relaxed text-[#6E6E73]">
+                <p>
                   {isEn
-                    ? 'Sign in to view your Gift Points and referral history.'
-                    : 'Connectez-vous pour consulter l’historique de vos Gift Points et parrainages.'}
+                    ? '1 Gift Point equals 1 FCFA toward eligible LUMARÉEL rewards and offers.'
+                    : '1 Gift Point correspond à 1 FCFA utilisable sur les récompenses et offres LUMARÉEL.'}
                 </p>
-              ) : filteredTimeline.length > 0 ? (
-                <div className="divide-y divide-white/10 border-y border-white/10">
-                  {filteredTimeline.map((entry) => (
-                    <article
-                      key={entry.id}
-                      className="py-4 flex items-center justify-between gap-4"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm text-white truncate">{entry.title}</p>
-                        <p className="mt-1 text-[11px] text-neutral-500">
-                          {entry.subtitle} ·{' '}
-                          {new Date(entry.date).toLocaleDateString(isEn ? 'en-GB' : 'fr-FR', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </p>
-                      </div>
-                      <span
-                        className={`text-sm font-agrandir-extrabold tabular-nums shrink-0 ${
-                          entry.isPositive ? 'text-white' : 'text-neutral-500'
-                        }`}
-                      >
-                        {entry.amountLabel}
-                      </span>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-10 border-t border-white/10 text-sm text-neutral-500">
+                <p>
                   {isEn
-                    ? 'No activity recorded in this category yet.'
-                    : 'Aucune activité enregistrée pour le moment.'}
-                </div>
-              )}
-            </section>
-          )}
-        </div>
-      )}
+                    ? 'Each validated friend invitation credits 500 Gift Points to your balance.'
+                    : 'Chaque parrainage validé ajoute 500 Gift Points sur votre solde.'}
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

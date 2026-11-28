@@ -90,11 +90,17 @@ export const Navbar: React.FC = () => {
     rewards: isEn ? 'Gift Points & Referrals' : 'Gift Points & Parrainage',
     flash_drops: isEn ? 'Gift Points & Referrals' : 'Gift Points & Parrainage',
     backstage: 'Backstage',
-    memories: isEn ? 'My Moments' : 'Mes Moments',
+    memories: isEn ? 'Memories' : 'Souvenirs',
     suggestions: isEn ? 'Your Voice' : 'Ta Voix',
     organizers: isEn ? 'Organizers' : 'Organisateurs',
     card_verify: isEn ? 'Card Verification' : 'Vérification Carte',
   };
+
+  const isLightHeader =
+    currentPage === 'rewards' ||
+    currentPage === 'flash_drops' ||
+    currentPage === 'memories' ||
+    currentPage === 'suggestions';
 
   const primaryNavItems: Array<{
     label: string;
@@ -114,7 +120,7 @@ export const Navbar: React.FC = () => {
   }> = [
     { label: isEn ? 'Gift Points & Referrals' : 'Gift Points & Parrainage', page: 'rewards', icon: Gift },
     { label: 'Backstage', page: 'backstage', icon: Clapperboard },
-    { label: isEn ? 'My Moments' : 'Mes Moments', page: 'memories', icon: Camera },
+    { label: isEn ? 'Memories' : 'Souvenirs', page: 'memories', icon: Camera },
     { label: isEn ? 'Your Voice' : 'Ta Voix', page: 'suggestions', icon: Mic2 },
   ];
 
@@ -133,9 +139,11 @@ export const Navbar: React.FC = () => {
     <>
       <header
         className={`fixed top-0 left-0 right-0 z-40 md:hidden transition-all duration-300 px-3.5 sm:px-6 py-2.5 ${
-          scrolled || !isHome
-            ? 'bg-[#080808]/92 backdrop-blur-xl border-b border-white/10 shadow-lg'
-            : 'bg-gradient-to-b from-black/85 via-black/45 to-transparent'
+          isLightHeader
+            ? 'bg-[#FBFBFD]/88 backdrop-blur-xl border-b border-black/[0.07]'
+            : scrolled || !isHome
+              ? 'bg-[#080808]/92 backdrop-blur-xl border-b border-white/10 shadow-lg'
+              : 'bg-gradient-to-b from-black/85 via-black/45 to-transparent'
         }`}
         style={{ paddingTop: 'max(0.65rem, env(safe-area-inset-top, 0px))' }}
       >
@@ -147,7 +155,11 @@ export const Navbar: React.FC = () => {
                 type="button"
                 onClick={() => setDrawerOpen(true)}
                 aria-label={isEn ? 'Open navigation drawer' : 'Ouvrir le menu'}
-                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition-colors cursor-pointer active:scale-95"
+                className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors cursor-pointer active:scale-95 ${
+                  isLightHeader
+                    ? 'bg-black/[0.05] hover:bg-black/10 border-black/[0.08] text-black'
+                    : 'bg-white/10 hover:bg-white/20 border-white/15 text-white'
+                }`}
               >
                 <Menu className="w-5 h-5" />
               </button>
@@ -158,7 +170,11 @@ export const Navbar: React.FC = () => {
                 type="button"
                 onClick={goBack}
                 aria-label={isEn ? 'Go back' : 'Retour'}
-                className="min-w-[40px] h-10 px-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center gap-1 text-white text-xs font-agrandir-bold transition-colors cursor-pointer active:scale-95"
+                className={`min-w-[40px] h-10 px-2.5 rounded-full border flex items-center justify-center gap-1 text-xs font-agrandir-bold transition-colors cursor-pointer active:scale-95 ${
+                  isLightHeader
+                    ? 'bg-black/[0.05] hover:bg-black/10 border-black/[0.08] text-black'
+                    : 'bg-white/10 hover:bg-white/20 border-white/15 text-white'
+                }`}
               >
                 <ArrowLeft className="w-4 h-4 shrink-0" />
                 {isStandalone && <span>{isEn ? 'Back' : 'Retour'}</span>}
@@ -198,7 +214,11 @@ export const Navbar: React.FC = () => {
                 />
               </button>
             ) : currentTitle ? (
-              <span className="text-xs sm:text-sm font-agrandir-extrabold text-white tracking-tight truncate">
+              <span
+                className={`text-xs sm:text-sm font-agrandir-extrabold tracking-tight truncate ${
+                  isLightHeader ? 'text-[#111111]' : 'text-white'
+                }`}
+              >
                 {currentTitle}
               </span>
             ) : null}
@@ -206,14 +226,24 @@ export const Navbar: React.FC = () => {
 
           {/* ZONE DROITE : Sélecteur FR / EN compact */}
           <div className="flex items-center shrink-0">
-            <div className="flex items-center p-0.5 rounded-full bg-black/70 border border-white/15 backdrop-blur-md text-[11px] font-agrandir-bold tracking-wider">
+            <div
+              className={`flex items-center p-0.5 rounded-full border backdrop-blur-md text-[11px] font-agrandir-bold tracking-wider ${
+                isLightHeader
+                  ? 'bg-black/[0.05] border-black/[0.08]'
+                  : 'bg-black/70 border-white/15'
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => setLanguage('fr')}
                 className={`min-h-[32px] px-2.5 rounded-full transition-colors cursor-pointer ${
                   language === 'fr'
-                    ? 'bg-white text-black font-agrandir-extrabold'
-                    : 'text-[#888] hover:text-white'
+                    ? isLightHeader
+                      ? 'bg-black text-white font-agrandir-extrabold'
+                      : 'bg-white text-black font-agrandir-extrabold'
+                    : isLightHeader
+                      ? 'text-neutral-500 hover:text-black'
+                      : 'text-[#888] hover:text-white'
                 }`}
                 title="Passer en Français"
               >
@@ -224,8 +254,12 @@ export const Navbar: React.FC = () => {
                 onClick={() => setLanguage('en')}
                 className={`min-h-[32px] px-2.5 rounded-full transition-colors cursor-pointer ${
                   language === 'en'
-                    ? 'bg-white text-black font-agrandir-extrabold'
-                    : 'text-[#888] hover:text-white'
+                    ? isLightHeader
+                      ? 'bg-black text-white font-agrandir-extrabold'
+                      : 'bg-white text-black font-agrandir-extrabold'
+                    : isLightHeader
+                      ? 'text-neutral-500 hover:text-black'
+                      : 'text-[#888] hover:text-white'
                 }`}
                 title="Switch to English"
               >

@@ -37,7 +37,7 @@ export const DesktopSidebar: React.FC = () => {
   }> = [
     { label: isEn ? 'Gifts, Points & Referrals' : 'Gifts, Points & Parrainage', page: 'rewards', icon: Gift },
     { label: 'Backstage', page: 'backstage', icon: Clapperboard },
-    { label: isEn ? 'My Moments' : 'Mes Moments', page: 'memories', icon: Camera },
+    { label: isEn ? 'Memories' : 'Souvenirs', page: 'memories', icon: Camera },
     { label: isEn ? 'Your Voice' : 'Ta Voix', page: 'suggestions', icon: Mic2 },
   ];
 

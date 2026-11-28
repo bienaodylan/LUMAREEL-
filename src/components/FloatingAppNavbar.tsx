@@ -145,7 +145,7 @@ export const FloatingAppNavbar: React.FC = () => {
             {[
               { title: "Gift Points & Parrainage", subtitle: "Fidélité · 500 F en Gift Points par ami", icon: Award, page: "rewards" as PageView },
               { title: "BACKSTAGE", subtitle: "Artistes · coulisses · Sessions Studio", icon: Film, page: "backstage" as PageView },
-              { title: "Mes Moments", subtitle: "Événements · photos · récapitulatifs", icon: Camera, page: "memories" as PageView },
+              { title: isEn ? "Memories" : "Souvenirs", subtitle: isEn ? "Events · photos · recaps" : "Événements · photos · récaps", icon: Camera, page: "memories" as PageView },
               { title: "Ta Voix", subtitle: "Artistes · lieux · idées d’événements", icon: Lightbulb, page: "suggestions" as PageView },
             ].map((item) => {
               const Icon = item.icon;
