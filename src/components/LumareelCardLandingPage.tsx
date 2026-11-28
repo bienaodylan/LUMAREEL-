@@ -977,7 +977,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     target: journeyRef,
     offset: ['start start', 'end end'],
   });
-  const jp = useSpring(rawJourney, { stiffness: 74, damping: 27, mass: 0.76 });
+  const jp = useSpring(rawJourney, { stiffness: 125, damping: 26, mass: 0.48, restDelta: 0.0005 });
 
   // Repères de phases équilibrés sur une piste ample et soyeuse
   const P0 = 0.295; // début des 7 privilèges
@@ -1222,7 +1222,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
           </div>
         </section>
       ) : (
-        <section ref={journeyRef} className="relative w-full h-[1040vh] sm:h-[1160vh] bg-black">
+        <section ref={journeyRef} className="relative w-full h-[760vh] sm:h-[860vh] bg-black">
           <div className={`${stickyStageFrame} w-full overflow-hidden text-white`}>
             {/* Fil d’avancement minimaliste en haut de scène (adapté clair/sombre) */}
             <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-0 z-40 h-[2px] bg-white/10">
