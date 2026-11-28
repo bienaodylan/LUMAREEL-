@@ -9,6 +9,8 @@ type Suggestion = { id: string; suggestion_type: string; title: string; descript
 type Album = { id: string; title: string; event_id: string; status: string };
 type Media = { id: string; title: string; category: string; status: string; access_tier: string; media_type: string };
 type Offer = { id: string; title: string; offer_type: string; status: string; ends_at: string | null };
+type ReferralAdmin = { id: string; referrer_user_id: string; referred_user_id: string; status: string; reward_points: number; created_at: string; qualifying_order_id: string | null };
+type PointAdmin = { id: string; user_id: string; points: number; reason: string; source: string; created_at: string };
 
 const categories = [
   ['ballon','Ballon'], ['session_studio','Sessions Studio'], ['backstage','Backstage'],
@@ -26,6 +28,8 @@ export const ClubAdminView: React.FC = () => {
   const [media,setMedia] = useState<Media[]>([]);
   const [albums,setAlbums] = useState<Album[]>([]);
   const [offers,setOffers] = useState<Offer[]>([]);
+  const [referrals,setReferrals] = useState<ReferralAdmin[]>([]);
+  const [pointTransactions,setPointTransactions] = useState<PointAdmin[]>([]);
   const [suggestions,setSuggestions] = useState<Suggestion[]>([]);
 
   const [mediaTitle,setMediaTitle] = useState('');
@@ -77,6 +81,8 @@ export const ClubAdminView: React.FC = () => {
         supabase.from('club_moment_albums').select('id,title,event_id,status').order('created_at',{ascending:false}),
         supabase.from('club_offers').select('id,title,offer_type,status,ends_at').order('created_at',{ascending:false}),
         supabase.from('club_suggestions').select('id,suggestion_type,title,description,status,admin_response,created_at').order('created_at',{ascending:false}),
+        supabase.from('club_referrals').select('id,referrer_user_id,referred_user_id,status,reward_points,created_at,qualifying_order_id').order('created_at',{ascending:false}),
+        supabase.from('club_point_transactions').select('id,user_id,points,reason,source,created_at').order('created_at',{ascending:false}).limit(30),
       ]);
       for (const result of results) if (result.error) throw result.error;
       setEvents(results[0].data || []);
@@ -85,6 +91,8 @@ export const ClubAdminView: React.FC = () => {
       setAlbums(results[3].data || []);
       setOffers(results[4].data || []);
       setSuggestions(results[5].data || []);
+      setReferrals(results[6].data || []);
+      setPointTransactions(results[7].data || []);
     } catch (err:any) { setMessage(err?.message || 'Impossible de charger les données Club.'); }
     finally { setLoading(false); }
   },[]);
@@ -195,6 +203,10 @@ export const ClubAdminView: React.FC = () => {
     const {error}=await supabase.from('club_offers').update({status,updated_at:new Date().toISOString()}).eq('id',id);
     if(error){setMessage(error.message);return;} await load();
   };
+  const rejectReferral = async (id:string) => {
+    const {error}=await supabase.from('club_referrals').update({status:'rejected'}).eq('id',id).eq('status','pending');
+    if(error){setMessage(error.message);return;} await load();
+  };
 
   const tabs: {id:AdminTab;label:string;icon:React.ElementType}[]=[
     {id:'media',label:'Backstage',icon:Film},{id:'albums',label:'Mes Moments',icon:ImagePlus},
@@ -230,7 +242,7 @@ export const ClubAdminView: React.FC = () => {
       </div>}
       {tab==='offers'&&<div className="grid xl:grid-cols-2 gap-8">
         <form onSubmit={createOffer} className="space-y-4 border border-white/10 p-5"><h2 className="font-agrandir-extrabold">Créer une surprise ou vente flash</h2><select value={offerType} onChange={e=>setOfferType(e.target.value as 'flash'|'surprise')} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="flash">Vente flash</option><option value="surprise">Surprise membre</option></select><input required value={offerTitle} onChange={e=>setOfferTitle(e.target.value)} placeholder="Titre" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/><textarea value={offerDescription} onChange={e=>setOfferDescription(e.target.value)} placeholder="Description" rows={3} className="w-full bg-black border border-white/15 p-3 text-sm"/><input value={offerBenefit} onChange={e=>setOfferBenefit(e.target.value)} placeholder="Avantage / bénéfice" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/><div className="grid grid-cols-2 gap-3"><input type="number" min="0" value={offerPrice} onChange={e=>setOfferPrice(e.target.value)} placeholder="Prix (FCFA)" className="min-h-11 bg-black border border-white/15 px-3 text-xs"/><input value={offerActionLabel} onChange={e=>setOfferActionLabel(e.target.value)} placeholder="Texte du bouton" className="min-h-11 bg-black border border-white/15 px-3 text-xs"/></div><input type="url" value={offerActionUrl} onChange={e=>setOfferActionUrl(e.target.value)} placeholder="Lien de l’action (facultatif)" className="w-full min-h-11 bg-black border border-white/15 px-3 text-sm"/><textarea value={offerConditions} onChange={e=>setOfferConditions(e.target.value)} rows={2} placeholder="Conditions de l’offre" className="w-full bg-black border border-white/15 p-3 text-sm"/><label className="text-xs text-neutral-400">Début de disponibilité<input type="datetime-local" value={offerStart} onChange={e=>setOfferStart(e.target.value)} className="mt-2 block w-full min-h-11 bg-black border border-white/15 px-3 text-xs"/></label><label className="text-xs text-neutral-400">Date de fin<input type="datetime-local" value={offerEnd} onChange={e=>setOfferEnd(e.target.value)} className="mt-2 block w-full min-h-11 bg-black border border-white/15 px-3 text-xs"/></label><label className="text-xs text-neutral-400">Image (facultative)<input type="file" accept="image/*" onChange={e=>setOfferCover(e.target.files?.[0]||null)} className="mt-2 block w-full text-xs"/></label><select value={offerStatus} onChange={e=>setOfferStatus(e.target.value)} className="w-full min-h-11 bg-black border border-white/15 px-3 text-xs"><option value="draft">Brouillon</option><option value="published">Publier</option></select><button disabled={saving} className="min-h-11 w-full bg-white text-black text-xs font-agrandir-extrabold">Enregistrer l’offre</button></form>
-        <div><h2 className="mb-3 font-agrandir-extrabold">Offres ({offers.length})</h2>{offers.map(o=><div key={o.id} className="py-3 border-b border-white/10 flex items-center justify-between gap-3 text-xs"><span>{o.title}<small className="block mt-1 text-neutral-500">{o.offer_type}</small></span><select value={o.status} onChange={e=>void updateOfferStatus(o.id,e.target.value)} className="bg-black border border-white/15 px-2 py-2 text-[10px]"><option value="draft">Brouillon</option><option value="published">Publié</option><option value="archived">Archivé</option></select></div>)}</div>
+        <div><h2 className="mb-3 font-agrandir-extrabold">Offres ({offers.length})</h2>{offers.map(o=><div key={o.id} className="py-3 border-b border-white/10 flex items-center justify-between gap-3 text-xs"><span>{o.title}<small className="block mt-1 text-neutral-500">{o.offer_type}</small></span><select value={o.status} onChange={e=>void updateOfferStatus(o.id,e.target.value)} className="bg-black border border-white/15 px-2 py-2 text-[10px]"><option value="draft">Brouillon</option><option value="published">Publié</option><option value="archived">Archivé</option></select></div>)}</div><section className="mt-8 border-t border-white/10 pt-6"><h2 className="mb-2 font-agrandir-extrabold">Parrainages ({referrals.length})</h2><p className="mb-4 text-[11px] text-neutral-500">La validation et le crédit des 500 Gift Points sont automatiques après l’achat qualifiant. Les dossiers suspects peuvent être refusés ici.</p>{referrals.length?referrals.map(r=><div key={r.id} className="py-3 border-b border-white/10 flex items-center justify-between gap-3 text-xs"><span>{r.status==='validated'?'Validé':r.status==='rejected'?'Refusé':'En attente'} · {r.reward_points} GP<small className="block mt-1 text-neutral-500">{new Date(r.created_at).toLocaleDateString('fr-FR')}</small></span>{r.status==='pending'&&<button onClick={()=>void rejectReferral(r.id)} className="min-h-8 border border-white/20 px-3 text-[10px]">Refuser</button>}</div>):<p className="text-xs text-neutral-500">Aucun parrainage enregistré.</p>}</section><section className="mt-8 border-t border-white/10 pt-6"><h2 className="mb-3 font-agrandir-extrabold">Journal Gift Points ({pointTransactions.length})</h2>{pointTransactions.map(p=><div key={p.id} className="py-2 border-b border-white/10 flex justify-between gap-3 text-xs"><span className="min-w-0">{p.reason}<small className="block mt-1 text-neutral-500">{p.source} · {p.user_id.slice(-8)}</small></span><strong className="shrink-0 tabular-nums">{p.points>0?'+':''}{p.points} GP</strong></div>)}</section>
       </div>}
       {tab==='suggestions'&&<div><h2 className="mb-4 font-agrandir-extrabold">Propositions des membres ({suggestions.length})</h2>{suggestions.length? suggestions.map(item=><SuggestionAdminRow key={item.id} item={item} onSave={updateSuggestion}/>):<p className="py-10 text-sm text-neutral-500">Aucune proposition reçue.</p>}</div>}
     </>}
