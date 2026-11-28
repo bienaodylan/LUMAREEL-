@@ -39,7 +39,7 @@ export const FloatingAppNavbar: React.FC = () => {
     'memories',
     'suggestions',
   ];
-  const isClubActive = clubPages.includes(currentPage);
+  const isClubActive = clubOpen || clubPages.includes(currentPage);
 
   const navItems: Array<{
     id: string;
@@ -60,7 +60,7 @@ export const FloatingAppNavbar: React.FC = () => {
       fillWhenActive: true,
       icon: Home,
       onClick: () => {
-        setCurrentPage('home');
+        setClubOpen(false); setCurrentPage('home');
       },
     },
     {
@@ -71,7 +71,7 @@ export const FloatingAppNavbar: React.FC = () => {
       isActive: currentPage === 'client_space',
       icon: Ticket,
       onClick: () => {
-        setCurrentPage('client_space');
+        setClubOpen(false); setCurrentPage('client_space');
       },
     },
     {
@@ -81,7 +81,7 @@ export const FloatingAppNavbar: React.FC = () => {
       isActive: isClubActive,
       icon: Compass,
       onClick: () => {
-        setClubOpen(true);
+        setClubOpen((open) => !open);
       },
     },
     {
@@ -92,7 +92,7 @@ export const FloatingAppNavbar: React.FC = () => {
       isActive: (currentPage === 'member_card' || currentPage === 'card'),
       icon: CreditCard,
       onClick: () => {
-        setCurrentPage('member_card');
+        setClubOpen(false); setCurrentPage('member_card');
       },
     },
     {
@@ -103,7 +103,7 @@ export const FloatingAppNavbar: React.FC = () => {
       isActive: currentPage === 'profile',
       icon: User,
       onClick: () => {
-        setCurrentPage('profile');
+        setClubOpen(false); setCurrentPage('profile');
       },
     },
   ];
