@@ -723,7 +723,7 @@ const LightDust: React.FC = () => {
   );
 };
 
-/** Un avantage = un plan. Fondu + léger travelling vertical. */
+/** Un avantage = un plan. Fondu calme + léger mouvement vertical. */
 const PerkBeat: React.FC<{
   progress: MotionValue<number>;
   index: number;
@@ -734,7 +734,7 @@ const PerkBeat: React.FC<{
 }> = ({ progress, index, total, headline, title, desc }) => {
   const s = index / total;
   const e = (index + 1) / total;
-  const f = 0.22 / total;
+  const f = 0.18 / total;
   const isFirst = index === 0;
   const isLast = index === total - 1;
   const opacity = useTransform(
@@ -742,8 +742,8 @@ const PerkBeat: React.FC<{
     [s, s + f, e - f, e],
     [isFirst ? 1 : 0, 1, 1, isLast ? 1 : 0]
   );
-  const y = useTransform(progress, [s, s + f, e - f, e], [isFirst ? 0 : 26, 0, 0, isLast ? 0 : -26]);
-  const blur = useTransform(progress, [s, s + f, e - f, e], [isFirst ? 0 : 8, 0, 0, isLast ? 0 : 8]);
+  const y = useTransform(progress, [s, s + f, e - f, e], [isFirst ? 0 : 14, 0, 0, isLast ? 0 : -14]);
+  const blur = useTransform(progress, [s, s + f, e - f, e], [isFirst ? 0 : 4, 0, 0, isLast ? 0 : 4]);
   const filter = useMotionTemplate`blur(${blur}px)`;
   return (
     <motion.div style={{ opacity, y, filter }} className="absolute inset-0 flex flex-col items-center text-center">
@@ -789,7 +789,7 @@ const WalletBack: React.FC = () => (
   </div>
 );
 
-const WalletPocket: React.FC = () => (
+const WalletPocket: React.FC<{ sheen?: MotionValue<string> }> = ({ sheen }) => (
   <div
     className="absolute left-0 right-0 bottom-0 h-[58%] rounded-b-[22px] sm:rounded-b-[26px] rounded-t-[4px] overflow-hidden"
     style={{
@@ -809,7 +809,138 @@ const WalletPocket: React.FC = () => (
     <span className="absolute bottom-[18%] left-1/2 -translate-x-1/2 font-agrandir-semibold text-[9px] sm:text-[11px] tracking-[0.42em] text-white/[0.16] whitespace-nowrap">
       LUMARÉEL
     </span>
+    {sheen && <motion.div className="pointer-events-none absolute inset-0" style={{ background: sheen }} />}
   </div>
+);
+
+/**
+ * Couche arrière de la main venant de la droite (doigts derrière le bord droit de la carte).
+ */
+const WalletHandBack: React.FC = () => (
+  <svg
+    viewBox="0 0 340 165"
+    fill="none"
+    className="w-full h-auto overflow-visible drop-shadow-[0_14px_24px_rgba(0,0,0,0.22)]"
+  >
+    <defs>
+      <linearGradient id="lumHandBackSkin" x1="0" y1="0" x2="260" y2="140" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#8F6347" />
+        <stop offset="55%" stopColor="#724A32" />
+        <stop offset="100%" stopColor="#583723" />
+      </linearGradient>
+      <linearGradient id="lumSleeveBack" x1="210" y1="30" x2="560" y2="120" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#1D1D20" />
+        <stop offset="100%" stopColor="#0C0C0E" />
+      </linearGradient>
+    </defs>
+    {/* Index + majeur + annulaire glissés derrière la carte */}
+    <path
+      d="M28 48 C14 48 10 60 20 67 L96 72 C106 73 118 78 126 86 L132 108 C136 118 148 124 166 124 L236 122 L236 42 L154 40 C132 40 114 44 92 46 Z"
+      fill="url(#lumHandBackSkin)"
+    />
+    {/* Plis subtils des doigts repliés */}
+    <path
+      d="M42 70 C32 72 30 84 42 89 L102 92 C112 93 120 96 124 102"
+      stroke="rgba(36,18,8,0.28)"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+    />
+    <path
+      d="M58 92 C50 95 50 106 62 110 L112 112"
+      stroke="rgba(36,18,8,0.25)"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+    {/* Poignet & manche sombre prolongée hors champ à droite */}
+    <path
+      d="M214 34 L1200 -24 L1200 154 L216 128 C208 127 204 120 204 110 L204 50 C204 40 208 35 214 34 Z"
+      fill="url(#lumSleeveBack)"
+    />
+  </svg>
+);
+
+/**
+ * Couche avant de la main venant de la droite (pouce qui pince le recto haut-droit + manchette).
+ */
+const WalletHandFront: React.FC<{
+  thumbPinchY: MotionValue<number>;
+  thumbPinchRotate: MotionValue<number>;
+  thumbShadowOpacity: MotionValue<number>;
+}> = ({ thumbPinchY, thumbPinchRotate, thumbShadowOpacity }) => (
+  <motion.div style={{ y: thumbPinchY, rotate: thumbPinchRotate }} className="origin-[65%_40%]">
+    <svg viewBox="0 0 340 165" fill="none" className="w-full h-auto overflow-visible">
+      <defs>
+        <linearGradient id="lumThumbSkin" x1="30" y1="20" x2="210" y2="94" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#B88462" />
+          <stop offset="48%" stopColor="#9A6A4C" />
+          <stop offset="100%" stopColor="#774D35" />
+        </linearGradient>
+        <linearGradient id="lumThumbHighlight" x1="40" y1="24" x2="135" y2="52" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="rgba(255,244,234,0.36)" />
+          <stop offset="100%" stopColor="rgba(255,244,234,0)" />
+        </linearGradient>
+        <linearGradient id="lumSleeveFront" x1="212" y1="28" x2="580" y2="115" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#26262B" />
+          <stop offset="45%" stopColor="#161619" />
+          <stop offset="100%" stopColor="#0A0A0C" />
+        </linearGradient>
+      </defs>
+
+      {/* Ombre douce projetée par le pouce sur la Black Card */}
+      <motion.ellipse
+        cx="92"
+        cy="64"
+        rx="46"
+        ry="12"
+        fill="#000000"
+        style={{ opacity: thumbShadowOpacity, filter: 'blur(7px)' }}
+      />
+
+      {/* Pouce posé sur le bord supérieur droit de la carte + dos de la main */}
+      <path
+        d="M52 42 C44 44 42 54 50 61 C60 69 84 70 114 68 C132 67 148 72 164 80 L216 86 L216 40 L154 35 C130 33 110 31 88 34 C72 36 60 39 52 42 Z"
+        fill="url(#lumThumbSkin)"
+      />
+
+      {/* Reflet lumière naturelle sur l'arête du pouce */}
+      <path
+        d="M58 43 C78 37 108 35 144 39"
+        stroke="url(#lumThumbHighlight)"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+      />
+
+      {/* Ongle discret sur la pointe du pouce */}
+      <path
+        d="M50 47 C56 45 63 46 66 50 C64 55 56 57 50 54 C47 52 47 48 50 47 Z"
+        fill="rgba(255,232,216,0.28)"
+      />
+
+      {/* Pli d'articulation */}
+      <path
+        d="M108 40 C106 48 106 56 109 63"
+        stroke="rgba(52,27,13,0.18)"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+
+      {/* Manchette élégante prolongée hors champ à droite */}
+      <path
+        d="M214 34 L1200 -24 L1200 154 L216 128 C208 127 204 120 204 110 L204 50 C204 40 208 35 214 34 Z"
+        fill="url(#lumSleeveFront)"
+      />
+      <line
+        x1="220"
+        y1="40"
+        x2="220"
+        y2="122"
+        stroke="rgba(255,255,255,0.1)"
+        strokeWidth="1.2"
+        strokeDasharray="3 4"
+      />
+      <circle cx="234" cy="106" r="3.5" fill="rgba(255,255,255,0.18)" />
+    </svg>
+  </motion.div>
 );
 
 export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = ({
@@ -904,81 +1035,101 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const ctaOrderText = (isEn ? cmsConfig?.ctaOrderEn : cmsConfig?.ctaOrderFr) || c.ctaOrder;
 
   // =====================================================================
-  // UNE SEULE CARTE, UN SEUL PLAN-SÉQUENCE
-  // Entrée → retournement (noir → blanc) → 7 avantages → portefeuille.
-  // Toute la chorégraphie est pilotée par la progression d’une seule section.
+  // UNE SEULE CARTE, UN SEUL PLAN-SÉQUENCE — SCROLL DOUX ET PONDÉRÉ
+  // Entrée → retournement (noir → blanc) → 7 avantages → main droite & portefeuille.
   // =====================================================================
   const { scrollYProgress: rawJourney } = useScroll({
     target: journeyRef,
     offset: ['start start', 'end end'],
   });
-  const jp = useSpring(rawJourney, { stiffness: 100, damping: 28, mass: 0.35 });
+  const jp = useSpring(rawJourney, { stiffness: 62, damping: 28, mass: 0.88 });
 
-  // Repères de phases
-  const P0 = 0.31; // début des avantages
-  const P1 = 0.74; // fin des avantages
+  // Repères de phases (piste allongée pour que chaque petit scroll reste calme et maîtrisé)
+  const P0 = 0.29; // début des avantages
+  const P1 = 0.72; // fin des avantages
   const PERK_TOTAL = 7;
   const perkSpan = (P1 - P0) / PERK_TOTAL;
   const perkCenters = Array.from({ length: PERK_TOTAL }, (_, i) => P0 + (i + 0.5) * perkSpan);
 
-  // Orientation de la carte
+  // Orientation douce et maîtrisée de la carte (pas de grands coups brusques au scroll)
   const cardRotY = useTransform(
     jp,
-    [0, 0.09, 0.14, 0.2, 0.25, 0.3, ...perkCenters, 0.78, 1],
-    [-14, 0, 0, 180, 180, 360, 344, 374, 350, 378, 348, 548, 720, 720, 720]
+    [0, 0.08, 0.12, 0.18, 0.23, 0.28, ...perkCenters, 0.75, 1],
+    [-10, 0, 0, 180, 180, 360, 348, 370, 352, 372, 350, 370, 360, 360, 360]
   );
   const cardRotX = useTransform(
     jp,
-    [0, 0.09, 0.3, ...perkCenters, 0.78, 1],
-    [10, 2, 0, 10, -6, 8, -4, 6, -6, 2, 0, 0]
+    [0, 0.08, 0.28, ...perkCenters, 0.75, 0.88, 0.95, 1],
+    [7, 1.5, 0, 6, -4, 5, -3, 4, -4, 1.5, 0, 3.5, 0, 0]
   );
   const cardRotZ = useTransform(
     jp,
-    [0, 0.09, 0.3, ...perkCenters, 0.8, 0.93, 1],
-    [-2, 0, 0, -2, 2, -1, 1.5, -1.5, 1, 0, -7, 0, 0]
+    [0, 0.08, 0.28, ...perkCenters, 0.76, 0.85, 0.88, 0.95, 1],
+    [-1.5, 0, 0, -1.5, 1.5, -1, 1.2, -1.2, 0.8, 0, 0, -3.5, -1.5, 0, 0]
   );
   const cardSheen = useTransform(
     jp,
-    [0, 0.3, 0.301, P1, P1 + 0.001, 1],
-    [-40, 150, -40, 150, -40, 150]
+    [0, 0.28, 0.281, P1, P1 + 0.001, 1],
+    [-35, 145, -35, 145, -35, 145]
   );
 
   // Placement de l’ensemble carte + portefeuille dans le cadre
-  const rigYv = useTransform(jp, [0, 0.09, 0.13, 0.3, 0.33, P1, 0.8, 1], [-11, -11, -7, -7, 1, 1, -10, -10]);
+  const rigYv = useTransform(jp, [0, 0.08, 0.12, 0.28, 0.31, P1, 0.78, 1], [-11, -11, -7, -7, 1, 1, -10, -10]);
   const rigY = useMotionTemplate`${rigYv}vh`;
-  const rigScale = useTransform(jp, [0, 0.09, 0.13, 0.3, 0.33, P1, 0.8, 1], [1, 1, 1.06, 1.06, 0.96, 0.96, 0.8, 0.8]);
+  const rigScale = useTransform(jp, [0, 0.08, 0.12, 0.28, 0.31, P1, 0.78, 1], [1, 1, 1.04, 1.04, 0.96, 0.96, 0.8, 0.8]);
 
-  // La carte se soulève puis plonge dans la poche
-  const cardSlideV = useTransform(jp, [0, 0.8, 0.86, 0.96, 1], [0, 0, -24, 69.5, 69.5]);
+  // Phase portefeuille + main droite (0.72 → 1.00) :
+  // 0.72–0.80 : le portefeuille monte sous la carte
+  // 0.78–0.855 : la main arrive depuis la droite vers la carte
+  // 0.855–0.88 : les doigts & le pouce saisissent proprement le bord droit de la carte
+  // 0.88–0.95 : main + carte glissent ensemble jusque dans l'étui en cuir
+  // 0.95–0.995 : le pouce relâche et la main se retire vers la droite
+  const cardSlideV = useTransform(jp, [0, 0.76, 0.85, 0.88, 0.95, 1], [0, 0, -16, -18, 69.5, 69.5]);
   const cardSlide = useMotionTemplate`${cardSlideV}%`;
 
-  // Le portefeuille monte dans le cadre
-  const walletYv = useTransform(jp, [0.75, 0.85], [70, 0]);
+  // Déplacement de la main synchronisé dans le même repère (% de la hauteur de la carte)
+  const handXv = useTransform(jp, [0.78, 0.855, 0.95, 0.995], [195, 0, 0, 215]);
+  const handX = useMotionTemplate`${handXv}%`;
+  const handYv = useTransform(jp, [0.78, 0.855, 0.88, 0.95, 0.975, 0.995], [-20, -16, -18, 69.5, 62, 56]);
+  const handY = useMotionTemplate`${handYv}%`;
+  const handOpacity = useTransform(jp, [0.78, 0.81, 0.978, 0.998], [0, 1, 1, 0]);
+  const handTilt = useTransform(jp, [0.78, 0.855, 0.88, 0.95, 0.975, 0.995], [5, 1.5, 0, -1.8, 3.5, 7]);
+
+  // Micro-pincement du pouce au moment où la main saisit puis relâche la carte
+  const thumbPinchY = useTransform(jp, [0.835, 0.875, 0.948, 0.968], [-7, 0, 0, -7]);
+  const thumbPinchRotate = useTransform(jp, [0.835, 0.875, 0.948, 0.968], [7, 0, 0, 8]);
+  const thumbShadowOpacity = useTransform(jp, [0.845, 0.878, 0.948, 0.964], [0, 0.34, 0.34, 0]);
+
+  // Le portefeuille monte dans le cadre + léger clic tactile à l'insertion
+  const walletYv = useTransform(jp, [0.72, 0.8], [70, 0]);
   const walletY = useMotionTemplate`${walletYv}vh`;
-  const walletOpacity = useTransform(jp, [0.75, 0.8], [0, 1]);
+  const walletOpacity = useTransform(jp, [0.72, 0.77], [0, 1]);
+  const walletClickScale = useTransform(jp, [0.942, 0.955, 0.972], [1, 1.016, 1]);
+  const walletSheenX = useTransform(jp, [0.84, 0.99], [-30, 140]);
+  const leatherSheen = useMotionTemplate`linear-gradient(105deg, transparent calc(${walletSheenX}% - 20%), rgba(255,255,255,0.09) ${walletSheenX}%, transparent calc(${walletSheenX}% + 20%))`;
 
   // Environnements
-  const heroLayerOpacity = useTransform(jp, [0, 0.05, 0.09], [1, 1, 0]);
-  const heroLayerY = useTransform(jp, [0, 0.09], [0, -30]);
-  const whiteOpacity = useTransform(jp, [0.1, 0.15, 0.28, 0.32], [0, 1, 1, 0]);
-  const perkFxOpacity = useTransform(jp, [0.29, 0.33, 0.72, 0.76], [0, 1, 1, 0]);
-  const beigeOpacity = useTransform(jp, [0.73, 0.79], [0, 1]);
+  const heroLayerOpacity = useTransform(jp, [0, 0.045, 0.085], [1, 1, 0]);
+  const heroLayerY = useTransform(jp, [0, 0.085], [0, -24]);
+  const whiteOpacity = useTransform(jp, [0.09, 0.14, 0.265, 0.3], [0, 1, 1, 0]);
+  const perkFxOpacity = useTransform(jp, [0.275, 0.31, 0.7, 0.74], [0, 1, 1, 0]);
+  const beigeOpacity = useTransform(jp, [0.71, 0.77], [0, 1]);
 
   // Les trois temps du retournement
-  const beat1Opacity = useTransform(jp, [0.12, 0.15, 0.18, 0.2], [0, 1, 1, 0]);
-  const beat2Opacity = useTransform(jp, [0.19, 0.21, 0.24, 0.26], [0, 1, 1, 0]);
-  const beat3Opacity = useTransform(jp, [0.25, 0.27, 0.29, 0.31], [0, 1, 1, 0]);
+  const beat1Opacity = useTransform(jp, [0.11, 0.135, 0.165, 0.185], [0, 1, 1, 0]);
+  const beat2Opacity = useTransform(jp, [0.18, 0.2, 0.225, 0.245], [0, 1, 1, 0]);
+  const beat3Opacity = useTransform(jp, [0.24, 0.26, 0.275, 0.295], [0, 1, 1, 0]);
 
   // Les avantages
-  const perksGroupOpacity = useTransform(jp, [0.3, 0.32, 0.73, 0.75], [0, 1, 1, 0]);
+  const perksGroupOpacity = useTransform(jp, [0.285, 0.305, 0.71, 0.73], [0, 1, 1, 0]);
   const perkProgress = useTransform(jp, [P0, P1], [0, 1]);
-  const beamX = useTransform(jp, [P0, ...perkCenters, P1], [30, 30, 70, 50, 34, 66, 50, 50, 50]);
-  const halftoneX = useTransform(jp, [P0, P1], [15, 85]);
+  const beamX = useTransform(jp, [P0, ...perkCenters, P1], [34, 34, 66, 50, 38, 62, 50, 50, 50]);
+  const halftoneX = useTransform(jp, [P0, P1], [20, 80]);
 
   // Le portefeuille
-  const walletLine1Opacity = useTransform(jp, [0.77, 0.8, 0.87, 0.89], [0, 1, 1, 0]);
-  const walletLine2Opacity = useTransform(jp, [0.9, 0.93, 1], [0, 1, 1]);
-  const walletLine2Y = useTransform(jp, [0.9, 0.93], [16, 0]);
+  const walletLine1Opacity = useTransform(jp, [0.74, 0.78, 0.925, 0.945], [0, 1, 1, 0]);
+  const walletLine2Opacity = useTransform(jp, [0.95, 0.975, 1], [0, 1, 1]);
+  const walletLine2Y = useTransform(jp, [0.95, 0.975], [14, 0]);
 
   const scrollToJourney = (fraction: number) => {
     const el = journeyRef.current;
@@ -1334,7 +1485,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
           </div>
         </section>
       ) : (
-        <section ref={journeyRef} className="relative w-full h-[520vh] sm:h-[580vh] bg-black">
+        <section ref={journeyRef} className="relative w-full h-[960vh] sm:h-[1080vh] bg-black">
           <div className="sticky top-0 h-[100svh] w-full overflow-hidden text-white">
             {/* ---------- Environnements ---------- */}
             <motion.div
@@ -1438,7 +1589,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   ) : (
                     <button
                       type="button"
-                      onClick={() => scrollToJourney(0.15)}
+                      onClick={() => scrollToJourney(0.14)}
                       className="min-h-[50px] px-8 rounded-full bg-white hover:bg-neutral-200 text-black font-agrandir-extrabold text-sm sm:text-[15px] inline-flex items-center justify-center gap-2.5 transition-colors cursor-pointer lum-press whitespace-nowrap"
                     >
                       <span>{c.heroCta}</span>
@@ -1517,7 +1668,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
               {c.walletSub}
             </motion.p>
 
-            {/* ---------- LA carte (unique) + le portefeuille ---------- */}
+            {/* ---------- LA carte (unique) + la main droite + le portefeuille ---------- */}
             <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
               <motion.div
                 style={{ y: rigY, scale: rigScale }}
@@ -1527,9 +1678,28 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 <motion.div
                   aria-hidden="true"
                   className="absolute z-0"
-                  style={{ top: '60%', left: '-8.14%', width: '116.28%', aspectRatio: '100 / 74', y: walletY, opacity: walletOpacity }}
+                  style={{
+                    top: '60%',
+                    left: '-8.14%',
+                    width: '116.28%',
+                    aspectRatio: '100 / 74',
+                    y: walletY,
+                    opacity: walletOpacity,
+                    scale: walletClickScale,
+                  }}
                 >
                   <WalletBack />
+                </motion.div>
+
+                {/* COUCHE ARRIÈRE DE LA MAIN — doigts qui passent derrière la carte */}
+                <motion.div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 z-[5] origin-left"
+                  style={{ x: handX, y: handY, rotate: handTilt, opacity: handOpacity }}
+                >
+                  <div className="absolute top-[4%] left-[52%] w-[114%]">
+                    <WalletHandBack />
+                  </div>
                 </motion.div>
 
                 {/* La carte */}
@@ -1561,9 +1731,32 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                 <motion.div
                   aria-hidden="true"
                   className="absolute z-20 pointer-events-none"
-                  style={{ top: '60%', left: '-8.14%', width: '116.28%', aspectRatio: '100 / 74', y: walletY, opacity: walletOpacity }}
+                  style={{
+                    top: '60%',
+                    left: '-8.14%',
+                    width: '116.28%',
+                    aspectRatio: '100 / 74',
+                    y: walletY,
+                    opacity: walletOpacity,
+                    scale: walletClickScale,
+                  }}
                 >
-                  <WalletPocket />
+                  <WalletPocket sheen={leatherSheen} />
+                </motion.div>
+
+                {/* COUCHE AVANT DE LA MAIN — pouce qui saisit le bord droit de la carte + manchette */}
+                <motion.div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 z-30 origin-left"
+                  style={{ x: handX, y: handY, rotate: handTilt, opacity: handOpacity }}
+                >
+                  <div className="absolute top-[4%] left-[52%] w-[114%]">
+                    <WalletHandFront
+                      thumbPinchY={thumbPinchY}
+                      thumbPinchRotate={thumbPinchRotate}
+                      thumbShadowOpacity={thumbShadowOpacity}
+                    />
+                  </div>
                 </motion.div>
               </motion.div>
             </div>
