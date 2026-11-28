@@ -58,8 +58,10 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = () => {
     return ['all', ...present];
   }, [items]);
   const visible = items.filter((item) => activeCategory === 'all' || item.category === activeCategory);
-  const featured = visible.find((item) => item.is_featured) || visible[0] || null;
-  const rest = visible.filter((item) => item.id !== featured?.id);
+  const ballonItems = visible.filter((item) => item.category === 'ballon');
+  const editorialItems = visible.filter((item) => item.category !== 'ballon');
+  const featured = editorialItems.find((item) => item.is_featured) || editorialItems[0] || null;
+  const rest = editorialItems.filter((item) => item.id !== featured?.id);
   const openMedia = (item: DisplayMedia) => {
     if (!item.allowed) {
       if (item.access_tier === 'club' && !currentUser) setIsAuthModalOpen(true);
@@ -106,12 +108,13 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = () => {
           {items.length === 0 ? <div className="py-16 text-center"><p className="text-2xl font-agrandir-extrabold">{isEn ? 'The next story is being prepared.' : 'La prochaine histoire se prépare.'}</p><p className="mt-3 text-sm text-neutral-500">{isEn ? 'No exclusive content has been published yet.' : 'Aucun contenu exclusif n’a encore été publié.'}</p></div> : (
             <>
               {collections.map((collection) => {
-                const collectionItems = visible.filter((item) => item.collection_id === collection.id);
+                const collectionItems = editorialItems.filter((item) => item.collection_id === collection.id);
                 if (!collectionItems.length) return null;
                 return <section key={collection.id}><div className="mb-5 flex items-end justify-between gap-4"><div><p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">{categoryLabel[collection.slug] || 'COLLECTION'}</p><h2 className="mt-2 text-xl sm:text-2xl font-agrandir-extrabold">{collection.title}</h2>{collection.description && <p className="mt-1 text-xs text-neutral-500">{collection.description}</p>}</div><span className="text-xs text-neutral-600">{collectionItems.length}</span></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-8">{collectionItems.map((item) => <MediaCard key={item.id} item={item} onOpen={openMedia} isEn={isEn}/>)}</div></section>;
               })}
               {rest.filter((item) => !item.collection_id).length > 0 && <section><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-8">{rest.filter((item) => !item.collection_id).map((item) => <MediaCard key={item.id} item={item} onOpen={openMedia} isEn={isEn}/>)}</div></section>}
-              {visible.some((item) => item.category === 'ballon') && <section className="border-t border-white/10 pt-8"><p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">UNIVERS À PART</p><h2 className="mt-2 text-2xl font-agrandir-extrabold">Ballon</h2><p className="mt-2 text-sm text-neutral-500">{isEn ? 'A dedicated editorial space.' : 'Un espace éditorial dédié.'}</p></section>}
+              {ballonItems.length > 0 && <section className="border-t border-white/10 pt-8"><p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">UNIVERS À PART</p><h2 className="mt-2 mb-5 text-2xl font-agrandir-extrabold">Ballon</h2><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-8">{ballonItems.map((item) => <MediaCard key={item.id} item={item} onOpen={openMedia} isEn={isEn}/>)}</div></section>}
+
             </>
           )}
         </div>
