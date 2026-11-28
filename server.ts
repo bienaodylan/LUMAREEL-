@@ -992,7 +992,7 @@ async function startServer() {
   });
 
   // Preview-only confirmation when JekoPay API keys have not been added yet (strictly disabled in production or once keys are configured)
-  app.post('/api/payments/jekopay/confirm-preview', (req: Request, res: Response) => {
+  app.post('/api/payments/jekopay/confirm-preview', async (req: Request, res: Response) => {
     try {
       if (jekopayService.isConfigured() || isProduction) {
         return res.status(403).json({
@@ -1006,7 +1006,7 @@ async function startServer() {
         return res.status(400).json({ success: false, error: 'Référence de transaction requise.' });
       }
 
-      const tx = jekopayService.updateTransactionStatus(
+      const tx = await jekopayService.updateTransactionStatus(
         String(reference),
         'SUCCESS',
         `jeko_preview_${Date.now()}`
@@ -1027,7 +1027,7 @@ async function startServer() {
   });
 
   // Authentic JekoPay Webhook (/api/payments/jekopay/webhook) with timing-safe HMAC-SHA256 verification (Jeko-Signature) & idempotent fulfillment
-  app.post('/api/payments/jekopay/webhook', (req: Request, res: Response) => {
+  app.post('/api/payments/jekopay/webhook', async (req: Request, res: Response) => {
     try {
       const signature = String(
         req.headers['jeko-signature'] ||
@@ -1060,7 +1060,7 @@ async function startServer() {
       }
 
       const lookupKey = reference || providerTxId || '';
-      const updated = jekopayService.updateTransactionStatus(lookupKey, normalizedStatus, providerTxId);
+      const updated = await jekopayService.updateTransactionStatus(lookupKey, normalizedStatus, providerTxId);
       if (updated && normalizedStatus === 'SUCCESS') {
         fulfillJekoPayTransaction(updated.reference, providerTxId || updated.reference);
       }
