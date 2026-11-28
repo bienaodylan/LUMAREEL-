@@ -269,6 +269,10 @@ class JekoPayService {
     const cleanPhone = (params.customerPhone || '').replace(/\s+/g, '');
     const roundedXof = Math.round(params.amount);
 
+    if (!this.isConfigured() && process.env.NODE_ENV === 'production') {
+      throw new Error('Paiement indisponible : les clés JekoPay de production ne sont pas configurées.');
+    }
+
     if (!this.isConfigured()) {
       const awaitingTx: JekoPayTransaction = {
         id: txId,
