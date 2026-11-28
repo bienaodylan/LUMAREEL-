@@ -18,6 +18,7 @@ function buildEffectiveUser(params: {
   name: string;
   role?: User['role'];
   createdAt?: string;
+  emailVerified?: boolean;
 }): User {
   const cleanEmail = params.email.trim().toLowerCase();
   const isSuperAdmin = cleanEmail === 'bienaodylan428@gmail.com';
@@ -26,7 +27,7 @@ function buildEffectiveUser(params: {
     email: cleanEmail,
     name: params.name.trim() || cleanEmail.split('@')[0] || 'Membre LUMARÉEL',
     role: isSuperAdmin ? 'super_admin' : params.role || 'customer',
-    emailVerified: true,
+    emailVerified: Boolean(params.emailVerified),
     createdAt: params.createdAt || new Date().toISOString(),
   };
 }
@@ -243,6 +244,7 @@ export const AuthModal: React.FC = () => {
         email: resolvedEmail,
         name: resolvedName,
         createdAt: authUser.created_at,
+        emailVerified: Boolean(authUser.email_confirmed_at),
       });
 
       const referralCode = new URLSearchParams(window.location.search).get('ref');
