@@ -441,11 +441,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.warn('[Auth Sync]', err);
       }
     };
+    const clearStaleLocalUser = () => {
+      setCurrentUserState(null);
+      try { localStorage.removeItem(STORAGE_KEYS.CURRENT_USER); } catch { /* ignore */ }
+    };
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user?.id) void syncUser(data.session.user.id);
+      else if (active) clearStaleLocalUser();
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user?.id) void syncUser(session.user.id);
+      else if (active) clearStaleLocalUser();
     });
     return () => { active = false; listener.subscription.unsubscribe(); };
   }, []);
