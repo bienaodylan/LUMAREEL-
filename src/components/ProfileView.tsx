@@ -1,459 +1,264 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { useApp, PageView } from '../context/AppContext';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useApp } from '../context/AppContext';
+import { MembershipCard } from '../types';
+import { loadStoredMemberCard } from '../utils/memberCardStorage';
+import { apiFetchJson } from '../lib/apiClient';
+import { supabase } from '../lib/supabaseClient';
 import {
-  ChevronRight,
   Bell,
+  Bookmark,
+  Check,
+  ChevronRight,
+  CreditCard,
+  Gift,
   Globe,
   LogOut,
+  Moon,
   Shield,
-  Trash2,
-  AlertTriangle,
-  Crown,
-  Award,
-  HelpCircle,
+  Sun,
   Ticket,
   User as UserIcon,
-  Phone,
-  Lock,
-  History,
-  SlidersHorizontal,
-  ScanLine,
-  Maximize2,
-  Moon,
-  Sun,
 } from 'lucide-react';
-import {
-  computeUserPointsSummary,
-  loadUserPointsState,
-  saveUserPointsState,
-} from '../utils/communityStorage';
-import { loadStoredMemberCard } from '../utils/memberCardStorage';
-import {
-  enterMobileFullscreen,
-  exitMobileFullscreen,
-  isMobileFullscreenEnabled,
-  setMobileFullscreenEnabled,
-} from '../utils/mobileFullscreen';
-import { BottomSheet } from './ui/LumareelKit';
 
-const NOTIF_STORAGE_KEY = 'lumareel_notifications_enabled_v1';
+interface MemberNotificationItem {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  linkPage?: string;
+  isRead: boolean;
+  createdAt: string;
+}
 
-type ProfileSheetType = null | 'info' | 'contact' | 'security' | 'prefs' | 'history';
+interface MemberCollectionSummary {
+  id: string;
+  title: string;
+  coverUrl: string;
+  photoKeys: string[];
+}
+
+interface MemberHubResponse {
+  success: boolean;
+  profile: {
+    name: string;
+    email: string;
+    phone: string;
+    city: string;
+    referralCode: string;
+  };
+  loyalty: { balance: number; earned: number; used: number };
+  card: MembershipCard | null;
+  notifications: MemberNotificationItem[];
+  personalCollections: MemberCollectionSummary[];
+}
 
 export const ProfileView: React.FC = () => {
   const {
     currentUser,
-    customerOrders,
     setCurrentUser,
-    setCurrentPage,
     setIsAuthModalOpen,
-    showToast,
+    setCurrentPage,
+    customerOrders,
     language,
     setLanguage,
     theme,
     setTheme,
-    t,
+    showToast,
   } = useApp();
 
   const isEn = language === 'en';
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const [activeSheet, setActiveSheet] = useState<ProfileSheetType>(null);
+  const [hub, setHub] = useState<MemberHubResponse | null>(null);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [phoneInput, setPhoneInput] = useState('');
+  const [cityInput, setCityInput] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  const [pointsState, setPointsState] = useState(() => loadUserPointsState(currentUser));
-  const [cityInput, setCityInput] = useState(pointsState.profileDetails?.city || 'Abidjan');
-  const [phoneInput, setPhoneInput] = useState(pointsState.profileDetails?.phone || '');
-  const [favoriteGenre, setFavoriteGenre] = useState(
-    pointsState.profileDetails?.favoriteGenre || 'Afrobeats · Rap Ivoire'
-  );
-
-  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() => {
-    try {
-      const raw = localStorage.getItem(NOTIF_STORAGE_KEY);
-      return raw === null ? true : raw === 'true';
-    } catch {
-      return true;
+  const loadMemberHub = useCallback(async () => {
+    if (!currentUser?.email) {
+      setHub(null);
+      return;
     }
-  });
-
-  const [mobileFullscreenOn, setMobileFullscreenOn] = useState<boolean>(() =>
-    isMobileFullscreenEnabled()
-  );
+    try {
+      const data = await apiFetchJson<MemberHubResponse>('/api/member/profile');
+      if (data?.success) {
+        setHub(data);
+        setNameInput(data.profile.name || currentUser.name);
+        setPhoneInput(data.profile.phone || '');
+        setCityInput(data.profile.city || 'Abidjan');
+      }
+    } catch {
+      setNameInput(currentUser.name);
+    }
+  }, [currentUser?.email, currentUser?.name]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(NOTIF_STORAGE_KEY, String(notificationsEnabled));
-    } catch {}
-  }, [notificationsEnabled]);
+    void loadMemberHub();
+  }, [loadMemberHub]);
 
-  const pointsSummary = computeUserPointsSummary(currentUser, customerOrders, pointsState);
-  const activeBlackCard = loadStoredMemberCard(currentUser?.email);
+  const localStoredCard = useMemo(
+    () => (currentUser?.email ? loadStoredMemberCard(currentUser.email) : null),
+    [currentUser?.email]
+  );
+  const memberCard = hub?.card || localStoredCard;
 
-  const activeTicketsCount = useMemo(() => {
-    let count = 0;
-    (customerOrders || []).forEach((ord) => {
-      if (ord.paymentStatus === 'completed' && ord.tickets) {
-        count += ord.tickets.filter((tk) => tk.status === 'valid').length;
-      }
-    });
-    return count;
-  }, [customerOrders]);
-
-  const isSuperAdmin =
-    currentUser?.email?.toLowerCase() === 'bienaodylan428@gmail.com' ||
-    currentUser?.role === 'super_admin';
-  const isGateAgent = isSuperAdmin || currentUser?.role === 'gate_agent';
-
-  const displayName = String(currentUser?.name || t('profile.visitor'));
-  const initials =
-    displayName
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part: string) => part[0]?.toUpperCase() || '')
-      .join('') || 'LR';
-
-  const handleSaveDetails = (e: React.FormEvent) => {
-    e.preventDefault();
-    const next = {
-      ...pointsState,
-      profileCompleted: true,
-      profileDetails: {
-        city: cityInput.trim() || 'Abidjan',
-        phone: phoneInput.trim(),
-        favoriteGenre: favoriteGenre.trim(),
-      },
-    };
-    setPointsState(next);
-    saveUserPointsState(currentUser, next);
-    setActiveSheet(null);
-    showToast(isEn ? 'Saved!' : 'C’est enregistré !', 'success');
-  };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    showToast(isEn ? 'Signed out.' : 'Tu es déconnecté.', 'info');
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!currentUser?.email) return;
-    try {
-      setIsDeletingAccount(true);
-      await new Promise((resolve) => setTimeout(resolve, 350));
-      setCurrentUser(null);
-      setShowDeleteConfirm(false);
-      showToast(t('profile.deleteSuccess'), 'success');
-      setCurrentPage('home');
-    } catch (err: any) {
-      showToast(err.message || t('profile.deleteError'), 'error');
-    } finally {
-      setIsDeletingAccount(false);
-    }
-  };
-
-  const handleToggleNotifications = () => {
-    const next = !notificationsEnabled;
-    setNotificationsEnabled(next);
-    showToast(
-      next
-        ? isEn
-          ? 'Concert alerts enabled.'
-          : 'Alertes activées.'
-        : isEn
-        ? 'Alerts paused.'
-        : 'Alertes en pause.',
-      'info'
+  const userOrders = useMemo(() => {
+    if (!currentUser?.email) return [];
+    const email = currentUser.email.toLowerCase();
+    return customerOrders.filter(
+      (o) => (o.customerEmail || '').toLowerCase() === email
     );
-  };
+  }, [customerOrders, currentUser?.email]);
 
-  const handleToggleMobileFullscreen = async () => {
-    const next = !mobileFullscreenOn;
-    setMobileFullscreenOn(next);
-    setMobileFullscreenEnabled(next);
-    if (next) {
-      await enterMobileFullscreen();
-      showToast(
-        isEn ? 'Mobile fullscreen enabled.' : 'Plein écran mobile activé.',
-        'success'
+  const activeTicketsCount = useMemo(
+    () =>
+      userOrders.reduce(
+        (sum, order) =>
+          sum +
+          (Array.isArray(order.tickets) && order.tickets.length > 0
+            ? order.tickets.length
+            : Number(order.quantity || 0)),
+        0
+      ),
+    [userOrders]
+  );
+
+  const unreadNotifications = useMemo(
+    () => (hub?.notifications || []).filter((n) => !n.isRead).length,
+    [hub?.notifications]
+  );
+
+  const savedSouvenirsCount = useMemo(() => {
+    const unique = new Set<string>();
+    (hub?.personalCollections || []).forEach((c) => c.photoKeys.forEach((k) => unique.add(k)));
+    return unique.size;
+  }, [hub?.personalCollections]);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nameInput.trim()) return;
+    setSavingProfile(true);
+    try {
+      const res = await apiFetchJson<{ success: boolean; profile: MemberHubResponse['profile'] }>(
+        '/api/member/profile',
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            name: nameInput.trim(),
+            phone: phoneInput.trim(),
+            city: cityInput.trim(),
+          }),
+        }
       );
-    } else {
-      await exitMobileFullscreen();
-      showToast(
-        isEn ? 'Mobile fullscreen disabled.' : 'Plein écran mobile désactivé.',
-        'info'
-      );
+      if (res?.profile && currentUser) {
+        setCurrentUser({ ...currentUser, name: res.profile.name });
+        setHub((prev) => (prev ? { ...prev, profile: res.profile } : prev));
+        setEditingProfile(false);
+        showToast(isEn ? 'Profile updated!' : 'Profil mis à jour !', 'success');
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Erreur lors de la mise à jour.', 'error');
+    } finally {
+      setSavingProfile(false);
     }
   };
 
-  const assistanceItems: Array<{
-    label: string;
-    page: PageView;
-    icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
-  }> = [
-    ...(isGateAgent
-      ? [
-          {
-            label: isEn ? 'Ticket Scanner' : 'Scanner billets',
-            page: 'gate_scanner' as PageView,
-            icon: ScanLine,
-          },
-        ]
-      : []),
-    {
-      label: isEn ? 'Help & Contact' : 'Besoin d’aide ?',
-      page: 'contact',
-      icon: HelpCircle,
-    },
-  ];
+  const handleMarkAllRead = async () => {
+    try {
+      await apiFetchJson('/api/member/notifications/read', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      setHub((prev) =>
+        prev
+          ? {
+              ...prev,
+              notifications: prev.notifications.map((n) => ({ ...n, isRead: true })),
+            }
+          : prev
+      );
+    } catch {
+      // ignore
+    }
+  };
 
-  return (
-    <div
-      className="min-h-screen w-full max-w-3xl mx-auto px-5 sm:px-8 pb-24 bg-[#FBFBFD] text-[#111111] dark:bg-black dark:text-white font-agrandir-regular overflow-x-clip transition-colors duration-200"
-      style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top, 0px))' }}
-    >
-      {/* 1. IDENTITÉ */}
-      <header className="pb-8 sm:pb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#EFEFF4] dark:bg-[#141414] border border-black/[0.08] dark:border-white/[0.16] flex items-center justify-center font-agrandir-extrabold text-base sm:text-lg text-[#111111] dark:text-white shrink-0">
-            {initials}
-          </div>
-          <div className="min-w-0">
-            <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl text-[#111111] dark:text-white tracking-tight truncate">
-              {displayName}
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // ignore
+    }
+    setCurrentUser(null);
+    showToast(isEn ? 'You have been signed out.' : 'Tu es déconnecté.', 'info');
+    setCurrentPage('home');
+  };
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen w-full bg-[#FBFBFD] text-[#111111] dark:bg-[#050505] dark:text-white px-5 py-16 pb-28 font-agrandir-regular">
+        <div className="max-w-md mx-auto space-y-8">
+          <div className="text-center space-y-4">
+            <div className="w-14 h-14 rounded-full bg-black/[0.06] dark:bg-white/[0.08] flex items-center justify-center mx-auto">
+              <UserIcon className="w-6 h-6" />
+            </div>
+            <h1 className="font-agrandir-extrabold text-3xl tracking-tight">
+              {isEn ? 'My LUMARÉEL Space' : 'Mon espace LUMARÉEL'}
             </h1>
-            <p className="text-xs sm:text-sm text-[#6E6E73] dark:text-[#9A9A9A] truncate mt-0.5">
-              {currentUser?.email || (isEn ? 'Guest' : 'Mode invité')}
+            <p className="text-sm text-black/60 dark:text-white/60 leading-relaxed">
+              {isEn
+                ? 'Sign in to access your tickets, LUMARÉEL Black Card, Gift Points, referrals, and saved Souvenirs.'
+                : 'Connecte-toi pour retrouver tes billets, ta LUMARÉEL Black Card, tes Gift Points, ton parrainage et tes Souvenirs enregistrés.'}
             </p>
-            {activeBlackCard && (
-              <p className="mt-1.5 text-xs text-[#111111] dark:text-white font-agrandir-semibold inline-flex items-center gap-1.5">
-                <Crown className="w-3.5 h-3.5 shrink-0" strokeWidth={1.6} />
-                <span>
-                  LUMARÉEL Black Card · {activeBlackCard.cardNumber || (isEn ? 'Active' : 'Active')}
-                </span>
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 shrink-0">
-          {!currentUser ? (
             <button
               type="button"
               onClick={() => setIsAuthModalOpen(true)}
-              className="min-h-[42px] px-5 rounded-full bg-[#111111] text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/90 text-xs font-agrandir-extrabold transition-colors cursor-pointer lum-press"
+              className="w-full min-h-[50px] rounded-full bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold text-xs uppercase tracking-wider cursor-pointer"
             >
-              {isEn ? 'Sign in' : 'Me connecter'}
-            </button>
-          ) : (
-            isSuperAdmin && (
-              <button
-                type="button"
-                onClick={() => setCurrentPage('admin')}
-                className="min-h-[40px] px-4 rounded-full bg-[#111111] text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/90 text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 transition-colors cursor-pointer lum-press"
-              >
-                <Shield className="w-3.5 h-3.5" strokeWidth={1.6} />
-                <span>{t('nav.admin')}</span>
-              </button>
-            )
-          )}
-        </div>
-      </header>
-
-      <div className="space-y-9">
-        {/* 2. MON ESPACE */}
-        <section>
-          <h2 className="text-[12px] font-medium text-[#6E6E73] dark:text-[#9A9A9A] mb-2">
-            {isEn ? 'My space' : 'Mon espace'}
-          </h2>
-          <div className="border-y border-black/[0.08] dark:border-white/[0.12] divide-y divide-black/[0.08] dark:divide-white/[0.12]">
-            <button
-              type="button"
-              onClick={() => setCurrentPage('member_card')}
-              className="group w-full min-h-[58px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
-            >
-              <span className="flex items-center gap-3.5 min-w-0">
-                <Crown className="w-4 h-4 text-[#111111] dark:text-white shrink-0" strokeWidth={1.6} />
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
-                  {isEn ? 'LUMARÉEL Black Card' : 'Ma carte LUMARÉEL'}
-                </span>
-              </span>
-              <span className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#9A9A9A] shrink-0">
-                <span className={activeBlackCard ? 'text-[#111111] dark:text-white font-agrandir-bold' : ''}>
-                  {activeBlackCard
-                    ? 'Active'
-                    : isEn
-                    ? 'Discover'
-                    : 'Découvrir'}
-                </span>
-                <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage('rewards')}
-              className="group w-full min-h-[58px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
-            >
-              <span className="flex items-center gap-3.5 min-w-0">
-                <Award className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
-                  {isEn ? 'Gift Points & Referrals' : 'Mes Gift Points'}
-                </span>
-              </span>
-              <span className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#9A9A9A] tabular-nums shrink-0">
-                <span className="text-[#111111] dark:text-white font-agrandir-bold">
-                  {pointsSummary.availablePoints.toLocaleString('fr-FR')} pts
-                </span>
-                <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setCurrentPage('client_space')}
-              className="group w-full min-h-[58px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
-            >
-              <span className="flex items-center gap-3.5 min-w-0">
-                <Ticket className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
-                  {isEn ? 'My Tickets' : 'Mes billets'}
-                </span>
-              </span>
-              <span className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#9A9A9A] tabular-nums shrink-0">
-                <span>
-                  {activeTicketsCount}{' '}
-                  {isEn
-                    ? activeTicketsCount > 1
-                      ? 'tickets'
-                      : 'ticket'
-                    : activeTicketsCount > 1
-                    ? 'actifs'
-                    : 'actif'}
-                </span>
-                <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
-              </span>
+              {isEn ? 'Sign in / Create account' : 'Connexion / Inscription'}
             </button>
           </div>
-        </section>
 
-        {/* 3. MES INFOS */}
-        <section>
-          <h2 className="text-[12px] font-medium text-[#6E6E73] dark:text-[#9A9A9A] mb-2">
-            {isEn ? 'My info' : 'Mes infos'}
-          </h2>
-          <div className="border-y border-black/[0.08] dark:border-white/[0.12] divide-y divide-black/[0.08] dark:divide-white/[0.12]">
-            {[
-              {
-                id: 'info' as const,
-                icon: UserIcon,
-                label: isEn ? 'About me' : 'Infos perso',
-                meta: cityInput || 'Abidjan',
-              },
-              {
-                id: 'contact' as const,
-                icon: Phone,
-                label: isEn ? 'Contact' : 'Coordonnées',
-                meta: phoneInput || currentUser?.email || (isEn ? 'Add' : 'Ajouter'),
-              },
-              {
-                id: 'security' as const,
-                icon: Lock,
-                label: isEn ? 'Security' : 'Sécurité',
-                meta: currentUser ? (isEn ? 'Protected' : 'Protégé') : isEn ? 'Guest' : 'Invité',
-              },
-              {
-                id: 'history' as const,
-                icon: History,
-                label: isEn ? 'Orders' : 'Historique',
-                meta: `${customerOrders.length} ${isEn ? 'orders' : 'commandes'}`,
-              },
-            ].map((row) => {
-              const Icon = row.icon;
-              return (
-                <button
-                  key={row.id}
-                  type="button"
-                  onClick={() => setActiveSheet(row.id)}
-                  className="group w-full min-h-[56px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
-                >
-                  <span className="flex items-center gap-3.5 min-w-0">
-                    <Icon className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                    <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
-                      {row.label}
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#9A9A9A] shrink-0 max-w-[140px]">
-                    <span className="truncate">{row.meta}</span>
-                    <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={1.6} />
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* 4. PRÉFÉRENCES (Apparence, Langue, Notifications, Préférences musicales) */}
-        <section>
-          <h2 className="text-[12px] font-medium text-[#6E6E73] dark:text-[#9A9A9A] mb-2">
-            {isEn ? 'Preferences' : 'Préférences'}
-          </h2>
-          <div className="border-y border-black/[0.08] dark:border-white/[0.12] divide-y divide-black/[0.08] dark:divide-white/[0.12]">
-            {/* MODE CLAIR / SOMBRE */}
-            <div className="min-h-[58px] py-3.5 flex items-center justify-between gap-4">
-              <span className="flex items-center gap-3.5 min-w-0">
-                {theme === 'dark' ? (
-                  <Moon className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                ) : (
-                  <Sun className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                )}
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white">
-                  {isEn ? 'Appearance' : 'Apparence'}
-                </span>
+          {/* Apparence & Langue accessibles même déconnecté */}
+          <div className="pt-6 border-t border-black/10 dark:border-white/10 space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-agrandir-semibold flex items-center gap-2">
+                {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                {isEn ? 'Appearance' : 'Apparence'}
               </span>
-              <div className="flex items-center rounded-full bg-black/[0.05] dark:bg-[#141414] border border-black/[0.08] dark:border-white/[0.12] p-0.5 text-xs shrink-0">
+              <div className="flex p-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08]">
                 <button
                   type="button"
                   onClick={() => setTheme('light')}
-                  className={`inline-flex items-center gap-1.5 min-h-[30px] px-3 rounded-full transition-colors cursor-pointer ${
-                    theme === 'light'
-                      ? 'bg-[#111111] text-white font-agrandir-extrabold'
-                      : 'text-[#6E6E73] dark:text-[#9A9A9A] hover:text-[#111111] dark:hover:text-white'
+                  className={`px-3 py-1 rounded-full text-xs cursor-pointer ${
+                    theme === 'light' ? 'bg-white text-black font-agrandir-extrabold shadow-sm' : 'opacity-60'
                   }`}
                 >
-                  <Sun className="w-3.5 h-3.5" />
-                  <span>{isEn ? 'Light' : 'Clair'}</span>
+                  {isEn ? 'Light' : 'Clair'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setTheme('dark')}
-                  className={`inline-flex items-center gap-1.5 min-h-[30px] px-3 rounded-full transition-colors cursor-pointer ${
-                    theme === 'dark'
-                      ? 'bg-white text-black font-agrandir-extrabold'
-                      : 'text-[#6E6E73] dark:text-[#9A9A9A] hover:text-[#111111] dark:hover:text-white'
+                  className={`px-3 py-1 rounded-full text-xs cursor-pointer ${
+                    theme === 'dark' ? 'bg-white text-black font-agrandir-extrabold shadow-sm' : 'opacity-60'
                   }`}
                 >
-                  <Moon className="w-3.5 h-3.5" />
-                  <span>{isEn ? 'Dark' : 'Sombre'}</span>
+                  {isEn ? 'Dark' : 'Sombre'}
                 </button>
               </div>
             </div>
 
-            {/* LANGUE */}
-            <div className="min-h-[58px] py-3.5 flex items-center justify-between gap-4">
-              <span className="flex items-center gap-3.5 min-w-0">
-                <Globe className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white">
-                  {t('profile.language')}
-                </span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-agrandir-semibold flex items-center gap-2">
+                <Globe className="w-4 h-4" />
+                {isEn ? 'Language' : 'Langue'}
               </span>
-              <div className="flex items-center rounded-full bg-black/[0.05] dark:bg-[#141414] border border-black/[0.08] dark:border-white/[0.12] p-0.5 text-xs shrink-0">
+              <div className="flex p-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08]">
                 <button
                   type="button"
                   onClick={() => setLanguage('fr')}
-                  className={`min-h-[30px] px-3 rounded-full transition-colors cursor-pointer ${
-                    language === 'fr'
-                      ? 'bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold'
-                      : 'text-[#6E6E73] dark:text-[#9A9A9A] hover:text-[#111111] dark:hover:text-white'
+                  className={`px-3 py-1 rounded-full text-xs cursor-pointer ${
+                    language === 'fr' ? 'bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold' : 'opacity-60'
                   }`}
                 >
                   FR
@@ -461,350 +266,349 @@ export const ProfileView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setLanguage('en')}
-                  className={`min-h-[30px] px-3 rounded-full transition-colors cursor-pointer ${
-                    language === 'en'
-                      ? 'bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold'
-                      : 'text-[#6E6E73] dark:text-[#9A9A9A] hover:text-[#111111] dark:hover:text-white'
+                  className={`px-3 py-1 rounded-full text-xs cursor-pointer ${
+                    language === 'en' ? 'bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold' : 'opacity-60'
                   }`}
                 >
                   EN
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  return (
+    <div className="min-h-screen w-full bg-[#FBFBFD] text-[#111111] dark:bg-[#050505] dark:text-white pt-8 sm:pt-12 pb-28 sm:pb-20 px-4 sm:px-6 lg:px-10 font-agrandir-regular transition-colors duration-200">
+      <div className="max-w-3xl mx-auto space-y-8">
+        {/* EN-TÊTE MEMBRE + NOTIFICATIONS */}
+        <section className="flex items-start justify-between gap-4 pb-6 border-b border-black/10 dark:border-white/10">
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="w-14 h-14 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold text-xl flex items-center justify-center shrink-0">
+              {(hub?.profile?.name || currentUser.name || 'M').slice(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <h1 className="font-agrandir-extrabold text-2xl sm:text-3xl tracking-tight truncate">
+                {hub?.profile?.name || currentUser.name}
+              </h1>
+              <p className="text-xs text-black/55 dark:text-white/55 truncate">{currentUser.email}</p>
+              {hub?.profile?.city && (
+                <p className="text-[11px] text-black/45 dark:text-white/45 mt-0.5">
+                  {hub.profile.city} {hub.profile.phone ? `· ${hub.profile.phone}` : ''}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
-              onClick={() => setActiveSheet('prefs')}
-              className="group w-full min-h-[56px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
+              onClick={() => setShowNotifications((prev) => !prev)}
+              className="relative w-10 h-10 rounded-full bg-black/[0.06] dark:bg-white/[0.08] flex items-center justify-center cursor-pointer"
+              aria-label="Notifications"
             >
-              <span className="flex items-center gap-3.5 min-w-0">
-                <SlidersHorizontal className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
-                  {isEn ? 'Music tastes' : 'Goûts musicaux'}
+              <Bell className="w-4 h-4" />
+              {unreadNotifications > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black text-[10px] font-agrandir-extrabold flex items-center justify-center">
+                  {unreadNotifications}
                 </span>
-              </span>
-              <span className="flex items-center gap-2 text-xs text-[#6E6E73] dark:text-[#9A9A9A] shrink-0">
-                <span className="truncate max-w-[130px]">{favoriteGenre}</span>
-                <ChevronRight className="w-4 h-4" strokeWidth={1.6} />
-              </span>
+              )}
             </button>
-
-            <div className="min-h-[58px] py-3.5 flex items-center justify-between gap-4">
-              <span className="flex items-center gap-3.5 min-w-0">
-                <Bell className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white">
-                  {t('profile.notifications')}
-                </span>
-              </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={notificationsEnabled}
-                onClick={handleToggleNotifications}
-                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
-                  notificationsEnabled
-                    ? 'bg-[#111111] dark:bg-white'
-                    : 'bg-black/15 dark:bg-white/15'
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 rounded-full bg-white dark:bg-black transition-transform ${
-                    notificationsEnabled ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            <div className="min-h-[58px] py-3.5 flex items-center justify-between gap-4">
-              <span className="flex items-center gap-3.5 min-w-0">
-                <Maximize2 className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                <span className="min-w-0">
-                  <span className="block text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
-                    {isEn ? 'Mobile fullscreen' : 'Plein écran mobile'}
-                  </span>
-                  <span className="block text-[11px] text-[#6E6E73] dark:text-[#9A9A9A] truncate">
-                    {isEn ? 'Auto fullscreen on launch' : 'S’ouvre en plein écran'}
-                  </span>
-                </span>
-              </span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={mobileFullscreenOn}
-                onClick={handleToggleMobileFullscreen}
-                className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
-                  mobileFullscreenOn
-                    ? 'bg-[#111111] dark:bg-white'
-                    : 'bg-black/15 dark:bg-white/15'
-                }`}
-              >
-                <span
-                  className={`inline-block h-5 w-5 rounded-full bg-white dark:bg-black transition-transform ${
-                    mobileFullscreenOn ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setEditingProfile((prev) => !prev)}
+              className="min-h-[38px] px-3.5 rounded-full bg-black/[0.06] dark:bg-white/[0.08] text-xs font-agrandir-semibold cursor-pointer"
+            >
+              {editingProfile ? (isEn ? 'Cancel' : 'Fermer') : isEn ? 'Edit' : 'Modifier'}
+            </button>
           </div>
         </section>
 
-        {/* 5. AIDE */}
-        <section>
-          <h2 className="text-[12px] font-medium text-[#6E6E73] dark:text-[#9A9A9A] mb-2">
-            {isEn ? 'Help' : 'Aide'}
-          </h2>
-          <div className="border-y border-black/[0.08] dark:border-white/[0.12] divide-y divide-black/[0.08] dark:divide-white/[0.12]">
-            {assistanceItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.page}
-                  type="button"
-                  onClick={() => setCurrentPage(item.page)}
-                  className="group w-full min-h-[56px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer"
-                >
-                  <span className="flex items-center gap-3.5 min-w-0">
-                    <Icon className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                    <span className="text-sm sm:text-[15px] font-agrandir-semibold text-[#111111] dark:text-white truncate">
-                      {item.label}
-                    </span>
-                  </span>
-                  <ChevronRight className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A] shrink-0" strokeWidth={1.6} />
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* 6. SESSION */}
-        {currentUser && (
-          <section>
-            <h2 className="text-[12px] font-medium text-[#6E6E73] dark:text-[#9A9A9A] mb-2">
-              {t('profile.session')}
+        {/* FORMULAIRE ÉDITION PROFIL SYNCHRONISÉ */}
+        {editingProfile && (
+          <form
+            onSubmit={handleSaveProfile}
+            className="rounded-2xl bg-black/[0.04] dark:bg-white/[0.05] p-5 space-y-4"
+          >
+            <h2 className="font-agrandir-extrabold text-sm">
+              {isEn ? 'Personal information' : 'Mes informations'}
             </h2>
-            <div className="border-y border-black/[0.08] dark:border-white/[0.12] divide-y divide-black/[0.08] dark:divide-white/[0.12]">
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="group w-full min-h-[54px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer text-[#48484A] dark:text-[#C8C8C8]"
-              >
-                <span className="flex items-center gap-3.5 text-sm sm:text-[15px] font-agrandir-semibold">
-                  <LogOut className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A]" strokeWidth={1.6} />
-                  <span>{isEn ? 'Sign out' : 'Me déconnecter'}</span>
-                </span>
-                <ChevronRight className="w-4 h-4 text-[#6E6E73] dark:text-[#9A9A9A]" strokeWidth={1.6} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  if (currentUser.email?.toLowerCase() === 'bienaodylan428@gmail.com') {
-                    showToast(t('profile.founderProtected'), 'info');
-                    return;
-                  }
-                  setShowDeleteConfirm(true);
-                }}
-                className="w-full min-h-[54px] py-3.5 flex items-center justify-between gap-4 text-left transition-opacity hover:opacity-75 cursor-pointer text-rose-600 dark:text-[#F29AA4]"
-              >
-                <span className="flex items-center gap-3.5 text-sm sm:text-[15px] font-agrandir-semibold">
-                  <Trash2 className="w-4 h-4 shrink-0" strokeWidth={1.6} />
-                  <span>{isEn ? 'Delete my account' : 'Supprimer mon compte'}</span>
-                </span>
-                <ChevronRight className="w-4 h-4 opacity-60 shrink-0" strokeWidth={1.6} />
-              </button>
-            </div>
-          </section>
-        )}
-      </div>
-
-      {/* BOTTOM SHEETS PROFIL */}
-      <BottomSheet
-        open={activeSheet === 'info' || activeSheet === 'contact' || activeSheet === 'prefs'}
-        onClose={() => setActiveSheet(null)}
-        title={
-          activeSheet === 'info'
-            ? isEn
-              ? 'About me'
-              : 'Infos perso'
-            : activeSheet === 'contact'
-            ? isEn
-              ? 'Contact'
-              : 'Coordonnées'
-            : isEn
-            ? 'Music tastes'
-            : 'Goûts musicaux'
-        }
-      >
-        <form onSubmit={handleSaveDetails} className="space-y-4">
-          {activeSheet === 'info' && (
-            <>
-              <div>
-                <label className="block text-xs text-[#6E6E73] dark:text-[#9A9A9A] mb-1.5">
-                  {isEn ? 'Full name' : 'Nom complet'}
-                </label>
-                <input
-                  type="text"
-                  value={displayName}
-                  disabled
-                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black/[0.04] dark:bg-black/60 border border-black/[0.09] dark:border-white/[0.12] text-sm text-[#6E6E73] dark:text-[#9A9A9A]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-[#6E6E73] dark:text-[#9A9A9A] mb-1.5">
-                  {isEn ? 'City' : 'Ville'}
-                </label>
-                <input
-                  type="text"
-                  value={cityInput}
-                  onChange={(e) => setCityInput(e.target.value)}
-                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-white dark:bg-black border border-black/15 dark:border-white/[0.16] text-sm text-[#111111] dark:text-white focus:border-[#111111] dark:focus:border-white focus:outline-none"
-                />
-              </div>
-            </>
-          )}
-
-          {activeSheet === 'contact' && (
-            <>
-              <div>
-                <label className="block text-xs text-[#6E6E73] dark:text-[#9A9A9A] mb-1.5">Email</label>
-                <input
-                  type="email"
-                  value={currentUser?.email || ''}
-                  disabled
-                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-black/[0.04] dark:bg-black/60 border border-black/[0.09] dark:border-white/[0.12] text-sm text-[#6E6E73] dark:text-[#9A9A9A]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-[#6E6E73] dark:text-[#9A9A9A] mb-1.5">
-                  {isEn ? 'Phone (WhatsApp / Mobile)' : 'Téléphone (WhatsApp / Mobile)'}
-                </label>
-                <input
-                  type="tel"
-                  value={phoneInput}
-                  onChange={(e) => setPhoneInput(e.target.value)}
-                  placeholder="+225 07 00 00 00 00"
-                  className="w-full min-h-[44px] px-3.5 rounded-xl bg-white dark:bg-black border border-black/15 dark:border-white/[0.16] text-sm text-[#111111] dark:text-white focus:border-[#111111] dark:focus:border-white focus:outline-none"
-                />
-              </div>
-            </>
-          )}
-
-          {activeSheet === 'prefs' && (
-            <div>
-              <label className="block text-xs text-[#6E6E73] dark:text-[#9A9A9A] mb-1.5">
-                {isEn ? 'Favorite styles' : 'Ce que tu aimes écouter'}
-              </label>
+            <div className="grid sm:grid-cols-3 gap-3">
               <input
                 type="text"
-                value={favoriteGenre}
-                onChange={(e) => setFavoriteGenre(e.target.value)}
-                placeholder="Afrobeats, Rap Ivoire, Acoustique..."
-                className="w-full min-h-[44px] px-3.5 rounded-xl bg-white dark:bg-black border border-black/15 dark:border-white/[0.16] text-sm text-[#111111] dark:text-white focus:border-[#111111] dark:focus:border-white focus:outline-none"
+                required
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                placeholder={isEn ? 'Full name' : 'Nom complet'}
+                className="min-h-[42px] rounded-xl bg-white dark:bg-black/60 border border-black/10 dark:border-white/15 px-3 text-sm outline-none"
+              />
+              <input
+                type="tel"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                placeholder={isEn ? 'Phone' : 'Téléphone'}
+                className="min-h-[42px] rounded-xl bg-white dark:bg-black/60 border border-black/10 dark:border-white/15 px-3 text-sm outline-none"
+              />
+              <input
+                type="text"
+                value={cityInput}
+                onChange={(e) => setCityInput(e.target.value)}
+                placeholder={isEn ? 'City' : 'Ville'}
+                className="min-h-[42px] rounded-xl bg-white dark:bg-black/60 border border-black/10 dark:border-white/15 px-3 text-sm outline-none"
               />
             </div>
-          )}
+            <button
+              type="submit"
+              disabled={savingProfile}
+              className="min-h-[40px] px-5 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black text-xs font-agrandir-extrabold inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>{savingProfile ? '...' : isEn ? 'Save' : 'Enregistrer'}</span>
+            </button>
+          </form>
+        )}
+
+        {/* CENTRE DE NOTIFICATIONS MEMBRE */}
+        {showNotifications && (
+          <section className="rounded-2xl border border-black/10 dark:border-white/12 p-4 sm:p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-agrandir-extrabold text-sm">
+                Notifications ({hub?.notifications?.length || 0})
+              </h2>
+              {unreadNotifications > 0 && (
+                <button
+                  type="button"
+                  onClick={() => void handleMarkAllRead()}
+                  className="text-xs underline text-black/60 dark:text-white/60 cursor-pointer"
+                >
+                  {isEn ? 'Mark all read' : 'Tout marquer comme lu'}
+                </button>
+              )}
+            </div>
+            {!hub?.notifications?.length ? (
+              <p className="text-xs text-black/50 dark:text-white/50 py-3">
+                {isEn ? 'No notifications yet.' : 'Aucune notification pour le moment.'}
+              </p>
+            ) : (
+              <div className="divide-y divide-black/10 dark:divide-white/10">
+                {hub.notifications.slice(0, 10).map((n) => (
+                  <button
+                    key={n.id}
+                    type="button"
+                    onClick={() => {
+                      if (n.linkPage) setCurrentPage(n.linkPage as any);
+                    }}
+                    className="w-full py-3 text-left flex items-start justify-between gap-3 cursor-pointer"
+                  >
+                    <div className="space-y-0.5">
+                      <p className={`text-xs ${n.isRead ? 'font-agrandir-semibold opacity-70' : 'font-agrandir-extrabold'}`}>
+                        {n.title}
+                      </p>
+                      <p className="text-[11px] text-black/55 dark:text-white/55">{n.body}</p>
+                    </div>
+                    {!n.isRead && (
+                      <span className="w-2 h-2 rounded-full bg-[#111111] dark:bg-white mt-1.5 shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* SYNTHÈSE ÉCOSYSTÈME CONNECTÉ (4 ACCÈS DIRECTS) */}
+        <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <button
+            type="button"
+            onClick={() => setCurrentPage('rewards')}
+            className="rounded-2xl bg-black/[0.04] dark:bg-white/[0.05] p-4 text-left space-y-2 hover:bg-black/[0.07] dark:hover:bg-white/[0.08] transition cursor-pointer"
+          >
+            <Gift className="w-4 h-4 opacity-60" />
+            <p className="font-agrandir-extrabold text-xl tabular-nums">
+              {(hub?.loyalty?.balance ?? 0).toLocaleString('fr-FR')}
+            </p>
+            <p className="text-[11px] text-black/55 dark:text-white/55">Gift Points</p>
+          </button>
 
           <button
-            type="submit"
-            className="w-full min-h-[46px] rounded-full bg-[#111111] text-white hover:bg-black/85 dark:bg-white dark:text-black dark:hover:bg-white/90 font-agrandir-extrabold text-xs cursor-pointer lum-press"
+            type="button"
+            onClick={() => setCurrentPage('client_space')}
+            className="rounded-2xl bg-black/[0.04] dark:bg-white/[0.05] p-4 text-left space-y-2 hover:bg-black/[0.07] dark:hover:bg-white/[0.08] transition cursor-pointer"
           >
-            {isEn ? 'Save' : 'Enregistrer'}
+            <Ticket className="w-4 h-4 opacity-60" />
+            <p className="font-agrandir-extrabold text-xl tabular-nums">{activeTicketsCount}</p>
+            <p className="text-[11px] text-black/55 dark:text-white/55">
+              {isEn ? 'Tickets' : 'Billets'}
+            </p>
           </button>
-        </form>
-      </BottomSheet>
 
-      <BottomSheet
-        open={activeSheet === 'security'}
-        onClose={() => setActiveSheet(null)}
-        title={isEn ? 'Security' : 'Sécurité'}
-      >
-        <div className="space-y-4 text-xs sm:text-sm text-[#48484A] dark:text-[#C8C8C8] leading-relaxed">
-          <div className="p-4 rounded-[16px] bg-black/[0.04] dark:bg-black border border-black/[0.08] dark:border-white/[0.12] space-y-1">
-            <p className="text-[11px] text-[#6E6E73] dark:text-[#9A9A9A]">
-              {isEn ? 'Connected email' : 'Adresse connectée'}
+          <button
+            type="button"
+            onClick={() => setCurrentPage('member_card')}
+            className="rounded-2xl bg-black/[0.04] dark:bg-white/[0.05] p-4 text-left space-y-2 hover:bg-black/[0.07] dark:hover:bg-white/[0.08] transition cursor-pointer"
+          >
+            <CreditCard className="w-4 h-4 opacity-60" />
+            <p className="font-agrandir-extrabold text-base truncate">
+              {memberCard ? (isEn ? 'Active' : 'Active') : isEn ? 'Discover' : 'Découvrir'}
             </p>
-            <p className="font-agrandir-extrabold text-[#111111] dark:text-white">
-              {currentUser?.email || (isEn ? 'Not signed in' : 'Non connecté')}
-            </p>
-          </div>
-          <p className="text-xs text-[#6E6E73] dark:text-[#9A9A9A]">
-            {isEn
-              ? 'Your tickets and Black Card are safely linked to your account.'
-              : 'Tes billets et ta carte sont bien liés à ton compte.'}
-          </p>
-        </div>
-      </BottomSheet>
+            <p className="text-[11px] text-black/55 dark:text-white/55">Black Card</p>
+          </button>
 
-      <BottomSheet
-        open={activeSheet === 'history'}
-        onClose={() => setActiveSheet(null)}
-        title={isEn ? 'My orders' : 'Mes commandes'}
-      >
-        {customerOrders.length === 0 ? (
-          <p className="text-xs text-[#6E6E73] dark:text-[#9A9A9A] py-4">
-            {isEn ? 'No orders yet.' : 'Tu n’as pas encore de commande.'}
-          </p>
-        ) : (
-          <div className="divide-y divide-black/[0.08] dark:divide-white/[0.12] border-y border-black/[0.08] dark:border-white/[0.12]">
-            {customerOrders.slice(0, 10).map((ord) => (
-              <div key={ord.id} className="py-3.5 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-agrandir-extrabold text-sm text-[#111111] dark:text-white truncate">
-                    {ord.eventTitle}
-                  </p>
-                  <p className="text-xs text-[#6E6E73] dark:text-[#9A9A9A] truncate">
-                    {ord.categoryName} · ×{ord.quantity}
+          <button
+            type="button"
+            onClick={() => setCurrentPage('memories')}
+            className="rounded-2xl bg-black/[0.04] dark:bg-white/[0.05] p-4 text-left space-y-2 hover:bg-black/[0.07] dark:hover:bg-white/[0.08] transition cursor-pointer"
+          >
+            <Bookmark className="w-4 h-4 opacity-60" />
+            <p className="font-agrandir-extrabold text-xl tabular-nums">{savedSouvenirsCount}</p>
+            <p className="text-[11px] text-black/55 dark:text-white/55">
+              {isEn ? 'Saved memories' : 'Souvenirs sauvés'}
+            </p>
+          </button>
+        </section>
+
+        {/* NAVIGATION UNIFIÉE DU COMPTE */}
+        <section className="divide-y divide-black/10 dark:divide-white/10 border-t border-b border-black/10 dark:border-white/10">
+          {[
+            {
+              label: isEn ? 'My Tickets & Concert History' : 'Mes billets & historique concerts',
+              sub: `${userOrders.length} ${isEn ? 'order(s)' : 'commande(s)'}`,
+              onClick: () => setCurrentPage('client_space'),
+            },
+            {
+              label: 'LUMARÉEL Black Card',
+              sub: memberCard
+                ? `N° ${memberCard.cardNumber}`
+                : isEn
+                  ? 'Explore all 7 benefits'
+                  : 'Découvrir les 7 privilèges',
+              onClick: () => setCurrentPage('member_card'),
+            },
+            {
+              label: isEn ? 'Gift Points, Rewards & Referrals' : 'Gift Points, Récompenses & Parrainage',
+              sub: hub?.profile?.referralCode
+                ? `Code : ${hub.profile.referralCode}`
+                : `${hub?.loyalty?.balance ?? 0} GP`,
+              onClick: () => setCurrentPage('rewards'),
+            },
+            {
+              label: isEn ? 'My Souvenirs & Collections' : 'Mes Souvenirs & Collections',
+              sub: `${hub?.personalCollections?.length || 0} ${isEn ? 'collection(s)' : 'collection(s)'}`,
+              onClick: () => setCurrentPage('memories'),
+            },
+          ].map((row) => (
+            <button
+              key={row.label}
+              type="button"
+              onClick={row.onClick}
+              className="w-full py-4 flex items-center justify-between gap-4 text-left hover:opacity-75 transition cursor-pointer"
+            >
+              <div>
+                <p className="text-sm font-agrandir-extrabold">{row.label}</p>
+                <p className="text-xs text-black/50 dark:text-white/50">{row.sub}</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-black/35 dark:text-white/35 shrink-0" />
+            </button>
+          ))}
+
+          {currentUser.role === 'super_admin' && (
+            <button
+              type="button"
+              onClick={() => setCurrentPage('admin')}
+              className="w-full py-4 flex items-center justify-between gap-4 text-left hover:opacity-75 transition cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5">
+                <Shield className="w-4 h-4" />
+                <div>
+                  <p className="text-sm font-agrandir-extrabold">Centre de contrôle Admin</p>
+                  <p className="text-xs text-black/50 dark:text-white/50">
+                    CMS, Media Library, Concerts, Souvenirs, Fidélité & Audit
                   </p>
                 </div>
-                <span className="font-agrandir-extrabold text-xs text-[#111111] dark:text-white tabular-nums shrink-0">
-                  {Number(ord.totalAmount || 0).toLocaleString('fr-FR')} FCFA
-                </span>
               </div>
-            ))}
-          </div>
-        )}
-      </BottomSheet>
+              <ChevronRight className="w-4 h-4 text-black/35 dark:text-white/35 shrink-0" />
+            </button>
+          )}
+        </section>
 
-      <BottomSheet
-        open={showDeleteConfirm}
-        onClose={() => !isDeletingAccount && setShowDeleteConfirm(false)}
-        title={isEn ? 'Delete account' : 'Supprimer mon compte'}
-      >
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 text-rose-600 dark:text-[#F29AA4]">
-            <div className="w-10 h-10 rounded-xl bg-rose-50 dark:bg-[#2A1417] border border-rose-200 dark:border-[#F29AA4]/30 flex items-center justify-center shrink-0">
-              <AlertTriangle className="w-5 h-5" strokeWidth={1.6} />
+        {/* PRÉFÉRENCES (THÈME + LANGUE + DÉCONNEXION) */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-agrandir-semibold flex items-center gap-2">
+              {theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              {isEn ? 'Theme' : 'Mode d’affichage'}
+            </span>
+            <div className="flex p-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08]">
+              <button
+                type="button"
+                onClick={() => setTheme('light')}
+                className={`px-3.5 py-1 rounded-full text-xs cursor-pointer ${
+                  theme === 'light'
+                    ? 'bg-white text-black font-agrandir-extrabold shadow-sm'
+                    : 'opacity-60'
+                }`}
+              >
+                {isEn ? 'Light' : 'Clair'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setTheme('dark')}
+                className={`px-3.5 py-1 rounded-full text-xs cursor-pointer ${
+                  theme === 'dark'
+                    ? 'bg-white text-black font-agrandir-extrabold shadow-sm'
+                    : 'opacity-60'
+                }`}
+              >
+                {isEn ? 'Dark' : 'Sombre'}
+              </button>
             </div>
-            <p className="text-xs font-mono truncate">{currentUser?.email}</p>
           </div>
 
-          <p className="text-xs sm:text-sm text-[#48484A] dark:text-[#C8C8C8] leading-relaxed">
-            {isEn
-              ? 'This permanently removes your account from this device.'
-              : 'Si tu supprimes ton compte, tu perdras l’accès à tes infos sur cet appareil.'}
-          </p>
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-agrandir-semibold flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              {isEn ? 'Language' : 'Langue'}
+            </span>
+            <div className="flex p-1 rounded-full bg-black/[0.05] dark:bg-white/[0.08]">
+              <button
+                type="button"
+                onClick={() => setLanguage('fr')}
+                className={`px-3.5 py-1 rounded-full text-xs cursor-pointer ${
+                  language === 'fr'
+                    ? 'bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold'
+                    : 'opacity-60'
+                }`}
+              >
+                FR
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage('en')}
+                className={`px-3.5 py-1 rounded-full text-xs cursor-pointer ${
+                  language === 'en'
+                    ? 'bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold'
+                    : 'opacity-60'
+                }`}
+              >
+                EN
+              </button>
+            </div>
+          </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-black/[0.08] dark:border-white/[0.12]">
+          <div className="pt-4">
             <button
               type="button"
-              onClick={() => setShowDeleteConfirm(false)}
-              disabled={isDeletingAccount}
-              className="min-h-[42px] px-4 rounded-full border border-black/15 dark:border-white/[0.16] text-xs font-agrandir-semibold text-[#48484A] dark:text-[#C8C8C8] cursor-pointer"
+              onClick={() => void handleLogout()}
+              className="min-h-[44px] px-5 rounded-full border border-black/15 dark:border-white/15 text-xs font-agrandir-semibold text-red-600 dark:text-red-400 inline-flex items-center gap-2 hover:bg-red-500/10 transition cursor-pointer"
             >
-              {t('profile.cancel')}
-            </button>
-            <button
-              type="button"
-              onClick={handleDeleteAccount}
-              disabled={isDeletingAccount}
-              className="min-h-[42px] px-4 rounded-full bg-[#B3122B] hover:bg-rose-700 text-white font-agrandir-extrabold text-xs transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center gap-2"
-            >
-              <Trash2 className="w-3.5 h-3.5" strokeWidth={1.6} />
-              <span>{isDeletingAccount ? t('profile.deleting') : t('profile.confirmDelete')}</span>
+              <LogOut className="w-4 h-4" />
+              <span>{isEn ? 'Sign out' : 'Se déconnecter'}</span>
             </button>
           </div>
-        </div>
-      </BottomSheet>
+        </section>
+      </div>
     </div>
   );
 };

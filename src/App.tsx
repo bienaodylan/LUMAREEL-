@@ -122,7 +122,7 @@ const MainApp: React.FC = () => {
 
   const isAdminOrScanner = currentPage === 'admin' || currentPage === 'gate_scanner';
   const isHomePage = currentPage === 'home' || currentPage === 'discover';
-  const isLandingPage = currentPage === 'home' || currentPage === 'splash';
+  const isHomeFeed = currentPage === 'home' || currentPage === 'splash';
   const isStandaloneRootTab =
     isHomePage ||
     currentPage === 'client_space' ||
@@ -139,7 +139,7 @@ const MainApp: React.FC = () => {
       {/* Indicateur hors-ligne discret pour la PWA */}
       <OfflineIndicator />
 
-      {/* Top Navbar (Masquée sur le scanner et la console admin) */}
+      {/* Top Navbar & Desktop Sidebar (Masqués uniquement sur le scanner et la console admin) */}
       {!isAdminOrScanner && (
         <>
           <Navbar />
@@ -152,7 +152,7 @@ const MainApp: React.FC = () => {
         className={`flex-1 w-full max-w-full min-w-0 relative z-10 ${
           !isAdminOrScanner
             ? `${
-                isLandingPage
+                isHomeFeed
                   ? ''
                   : isStandalone
                     ? 'pb-[calc(6.25rem+env(safe-area-inset-bottom,0px))]'
@@ -161,7 +161,7 @@ const MainApp: React.FC = () => {
                 hasVisibleMobileHeader && !isHomePage && currentPage !== 'splash'
                   ? 'pt-[calc(4.1rem+env(safe-area-inset-top,0px))] md:pt-0'
                   : ''
-              } ${isLandingPage ? '' : 'md:pb-12'} md:pl-[244px]`
+              } ${isHomeFeed ? '' : 'md:pb-12'} md:pl-[244px]`
             : ''
         }`}
         style={

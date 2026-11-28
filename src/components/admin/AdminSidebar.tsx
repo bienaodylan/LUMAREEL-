@@ -6,20 +6,32 @@ import {
   ShoppingBag, 
   Film, 
   Mail, 
-  Settings, 
   ExternalLink, 
-  Shield, 
   ArrowLeft,
   ChevronRight,
-  Sparkles,
   Printer,
   Crown,
-  Radio,
   Cpu,
-  Camera
+  Camera,
+  Sliders,
+  FolderOpen,
+  Images,
+  Gift
 } from 'lucide-react';
 
-export type AdminSection = 'overview' | 'workshop' | 'membership' | 'events' | 'orders' | 'media' | 'archives' | 'emails';
+export type AdminSection =
+  | 'overview'
+  | 'cms'
+  | 'media_library'
+  | 'events'
+  | 'souvenirs'
+  | 'loyalty'
+  | 'membership'
+  | 'workshop'
+  | 'orders'
+  | 'media'
+  | 'archives'
+  | 'emails';
 
 interface AdminSidebarProps {
   currentSection: AdminSection;
@@ -53,54 +65,42 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   onOpenBatchPrint,
 }) => {
   const { platformSettings } = useApp();
-  const navItems = [
+
+  const navGroups: {
+    heading: string;
+    items: { id: AdminSection; label: string; icon: React.ComponentType<{ className?: string }>; badge: string | null }[];
+  }[] = [
     {
-      id: 'overview' as AdminSection,
-      label: 'Tableau de bord',
-      icon: LayoutDashboard,
-      badge: null,
+      heading: 'PILOTAGE',
+      items: [
+        { id: 'overview', label: 'Tableau de bord', icon: LayoutDashboard, badge: null },
+        { id: 'events', label: 'Concerts & Billetterie', icon: Ticket, badge: eventsCount > 0 ? String(eventsCount) : null },
+        { id: 'orders', label: 'Commandes & Ventes', icon: ShoppingBag, badge: ordersCount > 0 ? String(ordersCount) : null },
+      ],
     },
     {
-      id: 'workshop' as AdminSection,
-      label: 'Cartes Club & Encodage Puces',
-      icon: Cpu,
-      badge: 'DESFire',
+      heading: 'CONTENU & MÉDIAS',
+      items: [
+        { id: 'cms', label: 'CMS · Accueil & Black Card', icon: Sliders, badge: 'LIVE' },
+        { id: 'media_library', label: 'Médiathèque Centrale', icon: FolderOpen, badge: null },
+        { id: 'souvenirs', label: 'Souvenirs & Collections', icon: Images, badge: null },
+        { id: 'archives', label: 'Archives & Vidéos', icon: Film, badge: archivesCount > 0 ? String(archivesCount) : null },
+      ],
     },
     {
-      id: 'membership' as AdminSection,
-      label: 'Adhésions & Membres',
-      icon: Crown,
-      badge: '100',
+      heading: 'CLUB & FIDÉLITÉ',
+      items: [
+        { id: 'loyalty', label: 'Gift Points & Parrainage', icon: Gift, badge: 'AUTO' },
+        { id: 'media', label: 'Club · Communauté & Backstage', icon: Camera, badge: pendingMediaCount > 0 ? `${pendingMediaCount}` : null },
+        { id: 'membership', label: 'Adhésions & Membres', icon: Crown, badge: null },
+        { id: 'workshop', label: 'Atelier Cartes & NFC', icon: Cpu, badge: 'DESFire' },
+      ],
     },
     {
-      id: 'events' as AdminSection,
-      label: 'Concerts & Événements',
-      icon: Ticket,
-      badge: eventsCount > 0 ? String(eventsCount) : null,
-    },
-    {
-      id: 'orders' as AdminSection,
-      label: 'Commandes & Ventes',
-      icon: ShoppingBag,
-      badge: ordersCount > 0 ? String(ordersCount) : null,
-    },
-    {
-      id: 'media' as AdminSection,
-      label: 'Club · Contenus & communauté',
-      icon: Camera,
-      badge: pendingMediaCount > 0 ? `${pendingMediaCount} à valider` : null,
-    },
-    {
-      id: 'archives' as AdminSection,
-      label: 'Archives & CMS Vidéo',
-      icon: Film,
-      badge: archivesCount > 0 ? String(archivesCount) : null,
-    },
-    {
-      id: 'emails' as AdminSection,
-      label: 'Journal Transactionnel',
-      icon: Mail,
-      badge: null,
+      heading: 'COMMUNICATION',
+      items: [
+        { id: 'emails', label: 'Journal Transactionnel', icon: Mail, badge: null },
+      ],
     },
   ];
 
@@ -120,9 +120,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
           isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        {/* Brand Header */}
-        <div>
-          <div className="p-5 border-b border-white/10 flex items-center justify-between gap-3">
+        {/* Brand Header & Scrollable Nav */}
+        <div className="flex-1 flex flex-col min-h-0">
+          <div className="p-5 border-b border-white/10 flex items-center justify-between gap-3 shrink-0">
             <div className="flex flex-col gap-1.5 min-w-0">
               <img
                 src="/assets/logo-lumareel.png"
@@ -141,7 +141,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
 
           {/* Quick Return when inside an Event */}
           {selectedEventId && (
-            <div className="p-3 mx-3 my-3 rounded-2xl bg-white/5 border border-white/10">
+            <div className="p-3 mx-3 my-3 rounded-2xl bg-white/5 border border-white/10 shrink-0">
               <div className="text-[9px] font-agrandir-semibold tracking-wider text-[#888] uppercase mb-1">
                 ÉVÉNEMENT ACTIF
               </div>
@@ -161,49 +161,53 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
             </div>
           )}
 
-          {/* Navigation Links Group */}
-          <nav className="p-3 space-y-1">
-            <div className="px-3 py-2 text-[10px] font-agrandir-semibold tracking-[0.2em] text-[#666] uppercase">
-              GESTION CENTRALE
-            </div>
+          {/* Navigation Links Groups */}
+          <nav className="flex-1 overflow-y-auto p-3 space-y-4">
+            {navGroups.map((group) => (
+              <div key={group.heading} className="space-y-1">
+                <div className="px-3 py-1 text-[9px] font-agrandir-semibold tracking-[0.2em] text-[#666] uppercase">
+                  {group.heading}
+                </div>
 
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentSection === item.id && !selectedEventId;
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = currentSection === item.id && !selectedEventId;
 
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    onClearSelectedEvent();
-                    onSelectSection(item.id);
-                    onCloseMobile();
-                  }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-agrandir-semibold transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-white text-black shadow-lg font-agrandir-extrabold'
-                      : 'text-neutral-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-black' : 'text-[#888]'}`} />
-                    <span>{item.label}</span>
-                  </div>
-
-                  {item.badge && (
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-agrandir-bold ${
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        onClearSelectedEvent();
+                        onSelectSection(item.id);
+                        onCloseMobile();
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-agrandir-semibold transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-black/10 text-black'
-                          : 'bg-white/10 text-white'
+                          ? 'bg-white text-black shadow-lg font-agrandir-extrabold'
+                          : 'text-neutral-400 hover:text-white hover:bg-white/5'
                       }`}
                     >
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-black' : 'text-[#888]'}`} />
+                        <span className="truncate">{item.label}</span>
+                      </div>
+
+                      {item.badge && (
+                        <span
+                          className={`text-[9px] px-2 py-0.5 rounded-full font-agrandir-bold shrink-0 ${
+                            isActive
+                              ? 'bg-black/10 text-black'
+                              : 'bg-white/10 text-white'
+                          }`}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </div>
 

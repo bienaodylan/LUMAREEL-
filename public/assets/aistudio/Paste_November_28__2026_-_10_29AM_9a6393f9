@@ -1,0 +1,952 @@
+MASTER PROMPT — LUMARÉEL
+
+Refonte de l’expérience, système de fidélité, Souvenirs, membres, authentification et administration
+
+Nous allons faire évoluer LUMARÉEL vers un véritable écosystème numérique événementiel. L’objectif n’est pas uniquement d’améliorer l’apparence du site, mais de repenser l’expérience utilisateur, les fonctionnalités, les automatisations, l’administration et l’architecture des différents modules afin que tout fonctionne ensemble de manière cohérente.
+
+Tu dois travailler directement sur le projet existant. Avant de modifier quoi que ce soit, analyse en profondeur l’architecture, les routes, les composants, les fonctionnalités, les données, le backend, Supabase, l’administration, les systèmes de paiement et les assets déjà présents.
+
+Ne crée pas une nouvelle application indépendante. Ne remplace pas aveuglément les systèmes existants. Réutilise, améliore et connecte ce qui existe déjà.
+
+⸻
+
+1. REFAIRE L’EXPÉRIENCE LUMARÉEL BLACK CARD
+
+La landing page LUMARÉEL Black Card a déjà été créée. Elle présente la carte physique, ses informations, ses avantages et les éléments nécessaires à sa commercialisation.
+
+Je veux maintenant une véritable refonte de l’expérience visuelle.
+
+La direction artistique doit s’inspirer de la manière dont Apple présente ses produits : présentation cinématographique, animations 3D, transitions, profondeur, mouvements de caméra simulés, animations contrôlées par le scroll, compositions minimalistes, typographie élégante et mise en scène maîtrisée.
+
+Il ne faut pas copier Apple. Il faut conserver l’identité LUMARÉEL tout en atteignant un niveau de qualité similaire dans la présentation du produit.
+
+La Black Card doit être au centre de l’expérience.
+
+Elle doit être traitée comme un objet physique premium que le visiteur découvre progressivement.
+
+Utiliser en priorité les véritables images et assets de la carte déjà présents dans le projet. Ne pas inventer une autre carte et ne pas remplacer le produit réel par une illustration générique.
+
+Si les assets le permettent, créer une véritable mise en scène 3D de la carte :
+
+* Rotation sur plusieurs axes.
+* Révélation du recto et du verso.
+* Perspective et profondeur.
+* Reflets et lumière.
+* Zoom progressif.
+* Flottement subtil.
+* Mouvement contrôlé par le scroll.
+* Transitions entre différents environnements.
+* Réactions au curseur sur desktop, si pertinent.
+
+L’expérience doit être élégante, précise et immersive.
+
+⸻
+
+2. MAINTENIR LA QUALITÉ VISUELLE JUSQU’À LA FIN
+
+Lors de la première présentation, le Hero était visuellement intéressant, tout comme la deuxième partie où la carte apparaissait, avec son retournement et son animation.
+
+Cependant, les sections suivantes perdaient progressivement leur qualité immersive. Elles se limitaient principalement à des fondus, à l’apparition de textes et à des transitions simples.
+
+Je ne veux pas que cela se reproduise.
+
+La qualité de la première impression doit être maintenue jusqu’à la fin de la landing page.
+
+Chaque partie doit disposer d’une véritable intention visuelle. Certaines sections peuvent utiliser des scènes immersives, d’autres de grandes photographies, des compositions plein écran, des animations de perspective, du sticky scrolling, des zooms, des transformations, des transitions de lumière ou des interactions liées au scroll.
+
+Ne te contente pas d’ajouter des fade-in et fade-out à des textes.
+
+Chaque animation doit servir la présentation du produit ou l’expérience utilisateur.
+
+Les transitions ne doivent pas simplement faire apparaître le contenu : elles doivent parfois transformer l’environnement, faire évoluer la composition ou prolonger la scène précédente.
+
+La carte peut rester le fil conducteur de l’expérience.
+
+Je veux que le visiteur ait l’impression de parcourir un univers continu, et non une succession de sections indépendantes.
+
+Ne crée pas de numérotation visible, de chapitres, de titres de scènes ou de labels artificiels tels que « 01 — Découverte », « 02 — Présentation », « 03 — Avantages ».
+
+Ces éléments sont uniquement des repères de conception internes. Ils ne doivent pas apparaître dans la page finale.
+
+Tu es libre de choisir les textes, les compositions, les transitions, les mises en scène et la manière de présenter le contenu, tant que les informations commerciales réelles sont respectées.
+
+⸻
+
+3. PRÉSENTER LES AVANTAGES DE LA BLACK CARD
+
+Les avantages actuels sont :
+
+* Accès prioritaire dans la file d’attente.
+* Place de parking réservée.
+* Placement VIP aux premiers rangs.
+* Rafraîchissement offert.
+* Accès aux préventes.
+* Accès aux Meet & Greet.
+* Réduction sur les articles de nos partenaires.
+
+Ces avantages doivent être présentés comme des expériences, et non comme une liste de fonctionnalités dans sept cartes identiques.
+
+Tu peux regrouper les avantages intelligemment, réécrire les textes, utiliser des photographies, des mises en scène et des transitions pour leur donner plus de valeur.
+
+La présentation doit rester simple, élégante et visuelle.
+
+Ne crée pas de faux avantages, de nouvelles promesses ou de conditions commerciales non confirmées.
+
+Les prix, les modalités de vente, les conditions d’accès et les informations officielles doivent être conservés à partir des données existantes.
+
+⸻
+
+4. CRÉER UN VÉRITABLE SYSTÈME GIFT POINTS
+
+Je veux que le système Gift Points fonctionne réellement et de manière autonome.
+
+Il ne doit pas dépendre de l’administration pour attribuer manuellement chaque récompense.
+
+Créer un véritable moteur de fidélité permettant aux membres de gagner, conserver, utiliser et suivre leurs points.
+
+Chaque membre doit pouvoir retrouver dans son espace :
+
+* Son solde de Gift Points.
+* Les points gagnés.
+* Les points utilisés.
+* L’historique des transactions.
+* Les raisons de chaque attribution.
+* Les récompenses disponibles.
+* Les conditions d’obtention des points.
+* Les récompenses qu’il peut débloquer.
+* Les éventuelles campagnes en cours.
+
+Les points doivent être attribués automatiquement lorsque les conditions d’une action sont réellement remplies.
+
+Le système doit être conçu pour pouvoir évoluer vers différentes sources de récompenses : parrainage validé, opérations de fidélité, campagnes spéciales, actions éligibles ou autres mécanismes qui pourront être configurés ultérieurement.
+
+Ne définis pas arbitrairement des montants ou des récompenses qui n’ont pas été approuvés.
+
+Architecture des Gift Points
+
+Créer un système de transactions fiables.
+
+Chaque transaction doit contenir au minimum :
+
+* Un identifiant unique.
+* L’utilisateur concerné.
+* Le type de transaction.
+* Le nombre de points.
+* La raison de l’opération.
+* La date.
+* La référence de l’événement déclencheur.
+* Le statut.
+* Une protection contre les doublons.
+
+Le solde doit être fiable et reconstituable à partir des transactions.
+
+Ne te contente pas d’enregistrer un nombre de points dans le profil et de le modifier librement depuis le front-end.
+
+Les attributions, déductions et utilisations de points doivent être validées côté backend.
+
+Les transactions doivent être atomiques.
+
+Empêcher les doubles attributions.
+
+Empêcher les utilisations de points non autorisées.
+
+Empêcher un solde négatif, sauf si une règle spécifique est explicitement prévue.
+
+Toutes les opérations doivent être traçables.
+
+⸻
+
+5. CRÉER UN SYSTÈME DE PARRAINAGE AUTOMATIQUE
+
+Le parrainage doit fonctionner sans intervention manuelle de l’administration dans les opérations normales.
+
+Chaque membre doit disposer d’un lien ou d’un code de parrainage unique.
+
+Le système doit pouvoir :
+
+* Générer automatiquement un code unique.
+* Générer un lien de parrainage.
+* Permettre de copier et partager le lien.
+* Identifier les nouveaux utilisateurs qui arrivent via ce lien.
+* Associer le filleul au parrain.
+* Suivre le statut du parrainage.
+* Vérifier les conditions de validation.
+* Attribuer automatiquement les Gift Points lorsque les conditions sont remplies.
+* Informer le parrain lorsque son parrainage est validé.
+* Informer le filleul lorsqu’il bénéficie d’une récompense.
+* Afficher l’historique des parrainages.
+* Afficher le nombre de personnes invitées.
+* Afficher les parrainages en attente, validés ou rejetés, selon les règles du système.
+
+Ne récompense pas un simple clic sur un lien.
+
+Le système doit définir un événement réel de validation, selon les règles configurées, avant d’attribuer une récompense.
+
+Prévoir les protections contre :
+
+* L’auto-parrainage.
+* Les comptes frauduleux.
+* Les inscriptions répétées.
+* Les récompenses dupliquées.
+* Les abus de campagnes.
+* Les tentatives de manipulation du système.
+
+L’administration doit pouvoir configurer les conditions, les montants de points, les limites, les campagnes, les périodes et les récompenses.
+
+Mais elle ne doit pas avoir à valider manuellement chaque parrainage ou à ajouter les points à chaque utilisateur.
+
+Le système doit exécuter automatiquement les règles.
+
+⸻
+
+6. REPENSER SOUVENIRS — UNE EXPÉRIENCE DE DÉCOUVERTE À LA PINTEREST
+
+Je veux que la partie Souvenirs devienne un véritable univers de découverte visuelle.
+
+Elle ne doit pas ressembler à une simple galerie photo ou à un catalogue d’événements.
+
+Inspire-toi de l’expérience Pinterest : la découverte, la fluidité de navigation, les images, les collections, le plaisir de parcourir un univers visuel et la possibilité d’enregistrer ce que l’on aime.
+
+Conserve l’identité LUMARÉEL. Ne copie pas Pinterest.
+
+Souvenirs doit permettre de découvrir
+
+* Les concerts.
+* Les événements passés.
+* Les artistes.
+* Les photographies.
+* Les moments marquants.
+* Les coulisses.
+* Les performances.
+* Les albums.
+* Les collections.
+* Les récapitulatifs d’événements.
+* Les contenus visuels mis en avant par LUMARÉEL.
+
+Design de Souvenirs
+
+Créer une expérience visuelle avec une grille de type masonry, dans laquelle les images peuvent avoir différentes proportions.
+
+Les photographies doivent occuper une place centrale.
+
+Utiliser :
+
+* Une grille visuelle dynamique.
+* Des images de différentes dimensions.
+* Un chargement progressif.
+* Une navigation fluide.
+* Des interactions discrètes.
+* Des animations au survol.
+* Des compositions sans bordures inutiles.
+* Une navigation visuelle.
+* Une recherche ou des filtres si cela améliore réellement la découverte.
+* Des collections éditoriales.
+* Des albums associés aux concerts.
+
+Éviter de transformer chaque photo en carte UI avec un titre, une description et plusieurs boutons.
+
+L’image doit rester au centre.
+
+Navigation
+
+Créer une navigation simple et intuitive pour explorer les contenus.
+
+Elle pourra notamment permettre de découvrir :
+
+* Tout.
+* Concerts.
+* Artistes.
+* Collections.
+* Mes collections.
+
+Adapte cette navigation à l’architecture réelle du projet et évite d’afficher inutilement tous les filtres en permanence.
+
+Visualisation des souvenirs
+
+Lorsqu’un utilisateur ouvre une image, créer une expérience de consultation immersive.
+
+Permettre, selon le contenu disponible :
+
+* L’affichage de l’image en grand.
+* La navigation entre images.
+* L’accès aux informations du concert.
+* L’identification de l’artiste.
+* La date et le lieu.
+* L’accès aux autres images du même événement.
+* L’enregistrement du souvenir.
+* L’accès à une collection associée.
+
+L’utilisateur doit pouvoir explorer un événement puis découvrir naturellement d’autres contenus LUMARÉEL.
+
+Collections
+
+Créer un véritable système de collections.
+
+Les collections doivent pouvoir être créées et gérées depuis l’administration.
+
+Exemples de collections éditoriales possibles :
+
+* Nuits mémorables.
+* Au plus près de la scène.
+* Backstage.
+* Moments d’exception.
+* Performances.
+* Saisons LUMARÉEL.
+
+Ces exemples ne doivent pas être créés artificiellement sans contenu réel.
+
+Les membres pourront, selon le système implémenté, enregistrer des souvenirs dans leurs collections personnelles, créer des collections privées et retrouver facilement les contenus sauvegardés.
+
+Toutes les interactions doivent être réelles et persistantes.
+
+⸻
+
+7. CONNECTER L’ENSEMBLE DE L’ESPACE MEMBRE
+
+Créer une expérience cohérente dans laquelle chaque membre retrouve toutes ses activités LUMARÉEL au même endroit.
+
+L’espace membre doit centraliser les éléments pertinents :
+
+* Profil.
+* Informations personnelles.
+* Black Card.
+* Commandes.
+* Billets.
+* Historique des concerts.
+* Souvenirs enregistrés.
+* Collections.
+* Gift Points.
+* Parrainage.
+* Récompenses.
+* Notifications.
+* Paramètres.
+
+L’utilisateur ne doit pas avoir l’impression de naviguer dans plusieurs systèmes séparés.
+
+Les données doivent être synchronisées avec le backend.
+
+Exemples :
+
+Lorsqu’une commande est confirmée, l’espace membre doit être mis à jour.
+
+Lorsqu’une Black Card est activée selon les conditions réelles, le profil doit refléter ce statut.
+
+Lorsqu’un utilisateur gagne des Gift Points, son solde et son historique doivent être actualisés.
+
+Lorsqu’un parrainage est validé, les deux profils doivent refléter les conséquences prévues.
+
+Lorsqu’un membre enregistre un souvenir, celui-ci doit apparaître dans ses collections.
+
+Lorsqu’un membre achète un billet, celui-ci doit apparaître dans son espace selon le système de billetterie existant.
+
+Toutes ces opérations doivent fonctionner réellement, avec des données persistantes.
+
+⸻
+
+8. INSCRIPTION, CONNEXION ET GOOGLE AUTHENTICATION
+
+Je veux un véritable système d’authentification.
+
+Si Supabase Auth est déjà utilisé, conserver et améliorer cette intégration.
+
+Mettre en place Google OAuth avec Google Authentication, dans la mesure où les identifiants et configurations nécessaires sont disponibles.
+
+Inscription
+
+L’inscription doit permettre de créer un véritable compte.
+
+Elle doit correctement :
+
+* Créer l’utilisateur.
+* Créer ou synchroniser son profil.
+* Gérer les informations nécessaires.
+* Enregistrer les éventuelles informations de parrainage.
+* Préparer son espace membre.
+* Gérer les erreurs et les comptes existants.
+
+Connexion
+
+La connexion doit être réellement opérationnelle.
+
+Prévoir :
+
+* Google Sign-In.
+* Les méthodes de connexion déjà prises en charge.
+* Gestion de session.
+* Persistance de session.
+* Déconnexion.
+* Redirection.
+* Protection des routes privées.
+* Gestion des erreurs.
+* Synchronisation du profil.
+
+Ne crée pas de bouton Google fictif.
+
+Ne simule pas l’authentification.
+
+Ne stocke pas les mots de passe manuellement.
+
+Utilise les mécanismes sécurisés du système d’authentification existant.
+
+Si la configuration Google Cloud OAuth nécessite des actions manuelles, identifie précisément les éléments manquants, les URL de redirection et les paramètres à renseigner.
+
+Ne prétends pas que l’authentification est opérationnelle tant que le flux réel n’a pas été testé.
+
+Sécurité
+
+Un membre ne doit jamais pouvoir consulter ou modifier les données d’un autre membre.
+
+Mettre en place les permissions, les protections backend et les politiques RLS nécessaires.
+
+Les pages privées doivent être réellement protégées, pas simplement cachées dans le front-end.
+
+⸻
+
+9. ADMINISTRATION — UN VÉRITABLE CENTRE DE CONTRÔLE
+
+L’administration doit pouvoir gérer l’ensemble des contenus et fonctionnalités visibles sur le front-end.
+
+Je ne veux plus d’une situation où une image, un texte, une bannière, un avantage, un concert ou une collection est codé directement dans une page et ne peut pas être modifié facilement depuis l’administration.
+
+Tout ce qui est destiné à être administrable doit être relié à un véritable système de gestion.
+
+Contenus
+
+L’administration doit permettre de gérer :
+
+* Homepage.
+* Hero.
+* Images.
+* Textes.
+* Bannières.
+* Contenus promotionnels.
+* Pages.
+* Visuels.
+* CTA.
+* Sections de présentation.
+
+Concerts
+
+L’administration doit pouvoir gérer :
+
+* Les événements.
+* Les artistes.
+* Les affiches.
+* Les dates.
+* Les lieux.
+* Les statuts.
+* Les médias.
+* Les contenus associés.
+* La publication.
+* L’archivage.
+
+Souvenirs
+
+L’administration doit pouvoir gérer :
+
+* Les photographies.
+* Les vidéos si nécessaire.
+* Les albums.
+* Les collections.
+* Les couvertures.
+* Les associations entre images et concerts.
+* Les artistes.
+* L’ordre des contenus.
+* Les publications.
+* Les contenus mis en avant.
+
+Black Card
+
+L’administration doit pouvoir gérer :
+
+* Les visuels.
+* Les images recto et verso.
+* Les textes.
+* Les avantages.
+* Les prix.
+* Les conditions.
+* Les CTA.
+* Les paramètres de vente.
+* La disponibilité.
+
+Membres et fidélité
+
+L’administration doit pouvoir gérer et consulter :
+
+* Les membres.
+* Les profils.
+* Les Black Cards.
+* Les Gift Points.
+* Les transactions.
+* Les récompenses.
+* Les parrainages.
+* Les campagnes.
+* Les règles.
+* Les limites.
+* Les statistiques.
+* Les anomalies éventuelles.
+
+⸻
+
+10. CRÉER UNE VÉRITABLE MEDIA LIBRARY
+
+Mettre en place une bibliothèque centralisée de médias, reliée à l’administration.
+
+Elle doit permettre :
+
+* L’importation d’images.
+* L’importation de vidéos si nécessaire.
+* La prévisualisation.
+* L’organisation des fichiers.
+* La recherche.
+* L’identification.
+* La réutilisation.
+* L’association aux concerts.
+* L’association aux collections.
+* L’association aux pages.
+* Le remplacement des images.
+* La gestion des covers.
+* La gestion des formats.
+* La gestion des fichiers inutilisés.
+
+Les images utilisées sur le front-end doivent être reliées à leur source administrable lorsque cela est prévu.
+
+Ne multiplie pas les URLs d’images hardcodées.
+
+Ne crée pas un système où les images doivent être modifiées directement dans le code pour chaque changement de contenu.
+
+Connexion front-end et administration
+
+Chaque contenu visible doit avoir une source identifiable.
+
+Exemples :
+
+* Hero homepage → Homepage / Hero.
+* Affiche → Concert / Médias.
+* Galerie → Souvenirs / Concert.
+* Cover de collection → Collections / Cover.
+* Image Black Card → Black Card / Assets.
+* Avantages → Black Card / Avantages.
+* Bannières → CMS / Bannières.
+
+Lorsqu’un administrateur modifie un contenu, le front-end doit refléter cette modification selon les mécanismes de cache et de publication du système.
+
+⸻
+
+11. ORGANISER L’ADMINISTRATION
+
+Examiner l’administration actuelle et l’améliorer sans supprimer les modules fonctionnels.
+
+Créer une organisation cohérente.
+
+Structure de référence possible :
+
+* Dashboard.
+* Contenu.
+* Homepage.
+* Pages.
+* Media Library.
+* Événements.
+* Concerts.
+* Artistes.
+* Souvenirs.
+* Albums.
+* Collections.
+* Club & Membres.
+* Black Card.
+* Gift Points.
+* Parrainage.
+* Récompenses.
+* Commandes.
+* Paiements.
+* Notifications.
+* Configuration.
+* Permissions.
+* Journal d’audit.
+
+Cette structure doit être adaptée à ce qui existe réellement dans le projet.
+
+Ne crée pas des menus vides.
+
+Ne crée pas plusieurs modules qui remplissent la même fonction.
+
+Ne complexifie pas l’administration inutilement.
+
+⸻
+
+12. BACKEND ET ARCHITECTURE
+
+Si Supabase est déjà utilisé, conserver Supabase comme backend principal et l’étendre proprement.
+
+Connecter réellement les systèmes suivants :
+
+* Authentification.
+* Utilisateurs.
+* Profils.
+* Permissions.
+* Black Cards.
+* Commandes.
+* Paiements.
+* Concerts.
+* Artistes.
+* Médias.
+* Souvenirs.
+* Albums.
+* Collections.
+* Gift Points.
+* Transactions.
+* Parrainages.
+* Récompenses.
+* Notifications.
+* CMS.
+
+Créer les relations nécessaires.
+
+Éviter les systèmes isolés.
+
+Éviter les données de démonstration dans les fonctionnalités réelles.
+
+Éviter les JSON locaux comme source de vérité pour les fonctionnalités destinées à fonctionner en production.
+
+Utiliser des migrations propres et compatibles avec les données existantes.
+
+Mettre en place les politiques RLS adaptées.
+
+Les opérations sensibles doivent être exécutées côté backend.
+
+Ne jamais exposer les clés secrètes.
+
+Ne jamais faire confiance aux montants, points, récompenses, statuts ou validations envoyés par le navigateur.
+
+⸻
+
+13. AUTOMATISATIONS
+
+Le système doit pouvoir déclencher des actions automatiquement à partir d’événements réels.
+
+Exemples :
+
+* Inscription → création du profil.
+* Inscription par lien de parrainage → association au parrain.
+* Parrainage validé → attribution automatique des points.
+* Récompense disponible → notification.
+* Points utilisés → mise à jour du solde.
+* Black Card achetée → mise à jour du compte.
+* Concert publié → mise à jour des sections concernées.
+* Souvenir publié → apparition dans l’univers de découverte.
+* Collection publiée → disponibilité sur le front-end.
+* Campagne terminée → désactivation de ses règles.
+
+Les automatisations doivent être fiables.
+
+Utiliser des fonctions backend, des webhooks sécurisés ou des tâches planifiées lorsque cela est approprié.
+
+Prévoir les erreurs, les retries et la prévention des doublons.
+
+Ne déclenche jamais une récompense à partir d’un événement non confirmé.
+
+⸻
+
+14. DESIGN GLOBAL ET UX
+
+L’ensemble du site doit rester cohérent.
+
+Je veux un design premium, mais simple à utiliser.
+
+Éviter :
+
+* Les dashboards surchargés.
+* Les cartes UI répétitives.
+* Les textes trop longs.
+* Les menus inutiles.
+* Les animations décoratives sans raison.
+* Les bordures partout.
+* Les arrondis excessifs.
+* Les sections qui se ressemblent toutes.
+* Les interfaces qui ressemblent à des templates génériques.
+
+Le design doit laisser respirer les contenus.
+
+Le noir et le blanc doivent être utilisés de manière complémentaire.
+
+Les images doivent occuper leur place.
+
+La typographie doit être expressive, sans être excessive.
+
+L’expérience mobile doit être pensée spécifiquement pour les smartphones.
+
+La complexité fonctionnelle doit rester invisible pour l’utilisateur.
+
+⸻
+
+15. PROTECTION DU PROJET EXISTANT
+
+Cette évolution ne doit pas provoquer de régression.
+
+Avant toute intervention, inspecter les systèmes existants.
+
+Conserver :
+
+* La billetterie.
+* Les commandes.
+* Les paiements.
+* Les webhooks.
+* Les fonctionnalités administratives.
+* Les routes.
+* Les intégrations.
+* Les données existantes.
+* Les fonctionnalités opérationnelles.
+
+Ne modifie pas les systèmes qui ne sont pas concernés par cette intervention.
+
+Ne supprime pas des composants partagés sans analyser leur impact.
+
+Ne remplace pas des fonctionnalités réelles par des maquettes.
+
+Ne supprime pas de données.
+
+Ne réalise aucune migration destructive.
+
+Si une migration est nécessaire, la concevoir de manière compatible et sécurisée.
+
+⸻
+
+16. PLAN DE TRAVAIL
+
+Tu dois réaliser directement les modifications dans le projet.
+
+Ne te limite pas à fournir un plan, une maquette, un audit ou des recommandations.
+
+Étape 1 — Audit
+
+Inspecter l’ensemble du projet.
+
+Identifier les routes, composants, fonctionnalités, systèmes, tables, assets, intégrations et administration.
+
+Comprendre les relations existantes.
+
+Étape 2 — Architecture
+
+Définir comment les nouveaux systèmes s’intègrent à l’architecture actuelle.
+
+Éviter les duplications.
+
+Prévoir les relations, permissions, automatisations et sources de vérité.
+
+Étape 3 — Black Card
+
+Refondre l’expérience visuelle.
+
+Créer une présentation immersive.
+
+Implémenter les animations, transitions, 3D et interactions.
+
+Maintenir la qualité visuelle jusqu’à la fin de la page.
+
+Étape 4 — Souvenirs
+
+Créer l’expérience de découverte inspirée de Pinterest.
+
+Mettre en place la grille visuelle.
+
+Connecter les contenus aux concerts.
+
+Créer le système de collections.
+
+Implémenter les interactions réelles.
+
+Étape 5 — Gift Points
+
+Créer le système transactionnel.
+
+Mettre en place les règles.
+
+Créer l’attribution automatique.
+
+Créer l’historique.
+
+Sécuriser les opérations.
+
+Étape 6 — Parrainage
+
+Créer les codes et liens uniques.
+
+Associer les filleuls.
+
+Mettre en place les validations.
+
+Attribuer les récompenses automatiquement.
+
+Prévenir les abus.
+
+Étape 7 — Authentification
+
+Connecter les inscriptions et connexions.
+
+Configurer Google OAuth lorsque les accès nécessaires sont disponibles.
+
+Créer les profils.
+
+Protéger les routes.
+
+Tester les sessions.
+
+Étape 8 — Administration
+
+Connecter les contenus.
+
+Créer ou compléter la Media Library.
+
+Relier les modules au front-end.
+
+Intégrer la gestion des membres, points, parrainages et récompenses.
+
+Étape 9 — Automatisations
+
+Créer les déclencheurs backend.
+
+Connecter les événements.
+
+Prévoir les notifications.
+
+Sécuriser les traitements.
+
+Étape 10 — Tests
+
+Tester les parcours utilisateurs.
+
+Tester les données.
+
+Tester les points.
+
+Tester les parrainages.
+
+Tester les collections.
+
+Tester l’authentification.
+
+Tester les permissions.
+
+Tester les modifications administratives.
+
+Tester le mobile.
+
+Corriger les erreurs.
+
+⸻
+
+17. CONDITIONS DE VALIDATION
+
+Le travail n’est pas terminé lorsqu’une interface paraît correcte.
+
+Il est terminé lorsque les fonctionnalités sont réellement opérationnelles.
+
+Black Card
+
+* Design premium.
+* Narration immersive.
+* Animations cohérentes.
+* 3D fonctionnelle.
+* Transitions maîtrisées.
+* Qualité maintenue jusqu’à la fin.
+* CTA opérationnels.
+* Informations commerciales correctes.
+
+Souvenirs
+
+* Grille de découverte fonctionnelle.
+* Images réelles.
+* Concerts reliés.
+* Collections fonctionnelles.
+* Visualisation immersive.
+* Interactions persistantes.
+* Gestion administrative.
+
+Gift Points
+
+* Attribution automatique.
+* Solde fiable.
+* Transactions persistantes.
+* Historique.
+* Récompenses.
+* Sécurité.
+* Protection contre les doublons.
+
+Parrainage
+
+* Codes uniques.
+* Liens fonctionnels.
+* Association des filleuls.
+* Validation réelle.
+* Récompenses automatiques.
+* Protection contre les abus.
+
+Authentification
+
+* Inscription réelle.
+* Connexion réelle.
+* Google OAuth opérationnel après configuration.
+* Session persistante.
+* Protection des pages privées.
+* Permissions.
+
+Administration
+
+* Gestion des contenus.
+* Gestion des médias.
+* Gestion des concerts.
+* Gestion des Souvenirs.
+* Gestion des collections.
+* Gestion des membres.
+* Gestion des points.
+* Gestion des parrainages.
+* Gestion des récompenses.
+* Gestion des campagnes.
+
+Backend
+
+* Données réelles.
+* Relations cohérentes.
+* Permissions.
+* RLS.
+* Transactions sécurisées.
+* Automatisations fiables.
+* Aucune fonctionnalité décorative.
+
+⸻
+
+DIRECTIVE FINALE
+
+LUMARÉEL doit devenir un véritable écosystème événementiel numérique.
+
+La Black Card doit être présentée comme un produit premium.
+
+Souvenirs doit devenir un univers de découverte visuelle.
+
+Les Gift Points doivent fonctionner comme un véritable système de fidélité automatisé.
+
+Le parrainage doit fonctionner sans intervention manuelle permanente.
+
+Les membres doivent disposer d’un espace unifié.
+
+L’authentification doit être réelle et sécurisée.
+
+L’administration doit contrôler les contenus et les règles.
+
+Le front-end doit être directement connecté aux systèmes de gestion.
+
+Les automatisations doivent prendre en charge les opérations répétitives.
+
+Ne crée pas une simple démonstration.
+
+Ne crée pas des fonctionnalités visuelles sans backend.
+
+Ne crée pas de systèmes isolés.
+
+Ne complexifie pas inutilement l’expérience utilisateur.
+
+Analyse le projet, prends les décisions nécessaires, réutilise intelligemment les systèmes existants et implémente les évolutions de manière cohérente.
+
+L’objectif est de construire un LUMARÉEL réellement opérationnel, élégant, évolutif, connecté et prêt à être utilisé.
+
+Le design doit impressionner. L’expérience doit être fluide. Le système doit fonctionner. Tout doit être connecté.

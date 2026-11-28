@@ -25,6 +25,14 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
     switch (currentSection) {
       case 'overview':
         return 'Tableau de bord';
+      case 'cms':
+        return 'CMS · Accueil & LUMARÉEL Black Card';
+      case 'media_library':
+        return 'Médiathèque Centrale';
+      case 'souvenirs':
+        return 'Souvenirs & Collections Éditoriales';
+      case 'loyalty':
+        return 'Gift Points, Parrainage & Audit';
       case 'workshop':
         return 'Cartes Club & Encodage Puces (NFC/RFID)';
       case 'membership':

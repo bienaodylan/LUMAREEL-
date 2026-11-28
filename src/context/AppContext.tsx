@@ -3,6 +3,12 @@ import { User, ConcertEvent, Order, Ticket, ArchiveProduction, PlatformSettings 
 import { INITIAL_EVENTS, INITIAL_ORDERS, INITIAL_ARCHIVES } from '../data/initialData';
 import { convertToYouTubeEmbed } from '../utils/mediaUtils';
 import { supabase, isSupabaseConfigured, configureSupabase, testSupabaseConnection } from '../lib/supabaseClient';
+import {
+  apiFetchJson,
+  captureReferralCodeFromUrl,
+  clearStoredPendingReferralCode,
+  getStoredPendingReferralCode,
+} from '../lib/apiClient';
 import { SupportedLanguage, getTranslation } from '../i18n/translations';
 
 export type AppTheme = 'light' | 'dark';
@@ -467,56 +473,135 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { ...saved, role: String(saved.email || '').toLowerCase() === 'bienaodylan428@gmail.com' ? 'super_admin' : 'customer' };
   });
 
+  // Capture ?ref=CODE immediately on mount so it survives OAuth redirects & navigation
+  useEffect(() => {
+    captureReferralCodeFromUrl();
+  }, []);
+
   useEffect(() => {
     if (!isSupabaseConfigured) return;
     let active = true;
+
+    const applyPendingReferral = async () => {
+      if (typeof window === 'undefined') return;
+      const referralCode = captureReferralCodeFromUrl() || getStoredPendingReferralCode();
+      if (!referralCode) return;
+
+      try {
+        await supabase.rpc('club_apply_referral_code', { p_code: referralCode });
+      } catch {
+        // Ignore if already applied or RPC unavailable
+      }
+      try {
+        await apiFetchJson('/api/member/referrals/apply', {
+          method: 'POST',
+          body: JSON.stringify({ code: referralCode }),
+        });
+      } catch {
+        // Ignore self-referral or already applied
+      }
+      clearStoredPendingReferralCode();
+      try {
+        const cleanUrl = new URL(window.location.href);
+        if (cleanUrl.searchParams.has('ref') || cleanUrl.searchParams.has('referral')) {
+          cleanUrl.searchParams.delete('ref');
+          cleanUrl.searchParams.delete('referral');
+          window.history.replaceState(window.history.state, '', cleanUrl.toString());
+        }
+      } catch {
+        // ignore history error
+      }
+    };
+
     const syncUser = async (userId?: string) => {
-      if (!userId) return; // Ne pas effacer la session locale si Supabase est inactif
+      if (!userId) return;
       try {
         const { data: authData } = await supabase.auth.getUser();
         const authUser = authData.user;
         if (!authUser || authUser.id !== userId) return;
-        if (typeof window !== 'undefined') {
-          const referralCode = new URLSearchParams(window.location.search).get('ref');
-          if (referralCode) {
-            try { await supabase.rpc('club_apply_referral_code', { p_code: referralCode }); } catch { /* ignore invalid or already-used referral links */ }
-            const cleanUrl = new URL(window.location.href);
-            cleanUrl.searchParams.delete('ref');
-            window.history.replaceState(window.history.state, '', cleanUrl.toString());
-          }
-        }
+
         const email = (authUser.email || '').toLowerCase();
         const isSuperAdmin = email === 'bienaodylan428@gmail.com';
-        const { data: profile } = await supabase.from('users').select('id,email,name,role,email_verified').eq('email', email).maybeSingle();
+        const { data: profile } = await supabase
+          .from('users')
+          .select('id,email,name,role,email_verified')
+          .eq('email', email)
+          .maybeSingle();
         if (!active) return;
-        const role = isSuperAdmin ? 'super_admin' : (profile?.role || 'customer');
+
+        const role = isSuperAdmin ? 'super_admin' : profile?.role || 'customer';
+        const displayName =
+          profile?.name ||
+          (authUser.user_metadata?.full_name as string) ||
+          (authUser.user_metadata?.name as string) ||
+          (isSuperAdmin ? 'Dylan B.' : email.split('@')[0]);
+
         const user = {
           id: authUser.id,
           email,
-          name: profile?.name || authUser.user_metadata?.name || (isSuperAdmin ? 'Dylan B.' : email.split('@')[0]),
+          name: displayName,
           role,
           emailVerified: Boolean(authUser.email_confirmed_at) || isSuperAdmin,
           createdAt: authUser.created_at,
         } as User;
+
         setCurrentUserState(user);
         writeLocal(STORAGE_KEYS.CURRENT_USER, user);
+
+        // Sync member profile & apply any captured referral code (email signup OR Google OAuth)
+        void apiFetchJson('/api/member/profile').catch(() => {});
+        void applyPendingReferral();
       } catch (err) {
         console.warn('[Auth Sync]', err);
       }
     };
+
     const clearStaleLocalUser = () => {
       setCurrentUserState(null);
-      try { localStorage.removeItem(STORAGE_KEYS.CURRENT_USER); } catch { /* ignore */ }
+      try {
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+      } catch {
+        /* ignore */
+      }
     };
+
+    // Listen for OAuth popup callback bridge messages (/auth/callback)
+    const onOAuthMessage = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      const data = event.data;
+      if (!data || data.type !== 'LUMAREEL_SUPABASE_OAUTH_CALLBACK') return;
+      if (data.error) {
+        showToast(data.errorDescription || data.error, 'error');
+        return;
+      }
+      if (data.code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(String(data.code));
+        if (error) showToast(error.message, 'error');
+      } else if (data.accessToken && data.refreshToken) {
+        const { error } = await supabase.auth.setSession({
+          access_token: String(data.accessToken),
+          refresh_token: String(data.refreshToken),
+        });
+        if (error) showToast(error.message, 'error');
+      }
+    };
+    window.addEventListener('message', onOAuthMessage);
+
     supabase.auth.getSession().then(({ data }) => {
       if (data.session?.user?.id) void syncUser(data.session.user.id);
       else if (active) clearStaleLocalUser();
     });
+
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user?.id) void syncUser(session.user.id);
       else if (active) clearStaleLocalUser();
     });
-    return () => { active = false; listener.subscription.unsubscribe(); };
+
+    return () => {
+      active = false;
+      window.removeEventListener('message', onOAuthMessage);
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   const setCurrentUser = (user: User | null) => {

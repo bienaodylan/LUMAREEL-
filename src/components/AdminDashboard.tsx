@@ -12,7 +12,12 @@ import { AdminEmailsView } from './admin/views/AdminEmailsView';
 import { AdminMembershipView } from './admin/views/AdminMembershipView';
 import { AdminWorkshopView } from './admin/views/AdminWorkshopView';
 import { ClubAdminView } from './admin/views/ClubAdminView';
+import { AdminCmsView } from './admin/views/AdminCmsView';
+import { AdminMediaLibraryView } from './admin/views/AdminMediaLibraryView';
+import { AdminSouvenirsCmsView } from './admin/views/AdminSouvenirsCmsView';
+import { AdminLoyaltyView } from './admin/views/AdminLoyaltyView';
 import { TicketBatchPrintModal } from './TicketBatchPrintModal';
+import { getAuthHeaders } from '../lib/apiClient';
 import { Plus, X } from 'lucide-react';
 
 const AdminDashboardContent: React.FC = () => {
@@ -55,10 +60,11 @@ const AdminDashboardContent: React.FC = () => {
   // Fetch admin stats, orders, and emails
   const fetchAdminData = async () => {
     try {
+      const headers = await getAuthHeaders();
       const [resStats, resOrders, resEmails] = await Promise.all([
-        fetch('/api/admin/overview'),
-        fetch('/api/admin/orders'),
-        fetch('/api/admin/emails'),
+        fetch('/api/admin/overview', { headers }),
+        fetch('/api/admin/orders', { headers }),
+        fetch('/api/admin/emails', { headers }),
       ]);
 
       const [dataStats, dataOrders, dataEmails] = await Promise.all([
@@ -256,6 +262,22 @@ const AdminDashboardContent: React.FC = () => {
                   onNavigateSection={(sec) => setCurrentSection(sec)}
                   onCreateEvent={() => setIsCreateModalOpen(true)}
                 />
+              )}
+
+              {currentSection === 'cms' && (
+                <AdminCmsView showToast={showToast} />
+              )}
+
+              {currentSection === 'media_library' && (
+                <AdminMediaLibraryView showToast={showToast} />
+              )}
+
+              {currentSection === 'souvenirs' && (
+                <AdminSouvenirsCmsView showToast={showToast} />
+              )}
+
+              {currentSection === 'loyalty' && (
+                <AdminLoyaltyView showToast={showToast} />
               )}
 
               {currentSection === 'workshop' && (

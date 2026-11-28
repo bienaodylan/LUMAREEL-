@@ -10,6 +10,7 @@ import { db } from './src/server/db';
 import { membershipService } from './src/server/membershipService';
 import { paymetrustService, PayMeTrustChannel } from './src/server/paymetrustService';
 import { lumareelTvService } from './src/server/tvService';
+import { ecosystemService } from './src/server/ecosystemService';
 import {
   getResendFromAddress,
   isResendConfigured,
@@ -40,25 +41,36 @@ async function requireMemberSession(req: Request, res: Response) {
   return {user:data.user,client};
 }
 async function requireMemberAdmin(req: Request, res: Response, roles: string[] = ['super_admin']) {
+  const isProd = process.env.NODE_ENV === 'production';
   const bearer = String(req.headers.authorization || '');
   const token = bearer.startsWith('Bearer ') ? bearer.slice(7) : '';
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
 
+  // Optional server-to-server admin key when configured in env
+  const configuredAdminKey = process.env.ADMIN_API_KEY;
+  const providedAdminKey = String(req.headers['x-admin-key'] || '');
+  if (configuredAdminKey && providedAdminKey && providedAdminKey.length === configuredAdminKey.length) {
+    if (crypto.timingSafeEqual(Buffer.from(providedAdminKey), Buffer.from(configuredAdminKey))) {
+      return { user: { id: 'usr_admin_key', email: 'admin@lumareel.com' }, client: null as any };
+    }
+  }
+
   if (!token || !url || !key) {
-    // Local / Dev Studio fallback for verified master admin
-    return { user: { id: 'usr_admin_master', email: 'bienaodylan428@gmail.com' }, client: null as any };
+    if (!isProd) {
+      // Non-production preview fallback only
+      return { user: { id: 'usr_admin_master', email: 'bienaodylan428@gmail.com' }, client: null as any };
+    }
+    res.status(401).json({ success: false, error: 'Authentification administrateur requise.' });
+    return null;
   }
 
   const session = await requireMemberSession(req, res);
   if (!session) {
-    if (process.env.NODE_ENV !== 'production') {
-      return { user: { id: 'usr_admin_dev', email: 'bienaodylan428@gmail.com' }, client: null as any };
-    }
     return null;
   }
 
-  if (session.user.email?.toLowerCase().includes('bienaodylan') || session.user.email === 'admin@lumareel.com') {
+  if (session.user.email?.toLowerCase() === 'bienaodylan428@gmail.com' || session.user.email?.toLowerCase() === 'admin@lumareel.com') {
     return session;
   }
 
@@ -90,8 +102,8 @@ async function startServer() {
   // CORS configuration for cross-environment sync
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, x-member-email, x-admin-key');
     if (req.method === 'OPTIONS') {
       return res.sendStatus(200);
     }
@@ -181,8 +193,9 @@ async function startServer() {
     { name: 'bannerImage', maxCount: 1 },
   ]);
 
-  // Serve static uploaded files (images & videos with Range streaming support)
+  // Serve static uploaded files & authentic concert photography assets
   app.use('/uploads', express.static(uploadsDir));
+  app.use('/media-assets', express.static(path.join(__dirname, 'src', 'assets', 'images')));
 
   // Direct Image File Upload Route (Multer)
   app.post('/api/upload', upload.single('file'), (req: Request, res: Response) => {
@@ -684,6 +697,18 @@ async function startServer() {
     if (tx.kind === 'ticket_order') {
       const confirmed = db.confirmPaymentAndIssueTickets(tx.orderId, providerTxId || tx.reference);
       if (confirmed?.success && confirmed.order) {
+        try {
+          ecosystemService.onOrderCompleted({
+            customerEmail: confirmed.order.customerEmail,
+            customerName: confirmed.order.customerName,
+            orderId: confirmed.order.id,
+            categoryName: confirmed.order.categoryName,
+            quantity: Number(confirmed.order.quantity || 1),
+            eventTitle: confirmed.order.eventTitle,
+          });
+        } catch (loyaltyErr) {
+          console.warn('[LOYALTY ORDER HOOK WARN]', loyaltyErr);
+        }
         void sendTicketConfirmationEmail({
           to: confirmed.order.customerEmail,
           customerName: confirmed.order.customerName,
@@ -720,6 +745,17 @@ async function startServer() {
         paymentReference: providerTxId || tx.reference,
         shippingAddress: meta.shippingAddress,
       });
+
+      try {
+        ecosystemService.onBlackCardActivated({
+          email: issued.card.cardholderEmail,
+          name: issued.card.cardholderName,
+          userId: issued.card.userId,
+          cardNumber: issued.card.cardNumber,
+        });
+      } catch (loyaltyErr) {
+        console.warn('[LOYALTY CARD HOOK WARN]', loyaltyErr);
+      }
 
       void sendBlackCardActivationEmail({
         to: issued.card.cardholderEmail,
@@ -1747,6 +1783,18 @@ async function startServer() {
         console.warn('Initial wallet credit note:', e);
       }
 
+      // Déclenchement automatique Gift Points + validation parrainage en attente
+      try {
+        ecosystemService.onBlackCardActivated({
+          email: issued.card.cardholderEmail,
+          name: issued.card.cardholderName,
+          userId: issued.card.userId,
+          cardNumber: issued.card.cardNumber,
+        });
+      } catch (loyaltyErr) {
+        console.warn('[LOYALTY CARD HOOK WARN]', loyaltyErr);
+      }
+
       const qrDataUrl = issued.qrToken
         ? await QRCode.toDataURL(issued.qrToken, { margin: 1, color: { dark: '#000000', light: '#ffffff' }, width: 400 })
         : null;
@@ -2592,6 +2640,455 @@ async function startServer() {
         stderr: error.stderr || error.stdout || '',
       });
     }
+  });
+
+  // ============================================================================
+  // LUMARÉEL UNIFIED ECOSYSTEM ROUTES (CMS, MEDIA LIBRARY, SOUVENIRS, LOYALTY,
+  // REFERRALS, MEMBER HUB, NOTIFICATIONS & AUDIT LOG)
+  // ============================================================================
+  const resolveVerifiedMember = async (req: Request): Promise<{ id?: string; email: string; name?: string } | null> => {
+    const bearer = String(req.headers.authorization || '');
+    const token = bearer.startsWith('Bearer ') ? bearer.slice(7).trim() : '';
+    const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+    const key =
+      process.env.VITE_SUPABASE_ANON_KEY ||
+      process.env.SUPABASE_ANON_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+      process.env.SUPABASE_PUBLISHABLE_KEY;
+
+    if (token && url && key) {
+      try {
+        const client = createClient(url, key, {
+          auth: { persistSession: false, autoRefreshToken: false },
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        });
+        const { data, error } = await client.auth.getUser(token);
+        if (!error && data?.user?.email) {
+          return {
+            id: data.user.id,
+            email: data.user.email.toLowerCase(),
+            name:
+              (data.user.user_metadata?.full_name as string) ||
+              (data.user.user_metadata?.name as string) ||
+              data.user.email.split('@')[0],
+          };
+        }
+      } catch {
+        return null;
+      }
+    }
+
+    // Authenticated local account lookup only in non-production preview when Supabase JWT is absent
+    if (process.env.NODE_ENV !== 'production') {
+      const headerEmail = String(req.headers['x-member-email'] || '').trim().toLowerCase();
+      if (headerEmail) {
+        const localUser = db.getUserByEmail(headerEmail);
+        if (localUser) {
+          return { id: localUser.id, email: localUser.email.toLowerCase(), name: localUser.name };
+        }
+      }
+    }
+
+    return null;
+  };
+
+  // --- PUBLIC CMS ---
+  app.get('/api/cms/public', (_req: Request, res: Response) => {
+    return res.json({ success: true, ...ecosystemService.getPublicCms() });
+  });
+
+  app.put('/api/admin/cms/homepage', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    try {
+      const homepage = ecosystemService.updateHomepageCms(admin.user.email || 'admin@lumareel.com', req.body || {});
+      return res.json({ success: true, homepage });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.put('/api/admin/cms/black-card', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    try {
+      const blackCard = ecosystemService.updateBlackCardCms(admin.user.email || 'admin@lumareel.com', req.body || {});
+      return res.json({ success: true, blackCard });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  // --- CENTRALIZED MEDIA LIBRARY ---
+  app.get('/api/admin/media', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    try {
+      const usedUrls = new Set<string>();
+      db.getAllEvents().forEach((ev) => {
+        if (ev.officialPoster) usedUrls.add(ev.officialPoster);
+        if (ev.artistPortrait) usedUrls.add(ev.artistPortrait);
+        if (ev.bannerImage) usedUrls.add(ev.bannerImage);
+      });
+      const items = ecosystemService.listMedia(usedUrls);
+      return res.json({ success: true, items });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/admin/media/upload', upload.single('file'), async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, error: 'Aucun fichier reçu.' });
+      }
+      const allowedFolders = ['general', 'concerts', 'black_card', 'souvenirs', 'homepage', 'rewards'] as const;
+      const rawFolder = String(req.body?.folder || 'general');
+      const folder = (allowedFolders as readonly string[]).includes(rawFolder)
+        ? (rawFolder as (typeof allowedFolders)[number])
+        : 'general';
+      const tags = String(req.body?.tags || '')
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 12);
+      const isVideo = (req.file.mimetype || '').startsWith('video/');
+      const item = ecosystemService.registerMedia(admin.user.email || 'admin@lumareel.com', {
+        title: String(req.body?.title || req.file.originalname || 'Média LUMARÉEL').trim().slice(0, 120),
+        altText: String(req.body?.altText || req.body?.title || '').trim().slice(0, 200),
+        fileUrl: `/uploads/${req.file.filename}`,
+        mimeType: req.file.mimetype || 'image/jpeg',
+        mediaType: isVideo ? 'video' : 'image',
+        sizeBytes: req.file.size || 0,
+        folder,
+        tags,
+      });
+      return res.status(201).json({ success: true, item });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.delete('/api/admin/media/:id', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    try {
+      const removed = ecosystemService.deleteMedia(admin.user.email || 'admin@lumareel.com', req.params.id);
+      if (!removed) {
+        return res.status(404).json({ success: false, error: 'Média introuvable.' });
+      }
+      // Confined safe disk removal only for files inside public/uploads
+      if (removed.fileUrl.startsWith('/uploads/')) {
+        const filename = path.basename(removed.fileUrl);
+        const resolvedPath = path.resolve(uploadsDir, filename);
+        if (resolvedPath.startsWith(uploadsDir + path.sep) && fs.existsSync(resolvedPath)) {
+          try {
+            fs.unlinkSync(resolvedPath);
+          } catch {
+            // ignore unlink errors
+          }
+        }
+      }
+      return res.json({ success: true, removed });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // --- SOUVENIRS DISCOVERY & COLLECTIONS ---
+  app.get('/api/souvenirs/feed', async (req: Request, res: Response) => {
+    try {
+      const member = await resolveVerifiedMember(req);
+      const feed = ecosystemService.getPublicSouvenirsFeed(member?.email);
+      return res.json({ success: true, ...feed });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/member/collections', async (req: Request, res: Response) => {
+    const member = await resolveVerifiedMember(req);
+    if (!member) {
+      return res.status(401).json({ success: false, error: 'Connecte-toi pour créer une collection personnelle.' });
+    }
+    try {
+      const collection = ecosystemService.createMemberCollection({
+        email: member.email,
+        userId: member.id,
+        title: req.body?.title,
+        description: req.body?.description,
+        initialPhotoKey: req.body?.initialPhotoKey,
+      });
+      return res.status(201).json({ success: true, collection });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/member/collections/:id/toggle', async (req: Request, res: Response) => {
+    const member = await resolveVerifiedMember(req);
+    if (!member) {
+      return res.status(401).json({ success: false, error: 'Connecte-toi pour enregistrer un souvenir.' });
+    }
+    try {
+      const photoKey = String(req.body?.photoKey || '').trim();
+      if (!photoKey) return res.status(400).json({ success: false, error: 'Photo requise.' });
+      const result = ecosystemService.togglePhotoInMemberCollection({
+        email: member.email,
+        collectionId: req.params.id,
+        photoKey,
+      });
+      return res.json({ success: true, ...result });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.delete('/api/member/collections/:id', async (req: Request, res: Response) => {
+    const member = await resolveVerifiedMember(req);
+    if (!member) {
+      return res.status(401).json({ success: false, error: 'Authentification requise.' });
+    }
+    const deleted = ecosystemService.deleteMemberCollection(member.email, req.params.id);
+    return res.json({ success: true, deleted });
+  });
+
+  app.post('/api/admin/souvenirs/photos', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    try {
+      const photo = ecosystemService.adminAddSouvenirPhoto(admin.user.email || 'admin@lumareel.com', req.body || {});
+      return res.status(201).json({ success: true, photo });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.delete('/api/admin/souvenirs/photos/:id', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    const deleted = ecosystemService.adminDeleteSouvenirPhoto(admin.user.email || 'admin@lumareel.com', req.params.id);
+    return res.json({ success: true, deleted });
+  });
+
+  app.post('/api/admin/souvenirs/collections', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    try {
+      const collection = ecosystemService.adminSaveEditorialCollection(
+        admin.user.email || 'admin@lumareel.com',
+        req.body || {}
+      );
+      return res.status(201).json({ success: true, collection });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.delete('/api/admin/souvenirs/collections/:id', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    const deleted = ecosystemService.adminDeleteEditorialCollection(
+      admin.user.email || 'admin@lumareel.com',
+      req.params.id
+    );
+    return res.json({ success: true, deleted });
+  });
+
+  // --- MEMBER LOYALTY, GIFT POINTS, REFERRALS, PROFILE & NOTIFICATIONS ---
+  app.get('/api/member/loyalty', async (req: Request, res: Response) => {
+    const member = await resolveVerifiedMember(req);
+    if (!member) {
+      return res.status(401).json({ success: false, error: 'Authentification requise.' });
+    }
+    try {
+      const dashboard = ecosystemService.getMemberLoyaltyDashboard({
+        email: member.email,
+        userId: member.id,
+        name: member.name,
+      });
+      return res.json({ success: true, ...dashboard });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/member/loyalty/redeem', async (req: Request, res: Response) => {
+    const member = await resolveVerifiedMember(req);
+    if (!member) {
+      return res.status(401).json({ success: false, error: 'Connecte-toi pour débloquer une récompense.' });
+    }
+    try {
+      const rewardId = String(req.body?.rewardId || '').trim();
+      if (!rewardId) return res.status(400).json({ success: false, error: 'Récompense requise.' });
+      const result = ecosystemService.redeemReward({
+        email: member.email,
+        userId: member.id,
+        rewardId,
+      });
+      return res.json({ success: true, ...result });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/member/referrals/apply', async (req: Request, res: Response) => {
+    const member = await resolveVerifiedMember(req);
+    if (!member) {
+      return res.status(401).json({ success: false, error: 'Authentification requise pour enregistrer un parrainage.' });
+    }
+    try {
+      const code = String(req.body?.code || '').trim();
+      const result = ecosystemService.applyReferralCode({
+        refereeEmail: member.email,
+        refereeName: member.name,
+        refereeUserId: member.id,
+        referralCode: code,
+      });
+      return res.json({ success: true, ...result });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/member/profile', async (req: Request, res: Response) => {
+    const member = await resolveVerifiedMember(req);
+    if (!member) {
+      return res.status(401).json({ success: false, error: 'Authentification requise.' });
+    }
+    try {
+      const profile = ecosystemService.ensureMemberProfile({
+        email: member.email,
+        userId: member.id,
+        name: member.name,
+      });
+      const loyalty = ecosystemService.computeBalance(member.email);
+      const card = membershipService.getCardByEmail(member.email);
+      const notifications = ecosystemService.getNotifications(member.email);
+      const souvenirs = ecosystemService.getPublicSouvenirsFeed(member.email);
+      return res.json({
+        success: true,
+        profile,
+        loyalty,
+        card,
+        notifications,
+        personalCollections: souvenirs.personalCollections,
+        photosIndex: souvenirs.photos,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  app.patch('/api/member/profile', async (req: Request, res: Response) => {
+    const member = await resolveVerifiedMember(req);
+    if (!member) {
+      return res.status(401).json({ success: false, error: 'Authentification requise.' });
+    }
+    try {
+      const profile = ecosystemService.updateMemberProfile(member.email, {
+        userId: member.id,
+        name: req.body?.name,
+        phone: req.body?.phone,
+        city: req.body?.city,
+      });
+      return res.json({ success: true, profile });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.get('/api/member/notifications', async (req: Request, res: Response) => {
+    const member = await resolveVerifiedMember(req);
+    if (!member) {
+      return res.status(401).json({ success: false, error: 'Authentification requise.' });
+    }
+    const notifications = ecosystemService.getNotifications(member.email);
+    return res.json({
+      success: true,
+      notifications,
+      unreadCount: notifications.filter((n) => !n.isRead).length,
+    });
+  });
+
+  app.post('/api/member/notifications/read', async (req: Request, res: Response) => {
+    const member = await resolveVerifiedMember(req);
+    if (!member) {
+      return res.status(401).json({ success: false, error: 'Authentification requise.' });
+    }
+    const updated = ecosystemService.markNotificationRead(member.email, req.body?.notificationId);
+    return res.json({ success: true, updated });
+  });
+
+  // --- ADMIN LOYALTY, REFERRALS & AUDIT LOGS ---
+  app.get('/api/admin/loyalty/overview', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    return res.json({ success: true, ...ecosystemService.getAdminLoyaltyOverview() });
+  });
+
+  app.put('/api/admin/loyalty/rules/:key', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    try {
+      const rule = ecosystemService.adminUpdateLoyaltyRule(
+        admin.user.email || 'admin@lumareel.com',
+        req.params.key as any,
+        req.body || {}
+      );
+      return res.json({ success: true, rule });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/admin/loyalty/rewards', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    try {
+      const reward = ecosystemService.adminSaveLoyaltyReward(
+        admin.user.email || 'admin@lumareel.com',
+        req.body || {}
+      );
+      return res.status(201).json({ success: true, reward });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/admin/loyalty/campaigns', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    try {
+      const campaign = ecosystemService.adminSaveLoyaltyCampaign(
+        admin.user.email || 'admin@lumareel.com',
+        req.body || {}
+      );
+      return res.status(201).json({ success: true, campaign });
+    } catch (error: any) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+  });
+
+  app.post('/api/admin/loyalty/referrals/:id/reject', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    const referral = ecosystemService.adminRejectReferral(
+      admin.user.email || 'admin@lumareel.com',
+      req.params.id,
+      req.body?.reason
+    );
+    if (!referral) return res.status(404).json({ success: false, error: 'Parrainage en attente introuvable.' });
+    return res.json({ success: true, referral });
+  });
+
+  app.get('/api/admin/audit-logs', async (req: Request, res: Response) => {
+    const admin = await requireMemberAdmin(req, res, ['super_admin']);
+    if (!admin) return;
+    const logs = ecosystemService.getAuditLogs(Number(req.query.limit || 100));
+    return res.json({ success: true, logs });
   });
 
   // OAuth callback bridge (Supabase Google & Apple Sign-In — works in both iframe popups and full-page redirects)
