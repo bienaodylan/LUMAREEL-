@@ -173,7 +173,7 @@ export const AuthModal: React.FC = () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: window.location.origin },
+        options: { redirectTo: window.location.href },
       });
       if (error) throw error;
     } catch (err: any) {
@@ -246,7 +246,7 @@ export const AuthModal: React.FC = () => {
           email: cleanEmail,
           password,
           options: {
-            data: { name: cleanName },
+            data: { name: cleanName, referral_code: new URLSearchParams(window.location.search).get('ref') || null },
             emailRedirectTo: window.location.origin,
           },
         });
