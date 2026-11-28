@@ -453,7 +453,7 @@ export const ProfileView: React.FC = () => {
             <p className="font-agrandir-extrabold text-base truncate">
               {memberCard ? (isEn ? 'Active' : 'Active') : isEn ? 'Discover' : 'Découvrir'}
             </p>
-            <p className="text-[11px] text-black/55 dark:text-white/55">Black Card</p>
+            <p className="text-[11px] text-black/55 dark:text-white/55">LUMARÉEL Black Card</p>
           </button>
 
           <button

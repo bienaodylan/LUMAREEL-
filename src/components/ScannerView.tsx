@@ -465,7 +465,7 @@ export const ScannerView: React.FC = () => {
         setScanResult({
           status: 'SUCCESS',
           headline: 'VALIDE',
-          instruction: `Black Card · Accès membre autorisé.`,
+          instruction: `LUMARÉEL Black Card · Accès membre autorisé.`,
           subline: `${data.cardNumber || identifier.slice(0, 14)} · ${data.cardholderName || 'Membre'}`,
         });
 
@@ -475,9 +475,9 @@ export const ScannerView: React.FC = () => {
             timestamp: nowIso,
             formattedTime: formattedNow,
             status: 'SUCCESS',
-            message: `BLACK CARD : Accès autorisé`,
-            holderName: data.cardholderName || 'Membre Black Card',
-            categoryName: `Black Card`,
+            message: `LUMARÉEL BLACK CARD : Accès autorisé`,
+            holderName: data.cardholderName || 'Membre LUMARÉEL Black Card',
+            categoryName: `LUMARÉEL Black Card`,
             eventTitle: authorizedEvent?.title || 'Concert Live',
             serialNumber: data.cardNumber || identifier.slice(0, 16),
             ticketCode: identifier.slice(0, 16),
@@ -491,7 +491,7 @@ export const ScannerView: React.FC = () => {
         setScanResult({
           status: 'INVALID',
           headline: 'INVALIDE',
-          instruction: `${data.reason || 'Accès Black Card non autorisé'}.`,
+          instruction: `${data.reason || 'Accès LUMARÉEL Black Card non autorisé'}.`,
           subline: `${data.cardNumber || identifier.slice(0, 16)} · ${data.cardholderName || 'Non identifié'}`,
         });
       }
@@ -500,7 +500,7 @@ export const ScannerView: React.FC = () => {
       setScanResult({
         status: 'ERROR',
         headline: 'ERREUR',
-        instruction: 'Erreur réseau lors du contrôle Black Card.',
+        instruction: 'Erreur réseau lors du contrôle LUMARÉEL Black Card.',
         subline: `${identifier.slice(0, 16)} · Réessayer`,
       });
     } finally {
@@ -1027,7 +1027,7 @@ export const ScannerView: React.FC = () => {
           ) : (
             <div className="space-y-2.5 pt-2">
               <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-[#D4AF6A]">
-                {scanMode === 'membership' ? 'CONTRÔLE BLACK CARD' : 'CONTRÔLE BILLETTERIE'}
+                {scanMode === 'membership' ? 'CONTRÔLE LUMARÉEL BLACK CARD' : 'CONTRÔLE BILLETTERIE'}
               </p>
               <h2 className="font-agrandir-extrabold text-2xl sm:text-3xl text-white tracking-tight leading-tight">
                 Prêt à scanner
@@ -1140,7 +1140,7 @@ export const ScannerView: React.FC = () => {
                 }`}
               >
                 <Crown className="w-3.5 h-3.5" strokeWidth={1.6} />
-                <span>Black Card</span>
+                <span>LUMARÉEL Black Card</span>
               </button>
             </div>
 

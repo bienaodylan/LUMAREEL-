@@ -1,21 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
 import { MembershipEdition, MembershipPlan, MembershipCard } from '../types';
-import { saveStoredMemberCard } from '../utils/memberCardStorage';
-import { getAuthHeaders } from '../lib/apiClient';
-import {
-  ArrowDown,
-  ArrowRight,
-  Check,
-  CheckCircle2,
-  Minus,
-  RotateCw,
-  X,
-} from 'lucide-react';
+import type { CardOrderContextData } from './LumareelCardOrderPage';
+import { ArrowDown, ArrowRight } from 'lucide-react';
 import {
   motion,
-  AnimatePresence,
   MotionValue,
   useMotionValue,
   useMotionTemplate,
@@ -25,12 +14,17 @@ import {
   useReducedMotion,
 } from 'framer-motion';
 
-const CARD_FRONT_IMG = '/assets/aistudio/IMG_6112_896cf3ce.png';
-const CARD_BACK_IMG = '/assets/aistudio/IMG_6111_952dcd49.png';
+export const CARD_FRONT_IMG = '/assets/aistudio/IMG_6112_896cf3ce.png';
+export const CARD_BACK_IMG = '/assets/aistudio/IMG_6111_952dcd49.png';
+
+/** Garantit que toute mention « Black Card » affiche toujours « LUMARÉEL Black Card ». */
+const ensureLumareelBlackCard = (text: string): string =>
+  text.replace(/(?<!LUMAR[EÉ]EL\s)(black\s+card)/gi, 'LUMARÉEL Black Card');
 
 interface LumareelCardLandingPageProps {
   onGoToWallet?: () => void;
   onCardIssued?: (card: MembershipCard) => void;
+  onStartOrder?: (context: CardOrderContextData) => void;
   hasActiveCard?: boolean;
   activeCardNumber?: string;
 }
@@ -43,9 +37,9 @@ const CARD_COPY = {
     heroTitle: 'Les concerts. Mais autrement.',
     heroSub:
       'Plus qu’une présence. Une expérience privilégiée dans l’univers LUMARÉEL.',
-    heroCta: 'Découvrir la Black Card',
-    ctaOrder: 'Obtenir ma Black Card',
-    ctaViewMyCard: 'Voir ma carte',
+    heroCta: 'Découvrir la LUMARÉEL Black Card',
+    ctaOrder: 'Obtenir ma LUMARÉEL Black Card',
+    ctaViewMyCard: 'Voir ma LUMARÉEL Black Card',
     priceSuffix: '/ an',
 
     // Sticky 3D scroll beats (sans numéros ni titres de chapitres)
@@ -110,7 +104,7 @@ const CARD_COPY = {
 
     // Climax émotionnel
     climaxTitle: 'La carte. L’entrée. Les premiers rangs.',
-    climaxSub: 'Présentez simplement votre Black Card et vivez chaque instant.',
+    climaxSub: 'Présentez simplement votre LUMARÉEL Black Card et vivez chaque instant.',
 
     // Finale commerciale posée (aucun faux stock ni compte à rebours)
     offerTitle: 'LUMARÉEL Black Card',
@@ -195,9 +189,9 @@ const CARD_COPY = {
     brandSignature: 'LUMARÉEL BLACK CARD',
     heroTitle: 'Concerts. Done differently.',
     heroSub: 'More than attendance. A privileged way into the LUMARÉEL universe.',
-    heroCta: 'Discover the Black Card',
-    ctaOrder: 'Get my Black Card',
-    ctaViewMyCard: 'View my card',
+    heroCta: 'Discover the LUMARÉEL Black Card',
+    ctaOrder: 'Get my LUMARÉEL Black Card',
+    ctaViewMyCard: 'View my LUMARÉEL Black Card',
     priceSuffix: '/ year',
 
     beat1Title: 'A real card. In your hands.',
@@ -257,7 +251,7 @@ const CARD_COPY = {
     walletSub: 'Slip it into your wallet. At the door, show it. That’s it.',
 
     climaxTitle: 'The card. The entrance. The front row.',
-    climaxSub: 'Simply present your Black Card and step into the night.',
+    climaxSub: 'Simply present your LUMARÉEL Black Card and step into the night.',
 
     offerTitle: 'LUMARÉEL Black Card',
     offerSub: 'One straightforward membership for a full year of concerts.',
@@ -396,7 +390,7 @@ interface VolumetricBlackCardProps {
  * Renders real physical depth via stacked preserve-3d core layers, metallic edge highlight,
  * desktop cursor tilt + radial specular highlight, and scroll-synchronized light sweep.
  */
-const VolumetricBlackCard: React.FC<VolumetricBlackCardProps> = ({
+export const VolumetricBlackCard: React.FC<VolumetricBlackCardProps> = ({
   rotateYBase = 0,
   rotateXBase = 0,
   rotateZBase = 0,
@@ -650,7 +644,7 @@ const VolumetricBlackCard: React.FC<VolumetricBlackCardProps> = ({
 /* ===================================================================== */
 
 /** Trame de points qui reprend le motif halftone imprimé sur la carte. */
-const HalftoneField: React.FC<{
+export const HalftoneField: React.FC<{
   x?: MotionValue<number>;
   y?: MotionValue<number>;
   tone?: 'light' | 'dark';
@@ -677,7 +671,7 @@ const HalftoneField: React.FC<{
 };
 
 /** Faisceau de projecteur zénithal + halo au sol, piloté par MotionValues. */
-const StageBeam: React.FC<{
+export const StageBeam: React.FC<{
   x: MotionValue<number> | number;
   intensity?: MotionValue<number> | number;
   width?: number;
@@ -813,142 +807,12 @@ const WalletPocket: React.FC<{ sheen?: MotionValue<string> }> = ({ sheen }) => (
   </div>
 );
 
-/**
- * Couche arrière de la main venant de la droite (doigts derrière le bord droit de la carte).
- */
-const WalletHandBack: React.FC = () => (
-  <svg
-    viewBox="0 0 340 165"
-    fill="none"
-    className="w-full h-auto overflow-visible drop-shadow-[0_14px_24px_rgba(0,0,0,0.22)]"
-  >
-    <defs>
-      <linearGradient id="lumHandBackSkin" x1="0" y1="0" x2="260" y2="140" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#8F6347" />
-        <stop offset="55%" stopColor="#724A32" />
-        <stop offset="100%" stopColor="#583723" />
-      </linearGradient>
-      <linearGradient id="lumSleeveBack" x1="210" y1="30" x2="560" y2="120" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#1D1D20" />
-        <stop offset="100%" stopColor="#0C0C0E" />
-      </linearGradient>
-    </defs>
-    {/* Index + majeur + annulaire glissés derrière la carte */}
-    <path
-      d="M28 48 C14 48 10 60 20 67 L96 72 C106 73 118 78 126 86 L132 108 C136 118 148 124 166 124 L236 122 L236 42 L154 40 C132 40 114 44 92 46 Z"
-      fill="url(#lumHandBackSkin)"
-    />
-    {/* Plis subtils des doigts repliés */}
-    <path
-      d="M42 70 C32 72 30 84 42 89 L102 92 C112 93 120 96 124 102"
-      stroke="rgba(36,18,8,0.28)"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-    />
-    <path
-      d="M58 92 C50 95 50 106 62 110 L112 112"
-      stroke="rgba(36,18,8,0.25)"
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-    {/* Poignet & manche sombre prolongée hors champ à droite */}
-    <path
-      d="M214 34 L1200 -24 L1200 154 L216 128 C208 127 204 120 204 110 L204 50 C204 40 208 35 214 34 Z"
-      fill="url(#lumSleeveBack)"
-    />
-  </svg>
-);
-
-/**
- * Couche avant de la main venant de la droite (pouce qui pince le recto haut-droit + manchette).
- */
-const WalletHandFront: React.FC<{
-  thumbPinchY: MotionValue<number>;
-  thumbPinchRotate: MotionValue<number>;
-  thumbShadowOpacity: MotionValue<number>;
-}> = ({ thumbPinchY, thumbPinchRotate, thumbShadowOpacity }) => (
-  <motion.div style={{ y: thumbPinchY, rotate: thumbPinchRotate }} className="origin-[65%_40%]">
-    <svg viewBox="0 0 340 165" fill="none" className="w-full h-auto overflow-visible">
-      <defs>
-        <linearGradient id="lumThumbSkin" x1="30" y1="20" x2="210" y2="94" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#B88462" />
-          <stop offset="48%" stopColor="#9A6A4C" />
-          <stop offset="100%" stopColor="#774D35" />
-        </linearGradient>
-        <linearGradient id="lumThumbHighlight" x1="40" y1="24" x2="135" y2="52" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="rgba(255,244,234,0.36)" />
-          <stop offset="100%" stopColor="rgba(255,244,234,0)" />
-        </linearGradient>
-        <linearGradient id="lumSleeveFront" x1="212" y1="28" x2="580" y2="115" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#26262B" />
-          <stop offset="45%" stopColor="#161619" />
-          <stop offset="100%" stopColor="#0A0A0C" />
-        </linearGradient>
-      </defs>
-
-      {/* Ombre douce projetée par le pouce sur la Black Card */}
-      <motion.ellipse
-        cx="92"
-        cy="64"
-        rx="46"
-        ry="12"
-        fill="#000000"
-        style={{ opacity: thumbShadowOpacity, filter: 'blur(7px)' }}
-      />
-
-      {/* Pouce posé sur le bord supérieur droit de la carte + dos de la main */}
-      <path
-        d="M52 42 C44 44 42 54 50 61 C60 69 84 70 114 68 C132 67 148 72 164 80 L216 86 L216 40 L154 35 C130 33 110 31 88 34 C72 36 60 39 52 42 Z"
-        fill="url(#lumThumbSkin)"
-      />
-
-      {/* Reflet lumière naturelle sur l'arête du pouce */}
-      <path
-        d="M58 43 C78 37 108 35 144 39"
-        stroke="url(#lumThumbHighlight)"
-        strokeWidth="3.5"
-        strokeLinecap="round"
-      />
-
-      {/* Ongle discret sur la pointe du pouce */}
-      <path
-        d="M50 47 C56 45 63 46 66 50 C64 55 56 57 50 54 C47 52 47 48 50 47 Z"
-        fill="rgba(255,232,216,0.28)"
-      />
-
-      {/* Pli d'articulation */}
-      <path
-        d="M108 40 C106 48 106 56 109 63"
-        stroke="rgba(52,27,13,0.18)"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-
-      {/* Manchette élégante prolongée hors champ à droite */}
-      <path
-        d="M214 34 L1200 -24 L1200 154 L216 128 C208 127 204 120 204 110 L204 50 C204 40 208 35 214 34 Z"
-        fill="url(#lumSleeveFront)"
-      />
-      <line
-        x1="220"
-        y1="40"
-        x2="220"
-        y2="122"
-        stroke="rgba(255,255,255,0.1)"
-        strokeWidth="1.2"
-        strokeDasharray="3 4"
-      />
-      <circle cx="234" cy="106" r="3.5" fill="rgba(255,255,255,0.18)" />
-    </svg>
-  </motion.div>
-);
-
 export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = ({
   onGoToWallet,
-  onCardIssued,
+  onStartOrder,
   hasActiveCard = false,
 }) => {
-  const { currentUser, setCurrentPage, showToast, language, setIsAuthModalOpen } = useApp();
+  const { showToast, language } = useApp();
   const isEn = language === 'en';
   const c = CARD_COPY[isEn ? 'en' : 'fr'];
   const prefersReducedMotion = useReducedMotion();
@@ -1028,15 +892,19 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     { headline: c.hlPartner, ...bPartner },
   ];
 
-  const heroTitleText = (isEn ? cmsConfig?.heroTitleEn : cmsConfig?.heroTitleFr) || c.heroTitle;
-  const heroSubText = (isEn ? cmsConfig?.heroSubEn : cmsConfig?.heroSubFr) || c.heroSub;
-  const climaxTitleText = (isEn ? cmsConfig?.climaxTitleEn : cmsConfig?.climaxTitleFr) || c.climaxTitle;
-  const climaxSubText = (isEn ? cmsConfig?.climaxSubEn : cmsConfig?.climaxSubFr) || c.climaxSub;
-  const ctaOrderText = (isEn ? cmsConfig?.ctaOrderEn : cmsConfig?.ctaOrderFr) || c.ctaOrder;
+  const heroTitleText = ensureLumareelBlackCard(
+    (isEn ? cmsConfig?.heroTitleEn : cmsConfig?.heroTitleFr) || c.heroTitle
+  );
+  const heroSubText = ensureLumareelBlackCard(
+    (isEn ? cmsConfig?.heroSubEn : cmsConfig?.heroSubFr) || c.heroSub
+  );
+  const ctaOrderText = ensureLumareelBlackCard(
+    (isEn ? cmsConfig?.ctaOrderEn : cmsConfig?.ctaOrderFr) || c.ctaOrder
+  );
 
   // =====================================================================
   // UNE SEULE CARTE, UN SEUL PLAN-SÉQUENCE — SCROLL DOUX ET PONDÉRÉ
-  // Entrée → retournement (noir → blanc) → 7 avantages → main droite & portefeuille.
+  // Entrée → retournement (noir → blanc) → 7 avantages → portefeuille.
   // =====================================================================
   const { scrollYProgress: rawJourney } = useScroll({
     target: journeyRef,
@@ -1051,7 +919,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const perkSpan = (P1 - P0) / PERK_TOTAL;
   const perkCenters = Array.from({ length: PERK_TOTAL }, (_, i) => P0 + (i + 0.5) * perkSpan);
 
-  // Orientation douce et maîtrisée de la carte (pas de grands coups brusques au scroll)
+  // Orientation douce et maîtrisée de la carte
   const cardRotY = useTransform(
     jp,
     [0, 0.08, 0.12, 0.18, 0.23, 0.28, ...perkCenters, 0.75, 1],
@@ -1059,13 +927,13 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   );
   const cardRotX = useTransform(
     jp,
-    [0, 0.08, 0.28, ...perkCenters, 0.75, 0.88, 0.95, 1],
-    [7, 1.5, 0, 6, -4, 5, -3, 4, -4, 1.5, 0, 3.5, 0, 0]
+    [0, 0.08, 0.28, ...perkCenters, 0.75, 0.86, 0.94, 1],
+    [7, 1.5, 0, 6, -4, 5, -3, 4, -4, 1.5, 0, 3, 0, 0]
   );
   const cardRotZ = useTransform(
     jp,
-    [0, 0.08, 0.28, ...perkCenters, 0.76, 0.85, 0.88, 0.95, 1],
-    [-1.5, 0, 0, -1.5, 1.5, -1, 1.2, -1.2, 0.8, 0, 0, -3.5, -1.5, 0, 0]
+    [0, 0.08, 0.28, ...perkCenters, 0.78, 0.85, 0.93, 1],
+    [-1.5, 0, 0, -1.5, 1.5, -1, 1.2, -1.2, 0.8, 0, 0, -4, 0, 0]
   );
   const cardSheen = useTransform(
     jp,
@@ -1078,34 +946,16 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const rigY = useMotionTemplate`${rigYv}vh`;
   const rigScale = useTransform(jp, [0, 0.08, 0.12, 0.28, 0.31, P1, 0.78, 1], [1, 1, 1.04, 1.04, 0.96, 0.96, 0.8, 0.8]);
 
-  // Phase portefeuille + main droite (0.72 → 1.00) :
-  // 0.72–0.80 : le portefeuille monte sous la carte
-  // 0.78–0.855 : la main arrive depuis la droite vers la carte
-  // 0.855–0.88 : les doigts & le pouce saisissent proprement le bord droit de la carte
-  // 0.88–0.95 : main + carte glissent ensemble jusque dans l'étui en cuir
-  // 0.95–0.995 : le pouce relâche et la main se retire vers la droite
-  const cardSlideV = useTransform(jp, [0, 0.76, 0.85, 0.88, 0.95, 1], [0, 0, -16, -18, 69.5, 69.5]);
+  // La carte se soulève doucement puis glisse directement dans l’étui en cuir
+  const cardSlideV = useTransform(jp, [0, 0.76, 0.84, 0.94, 1], [0, 0, -20, 69.5, 69.5]);
   const cardSlide = useMotionTemplate`${cardSlideV}%`;
 
-  // Déplacement de la main synchronisé dans le même repère (% de la hauteur de la carte)
-  const handXv = useTransform(jp, [0.78, 0.855, 0.95, 0.995], [195, 0, 0, 215]);
-  const handX = useMotionTemplate`${handXv}%`;
-  const handYv = useTransform(jp, [0.78, 0.855, 0.88, 0.95, 0.975, 0.995], [-20, -16, -18, 69.5, 62, 56]);
-  const handY = useMotionTemplate`${handYv}%`;
-  const handOpacity = useTransform(jp, [0.78, 0.81, 0.978, 0.998], [0, 1, 1, 0]);
-  const handTilt = useTransform(jp, [0.78, 0.855, 0.88, 0.95, 0.975, 0.995], [5, 1.5, 0, -1.8, 3.5, 7]);
-
-  // Micro-pincement du pouce au moment où la main saisit puis relâche la carte
-  const thumbPinchY = useTransform(jp, [0.835, 0.875, 0.948, 0.968], [-7, 0, 0, -7]);
-  const thumbPinchRotate = useTransform(jp, [0.835, 0.875, 0.948, 0.968], [7, 0, 0, 8]);
-  const thumbShadowOpacity = useTransform(jp, [0.845, 0.878, 0.948, 0.964], [0, 0.34, 0.34, 0]);
-
-  // Le portefeuille monte dans le cadre + léger clic tactile à l'insertion
-  const walletYv = useTransform(jp, [0.72, 0.8], [70, 0]);
+  // Le portefeuille monte dans le cadre + léger clic tactile à l’insertion
+  const walletYv = useTransform(jp, [0.72, 0.81], [70, 0]);
   const walletY = useMotionTemplate`${walletYv}vh`;
   const walletOpacity = useTransform(jp, [0.72, 0.77], [0, 1]);
-  const walletClickScale = useTransform(jp, [0.942, 0.955, 0.972], [1, 1.016, 1]);
-  const walletSheenX = useTransform(jp, [0.84, 0.99], [-30, 140]);
+  const walletClickScale = useTransform(jp, [0.93, 0.946, 0.968], [1, 1.016, 1]);
+  const walletSheenX = useTransform(jp, [0.82, 0.98], [-30, 140]);
   const leatherSheen = useMotionTemplate`linear-gradient(105deg, transparent calc(${walletSheenX}% - 20%), rgba(255,255,255,0.09) ${walletSheenX}%, transparent calc(${walletSheenX}% + 20%))`;
 
   // Environnements
@@ -1127,9 +977,9 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const halftoneX = useTransform(jp, [P0, P1], [20, 80]);
 
   // Le portefeuille
-  const walletLine1Opacity = useTransform(jp, [0.74, 0.78, 0.925, 0.945], [0, 1, 1, 0]);
-  const walletLine2Opacity = useTransform(jp, [0.95, 0.975, 1], [0, 1, 1]);
-  const walletLine2Y = useTransform(jp, [0.95, 0.975], [14, 0]);
+  const walletLine1Opacity = useTransform(jp, [0.74, 0.78, 0.895, 0.92], [0, 1, 1, 0]);
+  const walletLine2Opacity = useTransform(jp, [0.925, 0.955, 1], [0, 1, 1]);
+  const walletLine2Y = useTransform(jp, [0.925, 0.955], [14, 0]);
 
   const scrollToJourney = (fraction: number) => {
     const el = journeyRef.current;
@@ -1144,24 +994,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
   const [plans, setPlans] = useState<MembershipPlan[]>([]);
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Tunnel de commande en 4 étapes (conservé intact)
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const [isWizardMinimized, setIsWizardMinimized] = useState(false);
-  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4>(1);
-  const [applicantName, setApplicantName] = useState(currentUser?.name || '');
-  const [applicantEmail, setApplicantEmail] = useState(currentUser?.email || '');
-  const [applicantPhone, setApplicantPhone] = useState('');
-  const [applicantCity, setApplicantCity] = useState('Abidjan');
-  const [applicantAddress, setApplicantAddress] = useState('Cocody');
-  const [paymentMethod, setPaymentMethod] = useState<
-    'wave' | 'orange_money' | 'mtn_momo' | 'moov_money' | 'card'
-  >('wave');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [issuedResult, setIssuedResult] = useState<{
-    card: MembershipCard;
-    qrDataUrl: string;
-  } | null>(null);
 
   useEffect(() => {
     const nowIso = new Date().toISOString();
@@ -1197,231 +1029,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    if (currentUser?.name && !applicantName) {
-      setApplicantName(currentUser.name.toUpperCase());
-    }
-    if (currentUser?.email && !applicantEmail) {
-      setApplicantEmail(currentUser.email);
-    }
-  }, [currentUser]);
-
-  // Gel propre du scroll de fond lorsque la modale est ouverte
-  useEffect(() => {
-    if (!isWizardOpen || isWizardMinimized || typeof window === 'undefined') return;
-
-    const scrollY = window.scrollY || window.pageYOffset || 0;
-    const html = document.documentElement;
-    const body = document.body;
-    const isFinePointer = window.matchMedia?.('(pointer: fine)')?.matches ?? false;
-    const scrollbarWidth = Math.max(0, window.innerWidth - html.clientWidth);
-
-    const prevHtmlOverflow = html.style.overflow;
-    const prevHtmlOverscroll = html.style.overscrollBehavior;
-    const prevBodyPosition = body.style.position;
-    const prevBodyTop = body.style.top;
-    const prevBodyLeft = body.style.left;
-    const prevBodyRight = body.style.right;
-    const prevBodyWidth = body.style.width;
-    const prevBodyOverflow = body.style.overflow;
-    const prevBodyOverscroll = body.style.overscrollBehavior;
-    const prevBodyPaddingRight = body.style.paddingRight;
-
-    html.style.overflow = 'hidden';
-    html.style.overscrollBehavior = 'none';
-    body.style.overflow = 'hidden';
-    body.style.overscrollBehavior = 'none';
-
-    if (isFinePointer) {
-      if (scrollbarWidth > 0) {
-        body.style.paddingRight = `${scrollbarWidth}px`;
-      }
-    } else {
-      body.style.position = 'fixed';
-      body.style.top = `-${scrollY}px`;
-      body.style.left = '0';
-      body.style.right = '0';
-      body.style.width = '100%';
-    }
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (wizardStep === 4 && issuedResult?.card) {
-          finishAndOpenInstalledCard(issuedResult.card);
-        } else {
-          setIsWizardOpen(false);
-          setIsWizardMinimized(false);
-        }
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      html.style.overflow = prevHtmlOverflow;
-      html.style.overscrollBehavior = prevHtmlOverscroll;
-      body.style.position = prevBodyPosition;
-      body.style.top = prevBodyTop;
-      body.style.left = prevBodyLeft;
-      body.style.right = prevBodyRight;
-      body.style.width = prevBodyWidth;
-      body.style.overflow = prevBodyOverflow;
-      body.style.overscrollBehavior = prevBodyOverscroll;
-      body.style.paddingRight = prevBodyPaddingRight;
-      if (!isFinePointer) {
-        window.scrollTo(0, scrollY);
-      }
-    };
-  }, [isWizardOpen, isWizardMinimized]);
-
-  const openAdmissionWizard = (plan?: MembershipPlan) => {
-    if (plan) setSelectedPlan(plan);
-    setApplicantName(currentUser?.name?.toUpperCase() || applicantName || '');
-    setApplicantEmail(currentUser?.email || applicantEmail || '');
-    setWizardStep(1);
-    setIsWizardMinimized(false);
-    setIsWizardOpen(true);
-  };
-
-  const finishAndOpenInstalledCard = (card?: MembershipCard) => {
-    const targetCard = card || issuedResult?.card;
-    setIsWizardOpen(false);
-    setIsWizardMinimized(false);
-    if (targetCard) {
-      saveStoredMemberCard(targetCard, currentUser?.email);
-      if (onCardIssued) {
-        onCardIssued(targetCard);
-        return;
-      }
-    }
-    if (onGoToWallet) onGoToWallet();
-    else setCurrentPage('member_card');
-  };
-
-  const closeAdmissionWizard = () => {
-    if (wizardStep === 4 && issuedResult?.card) {
-      finishAndOpenInstalledCard(issuedResult.card);
-      return;
-    }
-    setIsWizardOpen(false);
-    setIsWizardMinimized(false);
-  };
-
-  const handleWizardNextStep1 = () => {
-    if (!applicantName.trim()) {
-      showToast(c.wizMissingName, 'error');
-      return;
-    }
-    setWizardStep(2);
-  };
-
-  const handleWizardNextStep2 = () => {
-    const cleanEmail = applicantEmail.trim();
-    if (!cleanEmail || !applicantPhone.trim()) {
-      showToast(c.wizMissingContact, 'error');
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      showToast(c.wizInvalidEmail, 'error');
-      return;
-    }
-    setWizardStep(3);
-  };
-
-  const handleCompleteAdmission = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser) {
-      setIsAuthModalOpen(true);
-      showToast(c.toastAuth, 'info');
-      return;
-    }
-    const cleanName = applicantName.trim();
-    const cleanEmail = applicantEmail.trim().toLowerCase();
-
-    if (!cleanName || !cleanEmail) {
-      showToast(c.toastMissing, 'error');
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      showToast(c.wizInvalidEmail, 'error');
-      return;
-    }
-
-    const buildClientFallbackCard = (planId: string): MembershipCard => {
-      const now = new Date();
-      const nowIso = now.toISOString();
-      const exp = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
-      const seq = Math.floor(10 + Math.random() * 89);
-      const num = `LMR-2026-${String(seq).padStart(4, '0')}`;
-      return {
-        id: `card_${Date.now().toString(36)}`,
-        userId: currentUser.id,
-        planId,
-        editionId: 'edition_founders_2026',
-        cardNumber: num,
-        cardSequence: seq,
-        cardholderName: cleanName.toUpperCase(),
-        cardholderEmail: cleanEmail,
-        cardStatus: 'active',
-        issuedAt: nowIso,
-        validFrom: nowIso,
-        expiresAt: exp.toISOString(),
-        physicalCardStatus: 'in_production',
-        clubVipLevel: 'FOUNDERS_BLACK',
-        qrToken: `LMRCARD:${num}:${currentUser.id}`,
-        createdAt: nowIso,
-        updatedAt: nowIso,
-      };
-    };
-
-    try {
-      setIsSubmitting(true);
-      const planId = selectedPlan?.id || plans[0]?.id || 'plan_founders_annual';
-      let issuedCard: MembershipCard | null = null;
-      let qrDataUrl = '';
-
-      try {
-        const headers = await getAuthHeaders({ 'Content-Type': 'application/json' });
-        const res = await fetch('/api/membership/order', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            planId,
-            customerName: cleanName,
-            customerEmail: cleanEmail,
-            customerPhone: applicantPhone.trim(),
-            paymentMethod,
-            shippingAddress: {
-              street: applicantAddress.trim() || 'Remise en main propre',
-              city: applicantCity.trim() || 'Abidjan',
-              country: 'Côte d’Ivoire',
-            },
-          }),
-        });
-        const data = await res.json().catch(() => null);
-        if (res.ok && data?.success && data?.card) {
-          issuedCard = data.card as MembershipCard;
-          qrDataUrl = String(data.qrDataUrl || '');
-        }
-      } catch {
-        // Fallback to local card if backend unreachable
-      }
-
-      if (!issuedCard) {
-        issuedCard = buildClientFallbackCard(planId);
-      }
-
-      saveStoredMemberCard(issuedCard, currentUser?.email);
-      setIssuedResult({ card: issuedCard, qrDataUrl });
-      setWizardStep(4);
-      showToast(c.toastActivated, 'success');
-    } catch (err: any) {
-      showToast(err?.message || c.toastOrderErr, 'error');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const activePlan = selectedPlan || plans[0] || null;
   const planPrice = cmsConfig?.priceAmount ?? activePlan?.price ?? 50000;
   const planCurrency = cmsConfig?.currency || activePlan?.currency || 'FCFA';
@@ -1435,12 +1042,19 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
     } else if (!isCardAvailable) {
       showToast(
         isEn
-          ? 'New Black Card memberships are temporarily paused.'
-          : 'Les nouvelles adhésions Black Card sont temporairement suspendues.',
+          ? 'New LUMARÉEL Black Card memberships are temporarily paused.'
+          : 'Les nouvelles adhésions LUMARÉEL Black Card sont temporairement suspendues.',
         'info'
       );
     } else {
-      openAdmissionWizard(activePlan || undefined);
+      onStartOrder?.({
+        frontImageUrl: cardFrontUrl,
+        backImageUrl: cardBackUrl,
+        priceAmount: Number(planPrice),
+        currency: planCurrency,
+        plan: activePlan,
+        benefits: perkBeats.map((b) => ({ title: b.title, desc: b.desc })),
+      });
     }
   };
 
@@ -1668,7 +1282,7 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
               {c.walletSub}
             </motion.p>
 
-            {/* ---------- LA carte (unique) + la main droite + le portefeuille ---------- */}
+            {/* ---------- LA carte (unique) + le portefeuille ---------- */}
             <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
               <motion.div
                 style={{ y: rigY, scale: rigScale }}
@@ -1689,17 +1303,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   }}
                 >
                   <WalletBack />
-                </motion.div>
-
-                {/* COUCHE ARRIÈRE DE LA MAIN — doigts qui passent derrière la carte */}
-                <motion.div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 z-[5] origin-left"
-                  style={{ x: handX, y: handY, rotate: handTilt, opacity: handOpacity }}
-                >
-                  <div className="absolute top-[4%] left-[52%] w-[114%]">
-                    <WalletHandBack />
-                  </div>
                 </motion.div>
 
                 {/* La carte */}
@@ -1742,21 +1345,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
                   }}
                 >
                   <WalletPocket sheen={leatherSheen} />
-                </motion.div>
-
-                {/* COUCHE AVANT DE LA MAIN — pouce qui saisit le bord droit de la carte + manchette */}
-                <motion.div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 z-30 origin-left"
-                  style={{ x: handX, y: handY, rotate: handTilt, opacity: handOpacity }}
-                >
-                  <div className="absolute top-[4%] left-[52%] w-[114%]">
-                    <WalletHandFront
-                      thumbPinchY={thumbPinchY}
-                      thumbPinchRotate={thumbPinchRotate}
-                      thumbShadowOpacity={thumbShadowOpacity}
-                    />
-                  </div>
                 </motion.div>
               </motion.div>
             </div>
@@ -1833,406 +1421,6 @@ export const LumareelCardLandingPage: React.FC<LumareelCardLandingPageProps> = (
           <p className="mt-8 text-xs sm:text-sm text-black/48">{c.footnote}</p>
         </div>
       </section>
-
-      {/* =================================================================== */}
-      {/* TUNNEL D’ACTIVATION EN 4 ÉTAPES — Conservé intégralement            */}
-      {/* =================================================================== */}
-      {typeof document !== 'undefined' &&
-        createPortal(
-          <AnimatePresence>
-            {isWizardOpen && isWizardMinimized && (
-              <motion.button
-                key="black-card-wizard-pill"
-                type="button"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                onClick={() => setIsWizardMinimized(false)}
-                className="fixed bottom-24 right-4 z-[90] min-h-[44px] px-5 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black font-agrandir-extrabold text-xs shadow-2xl flex items-center gap-2 cursor-pointer"
-              >
-                <span>{c.wizTitle}</span>
-              </motion.button>
-            )}
-
-            {isWizardOpen && !isWizardMinimized && (
-              <motion.div
-                key="black-card-wizard-expanded"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.18 }}
-                role="dialog"
-                aria-modal="true"
-                aria-label={c.wizTitle}
-                className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 dark:bg-black/88 backdrop-blur-md touch-none overscroll-none"
-              >
-                <motion.div
-                  initial={{ opacity: 0, y: 24 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 24 }}
-                  transition={{ duration: 0.22, ease: EASE_CINEMA }}
-                  className="relative w-full max-w-xl max-h-[90dvh] sm:max-h-[86vh] flex flex-col overflow-hidden bg-white text-[#111111] dark:bg-[#0B0B0B] dark:text-white rounded-t-[24px] sm:rounded-[20px] border-t sm:border border-black/10 dark:border-white/[0.14] shadow-[0_24px_80px_rgba(0,0,0,0.35)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.95)] text-left touch-auto"
-                >
-                  {/* En-tête */}
-                  <div className="shrink-0 px-5 sm:px-6 pt-3 sm:pt-5 pb-4 border-b border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#0B0B0B]">
-                    <div className="w-10 h-1 rounded-full bg-black/15 dark:bg-white/20 mx-auto mb-3 sm:hidden" />
-
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-black/45 dark:text-white/50 block">
-                          {c.wizHeader}
-                        </span>
-                        <h3 className="font-agrandir-extrabold text-base sm:text-lg text-[#111111] dark:text-white mt-0.5 truncate">
-                          {c.wizTitle}
-                        </h3>
-                      </div>
-
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setIsWizardMinimized(true)}
-                          className="w-9 h-9 rounded-full bg-black/[0.05] hover:bg-black/[0.1] dark:bg-white/[0.07] dark:hover:bg-white/[0.14] flex items-center justify-center text-black/65 hover:text-black dark:text-white/70 dark:hover:text-white transition-colors cursor-pointer"
-                          aria-label={c.wizMinimize}
-                        >
-                          <Minus className="w-4 h-4" strokeWidth={1.6} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={closeAdmissionWizard}
-                          className="w-9 h-9 rounded-full bg-black/[0.05] hover:bg-black/[0.1] dark:bg-white/[0.07] dark:hover:bg-white/[0.14] flex items-center justify-center text-black/65 hover:text-black dark:text-white/70 dark:hover:text-white transition-colors cursor-pointer"
-                          aria-label={c.wizCancel}
-                        >
-                          <X className="w-4 h-4" strokeWidth={1.6} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Corps scrollable */}
-                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-6 py-5">
-                    {wizardStep === 1 && (
-                      <div className="space-y-5">
-                        {/* Aperçu de la vraie carte officielle */}
-                        <div className="w-full max-w-[300px] mx-auto">
-                          <div
-                            className="w-full rounded-[10px] bg-black ring-1 ring-black/15 dark:ring-white/15 shadow-lg overflow-hidden"
-                            style={{ aspectRatio: '85.6 / 53.98' }}
-                          >
-                            <img
-                              src={CARD_FRONT_IMG}
-                              alt="LUMARÉEL Black Card"
-                              referrerPolicy="no-referrer"
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-xs font-agrandir-semibold text-black/70 dark:text-white/75 block">
-                            {c.wiz1Label}
-                          </label>
-                          <input
-                            type="text"
-                            value={applicantName}
-                            onChange={(e) => setApplicantName(e.target.value.toUpperCase())}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleWizardNextStep1();
-                              }
-                            }}
-                            placeholder={c.wiz1Placeholder}
-                            required
-                            className="w-full min-h-[48px] px-4 py-3 rounded-[10px] bg-[#F5F5F7] dark:bg-black border border-black/15 dark:border-white/[0.16] focus:border-black dark:focus:border-white text-[#111111] dark:text-white font-mono text-sm uppercase tracking-wider outline-none transition-colors"
-                          />
-                          <p className="text-[11px] text-black/50 dark:text-white/50">
-                            {c.wiz1Hint}
-                          </p>
-                        </div>
-
-                        <div className="p-4 rounded-[12px] bg-[#F5F5F7] dark:bg-[#121212] border border-black/[0.08] dark:border-white/[0.1] flex items-center justify-between gap-4">
-                          <div className="min-w-0">
-                            <span className="text-[10px] font-agrandir-semibold text-black/50 dark:text-white/50 uppercase tracking-wider block">
-                              {c.wiz1Plan}
-                            </span>
-                            <strong className="text-sm font-agrandir-extrabold text-[#111111] dark:text-white">
-                              {activePlan?.name || c.wiz1PlanFallback}
-                            </strong>
-                            <p className="text-xs text-black/55 dark:text-white/55 mt-0.5">
-                              {c.wiz1PlanDesc}
-                            </p>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <div className="text-base sm:text-lg font-agrandir-extrabold text-[#111111] dark:text-white font-mono tabular-nums">
-                              {formattedPrice}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {wizardStep === 2 && (
-                      <div className="space-y-5">
-                        <div>
-                          <h4 className="text-base font-agrandir-extrabold text-[#111111] dark:text-white">
-                            {c.wiz2Title}
-                          </h4>
-                          <p className="text-xs text-black/55 dark:text-white/55 mt-1">
-                            {c.wiz2Sub}
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-agrandir-semibold text-black/70 dark:text-white/75 block">
-                              {c.wiz2Email}
-                            </label>
-                            <input
-                              type="email"
-                              value={applicantEmail}
-                              onChange={(e) => setApplicantEmail(e.target.value)}
-                              placeholder="email@domain.com"
-                              required
-                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[10px] bg-[#F5F5F7] dark:bg-black border border-black/15 dark:border-white/[0.16] focus:border-black dark:focus:border-white text-[#111111] dark:text-white text-sm outline-none transition-colors"
-                            />
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-agrandir-semibold text-black/70 dark:text-white/75 block">
-                              {c.wiz2Phone}
-                            </label>
-                            <input
-                              type="tel"
-                              value={applicantPhone}
-                              onChange={(e) => setApplicantPhone(e.target.value)}
-                              placeholder="+225 07 00 00 00 00"
-                              required
-                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[10px] bg-[#F5F5F7] dark:bg-black border border-black/15 dark:border-white/[0.16] focus:border-black dark:focus:border-white text-[#111111] dark:text-white text-sm outline-none transition-colors"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-agrandir-semibold text-black/70 dark:text-white/75 block">
-                              {c.wiz2City}
-                            </label>
-                            <input
-                              type="text"
-                              value={applicantCity}
-                              onChange={(e) => setApplicantCity(e.target.value)}
-                              placeholder="Abidjan"
-                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[10px] bg-[#F5F5F7] dark:bg-black border border-black/15 dark:border-white/[0.16] focus:border-black dark:focus:border-white text-[#111111] dark:text-white text-sm outline-none transition-colors"
-                            />
-                          </div>
-
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-agrandir-semibold text-black/70 dark:text-white/75 block">
-                              {c.wiz2Address}
-                            </label>
-                            <input
-                              type="text"
-                              value={applicantAddress}
-                              onChange={(e) => setApplicantAddress(e.target.value)}
-                              placeholder="Cocody, Zone 4..."
-                              className="w-full min-h-[46px] px-3.5 py-2.5 rounded-[10px] bg-[#F5F5F7] dark:bg-black border border-black/15 dark:border-white/[0.16] focus:border-black dark:focus:border-white text-[#111111] dark:text-white text-sm outline-none transition-colors"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {wizardStep === 3 && (
-                      <form
-                        id="black-card-checkout-form"
-                        noValidate
-                        onSubmit={handleCompleteAdmission}
-                        className="space-y-5"
-                      >
-                        <div>
-                          <h4 className="text-base font-agrandir-extrabold text-[#111111] dark:text-white">
-                            {c.wiz3Title}
-                          </h4>
-                          <p className="text-xs text-black/55 dark:text-white/55 mt-1">
-                            {c.wiz3Sub}
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                          {c.wiz3Methods.map((m) => {
-                            const isSelected = paymentMethod === m.id;
-                            return (
-                              <button
-                                key={m.id}
-                                type="button"
-                                onClick={() => setPaymentMethod(m.id as any)}
-                                className={`relative min-h-[78px] p-3 rounded-[12px] border text-left transition-colors cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-[#111111] border-[#111111] text-white dark:bg-white dark:border-white dark:text-black'
-                                    : 'bg-[#F5F5F7] border-black/10 text-black/75 hover:border-black/30 dark:bg-[#121212] dark:border-white/[0.12] dark:text-white/75 dark:hover:border-white/30'
-                                }`}
-                              >
-                                {isSelected && (
-                                  <span className="absolute top-2.5 right-2.5 w-4 h-4 rounded-full bg-white text-black dark:bg-black dark:text-white flex items-center justify-center">
-                                    <Check className="w-2.5 h-2.5" strokeWidth={2.5} />
-                                  </span>
-                                )}
-                                <div className="font-agrandir-extrabold text-xs sm:text-sm pr-5">
-                                  {m.label}
-                                </div>
-                                <div
-                                  className={`text-[11px] mt-1 ${
-                                    isSelected
-                                      ? 'text-white/70 dark:text-black/65'
-                                      : 'text-black/45 dark:text-white/45'
-                                  }`}
-                                >
-                                  {m.desc}
-                                </div>
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        <div className="p-4 rounded-[12px] bg-[#F5F5F7] dark:bg-[#121212] border border-black/[0.08] dark:border-white/[0.1] space-y-2.5 text-xs">
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-black/60 dark:text-white/60">
-                              {c.wiz3Membership}
-                            </span>
-                            <span className="font-mono font-semibold text-[#111111] dark:text-white tabular-nums">
-                              {formattedPrice}
-                            </span>
-                          </div>
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-black/60 dark:text-white/60">
-                              {c.wiz3CardDelivery}
-                            </span>
-                            <span className="font-agrandir-semibold text-[#111111] dark:text-white">
-                              {c.wiz3Included}
-                            </span>
-                          </div>
-                          <div className="pt-2.5 border-t border-black/10 dark:border-white/10 flex items-center justify-between gap-3 text-sm">
-                            <span className="font-agrandir-extrabold text-[#111111] dark:text-white">
-                              {c.wiz3Total}
-                            </span>
-                            <span className="font-agrandir-extrabold font-mono text-[#111111] dark:text-white tabular-nums">
-                              {formattedPrice}
-                            </span>
-                          </div>
-                        </div>
-                      </form>
-                    )}
-
-                    {wizardStep === 4 && issuedResult && (
-                      <div className="py-4 text-center space-y-5">
-                        <div className="w-12 h-12 rounded-full bg-[#111111] text-white dark:bg-white dark:text-black flex items-center justify-center mx-auto">
-                          <CheckCircle2 className="w-6 h-6" strokeWidth={1.8} />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <span className="text-[10px] font-agrandir-semibold uppercase tracking-[0.22em] text-black/50 dark:text-white/50 block">
-                            {c.wiz4Kicker}
-                          </span>
-                          <h4 className="font-agrandir-extrabold text-xl text-[#111111] dark:text-white">
-                            {c.wiz4Title}
-                          </h4>
-                          <p className="text-xs sm:text-sm text-black/60 dark:text-white/60 max-w-sm mx-auto leading-relaxed">
-                            {c.wiz4Desc(issuedResult.card.cardNumber)}
-                          </p>
-                        </div>
-
-                        <dl className="text-left rounded-[12px] bg-[#F5F5F7] dark:bg-[#121212] border border-black/[0.08] dark:border-white/[0.1] divide-y divide-black/[0.08] dark:divide-white/[0.1] text-xs px-4">
-                          <div className="py-3 flex items-center justify-between gap-4">
-                            <dt className="text-black/55 dark:text-white/55">{c.wiz4Holder}</dt>
-                            <dd className="font-agrandir-bold text-[#111111] dark:text-white uppercase">
-                              {issuedResult.card.cardholderName}
-                            </dd>
-                          </div>
-                          <div className="py-3 flex items-center justify-between gap-4">
-                            <dt className="text-black/55 dark:text-white/55">{c.wiz4Number}</dt>
-                            <dd className="font-mono text-[#111111] dark:text-white">
-                              {issuedResult.card.cardNumber}
-                            </dd>
-                          </div>
-                          <div className="py-3 flex items-center justify-between gap-4">
-                            <dt className="text-black/55 dark:text-white/55">{c.wiz4Physical}</dt>
-                            <dd className="font-agrandir-semibold text-[#111111] dark:text-white">
-                              {c.wiz4Prep}
-                            </dd>
-                          </div>
-                        </dl>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Pied fixe d’action */}
-                  <div className="shrink-0 px-5 sm:px-6 py-4 border-t border-black/[0.08] dark:border-white/[0.1] bg-white dark:bg-[#0B0B0B]">
-                    {wizardStep === 1 && (
-                      <button
-                        type="button"
-                        onClick={handleWizardNextStep1}
-                        className="w-full min-h-[48px] rounded-full bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:hover:bg-neutral-200 dark:text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer lum-press"
-                      >
-                        {c.wiz1Next}
-                      </button>
-                    )}
-
-                    {wizardStep === 2 && (
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setWizardStep(1)}
-                          className="min-h-[48px] px-5 rounded-full border border-black/15 dark:border-white/20 text-[#111111] dark:text-white font-agrandir-semibold text-sm transition-colors cursor-pointer"
-                        >
-                          {c.wiz2Back}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleWizardNextStep2}
-                          className="flex-1 min-h-[48px] rounded-full bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:hover:bg-neutral-200 dark:text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer lum-press"
-                        >
-                          {c.wiz2Next}
-                        </button>
-                      </div>
-                    )}
-
-                    {wizardStep === 3 && (
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setWizardStep(2)}
-                          disabled={isSubmitting}
-                          className="min-h-[48px] px-5 rounded-full border border-black/15 dark:border-white/20 text-[#111111] dark:text-white font-agrandir-semibold text-sm transition-colors cursor-pointer disabled:opacity-50"
-                        >
-                          {c.wiz2Back}
-                        </button>
-                        <button
-                          type="submit"
-                          form="black-card-checkout-form"
-                          disabled={isSubmitting}
-                          className="flex-1 min-h-[48px] rounded-full bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:hover:bg-neutral-200 dark:text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer disabled:opacity-60 lum-press"
-                        >
-                          {isSubmitting ? c.wiz3Submitting : c.wiz3Submit}
-                        </button>
-                      </div>
-                    )}
-
-                    {wizardStep === 4 && (
-                      <button
-                        type="button"
-                        onClick={() => finishAndOpenInstalledCard()}
-                        className="w-full min-h-[48px] rounded-full bg-[#111111] hover:bg-black/85 text-white dark:bg-white dark:hover:bg-neutral-200 dark:text-black font-agrandir-extrabold text-sm transition-colors cursor-pointer lum-press"
-                      >
-                        {c.wiz4Cta}
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>,
-          document.body
-        )}
     </div>
   );
 };

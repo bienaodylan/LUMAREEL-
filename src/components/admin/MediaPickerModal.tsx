@@ -28,7 +28,7 @@ interface MediaPickerModalProps {
 const FOLDER_OPTIONS: { value: 'all' | MediaAssetItem['folder']; label: string }[] = [
   { value: 'all', label: 'Tous' },
   { value: 'homepage', label: 'Accueil' },
-  { value: 'black_card', label: 'Black Card' },
+  { value: 'black_card', label: 'LUMARÉEL Black Card' },
   { value: 'concerts', label: 'Concerts' },
   { value: 'souvenirs', label: 'Souvenirs' },
   { value: 'rewards', label: 'Récompenses' },

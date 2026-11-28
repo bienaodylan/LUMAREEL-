@@ -133,7 +133,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({ showToast }) => {
           <p className="text-[10px] font-agrandir-semibold uppercase tracking-[0.2em] text-neutral-400">
             Publication en temps réel
           </p>
-          <h1 className="text-2xl font-agrandir-extrabold text-white mt-1">CMS · Vitrine & Black Card</h1>
+          <h1 className="text-2xl font-agrandir-extrabold text-white mt-1">CMS · Vitrine & LUMARÉEL Black Card</h1>
         </div>
 
         <div className="flex items-center gap-1.5 bg-[#111] border border-white/10 p-1 rounded-2xl w-fit">
@@ -271,7 +271,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({ showToast }) => {
                 <div className="aspect-[1.586/1] rounded-xl bg-black border border-white/10 overflow-hidden flex items-center justify-center p-2">
                   <img
                     src={blackCard.frontImageUrl}
-                    alt="Recto Black Card"
+                    alt="Recto LUMARÉEL Black Card"
                     className="w-full h-full object-contain"
                   />
                 </div>
@@ -298,7 +298,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({ showToast }) => {
                 <div className="aspect-[1.586/1] rounded-xl bg-black border border-white/10 overflow-hidden flex items-center justify-center p-2">
                   <img
                     src={blackCard.backImageUrl}
-                    alt="Verso Black Card"
+                    alt="Verso LUMARÉEL Black Card"
                     className="w-full h-full object-contain"
                   />
                 </div>
@@ -403,7 +403,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({ showToast }) => {
               <div>
                 <h2 className="text-sm font-agrandir-extrabold text-white">Les 7 avantages officiels</h2>
                 <p className="text-[11px] text-neutral-400 mt-0.5">
-                  Affichés dans le récit de la Black Card et l’espace carte membre.
+                  Affichés dans le récit de la LUMARÉEL Black Card et l’espace carte membre.
                 </p>
               </div>
               <span className="flex items-center gap-1 text-[11px] text-emerald-400 font-agrandir-bold">
@@ -447,7 +447,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({ showToast }) => {
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-agrandir-extrabold transition-colors cursor-pointer disabled:opacity-50"
               >
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                <span>Enregistrer la Black Card</span>
+                <span>Enregistrer la LUMARÉEL Black Card</span>
               </button>
             </div>
           </div>
@@ -458,7 +458,7 @@ export const AdminCmsView: React.FC<AdminCmsViewProps> = ({ showToast }) => {
         isOpen={pickerTarget !== null}
         onClose={() => setPickerTarget(null)}
         defaultFolder="black_card"
-        title={pickerTarget === 'frontImageUrl' ? 'Choisir le recto de la Black Card' : 'Choisir le verso de la Black Card'}
+        title={pickerTarget === 'frontImageUrl' ? 'Choisir le recto de la LUMARÉEL Black Card' : 'Choisir le verso de la LUMARÉEL Black Card'}
         onSelect={(url) => {
           if (!blackCard || !pickerTarget) return;
           setBlackCard({ ...blackCard, [pickerTarget]: url });

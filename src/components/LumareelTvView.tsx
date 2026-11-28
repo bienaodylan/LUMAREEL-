@@ -811,7 +811,7 @@ export const LumareelTvView: React.FC = () => {
                 className="w-full min-h-[38px] px-4 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.12] text-white text-[11.5px] font-agrandir-semibold inline-flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
               >
                 <CreditCard className="w-3.5 h-3.5 text-[#D4AF6A]" strokeWidth={1.6} />
-                <span>{isEn ? 'See Black Card' : 'Voir la Black Card'}</span>
+                <span>{isEn ? 'See LUMARÉEL Black Card' : 'Voir la LUMARÉEL Black Card'}</span>
               </button>
             </div>
           </div>
@@ -842,8 +842,8 @@ export const LumareelTvView: React.FC = () => {
 
             <p className="text-sm lg:text-base text-[#D0D0D0] leading-relaxed">
               {isEn
-                ? 'Live concerts, backstage vlogs and artist interviews. Included with the Black Card or via TV Pass.'
-                : 'Concerts filmés, coulisses et interviews d’artistes. Inclus avec la Black Card ou via le TV Pass.'}
+                ? 'Live concerts, backstage vlogs and artist interviews. Included with the LUMARÉEL Black Card or via TV Pass.'
+                : 'Concerts filmés, coulisses et interviews d’artistes. Inclus avec la LUMARÉEL Black Card ou via le TV Pass.'}
             </p>
 
             <div className="pt-1 flex flex-wrap items-center gap-3">
@@ -862,7 +862,7 @@ export const LumareelTvView: React.FC = () => {
                 className="min-h-[44px] px-5 rounded-full bg-white/[0.08] hover:bg-white/[0.15] border border-white/[0.18] text-white text-sm font-agrandir-semibold inline-flex items-center gap-2 transition-colors cursor-pointer"
               >
                 <CreditCard className="w-4 h-4 text-[#D4AF6A]" strokeWidth={1.6} />
-                <span>{isEn ? 'See Black Card' : 'Voir la Black Card'}</span>
+                <span>{isEn ? 'See LUMARÉEL Black Card' : 'Voir la LUMARÉEL Black Card'}</span>
               </button>
             </div>
           </div>
@@ -914,7 +914,7 @@ export const LumareelTvView: React.FC = () => {
               />
               <EditorialRow
                 index="03"
-                title={isEn ? 'Included with Black Card' : 'Inclus avec la Black Card'}
+                title={isEn ? 'Included with LUMARÉEL Black Card' : 'Inclus avec la LUMARÉEL Black Card'}
                 subtitle={isEn ? 'Cardholders enter directly.' : 'Accès direct sans abonnement en plus.'}
                 rightText={isEn ? 'See Card' : 'Voir la carte'}
                 onClick={() => setCurrentPage('member_card')}

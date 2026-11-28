@@ -449,7 +449,7 @@ function createDefaultStore(): EcosystemStore {
       photoKey: 'souv_06',
       photoUrl: '/media-assets/black_card_hero_night_tall_1794694902515.jpg',
       title: 'Après-concert — Nuit blanche',
-      caption: 'Ambiance feutrée entre membres Black Card après la dernière note.',
+      caption: 'Ambiance feutrée entre membres LUMARÉEL Black Card après la dernière note.',
       artist: 'Himra',
       eventId: 'evt-himra-palais-2026',
       eventTitle: 'HIMRA — NUIT NOIRE AU PALAIS',
@@ -588,12 +588,12 @@ function createDefaultStore(): EcosystemStore {
       heroSubFr: 'Plus qu’une présence. Une expérience privilégiée dans l’univers LUMARÉEL.',
       heroTitleEn: 'Concerts. Done differently.',
       heroSubEn: 'More than attendance. A privileged way into the LUMARÉEL universe.',
-      ctaOrderFr: 'Obtenir ma Black Card',
-      ctaOrderEn: 'Get my Black Card',
+      ctaOrderFr: 'Obtenir ma LUMARÉEL Black Card',
+      ctaOrderEn: 'Get my LUMARÉEL Black Card',
       climaxTitleFr: 'La carte. L’entrée. Les premiers rangs.',
-      climaxSubFr: 'Présentez simplement votre Black Card et vivez chaque instant.',
+      climaxSubFr: 'Présentez simplement votre LUMARÉEL Black Card et vivez chaque instant.',
       climaxTitleEn: 'The card. The entrance. The front row.',
-      climaxSubEn: 'Simply present your Black Card and step into the night.',
+      climaxSubEn: 'Simply present your LUMARÉEL Black Card and step into the night.',
       benefits: [
         {
           id: 'priority_queue',
@@ -653,7 +653,7 @@ function createDefaultStore(): EcosystemStore {
       {
         key: 'referral_referrer',
         label: 'Parrainage validé (Parrain)',
-        description: 'Crédité automatiquement dès le premier achat billet ou activation Black Card du filleul.',
+        description: 'Crédité automatiquement dès le premier achat billet ou activation LUMARÉEL Black Card du filleul.',
         points: 500,
         validationTrigger: 'first_paid_order_or_card',
         maxPerUser: 50,
@@ -693,7 +693,7 @@ function createDefaultStore(): EcosystemStore {
       {
         key: 'black_card_activation',
         label: 'Activation LUMARÉEL Black Card',
-        description: 'Crédité automatiquement lors de l’activation de votre Black Card.',
+        description: 'Crédité automatiquement lors de l’activation de votre LUMARÉEL Black Card.',
         points: 500,
         validationTrigger: 'black_card_active',
         maxPerUser: 1,
@@ -772,14 +772,14 @@ function createDefaultStore(): EcosystemStore {
       },
       {
         id: 'rew_black_card_credit',
-        title: 'Remise 15 000 FCFA sur la Black Card',
+        title: 'Remise 15 000 FCFA sur la LUMARÉEL Black Card',
         description: 'Réduis le montant de ton adhésion annuelle LUMARÉEL Black Card.',
-        benefitLabel: '-15 000 FCFA Black Card',
+        benefitLabel: '-15 000 FCFA LUMARÉEL Black Card',
         pointsCost: 1500,
         stockLimit: 50,
         redeemedCount: 0,
         coverUrl: '/assets/aistudio/IMG_6112_896cf3ce.png',
-        conditions: 'Non cumulable avec d’autres offres Black Card.',
+        conditions: 'Non cumulable avec d’autres offres LUMARÉEL Black Card.',
         isActive: true,
         sortOrder: 4,
         createdAt: now,
@@ -1234,7 +1234,7 @@ class EcosystemService {
     return {
       applied: true,
       referral,
-      message: 'Code de parrainage enregistré ! Il sera validé automatiquement après ton premier billet ou Black Card.',
+      message: 'Code de parrainage enregistré ! Il sera validé automatiquement après ton premier billet ou ta LUMARÉEL Black Card.',
     };
   }
 
@@ -1289,7 +1289,7 @@ class EcosystemService {
       points: finalPoints,
       reason:
         params.triggerType === 'black_card'
-          ? `Parrainage validé · ${pending.refereeName} a activé sa Black Card`
+          ? `Parrainage validé · ${pending.refereeName} a activé sa LUMARÉEL Black Card`
           : `Parrainage validé · Premier concert de ${pending.refereeName}`,
       source: 'referral',
       triggerRef: pending.id,

@@ -81,7 +81,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     {
       heading: 'CONTENU & MÉDIAS',
       items: [
-        { id: 'cms', label: 'CMS · Accueil & Black Card', icon: Sliders, badge: 'LIVE' },
+        { id: 'cms', label: 'CMS · Accueil & LUMARÉEL Black Card', icon: Sliders, badge: 'LIVE' },
         { id: 'media_library', label: 'Médiathèque Centrale', icon: FolderOpen, badge: null },
         { id: 'souvenirs', label: 'Souvenirs & Collections', icon: Images, badge: null },
         { id: 'archives', label: 'Archives & Vidéos', icon: Film, badge: archivesCount > 0 ? String(archivesCount) : null },

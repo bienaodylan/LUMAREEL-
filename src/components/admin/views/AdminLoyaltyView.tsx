@@ -399,7 +399,7 @@ export const AdminLoyaltyView: React.FC<AdminLoyaltyViewProps> = ({ showToast })
                 </h2>
                 {transactions.length === 0 ? (
                   <p className="text-xs text-neutral-500 py-8 text-center">
-                    Aucune transaction enregistrée. Les écritures sont créées automatiquement par les achats, activations Black Card et parrainages validés.
+                    Aucune transaction enregistrée. Les écritures sont créées automatiquement par les achats, activations LUMARÉEL Black Card et parrainages validés.
                   </p>
                 ) : (
                   <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">

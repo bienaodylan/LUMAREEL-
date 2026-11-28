@@ -91,7 +91,7 @@ export const DesktopTopNav: React.FC = () => {
     {
       id: 'black_card',
       page: 'member_card',
-      label: 'Black Card',
+      label: 'LUMARÉEL Black Card',
       active: ['member_card', 'card', 'card_verify', 'rewards'].includes(currentPage),
     },
     {

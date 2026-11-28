@@ -195,12 +195,12 @@ export function buildLumareelExperiences(
     },
     {
       id: 'black_card',
-      categoryFr: 'Expérience VIP · Black Card',
-      categoryEn: 'VIP Experience · Black Card',
-      titleFr: 'Salon privé & accès prioritaire Black Card',
-      titleEn: 'Private lounge & Black Card priority',
-      shortDescFr: 'Accueil dédié, entrée coupe-file et quota réservé aux membres Black Card actifs.',
-      shortDescEn: 'Dedicated hospitality, fast-track entry and reserved allocation for active Black Card members.',
+      categoryFr: 'Expérience VIP · LUMARÉEL Black Card',
+      categoryEn: 'VIP Experience · LUMARÉEL Black Card',
+      titleFr: 'Salon privé & accès prioritaire LUMARÉEL Black Card',
+      titleEn: 'Private lounge & LUMARÉEL Black Card priority',
+      shortDescFr: 'Accueil dédié, entrée coupe-file et quota réservé aux membres LUMARÉEL Black Card actifs.',
+      shortDescEn: 'Dedicated hospitality, fast-track entry and reserved allocation for active LUMARÉEL Black Card members.',
       fullDescFr:
         'Un espace calme et soigné pensé pour vivre le concert dans les meilleures conditions : entrée dédiée, hôte d’accueil et contingent prioritaire même lorsque la billetterie grand public affiche complet.',
       fullDescEn:

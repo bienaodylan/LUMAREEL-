@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { LumareelWalletView } from './LumareelWalletView';
 import { LumareelCardLandingPage } from './LumareelCardLandingPage';
+import { LumareelCardOrderPage, CardOrderContextData } from './LumareelCardOrderPage';
 import { supabase } from '../lib/supabaseClient';
 import { MembershipCard } from '../types';
 import { loadStoredMemberCard, saveStoredMemberCard } from '../utils/memberCardStorage';
@@ -9,8 +10,8 @@ import { SkeletonBlock } from './ui/LumareelKit';
 
 /**
  * Espace Carte LUMARÉEL :
- * - Avant adhésion : affiche uniquement la page de présentation (Landing Page).
- * - Dès que la carte est créée : la landing page disparaît pour afficher directement Ta carte (avec Billets, Invitations, Activités).
+ * - Avant adhésion : page de présentation (Landing Page) puis page dédiée d’acquisition.
+ * - Dès que la carte est créée : affiche directement Ta LUMARÉEL Black Card (avec Billets, Invitations, Activités).
  */
 export const LumareelMemberCardPage: React.FC = () => {
   const { currentUser } = useApp();
@@ -23,6 +24,8 @@ export const LumareelMemberCardPage: React.FC = () => {
     () => initialLocalCard?.cardNumber
   );
   const [ownedCard, setOwnedCard] = useState<MembershipCard | null>(() => initialLocalCard);
+  const [viewMode, setViewMode] = useState<'landing' | 'order'>('landing');
+  const [orderContext, setOrderContext] = useState<CardOrderContextData | null>(null);
 
   const loadStatus = useCallback(async () => {
     const localCard = loadStoredMemberCard(currentUser?.email);
@@ -89,8 +92,24 @@ export const LumareelMemberCardPage: React.FC = () => {
     setOwnedCard(card);
     setActiveCardNumber(card.cardNumber);
     setMembershipStatus('owned');
+    setViewMode('landing');
     if (typeof window !== 'undefined') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleStartOrder = (context: CardOrderContextData) => {
+    setOrderContext(context);
+    setViewMode('order');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  };
+
+  const handleBackToLanding = () => {
+    setViewMode('landing');
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
     }
   };
 
@@ -104,10 +123,17 @@ export const LumareelMemberCardPage: React.FC = () => {
         </div>
       ) : membershipStatus === 'owned' && ownedCard ? (
         <LumareelWalletView embedded initialCard={ownedCard} />
+      ) : viewMode === 'order' ? (
+        <LumareelCardOrderPage
+          orderContext={orderContext}
+          onBack={handleBackToLanding}
+          onCardIssued={handleCardIssued}
+        />
       ) : (
         <LumareelCardLandingPage
           hasActiveCard={false}
           activeCardNumber={activeCardNumber}
+          onStartOrder={handleStartOrder}
           onCardIssued={handleCardIssued}
           onGoToWallet={() => {
             const localCard = ownedCard || loadStoredMemberCard(currentUser?.email);

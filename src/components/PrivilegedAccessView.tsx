@@ -121,7 +121,7 @@ export const PrivilegedAccessView: React.FC = () => {
             { id: 'all', label: isEn ? 'All' : 'Tout' },
             { id: 'available', label: isEn ? 'Available' : 'Disponibles' },
             { id: 'invitations', label: isEn ? 'Invitations & Meets' : 'Invitations & Rencontres' },
-            { id: 'members', label: isEn ? 'Members & Black Card' : 'Membres & Black Card' },
+            { id: 'members', label: isEn ? 'Members & LUMARÉEL Black Card' : 'Membres & LUMARÉEL Black Card' },
           ] as { id: ExperienceFilter; label: string }[]
         ).map((pill) => {
           const active = filter === pill.id;

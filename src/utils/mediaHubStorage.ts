@@ -408,7 +408,7 @@ export const INITIAL_MEDIA_HUB_ITEMS: MediaHubItem[] = [
     visualContextRole: 'none',
     submittedByName: 'Équipe LUMARÉEL',
     submittedByRole: 'super_admin',
-    notes: ['Réservé aux membres Black Card.'],
+    notes: ['Réservé aux membres LUMARÉEL Black Card.'],
     createdAt: '2026-11-18T23:45:00Z',
   },
   {

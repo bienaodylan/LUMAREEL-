@@ -295,8 +295,8 @@ export const RewardsHubView: React.FC<RewardsHubViewProps> = ({ initialTab }) =>
                 </p>
                 <p className="text-xs text-black/55 dark:text-white/55">
                   {isEn
-                    ? 'Your Gift Points are credited automatically once your friend completes their first ticket order or Black Card.'
-                    : 'Tes Gift Points sont crédités automatiquement dès le premier billet ou la Black Card validée par ton ami.'}
+                    ? 'Your Gift Points are credited automatically once your friend completes their first ticket order or LUMARÉEL Black Card.'
+                    : 'Tes Gift Points sont crédités automatiquement dès le premier billet ou la LUMARÉEL Black Card validée par ton ami.'}
                 </p>
                 <p className="pt-1 font-mono text-xs text-black/80 dark:text-white/85 truncate">
                   {referralCode}

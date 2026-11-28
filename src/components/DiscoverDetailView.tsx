@@ -424,8 +424,8 @@ export const DiscoverDetailView: React.FC = () => {
                 >
                   {matchedExp.mode === 'black_card' && !activeBlackCard
                     ? isEn
-                      ? 'Discover Black Card'
-                      : 'Découvrir la Black Card'
+                      ? 'Discover LUMARÉEL Black Card'
+                      : 'Découvrir la LUMARÉEL Black Card'
                     : matchedExp.mode === 'points' && matchedExp.pointsCost
                     ? `${getExperienceActionLabel(matchedExp.actionType, isEn)} · ${matchedExp.pointsCost} pts`
                     : getExperienceActionLabel(matchedExp.actionType, isEn)}
