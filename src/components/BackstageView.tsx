@@ -64,9 +64,15 @@ export const BackstageView: React.FC<{ embedded?: boolean }> = () => {
   const rest = editorialItems.filter((item) => item.id !== featured?.id);
   const openMedia = (item: DisplayMedia) => {
     if (!item.allowed) {
-      if (item.access_tier === 'club' && !currentUser) setIsAuthModalOpen(true);
+      const requirement = item.access_note || (
+        item.access_tier === 'card' ? (isEn ? 'This content is reserved for LUMARÉEL Card holders.' : 'Ce contenu est réservé aux détenteurs de la LUMARÉEL Card.')
+        : item.access_tier === 'tv_pass' ? (isEn ? 'A LUMARÉEL TV Pass is required.' : 'Un TV Pass LUMARÉEL est nécessaire.')
+        : item.access_tier === 'vip' ? (isEn ? 'VIP access or a valid event ticket is required.' : 'Un accès VIP ou un billet valide est nécessaire.')
+        : (isEn ? 'Sign in to access this Club content.' : 'Connectez-vous pour accéder à ce contenu du Club.')
+      );
+      showToast(requirement, 'info');
+      if (item.access_tier === 'club' || !currentUser) setIsAuthModalOpen(true);
       else if (item.access_tier === 'card' || item.access_tier === 'vip') setCurrentPage('member_card');
-      else setIsAuthModalOpen(true);
       return;
     }
     setSelected(item);
@@ -130,7 +136,7 @@ const MediaCard: React.FC<{ item: DisplayMedia; onOpen: (item: DisplayMedia) => 
     <button onClick={() => onOpen(item)} className="group relative block w-full text-left">
       <div className="relative aspect-[16/10] overflow-hidden bg-[#111]">
         {item.previewUrl ? <img src={item.previewUrl} alt={item.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"/> : <div className="absolute inset-0 bg-neutral-900"/>}
-        {!item.allowed && <span className="absolute inset-0 flex items-center justify-center bg-black/35"><Lock size={22}/></span>}
+        {!item.allowed && <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40"><Lock size={20}/><span className="max-w-[85%] text-center text-[10px] text-white/90">{item.access_note || (item.access_tier === 'card' ? 'LUMARÉEL Card' : item.access_tier === 'tv_pass' ? 'TV Pass' : item.access_tier === 'vip' ? 'Accès VIP' : 'Membres du Club')}</span></span>}
         {item.allowed && item.media_type === 'video' && <span className="absolute inset-0 flex items-center justify-center"><span className="h-12 w-12 rounded-full bg-black/60 flex items-center justify-center"><Play size={18}/></span></span>}
       </div>
       <p className="mt-3 text-[10px] uppercase tracking-widest text-neutral-500">{categoryLabel[item.category] || 'BACKSTAGE'}{item.artist_name ? ` · ${item.artist_name}` : ''}</p>
