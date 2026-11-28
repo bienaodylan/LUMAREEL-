@@ -425,7 +425,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (typeof window !== 'undefined') {
           const referralCode = new URLSearchParams(window.location.search).get('ref');
           if (referralCode) {
-            await supabase.rpc('club_apply_referral_code', { p_code: referralCode }).catch(() => ({ error: null }));
+            try { await supabase.rpc('club_apply_referral_code', { p_code: referralCode }); } catch { /* ignore invalid or already-used referral links */ }
             const cleanUrl = new URL(window.location.href);
             cleanUrl.searchParams.delete('ref');
             window.history.replaceState(window.history.state, '', cleanUrl.toString());
