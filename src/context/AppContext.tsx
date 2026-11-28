@@ -422,6 +422,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const { data: authData } = await supabase.auth.getUser();
         const authUser = authData.user;
         if (!authUser || authUser.id !== userId) return;
+        if (typeof window !== 'undefined') {
+          const referralCode = new URLSearchParams(window.location.search).get('ref');
+          if (referralCode) {
+            await supabase.rpc('club_apply_referral_code', { p_code: referralCode }).catch(() => ({ error: null }));
+            const cleanUrl = new URL(window.location.href);
+            cleanUrl.searchParams.delete('ref');
+            window.history.replaceState(window.history.state, '', cleanUrl.toString());
+          }
+        }
         const email = (authUser.email || '').toLowerCase();
         const isSuperAdmin = email === 'bienaodylan428@gmail.com';
         const { data: profile } = await supabase.from('users').select('id,email,name,role,email_verified').eq('email', email).maybeSingle();
